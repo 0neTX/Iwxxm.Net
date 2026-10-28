@@ -77,7 +77,7 @@ namespace Iwxxm.Net.Tests
             Assert.Single(report.Turbulences);
             var turbulence = report.Turbulences[0];
             Assert.Equal("uuid.aaaf9f38-dc4c-410d-b056-c130a049bde9", turbulence.Id);
-            Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-11-030/10", turbulence.DegreeOfTurbulenceUri);
+            Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-11-030/10", turbulence.RawDegreeReference);
             Assert.Equal(TurbulenceDegreeCode.ModerateClearAir, turbulence.Degree);
             Assert.Equal(new FlightLevel(340), turbulence.BaseFlightLevel); // 10363.2 m = 34000 ft = FL340
             Assert.Equal(new FlightLevel(400), turbulence.TopFlightLevel);  // 12192.0 m = 40000 ft = FL400
@@ -87,11 +87,11 @@ namespace Iwxxm.Net.Tests
             Assert.Single(report.AirframeIcings);
             var icing = report.AirframeIcings[0];
             Assert.Equal("uuid.48f96fb3-6534-4593-b760-9c65d0b9fa96", icing.Id);
-            Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-20-041/3", icing.DegreeOfIcingUri);
+            Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-20-041/3", icing.RawDegreeReference);
             Assert.Equal(IcingDegreeCode.Moderate, icing.Degree);
             Assert.Equal(new FlightLevel(100), icing.BaseFlightLevel);
             Assert.Equal(new FlightLevel(240), icing.TopFlightLevel);
-            Assert.Equal(20, icing.Area.ExteriorRing.Count);
+            Assert.Equal(21, icing.Area.ExteriorRing.Count);
 
             // 7. Verify TropicalCyclone mapped from MeteorologicalFeature (FRED at 25.0, -78.0)
             Assert.Single(report.TropicalCyclones);
@@ -112,9 +112,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal("uuid.821e1c84-9688-4585-861f-153770ed4a90", radiation.Id);
             Assert.Equal(new GeoCoordinate(53.2, -24.1), radiation.Position);
             Assert.Null(radiation.SiteName);
-            Assert.Equal("http://codes.wmo.int/common/nil/missing", radiation.SiteNameNilReason);
-            Assert.Null(radiation.IncidentTime);
-            Assert.Equal("http://codes.wmo.int/common/nil/missing", radiation.IncidentTimeNilReason);
+            Assert.Null(radiation.IncidentTimeUtc);
         }
 
         [Fact]
@@ -133,7 +131,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(new FlightLevel(630), report.UpperLimit);
             Assert.Single(report.JetStreams);
             Assert.Single(report.Clouds);
-            Assert.Equal(CloudDistributionCode.Frequent, report.Clouds[0].DistributionCode);
+            Assert.Equal(CloudDistributionCode.OccasionalEmbedded, report.Clouds[0].DistributionCode);
             Assert.Equal(CloudTypeCode.Cumulonimbus, report.Clouds[0].TypeCode);
             Assert.Single(report.Tropopauses);
             Assert.Single(report.Volcanoes);

@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Xml.Schema;
 using System.Xml.Serialization;
 
 namespace Iwxxm20252.Generated
@@ -63,7 +64,7 @@ namespace Iwxxm20252.Generated
         [XmlElement("identifier", Namespace = XmlNamespaces.Gml)]
         public CodeWithAuthorityType? Identifier { get; set; }
 
-        [XmlAttribute("id", Namespace = XmlNamespaces.Gml, DataType = "ID")]
+        [XmlAttribute("id", Namespace = XmlNamespaces.Gml, Form = XmlSchemaForm.Qualified, DataType = "ID")]
         public string Id { get; set; } = string.Empty;
     }
 
@@ -72,10 +73,10 @@ namespace Iwxxm20252.Generated
     [XmlType("ReferenceType", Namespace = XmlNamespaces.Gml)]
     public partial class ReferenceType
     {
-        [XmlAttribute("href", Namespace = XmlNamespaces.Xlink, DataType = "anyURI")]
+        [XmlAttribute("href", Namespace = XmlNamespaces.Xlink, Form = XmlSchemaForm.Qualified, DataType = "anyURI")]
         public string? Href { get; set; }
 
-        [XmlAttribute("title", Namespace = XmlNamespaces.Xlink)]
+        [XmlAttribute("title", Namespace = XmlNamespaces.Xlink, Form = XmlSchemaForm.Qualified)]
         public string? Title { get; set; }
 
         [XmlAttribute("nilReason")]
@@ -649,7 +650,7 @@ namespace Iwxxm20252.Generated
         [XmlElement("MeteorologicalFeature", Namespace = XmlNamespaces.Iwxxm)]
         public MeteorologicalFeatureType? MeteorologicalFeature { get; set; }
 
-        [XmlAttribute("href", Namespace = XmlNamespaces.Xlink, DataType = "anyURI")]
+        [XmlAttribute("href", Namespace = XmlNamespaces.Xlink, Form = XmlSchemaForm.Qualified, DataType = "anyURI")]
         public string? Href { get; set; }
     }
 
