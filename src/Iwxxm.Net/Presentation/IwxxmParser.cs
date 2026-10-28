@@ -193,6 +193,42 @@ namespace Iwxxm.Net.Presentation
             }
         }
 
+        /// <summary>
+        /// Validates, parses, and exports any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c>
+        /// from an XML stream directly to an RFC 7946 GeoJSON <c>FeatureCollection</c> string.
+        /// </summary>
+        public static Result<string> ParseToGeoJson(Stream xmlStream, GeoJsonExportOptions? options = null)
+        {
+            var result = Parse(xmlStream);
+            return result.IsSuccess
+                ? Result<string>.Success(IwxxmGeoJsonExporter.ToGeoJson(result.Value, options))
+                : Result<string>.Failure(result.Errors);
+        }
+
+        /// <summary>
+        /// Validates, parses, and exports any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c>
+        /// from an XML string directly to an RFC 7946 GeoJSON <c>FeatureCollection</c> string.
+        /// </summary>
+        public static Result<string> ParseToGeoJson(string xmlContent, GeoJsonExportOptions? options = null)
+        {
+            var result = Parse(xmlContent);
+            return result.IsSuccess
+                ? Result<string>.Success(IwxxmGeoJsonExporter.ToGeoJson(result.Value, options))
+                : Result<string>.Failure(result.Errors);
+        }
+
+        /// <summary>
+        /// Validates, parses, and exports any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c>
+        /// XML file from disk directly to an RFC 7946 GeoJSON <c>FeatureCollection</c> string.
+        /// </summary>
+        public static Result<string> ParseFileToGeoJson(string filePath, GeoJsonExportOptions? options = null)
+        {
+            var result = ParseFile(filePath);
+            return result.IsSuccess
+                ? Result<string>.Success(IwxxmGeoJsonExporter.ToGeoJson(result.Value, options))
+                : Result<string>.Failure(result.Errors);
+        }
+
         /// <inheritdoc />
         public Result<IIwxxmReport> Process(Stream xmlStream)
         {

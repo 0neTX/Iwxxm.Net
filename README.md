@@ -35,6 +35,7 @@
   1. **Structural Validation**: `XmlReaderSettings` against a lazily compiled, thread-safe `XmlSchemaSet` with XXE/DTD protection (`DtdProcessing.Prohibit`).
   2. **Business Rule & RDF Code-List Validation**: Executes precompiled Schematron XSLT rules via `XslCompiledTransform` (including offline `document('../Codelists/codes.wmo.int-49-2.rdf')` lookups and WAFS BUFR code-table checks) and extracts SVRL (`<svrl:failed-assert>`) findings.
 - **Native Spatial & WMO Code Value Objects**: Translates GML 3.2.1 geometries (`gml:Curve`, `gml:CubicSpline`, `gml:LineStringSegment`, `gml:Polygon`, `gml:PolygonPatch` with interior holes `gml:interior`, `gml:CircleByCenterPoint`, `gml:Point`, `gml:posList`, `gml:pos`) and AIXM 5.1.1 `AirspaceVolume` bounds into immutable Domain Value Objects (`GeoCoordinate`, `GeoPolygon`, `FlightLevel`).
+- **Native RFC 7946 GeoJSON Export**: Converts any `IIwxxmReport` (or `collect:MeteorologicalBulletin`) directly into an RFC 7946 `FeatureCollection` with `[longitude, latitude]` coordinate tuples, polygon interior hole rings, and computed `bbox` bounds—with zero third-party JSON or GIS dependencies.
 - **Functional `Result<T>` Pattern**: Explicit, allocation-friendly error handling categorized by pipeline stage (`XmlWellFormedness`, `XsdSchemaValidation`, `SchematronBusinessRule`, `XmlDeserialization`, `DomainMappingRule`).
 
 ---
@@ -66,19 +67,19 @@ if (result.IsSuccess)
     switch (result.Value)
     {
         case AerodromeWeatherReport metarOrSpeci:
-            Console.WriteLine($"{metarOrSpeci.ReportType} at {metarOrSpeci.AerodromeIcao}: QNH {metarOrSpeci.QnhHectopascals} hPa");
+            Console.WriteLine($"{metarOrSpeci.ReportType} at {metarOrSpeci.AerodromeDesignator}: QNH {metarOrSpeci.QnhHpa} hPa");
             break;
 
         case TafReport taf:
-            Console.WriteLine($"TAF for {taf.AerodromeIcao}: {taf.ChangeForecasts.Count} change groups");
+            Console.WriteLine($"TAF for {taf.AerodromeDesignator}: {taf.ChangeForecasts.Count} change groups");
             break;
 
         case SigmetReport sigmet:
-            Console.WriteLine($"{sigmet.ReportType} #{sigmet.SequenceNumber} for FIR {sigmet.FirIcaoOrName}: {sigmet.PhenomenonUri}");
+            Console.WriteLine($"{sigmet.ReportType} #{sigmet.SequenceNumber} for FIR {sigmet.FirDesignator}: {sigmet.PhenomenonUri}");
             break;
 
         case QvaciReport qvaci:
-            Console.WriteLine($"QVACI for volcano {qvaci.VolcanoName}: {qvaci.ConcentrationClouds.Count} ash clouds");
+            Console.WriteLine($"QVACI: {qvaci.AshConcentrationClouds.Count} ash clouds");
             break;
 
         case SignificantWeatherReport sigwx:
@@ -92,7 +93,27 @@ if (result.IsSuccess)
 }
 ```
 
-### 2. Strongly-Typed Report Parsing (`ParseFileAs<TReport>` & `ParseBulletinFile`)
+### 2. Native RFC 7946 GeoJSON Export (`IwxxmGeoJsonExporter` & `ParseFileToGeoJson`)
+
+Export any parsed IWXXM 2025-2 report or SWIM bulletin directly to an RFC 7946 GeoJSON `FeatureCollection` (enforcing `[longitude, latitude]` coordinate order, `Polygon` interior hole rings, and `[minLon, minLat, maxLon, maxLat]` bounding boxes):
+
+```csharp
+using Iwxxm.Net.Application.Ports;
+using Iwxxm.Net.Domain.Common;
+using Iwxxm.Net.Presentation;
+
+// One-step XML -> Dual Validation -> Domain Model -> RFC 7946 GeoJSON
+Result<string> geoJsonResult = IwxxmParser.ParseFileToGeoJson(
+    "WAFS-Example.xml",
+    new GeoJsonExportOptions(indented: true, includeBoundingBox: true));
+
+if (geoJsonResult.IsSuccess)
+{
+    string rfc7946GeoJson = geoJsonResult.Value;
+}
+```
+
+### 3. Strongly-Typed Report Parsing (`ParseFileAs<TReport>` & `ParseBulletinFile`)
 
 ```csharp
 Result<AerodromeWeatherReport> metarResult = IwxxmParser.ParseFileAs<AerodromeWeatherReport>("metar-A3-1.xml");
@@ -100,7 +121,7 @@ Result<MeteorologicalBulletin> bulletinResult = IwxxmParser.ParseBulletinFile("c
 Result<SignificantWeatherReport> sigwxResult = IwxxmSigwxParser.ParseFile("WAFS-Example.xml");
 ```
 
-### 3. Dependency Injection (`IIwxxmReportDispatcher` & `IIwxxmSigwxProcessor`)
+### 4. Dependency Injection (`IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor` & `IGeoJsonExporter`)
 
 ```csharp
 using Iwxxm.Net.Application.Ports;
@@ -109,6 +130,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 services.AddSingleton<IIwxxmReportDispatcher>(_ => IwxxmParser.CreateDispatcher());
 services.AddSingleton<IIwxxmSigwxProcessor>(_ => IwxxmSigwxParser.CreateProcessor());
+services.AddSingleton<IGeoJsonExporter>(_ => IwxxmGeoJsonExporter.CreateExporter());
 ```
 
 ---
@@ -120,23 +142,25 @@ The library strictly enforces **Clean Architecture** and **Domain-Driven Design 
 ```text
 src/Iwxxm.Net/
 ├── Domain/                     # Pure C# Domain Model (Zero XML / Infrastructure dependencies)
-│   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity
+│   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity, IwxxmParserOptions
 │   ├── ValueObjects/           # GeoCoordinate, GeoPolygon (with InteriorRings), FlightLevel, WmoCodes, SIGWX features
 │   └── Aggregates/             # IIwxxmReport, SignificantWeatherReport, AerodromeWeatherReport, TafReport,
 │                               # SigmetReport, AirmetReport, VonaReport, QvaciReport, VolcanicAshAdvisoryReport,
 │                               # TropicalCycloneAdvisoryReport, SpaceWeatherAdvisoryReport, MeteorologicalBulletin
 ├── Application/                # Application Layer (Depends ONLY on Domain)
-│   ├── Ports/                  # IIwxxmReportDispatcher, IIwxxmSigwxProcessor, IXmlSchemaValidator, ISchematronValidator
+│   ├── Ports/                  # IIwxxmReportDispatcher, IIwxxmSigwxProcessor, IGeoJsonExporter, InternalValidationPorts
 │   └── UseCases/               # DispatchIwxxmReportUseCase, ProcessSigwxReportUseCase<T>
-├── Infrastructure/             # Internal Adapters (System.Xml, XSD, XSLT, Offline RDF, ACL Mapping)
+├── Infrastructure/             # Internal Adapters (System.Xml, XSD, XSLT, Offline RDF, ACL Mapping, RFC 7946 GeoJSON)
 │   ├── Generated/              # XSD-generated classes (namespace Iwxxm20252.Generated)
 │   ├── Resources/              # EmbeddedResourceLoader & EmbeddedXmlUrlResolver (air-gapped XSD/XSLT/RDF)
 │   ├── Validation/             # XsdValidator & XsltSchematronValidator (SVRL + offline RDF document() lookup)
 │   ├── Serialization/          # XmlSerializerSigwxDeserializer
-│   └── Mapping/                # IwxxmSuiteMapper & SigwxMapper (Anti-Corruption Layer)
+│   ├── Mapping/                # IwxxmSuiteMapper, SigwxMapper & GmlCoordinateTokenizer (Anti-Corruption Layer)
+│   └── GeoJson/                # Rfc7946GeoJsonExporter (Zero-dependency RFC 7946 FeatureCollection writer)
 └── Presentation/               # Public Facades & Composition Roots
     ├── IwxxmParser.cs          # Full IWXXM 2025-2 Suite & SWIM Collective Bulletin Parser
-    └── IwxxmSigwxParser.cs     # Specialized WAFS SIGWX Parser
+    ├── IwxxmSigwxParser.cs     # Specialized WAFS SIGWX Parser
+    └── IwxxmGeoJsonExporter.cs # Native RFC 7946 GeoJSON Exporter Facade
 ```
 
 ---
@@ -158,7 +182,7 @@ See [**`TECHNICAL_DEBT.md`**](TECHNICAL_DEBT.md) for the complete architectural 
 
 - [x] **Phase 1 (`v1.0.0-rc.1`)**: Core Clean Architecture, Dual XSD + ISO Schematron XSLT validation engine, GML 3.2.1 Spatial ACL, WMO BUFR code-list registry (`WmoCodeRegistry`), and complete mapping of all 9 IWXXM 2025-2 **SIGWX / WAFS** phenomena.
 - [x] **Phase 2 (`v1.0.0-rc.1`)**: Polymorphic `IIwxxmReport` & `IwxxmParser` dispatcher, En-Route & Volcanic Hazards (`QVACI`, `VONA`, `VolcanicAshAdvisory`, `TropicalCycloneAdvisory`, `SpaceWeatherAdvisory`, `SIGMET`, `AIRMET`), Aerodrome Reports (`METAR`/`SPECI`, `TAF`), SWIM Collective Bulletin unwrapping (`collect:MeteorologicalBulletin`), and Offline WMO 49-2 RDF/SKOS code-list validation (`codes.wmo.int-49-2.rdf`).
-- [x] **Phase 3 (`v1.0.0-rc.1`)**: XML DoS & stream byte-bound hardening (`IwxxmParserOptions`), zero-allocation `gml:posList` tokenizer (`GmlCoordinateTokenizer`), `BenchmarkDotNet` memory diagnostics suite (`Iwxxm.Net.Benchmarks`), and GitHub Actions CI/CD pipeline (`.github/workflows/ci-cd.yml`).
+- [x] **Phase 3 (`v1.0.0-rc.1`)**: XML DoS & stream byte-bound hardening (`IwxxmParserOptions`), zero-allocation `gml:posList` tokenizer (`GmlCoordinateTokenizer`), `BenchmarkDotNet` memory diagnostics suite (`Iwxxm.Net.Benchmarks`), Native RFC 7946 GeoJSON Export (`IwxxmGeoJsonExporter`), and GitHub Actions CI/CD pipeline (`.github/workflows/ci-cd.yml`).
 
 ---
 

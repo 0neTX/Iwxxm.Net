@@ -10,7 +10,6 @@ using Iwxxm.Net.Domain.Aggregates;
 using Iwxxm.Net.Domain.Common;
 using Iwxxm.Net.Domain.ValueObjects;
 using Iwxxm.Net.Infrastructure.Serialization;
-using Iwxxm20252.Generated;
 
 namespace Iwxxm.Net.Infrastructure.Mapping
 {
@@ -598,7 +597,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     {
                         string vName = volElem.Element(IwxxmNs + "name")?.Value ?? "UNKNOWN";
                         string? iavcei = volElem.Element(IwxxmNs + "IAVCEINumber")?.Value;
-                        var vRes = Volcano.Create(featId, vName, pos.Value, iavcei);
+                        var vRes = Volcano.Create(featId, vName, iavcei, pos.Value);
                         if (vRes.IsSuccess) volcanoes.Add(vRes.Value);
                         else errors.AddRange(vRes.Errors);
                     }
@@ -671,7 +670,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     {
                         string vName = volElem.Element(IwxxmNs + "name")?.Value ?? "UNKNOWN";
                         string? iavcei = volElem.Element(IwxxmNs + "IAVCEINumber")?.Value;
-                        var vRes = Volcano.Create(featId, vName, pos.Value, iavcei);
+                        var vRes = Volcano.Create(featId, vName, iavcei, pos.Value);
                         if (vRes.IsSuccess) volcanoes.Add(vRes.Value);
                         else errors.AddRange(vRes.Errors);
                     }
@@ -1012,7 +1011,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 return null;
 
             string? uom = measureElem.Attribute("uom")?.Value;
-            var res = FlightLevel.CreateFromMeasure(numericVal, uom);
+            var res = FlightLevel.Create(numericVal, uom);
             return res.IsSuccess ? res.Value : (FlightLevel?)null;
         }
 
@@ -1266,7 +1265,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (!pos.HasValue)
                 return null;
 
-            var res = Volcano.Create(id, name, pos.Value);
+            var res = Volcano.Create(id, name, null, pos.Value);
             if (res.IsFailure)
             {
                 errors.AddRange(res.Errors);

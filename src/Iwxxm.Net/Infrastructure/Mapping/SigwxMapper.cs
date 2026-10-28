@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using Iwxxm.Net.Application.Ports;
 using Iwxxm.Net.Domain.Aggregates;
@@ -19,7 +18,6 @@ namespace Iwxxm.Net.Infrastructure.Mapping
     internal sealed class SigwxMapper : ISigwxAclMapper<SigwxDocumentEnvelope>
     {
         private const double KnotsPerMeterPerSecond = 1.9438444924406;
-        private static readonly char[] WhitespaceDelimiters = { ' ', '\t', '\r', '\n' };
 
         public Result<SignificantWeatherReport> MapToDomain(SigwxDocumentEnvelope envelope)
         {
