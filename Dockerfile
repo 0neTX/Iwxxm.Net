@@ -3,18 +3,19 @@
 # ==============================================================================
 # Stage 1: restore — Restore local .NET tools & NuGet packages (cached layer)
 # ==============================================================================
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS restore
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS restore
+ENV DOTNET_ROLL_FORWARD=Major
 WORKDIR /workspace
 
-# Copy solution, global configuration, Central Package Management, and project manifests first for layer caching
-COPY global.json Directory.Build.props Directory.Packages.props Iwxxm.Net.sln ./
+# Copy solution (.slnx), global configuration, Central Package Management, and project manifests first for layer caching
+COPY global.json Directory.Build.props Directory.Packages.props Iwxxm.Net.slnx ./
 COPY .config/dotnet-tools.json ./.config/dotnet-tools.json
 COPY src/Iwxxm.Net/Iwxxm.Net.csproj ./src/Iwxxm.Net/
 COPY tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj ./tests/Iwxxm.Net.Tests/
 COPY tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj ./tests/Iwxxm.Net.Benchmarks/
 
 RUN dotnet tool restore && \
-    dotnet restore Iwxxm.Net.sln
+    dotnet restore Iwxxm.Net.slnx
 
 # ==============================================================================
 # Stage 2: build — Architecture Audit + Release Build (TreatWarningsAsErrors)
@@ -32,7 +33,7 @@ RUN if grep -rnE "^using (Iwxxm\.Net\.Infrastructure|Iwxxm20252|System\.Xml)" sr
     fi
 
 # Execute deterministic Release build with warnings as errors
-RUN dotnet build Iwxxm.Net.sln \
+RUN dotnet build Iwxxm.Net.slnx \
     --configuration Release \
     --no-restore \
     -p:Version=${PACKAGE_VERSION} \

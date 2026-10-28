@@ -6,8 +6,8 @@ Thank you for contributing to the **Iwxxm** .NET library! This document outlines
 
 ## Prerequisites
 
-- **.NET 8.0 SDK** or later (configured in [`global.json`](global.json)).
-- Compatible with both **.NET Framework 4.8** and **.NET 8+** consumers via `netstandard2.0`.
+- **.NET 9.0.200+ SDK** (configured in [`global.json`](global.json) for native `.slnx` solution support).
+- Multi-targets **`netstandard2.0`** and **`netstandard2.1`**.
 
 ---
 
@@ -18,14 +18,14 @@ Thank you for contributing to the **Iwxxm** .NET library! This document outlines
    dotnet tool restore
    ```
 
-2. **Restore & Build the Solution**:
+2. **Restore & Build the Solution (`.slnx`)**:
    ```bash
-   dotnet build Iwxxm.Net.sln -c Release
+   dotnet build Iwxxm.Net.slnx -c Release
    ```
 
 3. **Run Unit, Integration & Architecture Tests**:
    ```bash
-   dotnet test Iwxxm.Net.sln -c Release
+   dotnet test Iwxxm.Net.slnx -c Release
    ```
 
 4. **Generate the NuGet & Symbol Packages (`.nupkg` and `.snupkg`)**:

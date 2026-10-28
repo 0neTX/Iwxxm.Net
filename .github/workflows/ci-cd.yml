@@ -17,6 +17,7 @@ env:
   VERSION_PREFIX: '1.0.0'
   PACKAGE_VERSION: '1.0.0-rc.${{ github.run_number }}'
   FILE_VERSION: '1.0.0.${{ github.run_number }}'
+  DOTNET_ROLL_FORWARD: 'Major'
 
 jobs:
   build-and-test:
@@ -42,11 +43,11 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore NuGet dependencies
-        run: dotnet restore Iwxxm.Net.sln
+        run: dotnet restore Iwxxm.Net.slnx
 
       - name: Build solution (Release)
         run: >
-          dotnet build Iwxxm.Net.sln
+          dotnet build Iwxxm.Net.slnx
           --configuration Release
           --no-restore
           -p:Version=${{ env.PACKAGE_VERSION }}
@@ -95,7 +96,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
       - name: Download NuGet artifacts
         uses: actions/download-artifact@v4
