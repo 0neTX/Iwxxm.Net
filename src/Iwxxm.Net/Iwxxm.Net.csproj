@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Dual compatibility with .NET Framework 4.8 and .NET 8+ -->
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- Multi-target .NET Standard 2.0 (.NET Framework 4.6.1-4.8) and .NET Standard 2.1 (.NET Core 3.0+ / .NET 5-9+) -->
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <RootNamespace>Iwxxm.Net</RootNamespace>
     <AssemblyName>Iwxxm.Net</AssemblyName>
 
@@ -12,7 +12,7 @@
     <PackageId>Iwxxm.Net</PackageId>
     <Title>Iwxxm.Net — ICAO/WMO IWXXM Aeronautical Meteorology Processor for .NET</Title>
     <Product>Iwxxm.Net</Product>
-    <Description>Zero-dependency .NET Standard 2.0 library for dual validation (XSD + Schematron XSLT with offline WMO RDF/SKOS codelists) and Domain-Driven Design (DDD) parsing of the full ICAO/WMO IWXXM 2025-2 aeronautical meteorological suite (SIGWX/WAFS, METAR, SPECI, TAF, SIGMET, AIRMET, VONA, QVACI, Volcanic Ash/Tropical Cyclone/Space Weather Advisories, and SWIM Collect Bulletins).</Description>
+    <Description>Zero-dependency .NET Standard 2.0 &amp; 2.1 library for dual validation (XSD + Schematron XSLT with offline WMO RDF/SKOS codelists), Domain-Driven Design (DDD) parsing, and Native RFC 7946 GeoJSON export of the full ICAO/WMO IWXXM 2025-2 aeronautical meteorological suite (SIGWX/WAFS, METAR, SPECI, TAF, SIGMET, AIRMET, VONA, QVACI, Volcanic Ash/Tropical Cyclone/Space Weather Advisories, and SWIM Collect Bulletins).</Description>
     <PackageTags>IWXXM;IWXXM-2025-2;Iwxxm.Net;SIGWX;WAFS;METAR;SPECI;TAF;SIGMET;AIRMET;VONA;QVACI;WMO;ICAO;SWIM;GML;Aviation;Meteorology;XML</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>

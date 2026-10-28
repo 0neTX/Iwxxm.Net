@@ -246,8 +246,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 {
                     index++;
                 }
+#if NETSTANDARD2_1_OR_GREATER
+                return double.TryParse(
+                    text.AsSpan(tokenStart, index - tokenStart),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out value);
+#else
                 string fallbackToken = text.Substring(tokenStart, index - tokenStart);
                 return double.TryParse(fallbackToken, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+#endif
             }
 
             double result = integerPart;
