@@ -1,0 +1,716 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:iwxxm="http://icao.int/iwxxm/2025-2"
+           xmlns:gml="http://www.opengis.net/gml/3.2"
+           xmlns:aixm="http://www.aixm.aero/schema/5.1.1"
+           xmlns:metce="http://def.wmo.int/metce/2013"
+           xmlns:xlink="http://www.w3.org/1999/xlink"
+           targetNamespace="http://icao.int/iwxxm/2025-2"
+           elementFormDefault="qualified"
+           version="2025-2">
+
+  <xs:include schemaLocation="iwxxm-sigwx.xsd"/>
+  <xs:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="gml.xsd"/>
+  <xs:import namespace="http://www.aixm.aero/schema/5.1.1" schemaLocation="aixm.xsd"/>
+  <xs:import namespace="http://def.wmo.int/metce/2013" schemaLocation="metce.xsd"/>
+  <xs:import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
+
+  <!-- Common Report Metadata & TAC Translation Attributes -->
+  <xs:attributeGroup name="ReportMetadataAttributeGroup">
+    <xs:attribute name="reportStatus" type="iwxxm:ReportStatusType" default="NORMAL"/>
+    <xs:attribute name="permissibleUsage" type="iwxxm:PermissibleUsageType" default="OPERATIONAL"/>
+    <xs:attribute name="permissibleUsageReason" type="xs:string" use="optional"/>
+    <xs:attribute name="permissibleUsageSupplementary" type="xs:string" use="optional"/>
+    <xs:attribute name="translatedBulletinID" type="xs:string" use="optional"/>
+    <xs:attribute name="translatedBulletinReceptionTime" type="xs:dateTime" use="optional"/>
+    <xs:attribute name="translationCentreDesignator" type="xs:string" use="optional"/>
+    <xs:attribute name="translationCentreName" type="xs:string" use="optional"/>
+    <xs:attribute name="translationTime" type="xs:dateTime" use="optional"/>
+    <xs:attribute name="translationFailedTAC" type="xs:string" use="optional"/>
+  </xs:attributeGroup>
+
+  <xs:complexType name="UnitPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="aixm:Unit"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AirportHeliportPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="aixm:AirportHeliport"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AirspacePropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="aixm:Airspace"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="RunwayDirectionPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="aixm:RunwayDirection"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AirspaceVolumePropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="aixm:AirspaceVolume"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="PhenomenonTimeObjectPropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element ref="gml:TimeInstant"/>
+      <xs:element ref="gml:TimePeriod"/>
+    </xs:choice>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <!-- =====================================================================
+       1. VONA & QVACI (VolcanoObservatoryNoticeForAviation & QVACI)
+       ===================================================================== -->
+
+  <xs:complexType name="VolcanoObservatoryNoticeForAviationType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="boundingPeriod" type="iwxxm:TimePeriodPropertyType" minOccurs="0"/>
+          <xs:element name="boundingVolume" type="iwxxm:ElevatedEnvelopePropertyType" minOccurs="0"/>
+          <xs:element name="phenomenaList" type="gml:ReferenceType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="originatingCentre" type="iwxxm:OriginatingCentrePropertyType"/>
+          <xs:element name="phenomenonCategory" type="xs:string" minOccurs="0"/>
+          <xs:element name="phenomenonBaseTime" type="iwxxm:TimeInstantPropertyType" minOccurs="0"/>
+          <xs:element name="phenomenonTime" type="iwxxm:TimeInstantPropertyType" minOccurs="0"/>
+          <xs:element name="feature" type="iwxxm:MeteorologicalFeaturePropertyType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="stateOrRegion" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="noticeNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="currentColourCode" type="gml:ReferenceType" minOccurs="0"/>
+          <xs:element name="previousColourCode" type="gml:ReferenceType" minOccurs="0"/>
+          <xs:element name="contacts" type="xs:string" minOccurs="0"/>
+          <xs:element name="remarks" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="nextNotice" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="VolcanoObservatoryNoticeForAviation" type="iwxxm:VolcanoObservatoryNoticeForAviationType"/>
+
+  <xs:complexType name="QuantitativeVolcanicAshConcentrationInformationType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="boundingPeriod" type="iwxxm:TimePeriodPropertyType" minOccurs="0"/>
+          <xs:element name="boundingVolume" type="iwxxm:ElevatedEnvelopePropertyType" minOccurs="0"/>
+          <xs:element name="phenomenaList" type="gml:ReferenceType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="originatingCentre" type="iwxxm:OriginatingCentrePropertyType"/>
+          <xs:element name="phenomenonCategory" type="xs:string" minOccurs="0"/>
+          <xs:element name="phenomenonBaseTime" type="iwxxm:TimeInstantPropertyType" minOccurs="0"/>
+          <xs:element name="phenomenonTime" type="iwxxm:TimeInstantPropertyType" minOccurs="0"/>
+          <xs:element name="feature" type="iwxxm:MeteorologicalFeaturePropertyType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="dispersionModelInitialisationTime" type="iwxxm:TimeInstantPropertyType" minOccurs="0"/>
+          <xs:element name="dispersionModelSourceElevation" type="iwxxm:ElevatedLevelPropertyType" minOccurs="0"/>
+          <xs:element name="dispersionModelAshCloudHeight" type="iwxxm:ElevatedLevelPropertyType" minOccurs="0"/>
+          <xs:element name="remarks" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="QuantitativeVolcanicAshConcentrationInformation" type="iwxxm:QuantitativeVolcanicAshConcentrationInformationType"/>
+
+  <!-- =====================================================================
+       2. Aerodrome Reports (METAR, SPECI, TAF)
+       ===================================================================== -->
+
+  <xs:complexType name="CloudLayerType">
+    <xs:sequence>
+      <xs:element name="amount" type="gml:ReferenceType" minOccurs="0"/>
+      <xs:element name="base" type="gml:MeasureType" nillable="true" minOccurs="0"/>
+      <xs:element name="cloudType" type="gml:ReferenceType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CloudLayerPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="CloudLayer" type="iwxxm:CloudLayerType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AerodromeCloudType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="verticalVisibility" type="gml:MeasureType" nillable="true" minOccurs="0"/>
+          <xs:element name="layer" type="iwxxm:CloudLayerPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="AerodromeCloudPropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element name="AerodromeCloud" type="iwxxm:AerodromeCloudType"/>
+      <xs:element name="AerodromeCloudForecast" type="iwxxm:AerodromeCloudType"/>
+    </xs:choice>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AerodromeSurfaceWindType">
+    <xs:sequence>
+      <xs:element name="meanWindDirection" type="gml:MeasureType" nillable="true" minOccurs="0"/>
+      <xs:element name="meanWindSpeed" type="gml:MeasureType" nillable="true" minOccurs="0"/>
+      <xs:element name="meanWindSpeedOperator" type="xs:string" minOccurs="0"/>
+      <xs:element name="windGustSpeed" type="gml:MeasureType" nillable="true" minOccurs="0"/>
+      <xs:element name="windGustSpeedOperator" type="xs:string" minOccurs="0"/>
+      <xs:element name="extremeClockwiseWindDirection" type="gml:MeasureType" minOccurs="0"/>
+      <xs:element name="extremeCounterClockwiseWindDirection" type="gml:MeasureType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="variableWindDirection" type="xs:boolean" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AerodromeSurfaceWindPropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element name="AerodromeSurfaceWind" type="iwxxm:AerodromeSurfaceWindType"/>
+      <xs:element name="AerodromeSurfaceWindForecast" type="iwxxm:AerodromeSurfaceWindType"/>
+    </xs:choice>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AerodromeHorizontalVisibilityType">
+    <xs:sequence>
+      <xs:element name="prevailingVisibility" type="gml:MeasureType"/>
+      <xs:element name="prevailingVisibilityOperator" type="xs:string" minOccurs="0"/>
+      <xs:element name="minimumVisibility" type="gml:MeasureType" minOccurs="0"/>
+      <xs:element name="minimumVisibilityOperator" type="xs:string" minOccurs="0"/>
+      <xs:element name="minimumVisibilityDirection" type="gml:MeasureType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AerodromeHorizontalVisibilityPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="AerodromeHorizontalVisibility" type="iwxxm:AerodromeHorizontalVisibilityType"/>
+    </xs:sequence>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AerodromeRunwayVisualRangeType">
+    <xs:sequence>
+      <xs:element name="runway" type="iwxxm:RunwayDirectionPropertyType"/>
+      <xs:element name="meanRVR" type="gml:MeasureType" minOccurs="0"/>
+      <xs:element name="meanRVROperator" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="pastTendency" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AerodromeRunwayVisualRangePropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="AerodromeRunwayVisualRange" type="iwxxm:AerodromeRunwayVisualRangeType"/>
+    </xs:sequence>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="MeteorologicalAerodromeObservationType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="airTemperature" type="gml:MeasureType"/>
+          <xs:element name="dewpointTemperature" type="gml:MeasureType"/>
+          <xs:element name="qnh" type="gml:MeasureType"/>
+          <xs:element name="surfaceWind" type="iwxxm:AerodromeSurfaceWindPropertyType"/>
+          <xs:element name="visibility" type="iwxxm:AerodromeHorizontalVisibilityPropertyType" minOccurs="0"/>
+          <xs:element name="rvr" type="iwxxm:AerodromeRunwayVisualRangePropertyType" minOccurs="0" maxOccurs="4"/>
+          <xs:element name="presentWeather" type="gml:ReferenceType" minOccurs="0" maxOccurs="3"/>
+          <xs:element name="cloud" type="iwxxm:AerodromeCloudPropertyType" nillable="true" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="cloudAndVisibilityOK" type="xs:boolean" use="required"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="MeteorologicalAerodromeObservationPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="MeteorologicalAerodromeObservation" type="iwxxm:MeteorologicalAerodromeObservationType"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="MeteorologicalAerodromeTrendForecastType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="phenomenonTime" type="iwxxm:PhenomenonTimeObjectPropertyType"/>
+          <xs:element name="timeIndicator" type="xs:string" minOccurs="0"/>
+          <xs:element name="prevailingVisibility" type="gml:MeasureType" minOccurs="0"/>
+          <xs:element name="prevailingVisibilityOperator" type="xs:string" minOccurs="0"/>
+          <xs:element name="surfaceWind" type="iwxxm:AerodromeSurfaceWindPropertyType" minOccurs="0"/>
+          <xs:element name="weather" type="gml:ReferenceType" nillable="true" minOccurs="0" maxOccurs="3"/>
+          <xs:element name="cloud" type="iwxxm:AerodromeCloudPropertyType" nillable="true" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="changeIndicator" type="xs:string" use="required"/>
+        <xs:attribute name="cloudAndVisibilityOK" type="xs:boolean" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="MeteorologicalAerodromeTrendForecastPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="MeteorologicalAerodromeTrendForecast" type="iwxxm:MeteorologicalAerodromeTrendForecastType"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="MeteorologicalAerodromeObservationReportType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="aerodrome" type="iwxxm:AirportHeliportPropertyType"/>
+          <xs:element name="observationTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="observation" type="iwxxm:MeteorologicalAerodromeObservationPropertyType" nillable="true" minOccurs="0"/>
+          <xs:element name="trendForecast" type="iwxxm:MeteorologicalAerodromeTrendForecastPropertyType" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+        <xs:attribute name="automatedStation" type="xs:boolean" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="METAR" type="iwxxm:MeteorologicalAerodromeObservationReportType"/>
+  <xs:element name="SPECI" type="iwxxm:MeteorologicalAerodromeObservationReportType"/>
+
+  <xs:complexType name="MeteorologicalAerodromeForecastType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="phenomenonTime" type="iwxxm:PhenomenonTimeObjectPropertyType"/>
+          <xs:element name="prevailingVisibility" type="gml:MeasureType" minOccurs="0"/>
+          <xs:element name="prevailingVisibilityOperator" type="xs:string" minOccurs="0"/>
+          <xs:element name="surfaceWind" type="iwxxm:AerodromeSurfaceWindPropertyType" minOccurs="0"/>
+          <xs:element name="weather" type="gml:ReferenceType" nillable="true" minOccurs="0" maxOccurs="3"/>
+          <xs:element name="cloud" type="iwxxm:AerodromeCloudPropertyType" nillable="true" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="changeIndicator" type="xs:string" use="optional"/>
+        <xs:attribute name="cloudAndVisibilityOK" type="xs:boolean" use="required"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="MeteorologicalAerodromeForecastPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="MeteorologicalAerodromeForecast" type="iwxxm:MeteorologicalAerodromeForecastType"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="TAFType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="aerodrome" type="iwxxm:AirportHeliportPropertyType"/>
+          <xs:element name="validPeriod" type="iwxxm:TimePeriodPropertyType" minOccurs="0"/>
+          <xs:element name="cancelledReportValidPeriod" type="iwxxm:TimePeriodPropertyType" minOccurs="0"/>
+          <xs:element name="baseForecast" type="iwxxm:MeteorologicalAerodromeForecastPropertyType" nillable="true" minOccurs="0"/>
+          <xs:element name="changeForecast" type="iwxxm:MeteorologicalAerodromeForecastPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+        <xs:attribute name="isCancelReport" type="xs:boolean" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="TAF" type="iwxxm:TAFType"/>
+
+  <!-- =====================================================================
+       3. En-Route Reports (SIGMET, VolcanicAshSIGMET, TropicalCycloneSIGMET, AIRMET)
+       ===================================================================== -->
+
+  <xs:complexType name="SIGMETEvolvingConditionType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="tropicalCyclonePosition" type="metce:PointPropertyType" minOccurs="0"/>
+          <xs:element name="geometry" type="iwxxm:AirspaceVolumePropertyType"/>
+          <xs:element name="directionOfMotion" type="gml:MeasureType" nillable="true" minOccurs="0"/>
+          <xs:element name="speedOfMotion" type="gml:MeasureType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="intensityChange" type="xs:string" use="optional"/>
+        <xs:attribute name="approximateLocation" type="xs:boolean" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="SIGMETPositionType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="tropicalCyclonePosition" type="metce:PointPropertyType" minOccurs="0"/>
+          <xs:element name="geometry" type="iwxxm:AirspaceVolumePropertyType"/>
+        </xs:sequence>
+        <xs:attribute name="approximateLocation" type="xs:boolean" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="AIRMETEvolvingConditionType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="geometry" type="iwxxm:AirspaceVolumePropertyType"/>
+          <xs:element name="directionOfMotion" type="gml:MeasureType" nillable="true" minOccurs="0"/>
+          <xs:element name="speedOfMotion" type="gml:MeasureType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="intensityChange" type="xs:string" use="optional"/>
+        <xs:attribute name="approximateLocation" type="xs:boolean" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="EvolvingConditionMemberPropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element name="SIGMETEvolvingCondition" type="iwxxm:SIGMETEvolvingConditionType"/>
+      <xs:element name="SIGMETPosition" type="iwxxm:SIGMETPositionType"/>
+      <xs:element name="AIRMETEvolvingCondition" type="iwxxm:AIRMETEvolvingConditionType"/>
+    </xs:choice>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="EvolvingConditionCollectionType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="phenomenonTime" type="iwxxm:PhenomenonTimeObjectPropertyType"/>
+          <xs:element name="member" type="iwxxm:EvolvingConditionMemberPropertyType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="timeIndicator" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="EvolvingConditionCollectionPropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element name="SIGMETEvolvingConditionCollection" type="iwxxm:EvolvingConditionCollectionType"/>
+      <xs:element name="SIGMETPositionCollection" type="iwxxm:EvolvingConditionCollectionType"/>
+      <xs:element name="AIRMETEvolvingConditionCollection" type="iwxxm:EvolvingConditionCollectionType"/>
+    </xs:choice>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AnalysisAndForecastPositionAnalysisType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="analysis" type="iwxxm:EvolvingConditionCollectionPropertyType" minOccurs="0"/>
+          <xs:element name="forecastPositionAnalysis" type="iwxxm:EvolvingConditionCollectionPropertyType" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="AnalysisCollectionPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="analysisAndForecastPositionAnalysis" type="iwxxm:AnalysisAndForecastPositionAnalysisType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="MetceVolcanoPropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element ref="metce:Volcano"/>
+      <xs:element ref="metce:EruptingVolcano"/>
+    </xs:choice>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="MetceTropicalCyclonePropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="metce:TropicalCyclone"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SIGMETType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="issuingAirTrafficServicesUnit" type="iwxxm:UnitPropertyType"/>
+          <xs:element name="originatingMeteorologicalWatchOffice" type="iwxxm:UnitPropertyType" minOccurs="0"/>
+          <xs:element name="issuingAirTrafficServicesRegion" type="iwxxm:AirspacePropertyType" minOccurs="0"/>
+          <xs:element name="sequenceNumber" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="validPeriod" type="iwxxm:TimePeriodPropertyType"/>
+          <xs:element name="cancelledReportSequenceNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="cancelledReportValidPeriod" type="iwxxm:TimePeriodPropertyType" minOccurs="0"/>
+          <xs:element name="phenomenon" type="gml:ReferenceType" minOccurs="0"/>
+          <xs:element name="analysisCollection" type="iwxxm:AnalysisCollectionPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="eruptingVolcano" type="iwxxm:MetceVolcanoPropertyType" minOccurs="0"/>
+          <xs:element name="tropicalCyclone" type="iwxxm:MetceTropicalCyclonePropertyType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+        <xs:attribute name="isCancelReport" type="xs:boolean" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="SIGMET" type="iwxxm:SIGMETType"/>
+  <xs:element name="VolcanicAshSIGMET" type="iwxxm:SIGMETType"/>
+  <xs:element name="TropicalCycloneSIGMET" type="iwxxm:SIGMETType"/>
+
+  <xs:complexType name="AIRMETType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="issuingAirTrafficServicesUnit" type="iwxxm:UnitPropertyType"/>
+          <xs:element name="originatingMeteorologicalWatchOffice" type="iwxxm:UnitPropertyType" minOccurs="0"/>
+          <xs:element name="issuingAirTrafficServicesRegion" type="iwxxm:AirspacePropertyType" minOccurs="0"/>
+          <xs:element name="sequenceNumber" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="validPeriod" type="iwxxm:TimePeriodPropertyType"/>
+          <xs:element name="cancelledReportSequenceNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="cancelledReportValidPeriod" type="iwxxm:TimePeriodPropertyType" minOccurs="0"/>
+          <xs:element name="phenomenon" type="gml:ReferenceType" minOccurs="0"/>
+          <xs:element name="analysis" type="iwxxm:EvolvingConditionCollectionPropertyType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+        <xs:attribute name="isCancelReport" type="xs:boolean" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="AIRMET" type="iwxxm:AIRMETType"/>
+
+  <!-- =====================================================================
+       4. Advisories (VolcanicAshAdvisory, TropicalCycloneAdvisory, SpaceWeatherAdvisory)
+       ===================================================================== -->
+
+  <xs:complexType name="VolcanicAshCloudType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="ashCloudExtent" type="iwxxm:AirspaceVolumePropertyType"/>
+          <xs:element name="directionOfMotion" type="gml:MeasureType" minOccurs="0"/>
+          <xs:element name="speedOfMotion" type="gml:MeasureType" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="VolcanicAshCloudPropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element name="VolcanicAshCloudObservedOrEstimated" type="iwxxm:VolcanicAshCloudType"/>
+      <xs:element name="VolcanicAshCloudForecast" type="iwxxm:VolcanicAshCloudType"/>
+    </xs:choice>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="VolcanicAshConditionsType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="phenomenonTime" type="iwxxm:PhenomenonTimeObjectPropertyType"/>
+          <xs:element name="ashCloud" type="iwxxm:VolcanicAshCloudPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="status" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="VolcanicAshConditionsPropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element name="VolcanicAshObservedOrEstimatedConditions" type="iwxxm:VolcanicAshConditionsType"/>
+      <xs:element name="VolcanicAshForecastConditions" type="iwxxm:VolcanicAshConditionsType"/>
+    </xs:choice>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="VolcanicAshAdvisoryType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="issuingVolcanicAshAdvisoryCentre" type="iwxxm:UnitPropertyType"/>
+          <xs:element name="volcano" type="iwxxm:MetceVolcanoPropertyType" minOccurs="0"/>
+          <xs:element name="stateOrRegion" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="sourceElevationAMSL" type="gml:MeasureType" minOccurs="0"/>
+          <xs:element name="advisoryNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="informationSource" type="xs:string" minOccurs="0"/>
+          <xs:element name="eruptionDetails" type="xs:string" minOccurs="0"/>
+          <xs:element name="observation" type="iwxxm:VolcanicAshConditionsPropertyType" minOccurs="0"/>
+          <xs:element name="forecast" type="iwxxm:VolcanicAshConditionsPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="remarks" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="nextAdvisoryTime" type="iwxxm:TimeInstantPropertyType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="VolcanicAshAdvisory" type="iwxxm:VolcanicAshAdvisoryType"/>
+
+  <xs:complexType name="TropicalCycloneObservedConditionsType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="phenomenonTime" type="iwxxm:PhenomenonTimeObjectPropertyType"/>
+          <xs:element name="tropicalCyclonePosition" type="metce:PointPropertyType"/>
+          <xs:element name="cumulonimbusCloudLocation" type="iwxxm:AirspaceVolumePropertyType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="movement" type="xs:string" minOccurs="0"/>
+          <xs:element name="movementDirection" type="gml:MeasureType" minOccurs="0"/>
+          <xs:element name="movementSpeed" type="gml:MeasureType" minOccurs="0"/>
+          <xs:element name="intensityChange" type="xs:string" minOccurs="0"/>
+          <xs:element name="centralPressure" type="gml:MeasureType" minOccurs="0"/>
+          <xs:element name="maximumSurfaceWindSpeed" type="gml:MeasureType" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="TropicalCycloneObservedConditionsPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="TropicalCycloneObservedConditions" type="iwxxm:TropicalCycloneObservedConditionsType"/>
+    </xs:sequence>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="TropicalCycloneForecastConditionsType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="phenomenonTime" type="iwxxm:PhenomenonTimeObjectPropertyType"/>
+          <xs:element name="tropicalCyclonePosition" type="metce:PointPropertyType"/>
+          <xs:element name="maximumSurfaceWindSpeed" type="gml:MeasureType" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="TropicalCycloneForecastConditionsPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="TropicalCycloneForecastConditions" type="iwxxm:TropicalCycloneForecastConditionsType"/>
+    </xs:sequence>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="TropicalCycloneAdvisoryType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="issuingTropicalCycloneAdvisoryCentre" type="iwxxm:UnitPropertyType"/>
+          <xs:element name="tropicalCycloneName" type="iwxxm:MetceTropicalCyclonePropertyType" minOccurs="0"/>
+          <xs:element name="advisoryNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="observation" type="iwxxm:TropicalCycloneObservedConditionsPropertyType" minOccurs="0"/>
+          <xs:element name="forecast" type="iwxxm:TropicalCycloneForecastConditionsPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="remarks" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="nextAdvisoryTime" type="iwxxm:TimeInstantPropertyType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="TropicalCycloneAdvisory" type="iwxxm:TropicalCycloneAdvisoryType"/>
+
+  <xs:complexType name="SpaceWeatherRegionType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="location" type="iwxxm:AirspaceVolumePropertyType" minOccurs="0"/>
+          <xs:element name="locationIndicator" type="gml:ReferenceType" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="SpaceWeatherRegionPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="SpaceWeatherRegion" type="iwxxm:SpaceWeatherRegionType"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SpaceWeatherIntensityAndRegionType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="intensity" type="xs:string"/>
+          <xs:element name="region" type="iwxxm:SpaceWeatherRegionPropertyType" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="SpaceWeatherIntensityAndRegionPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="SpaceWeatherIntensityAndRegion" type="iwxxm:SpaceWeatherIntensityAndRegionType"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SpaceWeatherAnalysisType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="phenomenonTime" type="iwxxm:PhenomenonTimeObjectPropertyType"/>
+          <xs:element name="intensityAndRegion" type="iwxxm:SpaceWeatherIntensityAndRegionPropertyType" nillable="true" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="timeIndicator" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="SpaceWeatherAnalysisPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="SpaceWeatherAnalysis" type="iwxxm:SpaceWeatherAnalysisType"/>
+    </xs:sequence>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SpaceWeatherAdvisoryType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="issueTime" type="iwxxm:TimeInstantPropertyType"/>
+          <xs:element name="issuingSpaceWeatherCentre" type="iwxxm:UnitPropertyType"/>
+          <xs:element name="advisoryNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="replacedAdvisoryNumber" type="xs:string" minOccurs="0" maxOccurs="4"/>
+          <xs:element name="effect" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="analysis" type="iwxxm:SpaceWeatherAnalysisPropertyType" minOccurs="0" maxOccurs="5"/>
+          <xs:element name="remarks" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="nextAdvisoryTime" type="iwxxm:TimeInstantPropertyType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="iwxxm:ReportMetadataAttributeGroup"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="SpaceWeatherAdvisory" type="iwxxm:SpaceWeatherAdvisoryType"/>
+
+</xs:schema>

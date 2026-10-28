@@ -12,8 +12,8 @@
     <PackageId>Iwxxm.Net</PackageId>
     <Title>Iwxxm.Net — ICAO/WMO IWXXM Aeronautical Meteorology Processor for .NET</Title>
     <Product>Iwxxm.Net</Product>
-    <Description>Zero-dependency .NET Standard 2.0 library for dual validation (XSD + Schematron XSLT) and Domain-Driven Design (DDD) parsing of ICAO/WMO IWXXM 2025-2 aeronautical meteorological reports (including WAFS SIGWX, JetStream, Clouds, Tropopause, and Volcanoes).</Description>
-    <PackageTags>IWXXM;IWXXM-2025-2;Iwxxm.Net;SIGWX;WAFS;METAR;TAF;SIGMET;AIRMET;VONA;QVACI;WMO;ICAO;SWIM;GML;Aviation;Meteorology;XML</PackageTags>
+    <Description>Zero-dependency .NET Standard 2.0 library for dual validation (XSD + Schematron XSLT with offline WMO RDF/SKOS codelists) and Domain-Driven Design (DDD) parsing of the full ICAO/WMO IWXXM 2025-2 aeronautical meteorological suite (SIGWX/WAFS, METAR, SPECI, TAF, SIGMET, AIRMET, VONA, QVACI, Volcanic Ash/Tropical Cyclone/Space Weather Advisories, and SWIM Collect Bulletins).</Description>
+    <PackageTags>IWXXM;IWXXM-2025-2;Iwxxm.Net;SIGWX;WAFS;METAR;SPECI;TAF;SIGMET;AIRMET;VONA;QVACI;WMO;ICAO;SWIM;GML;Aviation;Meteorology;XML</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
@@ -32,7 +32,7 @@
 
   <!-- 
     =========================================================================
-    EMBEDDED RESOURCES (Official XSD Schemas & Precompiled Schematron XSLT)
+    EMBEDDED RESOURCES (Official XSD Schemas, Schematron XSLT & RDF Codelists)
     Explicit LogicalName metadata ensures deterministic resolution via
     Assembly.GetManifestResourceStream and EmbeddedXmlUrlResolver.
     =========================================================================
@@ -43,6 +43,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\Schematron\**\*.xslt">
       <LogicalName>Iwxxm.Net.Resources.Schematron.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Codelists\**\*.rdf">
+      <LogicalName>Iwxxm.Net.Resources.Codelists.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
@@ -60,9 +63,9 @@
       dotnet build -p:RegenerateXsdClasses=true
   -->
   <Target Name="GenerateXsdClasses" BeforeTargets="CoreCompile" Condition="'$(RegenerateXsdClasses)' == 'true'">
-    <Message Importance="high" Text="Restoring local .NET tools and autogenerating C# classes from IWXXM 2025-2 and GML 3.2 XSD schemas..." />
+    <Message Importance="high" Text="Restoring local .NET tools and autogenerating C# classes from IWXXM 2025-2, AIXM 5.1.1, METCE, Collect, and GML 3.2 XSD schemas..." />
     <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
-    <Exec Command="dotnet tool run xscgen -n &quot;http://icao.int/iwxxm/2025-2=Iwxxm20252.Generated&quot; -n &quot;http://www.opengis.net/gml/3.2=Iwxxm20252.Generated&quot; -n &quot;http://www.w3.org/1999/xlink=Iwxxm20252.Generated&quot; -o &quot;$(MSBuildProjectDirectory)/Infrastructure/Generated&quot; --singleFile --internal --nullable &quot;$(MSBuildProjectDirectory)/Resources/Xsd/xlink.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/gml.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/iwxxm-sigwx.xsd&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
+    <Exec Command="dotnet tool run xscgen -n &quot;http://icao.int/iwxxm/2025-2=Iwxxm20252.Generated&quot; -n &quot;http://www.opengis.net/gml/3.2=Iwxxm20252.Generated&quot; -n &quot;http://www.aixm.aero/schema/5.1.1=Iwxxm20252.Generated&quot; -n &quot;http://def.wmo.int/metce/2013=Iwxxm20252.Generated&quot; -n &quot;http://def.wmo.int/collect/2014=Iwxxm20252.Generated&quot; -n &quot;http://www.w3.org/1999/xlink=Iwxxm20252.Generated&quot; -o &quot;$(MSBuildProjectDirectory)/Infrastructure/Generated&quot; --singleFile --internal --nullable &quot;$(MSBuildProjectDirectory)/Resources/Xsd/xlink.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/gml.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/aixm.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/metce.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/iwxxm-sigwx.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/iwxxm-2025-2.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/collect.xsd&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
   </Target>
 
 </Project>

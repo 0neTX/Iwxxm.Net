@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Precompiled ISO Schematron XSLT 1.0 stylesheet for WMO/ICAO IWXXM 2025-2 SIGWX reports.
-  Enforces business rules from official WMO rule/iwxxm.sch and ICAO Annex 3 for both
-  <iwxxm:WAFSSignificantWeatherForecast> and <iwxxm:SIGWXReport>.
+  Precompiled ISO Schematron XSLT 1.0 stylesheet for WMO/ICAO IWXXM 2025-2 reports
+  and SWIM collect:MeteorologicalBulletin envelopes.
+  Enforces business rules from official WMO rule/iwxxm.sch, ICAO Annex 3, and the
+  offline RDF/SKOS code-list registry (codes.wmo.int-49-2.rdf).
   Produces standard SVRL (Schematron Validation Report Language) output compatible with
   System.Xml.Xsl.XslCompiledTransform in .NET Standard 2.0.
 -->
@@ -10,25 +11,74 @@
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:svrl="http://purl.oclc.org/dsdl/svrl"
                 xmlns:iwxxm="http://icao.int/iwxxm/2025-2"
+                xmlns:collect="http://def.wmo.int/collect/2014"
                 xmlns:gml="http://www.opengis.net/gml/3.2"
                 xmlns:xlink="http://www.w3.org/1999/xlink"
+                xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                xmlns:skos="http://www.w3.org/2004/02/skos/core#"
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
   <xsl:output method="xml" indent="yes" encoding="UTF-8"/>
 
+  <!-- Offline RDF/SKOS Code-List Registry loaded via air-gapped EmbeddedXmlUrlResolver -->
+  <xsl:variable name="rdfRegistry" select="document('../Codelists/codes.wmo.int-49-2.rdf')"/>
+
   <xsl:template match="/">
-    <svrl:schematron-output title="IWXXM 2025-2 SIGWX Business Rules Validation" schemaVersion="2025-2">
-      <xsl:apply-templates select="iwxxm:WAFSSignificantWeatherForecast | iwxxm:SIGWXReport"/>
+    <svrl:schematron-output title="IWXXM 2025-2 &amp; SWIM Business Rules Validation" schemaVersion="2025-2">
+      <xsl:apply-templates select="*"/>
     </svrl:schematron-output>
   </xsl:template>
 
   <!-- =========================================================================
-       Official WMO IWXXM 2025-2 WAFSSignificantWeatherForecast Business Rules
+       Common Helper: Validate Common.BasicReport-1 & Common.BasicReport-2
+       ========================================================================= -->
+  <xsl:template name="ValidateCommonReportAttributes">
+    <xsl:if test="@permissibleUsage = 'NON-OPERATIONAL' and not(@permissibleUsageReason)">
+      <svrl:failed-assert id="Common.BasicReport-1"
+                          role="ERROR"
+                          location="{concat('/', name(.))}"
+                          test="if (@permissibleUsage = 'NON-OPERATIONAL') then exists(@permissibleUsageReason) else true()">
+        <svrl:text>Common.BasicReport-1: Non-operational reports must include a permissibleUsageReason</svrl:text>
+      </svrl:failed-assert>
+    </xsl:if>
+
+    <xsl:if test="(@permissibleUsage = 'OPERATIONAL' or not(@permissibleUsage)) and @permissibleUsageReason">
+      <svrl:failed-assert id="Common.BasicReport-2"
+                          role="ERROR"
+                          location="{concat('/', name(.))}"
+                          test="if (@permissibleUsage = 'OPERATIONAL') then empty(@permissibleUsageReason) else true()">
+        <svrl:text>Common.BasicReport-2: Operational reports should not include a permissibleUsageReason</svrl:text>
+      </svrl:failed-assert>
+    </xsl:if>
+  </xsl:template>
+
+  <!-- =========================================================================
+       Common Helper: Offline RDF/SKOS Code-List Validation (TD-205)
+       ========================================================================= -->
+  <xsl:template name="ValidateWmoRdfCodeList">
+    <xsl:for-each select=".//*[@xlink:href]">
+      <xsl:variable name="href" select="string(@xlink:href)"/>
+      <xsl:if test="starts-with($href, 'http://codes.wmo.int/')">
+        <xsl:if test="not($rdfRegistry//skos:Concept[@rdf:about = $href])">
+          <svrl:failed-assert id="IWXXM.RdfCodeListRegistry-1"
+                              role="ERROR"
+                              location="{concat('//', name(.))}"
+                              test="exists(document('codes.wmo.int-49-2.rdf')//skos:Concept[@rdf:about = @xlink:href])">
+            <svrl:text>WMO code-list URI '<xsl:value-of select="$href"/>' on element '<xsl:value-of select="name(.)"/>' is not registered in the offline WMO SKOS/RDF code-list catalog (codes.wmo.int-49-2.rdf).</svrl:text>
+          </svrl:failed-assert>
+        </xsl:if>
+      </xsl:if>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =========================================================================
+       1. Official WMO IWXXM 2025-2 WAFSSignificantWeatherForecast Rules
        ========================================================================= -->
   <xsl:template match="iwxxm:WAFSSignificantWeatherForecast">
     <svrl:active-pattern id="WAFSSignificantWeatherForecast-Rules" name="WMO IWXXM 2025-2 WAFS SIGWX Rules"/>
+    <xsl:call-template name="ValidateCommonReportAttributes"/>
+    <xsl:call-template name="ValidateWmoRdfCodeList"/>
 
-    <!-- Rule: MeteorologicalFeature.MeteorologicalFeatureCollection-1 -->
     <xsl:if test="not(gml:identifier)">
       <svrl:failed-assert id="MeteorologicalFeature.MeteorologicalFeatureCollection-1"
                           role="ERROR"
@@ -38,7 +88,6 @@
       </svrl:failed-assert>
     </xsl:if>
 
-    <!-- Rule: WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-1 -->
     <xsl:if test="string(iwxxm:phenomenonCategory) != 'weatherForecasts'">
       <svrl:failed-assert id="WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-1"
                           role="ERROR"
@@ -48,7 +97,6 @@
       </svrl:failed-assert>
     </xsl:if>
 
-    <!-- Rule: WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-2 -->
     <xsl:if test="not(iwxxm:phenomenonBaseTime)">
       <svrl:failed-assert id="WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-2"
                           role="ERROR"
@@ -58,7 +106,6 @@
       </svrl:failed-assert>
     </xsl:if>
 
-    <!-- Rule: WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-3 -->
     <xsl:if test="not(iwxxm:originatingCentre/iwxxm:WorldAreaForecastCentre)">
       <svrl:failed-assert id="WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-3"
                           role="ERROR"
@@ -68,26 +115,6 @@
       </svrl:failed-assert>
     </xsl:if>
 
-    <!-- Rule: Common.BasicReport-1 & Common.BasicReport-2 -->
-    <xsl:if test="@permissibleUsage = 'NON-OPERATIONAL' and not(@permissibleUsageReason)">
-      <svrl:failed-assert id="Common.BasicReport-1"
-                          role="ERROR"
-                          location="/iwxxm:WAFSSignificantWeatherForecast"
-                          test="if (@permissibleUsage = 'NON-OPERATIONAL') then exists(@permissibleUsageReason) else true()">
-        <svrl:text>Common.BasicReport-1: Non-operational reports must include a permissibleUsageReason</svrl:text>
-      </svrl:failed-assert>
-    </xsl:if>
-
-    <xsl:if test="(@permissibleUsage = 'OPERATIONAL' or not(@permissibleUsage)) and @permissibleUsageReason">
-      <svrl:failed-assert id="Common.BasicReport-2"
-                          role="ERROR"
-                          location="/iwxxm:WAFSSignificantWeatherForecast"
-                          test="if (@permissibleUsage = 'OPERATIONAL') then empty(@permissibleUsageReason) else true()">
-        <svrl:text>Common.BasicReport-2: Operational reports should not include a permissibleUsageReason</svrl:text>
-      </svrl:failed-assert>
-    </xsl:if>
-
-    <!-- Rule: IWXXM-SIGWX-001 (Bounding Volume vertical limits) -->
     <xsl:if test="iwxxm:boundingVolume/iwxxm:ElevatedEnvelope">
       <xsl:variable name="lowerElev" select="number(iwxxm:boundingVolume/iwxxm:ElevatedEnvelope/iwxxm:lowerElevation)"/>
       <xsl:variable name="upperElev" select="number(iwxxm:boundingVolume/iwxxm:ElevatedEnvelope/iwxxm:upperElevation)"/>
@@ -101,7 +128,6 @@
       </xsl:if>
     </xsl:if>
 
-    <!-- Rule: MeteorologicalFeature.MeteorologicalFeature-1 -->
     <xsl:for-each select="iwxxm:feature/iwxxm:MeteorologicalFeature">
       <xsl:if test="not(gml:identifier)">
         <svrl:failed-assert id="MeteorologicalFeature.MeteorologicalFeature-1"
@@ -113,7 +139,6 @@
       </xsl:if>
     </xsl:for-each>
 
-    <!-- Rule: WAFSSignificantWeatherForecast.CloudDistribution (WMO BUFR 0-20-008 code list) -->
     <xsl:for-each select=".//iwxxm:CloudDistribution">
       <xsl:if test="not(@nilReason) and not(starts-with(string(@xlink:href), 'http://codes.wmo.int/bufr4/codeflag/0-20-008/'))">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.CloudDistribution"
@@ -125,7 +150,6 @@
       </xsl:if>
     </xsl:for-each>
 
-    <!-- Rule: WAFSSignificantWeatherForecast.CloudType (WMO BUFR 0-20-012 code list) -->
     <xsl:for-each select=".//iwxxm:CloudType">
       <xsl:if test="not(@nilReason) and not(starts-with(string(@xlink:href), 'http://codes.wmo.int/bufr4/codeflag/0-20-012/'))">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.CloudType"
@@ -137,7 +161,6 @@
       </xsl:if>
     </xsl:for-each>
 
-    <!-- Rule: WAFSSignificantWeatherForecast.DegreeOfTurbulence (WMO BUFR 0-11-030 code list) -->
     <xsl:for-each select=".//iwxxm:DegreeOfTurbulence">
       <xsl:if test="not(@nilReason) and not(starts-with(string(@xlink:href), 'http://codes.wmo.int/bufr4/codeflag/0-11-030/'))">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.DegreeOfTurbulence"
@@ -149,7 +172,6 @@
       </xsl:if>
     </xsl:for-each>
 
-    <!-- Rule: WAFSSignificantWeatherForecast.DegreeOfIcing (WMO BUFR 0-20-041 code list) -->
     <xsl:for-each select=".//iwxxm:DegreeOfIcing">
       <xsl:if test="not(@nilReason) and not(starts-with(string(@xlink:href), 'http://codes.wmo.int/bufr4/codeflag/0-20-041/'))">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.DegreeOfIcing"
@@ -161,7 +183,6 @@
       </xsl:if>
     </xsl:for-each>
 
-    <!-- Rule: IWXXM-SIGWX-002 (WAFSJetStreamWindSymbol speed >= 80 kt or >= 41.1 m/s) -->
     <xsl:for-each select="iwxxm:feature/iwxxm:MeteorologicalFeature/iwxxm:phenomenonProperty/iwxxm:WAFSJetStreamWindSymbol">
       <xsl:variable name="speed" select="number(iwxxm:windSpeed)"/>
       <xsl:variable name="uom" select="string(iwxxm:windSpeed/@uom)"/>
@@ -177,12 +198,12 @@
   </xsl:template>
 
   <!-- =========================================================================
-       Compact SIGWXReport Business Rules
+       2. Compact SIGWXReport Business Rules
        ========================================================================= -->
   <xsl:template match="iwxxm:SIGWXReport">
     <svrl:active-pattern id="SIGWX-Core-Rules" name="SIGWX Core Meteorological Rules"/>
+    <xsl:call-template name="ValidateCommonReportAttributes"/>
 
-    <!-- Rule 1: SIGWX.VerticalLimits - Upper vertical limit must be strictly greater than lower limit -->
     <xsl:variable name="lowerFl" select="number(iwxxm:lowerLimit)"/>
     <xsl:variable name="upperFl" select="number(iwxxm:upperLimit)"/>
     <xsl:if test="$upperFl &lt;= $lowerFl">
@@ -194,7 +215,6 @@
       </svrl:failed-assert>
     </xsl:if>
 
-    <!-- Rule 2: SIGWX.JetStreamSpeed - Every JetStream must have a wind speed >= 80 kt per ICAO Annex 3 -->
     <xsl:for-each select="iwxxm:jetStream">
       <xsl:variable name="windSpeed" select="number(iwxxm:windSpeed)"/>
       <xsl:variable name="windUom" select="string(iwxxm:windSpeed/@uom)"/>
@@ -208,7 +228,6 @@
       </xsl:if>
     </xsl:for-each>
 
-    <!-- Rule 3: SIGWX.CloudVerticalExtent - Cloud top must be strictly greater than cloud base -->
     <xsl:for-each select="iwxxm:cloud">
       <xsl:if test="iwxxm:base">
         <xsl:variable name="baseFl" select="number(iwxxm:base)"/>
@@ -224,7 +243,6 @@
       </xsl:if>
     </xsl:for-each>
 
-    <!-- Rule 4: SIGWX.MeasureUom - Flight level elements must use unit of measure 'FL' -->
     <xsl:for-each select=".//iwxxm:flightLevel | iwxxm:lowerLimit | iwxxm:upperLimit">
       <xsl:if test="@uom != 'FL'">
         <svrl:failed-assert id="IWXXM-SIGWX-004"
@@ -235,6 +253,105 @@
         </svrl:failed-assert>
       </xsl:if>
     </xsl:for-each>
+  </xsl:template>
+
+  <!-- =========================================================================
+       3. VONA & QVACI Rules (VolcanoObservatoryNoticeForAviation & QVACI)
+       ========================================================================= -->
+  <xsl:template match="iwxxm:VolcanoObservatoryNoticeForAviation">
+    <svrl:active-pattern id="VONA-Rules" name="WMO IWXXM 2025-2 VONA Business Rules"/>
+    <xsl:call-template name="ValidateCommonReportAttributes"/>
+    <xsl:call-template name="ValidateWmoRdfCodeList"/>
+
+    <xsl:if test="not(@translationFailedTAC) and string(iwxxm:phenomenonCategory) != 'volcanicObservations'">
+      <svrl:failed-assert id="VONA.VONA-1"
+                          role="ERROR"
+                          location="/iwxxm:VolcanoObservatoryNoticeForAviation/iwxxm:phenomenonCategory"
+                          test="iwxxm:phenomenonCategory = 'volcanicObservations'">
+        <svrl:text>VONA.VONA-1: iwxxm:phenomenonCategory in VolcanoObservatoryNoticeForAviation shall be 'volcanicObservations'.</svrl:text>
+      </svrl:failed-assert>
+    </xsl:if>
+  </xsl:template>
+
+  <xsl:template match="iwxxm:QuantitativeVolcanicAshConcentrationInformation">
+    <svrl:active-pattern id="QVACI-Rules" name="WMO IWXXM 2025-2 QVACI Business Rules"/>
+    <xsl:call-template name="ValidateCommonReportAttributes"/>
+    <xsl:call-template name="ValidateWmoRdfCodeList"/>
+
+    <xsl:if test="not(@translationFailedTAC) and string(iwxxm:phenomenonCategory) != 'volcanicForecasts'">
+      <svrl:failed-assert id="QVACI.QVACI-1"
+                          role="ERROR"
+                          location="/iwxxm:QuantitativeVolcanicAshConcentrationInformation/iwxxm:phenomenonCategory"
+                          test="iwxxm:phenomenonCategory = 'volcanicForecasts'">
+        <svrl:text>QVACI.QVACI-1: iwxxm:phenomenonCategory in QuantitativeVolcanicAshConcentrationInformation shall be 'volcanicForecasts'.</svrl:text>
+      </svrl:failed-assert>
+    </xsl:if>
+
+    <xsl:for-each select=".//iwxxm:ashDensityEqualsOrExceeds">
+      <xsl:if test="number(.) &lt;= 0">
+        <svrl:failed-assert id="QVACI.AshDensity-1"
+                            role="ERROR"
+                            location="//iwxxm:ashDensityEqualsOrExceeds"
+                            test="number(.) &gt; 0">
+          <svrl:text>QVACI.AshDensity-1: Ash concentration density must be strictly positive (mg/m3).</svrl:text>
+        </svrl:failed-assert>
+      </xsl:if>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- =========================================================================
+       4. Aerodrome Reports Rules (METAR, SPECI, TAF)
+       ========================================================================= -->
+  <xsl:template match="iwxxm:METAR | iwxxm:SPECI">
+    <svrl:active-pattern id="METAR-SPECI-Rules" name="WMO IWXXM 2025-2 METAR/SPECI Business Rules"/>
+    <xsl:call-template name="ValidateCommonReportAttributes"/>
+    <xsl:call-template name="ValidateWmoRdfCodeList"/>
+
+    <xsl:if test="not(@translationFailedTAC) and not(iwxxm:observation)">
+      <svrl:failed-assert id="METAR_SPECI.ObservationMandatory-1"
+                          role="ERROR"
+                          location="{concat('/', name(.))}"
+                          test="exists(iwxxm:observation) or exists(@translationFailedTAC)">
+        <svrl:text>METAR_SPECI.ObservationMandatory-1: iwxxm:observation is required when report is not a failed TAC translation.</svrl:text>
+      </svrl:failed-assert>
+    </xsl:if>
+  </xsl:template>
+
+  <xsl:template match="iwxxm:TAF">
+    <svrl:active-pattern id="TAF-Rules" name="WMO IWXXM 2025-2 TAF Business Rules"/>
+    <xsl:call-template name="ValidateCommonReportAttributes"/>
+    <xsl:call-template name="ValidateWmoRdfCodeList"/>
+
+    <xsl:if test="not(@translationFailedTAC) and (@isCancelReport != 'true') and not(iwxxm:baseForecast)">
+      <svrl:failed-assert id="TAF.BaseForecastMandatory-1"
+                          role="ERROR"
+                          location="/iwxxm:TAF"
+                          test="exists(iwxxm:baseForecast) or @isCancelReport = 'true' or exists(@translationFailedTAC)">
+        <svrl:text>TAF.BaseForecastMandatory-1: iwxxm:baseForecast is required unless isCancelReport is true or translationFailedTAC is present.</svrl:text>
+      </svrl:failed-assert>
+    </xsl:if>
+  </xsl:template>
+
+  <!-- =========================================================================
+       5. En-Route & Advisory Reports Rules (SIGMET, AIRMET, Advisories, Bulletin)
+       ========================================================================= -->
+  <xsl:template match="iwxxm:SIGMET | iwxxm:VolcanicAshSIGMET | iwxxm:TropicalCycloneSIGMET | iwxxm:AIRMET | iwxxm:VolcanicAshAdvisory | iwxxm:TropicalCycloneAdvisory | iwxxm:SpaceWeatherAdvisory">
+    <svrl:active-pattern id="EnRoute-Advisory-Rules" name="WMO IWXXM 2025-2 En-Route and Advisory Rules"/>
+    <xsl:call-template name="ValidateCommonReportAttributes"/>
+    <xsl:call-template name="ValidateWmoRdfCodeList"/>
+  </xsl:template>
+
+  <xsl:template match="collect:MeteorologicalBulletin">
+    <svrl:active-pattern id="Collect-Bulletin-Rules" name="WMO Collect 2014 MeteorologicalBulletin Rules"/>
+    <xsl:if test="string-length(normalize-space(collect:bulletinIdentifier)) = 0">
+      <svrl:failed-assert id="COLLECT.BulletinIdentifier-1"
+                          role="ERROR"
+                          location="/collect:MeteorologicalBulletin/collect:bulletinIdentifier"
+                          test="string-length(normalize-space(collect:bulletinIdentifier)) &gt; 0">
+        <svrl:text>COLLECT.BulletinIdentifier-1: collect:bulletinIdentifier must not be empty.</svrl:text>
+      </svrl:failed-assert>
+    </xsl:if>
+    <xsl:apply-templates select="collect:meteorologicalInformation/*"/>
   </xsl:template>
 
 </xsl:stylesheet>

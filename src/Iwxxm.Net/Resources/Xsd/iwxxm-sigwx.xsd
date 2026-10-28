@@ -2,12 +2,14 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:iwxxm="http://icao.int/iwxxm/2025-2"
            xmlns:gml="http://www.opengis.net/gml/3.2"
+           xmlns:aixm="http://www.aixm.aero/schema/5.1.1"
            xmlns:xlink="http://www.w3.org/1999/xlink"
            targetNamespace="http://icao.int/iwxxm/2025-2"
            elementFormDefault="qualified"
            version="2025-2">
 
   <xs:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="gml.xsd"/>
+  <xs:import namespace="http://www.aixm.aero/schema/5.1.1" schemaLocation="aixm.xsd"/>
   <xs:import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
 
   <xs:simpleType name="ReportStatusType">
@@ -62,6 +64,7 @@
       <xs:element name="lowerElevation" type="gml:MeasureType" nillable="true"/>
       <xs:element name="lowerVerticalReference" type="xs:string" minOccurs="0"/>
     </xs:sequence>
+    <xs:attributeGroup ref="gml:SRSReferenceGroup"/>
   </xs:complexType>
 
   <xs:complexType name="ElevatedEnvelopePropertyType">
@@ -94,8 +97,17 @@
           <xs:element name="elevation" type="gml:MeasureType" nillable="true"/>
           <xs:element name="verticalReference" type="xs:string" minOccurs="0"/>
         </xs:sequence>
+        <xs:attributeGroup ref="gml:SRSReferenceGroup"/>
       </xs:extension>
     </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="ElevatedLevelPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element name="ElevatedLevel" type="iwxxm:ElevatedLevelType"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
   </xs:complexType>
 
   <xs:complexType name="ElevatedVolumeType">
@@ -134,9 +146,21 @@
         <xs:sequence>
           <xs:element name="name" type="iwxxm:StringWithNilReasonType" nillable="true"/>
           <xs:element name="IAVCEINumber" type="iwxxm:StringWithNilReasonType" nillable="true" minOccurs="0"/>
+          <xs:element name="sourceElevation" type="iwxxm:ElevatedLevelPropertyType" minOccurs="0"/>
+          <xs:element name="activityStatus" type="xs:string" minOccurs="0"/>
           <xs:element name="wmoNumber" type="xs:string" minOccurs="0"/>
           <xs:element name="location" type="iwxxm:PointPropertyType" minOccurs="0"/>
           <xs:element name="eruptionTime" type="xs:dateTime" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="VolcanicAshCloudConcentrationType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="ashDensityEqualsOrExceeds" type="gml:MeasureType"/>
         </xs:sequence>
       </xs:extension>
     </xs:complexContent>
@@ -170,6 +194,7 @@
       <xs:element ref="gml:Point"/>
       <xs:element name="ElevatedVolume" type="iwxxm:ElevatedVolumeType"/>
       <xs:element name="ElevatedPoint" type="iwxxm:ElevatedPointType"/>
+      <xs:element name="ElevatedLevel" type="iwxxm:ElevatedLevelType"/>
     </xs:choice>
     <xs:attributeGroup ref="xlink:simpleAttrs"/>
     <xs:attribute name="nilReason" type="xs:string" use="optional"/>
@@ -184,6 +209,7 @@
       <xs:element name="CloudType" type="gml:ReferenceType"/>
       <xs:element name="ElevatedLevel" type="iwxxm:ElevatedLevelType"/>
       <xs:element name="Volcano" type="iwxxm:WAFSVolcanoType"/>
+      <xs:element name="VolcanicAshCloudConcentration" type="iwxxm:VolcanicAshCloudConcentrationType"/>
       <xs:element name="TropicalCyclone" type="iwxxm:TropicalCycloneType"/>
       <xs:element name="RadiationIncident" type="iwxxm:RadiationIncidentType"/>
     </xs:choice>
@@ -192,9 +218,10 @@
   </xs:complexType>
 
   <xs:complexType name="OriginatingCentrePropertyType">
-    <xs:sequence minOccurs="0">
+    <xs:choice minOccurs="0">
       <xs:element name="WorldAreaForecastCentre" type="xs:string"/>
-    </xs:sequence>
+      <xs:element ref="aixm:Unit"/>
+    </xs:choice>
     <xs:attributeGroup ref="xlink:simpleAttrs"/>
   </xs:complexType>
 

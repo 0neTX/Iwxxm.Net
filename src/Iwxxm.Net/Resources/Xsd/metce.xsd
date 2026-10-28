@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:metce="http://def.wmo.int/metce/2013"
+           xmlns:gml="http://www.opengis.net/gml/3.2"
+           xmlns:xlink="http://www.w3.org/1999/xlink"
+           targetNamespace="http://def.wmo.int/metce/2013"
+           elementFormDefault="qualified"
+           version="1.2">
+
+  <xs:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="gml.xsd"/>
+  <xs:import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
+
+  <xs:complexType name="PointPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="gml:Point"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="VolcanoType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string"/>
+          <xs:element name="position" type="metce:PointPropertyType"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="Volcano" type="metce:VolcanoType"/>
+
+  <xs:complexType name="EruptingVolcanoType">
+    <xs:complexContent>
+      <xs:extension base="metce:VolcanoType">
+        <xs:sequence>
+          <xs:element name="eruptionDate" type="xs:dateTime"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="EruptingVolcano" type="metce:EruptingVolcanoType"/>
+
+  <xs:complexType name="TropicalCycloneType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="TropicalCyclone" type="metce:TropicalCycloneType"/>
+
+</xs:schema>

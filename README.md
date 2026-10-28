@@ -1,25 +1,41 @@
-# Iwxxm.Net — ICAO/WMO IWXXM Aeronautical Meteorology Processor for .NET
+# Iwxxm.Net — ICAO/WMO IWXXM 2025-2 Aeronautical Meteorology Processor for .NET
 
 [![NuGet Version](https://img.shields.io/badge/nuget-v1.0.0--rc.1-blue)](https://www.nuget.org/packages/Iwxxm.Net)
 [![Target Framework](https://img.shields.io/badge/target-netstandard2.0%20%7C%20net48%20%7C%20net8.0-purple)](https://learn.microsoft.com/en-us/dotnet/standard/net-standard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**`Iwxxm.Net`** is a zero-dependency **.NET Standard 2.0** library designed with **Domain-Driven Design (DDD)** and **Clean Architecture** for parsing, dual-validating (XSD + ISO Schematron XSLT), and mapping aeronautical meteorological reports in **ICAO / WMO IWXXM 2025-2** format.
+**`Iwxxm.Net`** is a zero-dependency **.NET Standard 2.0** library designed with **Domain-Driven Design (DDD)** and **Clean Architecture** for parsing, dual-validating (XSD + ISO Schematron XSLT + Offline WMO RDF Code-List Registries), and mapping the complete **ICAO / WMO IWXXM 2025-2** aeronautical meteorological report suite and **SWIM / AMHS Collective Bulletins** (`collect:MeteorologicalBulletin`).
 
-In version **`1.0.0-rc.1`** (Phase 1), the library provides complete support for **Significant Weather (SIGWX)** reports (`<iwxxm:WAFSSignificantWeatherForecast>` and `<iwxxm:SIGWXReport>`), mapping all 9 official WAFS SIGWX meteorological phenomena: **Jet Streams**, **Turbulence (CAT)**, **Airframe Icing**, **Cumulonimbus / Cloud Distributions**, **Tropopause Heights & Contours**, **Volcanoes**, **Tropical Cyclones**, **Sandstorms / Duststorms**, and **Radiation Incidents**, along with strongly-typed WMO BUFR code-list registries (`WmoCodeRegistry`).
+---
+
+## Supported IWXXM 2025-2 Report Suite
+
+| Category | Root XML Element(s) | Domain Aggregate Root |
+| :--- | :--- | :--- |
+| **WAFS Significant Weather** | `WAFSSignificantWeatherForecast`, `SIGWXReport` | `SignificantWeatherReport` |
+| **Aerodrome Observations** | `METAR`, `SPECI` | `AerodromeWeatherReport` |
+| **Aerodrome Forecasts** | `TAF` | `TafReport` |
+| **En-Route Hazards (SIGMET)** | `SIGMET`, `VolcanicAshSIGMET`, `TropicalCycloneSIGMET` | `SigmetReport` |
+| **Low-Level Hazards (AIRMET)** | `AIRMET` | `AirmetReport` |
+| **Volcano Observatory Notice** | `VolcanoObservatoryNoticeForAviation` | `VonaReport` |
+| **Quantitative Volcanic Ash** | `QuantitativeVolcanicAshConcentrationInformation` | `QvaciReport` |
+| **Volcanic Ash Advisory** | `VolcanicAshAdvisory` | `VolcanicAshAdvisoryReport` |
+| **Tropical Cyclone Advisory** | `TropicalCycloneAdvisory` | `TropicalCycloneAdvisoryReport` |
+| **Space Weather Advisory** | `SpaceWeatherAdvisory` | `SpaceWeatherAdvisoryReport` |
+| **SWIM / AMHS Bulletin** | `collect:MeteorologicalBulletin` | `MeteorologicalBulletin` |
 
 ---
 
 ## Key Features
 
-- **Zero Third-Party Runtime Dependencies**: Built 100% on the native .NET Base Class Library (`System.Xml`, `XmlSchemaSet`, `XslCompiledTransform`, `XmlSerializer`). No external GIS, validation, or mediator packages required at runtime.
+- **Zero Third-Party Runtime Dependencies**: Built 100% on the native .NET Base Class Library (`System.Xml`, `XmlSchemaSet`, `XslCompiledTransform`, `XmlSerializer`, `XDocument`). No external GIS, validation, or mediator packages required at runtime.
 - **Broad .NET Compatibility**: Targets `netstandard2.0` for seamless execution across **.NET Framework 4.8** and **.NET 8+**.
-- **Embedded Official Schemas & Rules**: Bundles the XSD schemas (`iwxxm-sigwx.xsd`, `gml.xsd`, `xlink.xsd`) and precompiled ISO Schematron business rules (`iwxxm-2025-2-sigwx.xslt`) as assembly `<EmbeddedResource>` streams, resolved entirely in-memory via a custom `EmbeddedXmlUrlResolver` with zero disk or network I/O.
+- **Embedded Air-Gapped Schemas, Rules & WMO RDF Registries**: Bundles the XSD schemas (`iwxxm-2025-2.xsd`, `iwxxm-sigwx.xsd`, `collect.xsd`, `aixm.xsd`, `metce.xsd`, `gml.xsd`, `xlink.xsd`), precompiled ISO Schematron business rules (`iwxxm-2025-2-sigwx.xslt`), and the offline WMO No. 306 / 49-2 SKOS/RDF code-list registry (`codes.wmo.int-49-2.rdf`) as `<EmbeddedResource>` streams resolved strictly in-memory via `EmbeddedXmlUrlResolver` with zero disk or network I/O.
 - **Dual Validation Pipeline**:
   1. **Structural Validation**: `XmlReaderSettings` against a lazily compiled, thread-safe `XmlSchemaSet` with XXE/DTD protection (`DtdProcessing.Prohibit`).
-  2. **Business Rule Validation**: Executes precompiled Schematron XSLT rules via `XslCompiledTransform` (including WMO BUFR code-table checks `0-20-008`, `0-20-012`, `0-11-030`, `0-20-041` and nil-reason rules) and extracts SVRL (`<svrl:failed-assert>`) findings.
-- **Native Spatial & WMO Code Value Objects**: An Anti-Corruption Layer (`SigwxMapper`) translates GML 3.2.1 geometries (`gml:Curve`, `gml:CubicSpline`, `gml:LineStringSegment`, `gml:Polygon`, `gml:PolygonPatch`, `gml:Ring`, `gml:Point`, `gml:posList`, `gml:pos`) and WMO BUFR URIs into immutable Domain Value Objects (`GeoCoordinate`, `GeoPolygon`, `FlightLevel`, `CloudDistributionCode`, `CloudTypeCode`, `TurbulenceDegreeCode`, `IcingDegreeCode`).
-- **Functional `Result<T>` Pattern**: Explicit, allocation-friendly error handling categorized by pipeline stage (`XmlWellFormedness`, `XsdSchemaValidation`, `SchematronBusinessRule`, `Deserialization`, `DomainMapping`).
+  2. **Business Rule & RDF Code-List Validation**: Executes precompiled Schematron XSLT rules via `XslCompiledTransform` (including offline `document('../Codelists/codes.wmo.int-49-2.rdf')` lookups and WAFS BUFR code-table checks) and extracts SVRL (`<svrl:failed-assert>`) findings.
+- **Native Spatial & WMO Code Value Objects**: Translates GML 3.2.1 geometries (`gml:Curve`, `gml:CubicSpline`, `gml:LineStringSegment`, `gml:Polygon`, `gml:PolygonPatch` with interior holes `gml:interior`, `gml:CircleByCenterPoint`, `gml:Point`, `gml:posList`, `gml:pos`) and AIXM 5.1.1 `AirspaceVolume` bounds into immutable Domain Value Objects (`GeoCoordinate`, `GeoPolygon`, `FlightLevel`).
+- **Functional `Result<T>` Pattern**: Explicit, allocation-friendly error handling categorized by pipeline stage (`XmlWellFormedness`, `XsdSchemaValidation`, `SchematronBusinessRule`, `XmlDeserialization`, `DomainMappingRule`).
 
 ---
 
@@ -33,7 +49,9 @@ dotnet add package Iwxxm.Net --version 1.0.0-rc.1
 
 ## Quick Start
 
-### 1. Static Facade Usage
+### 1. Polymorphic IWXXM 2025-2 Parsing (`IwxxmParser`)
+
+Use `IwxxmParser` when consuming heterogeneous SWIM/AMHS streams containing any IWXXM 2025-2 report or `collect:MeteorologicalBulletin`:
 
 ```csharp
 using System;
@@ -41,57 +59,55 @@ using Iwxxm.Net.Domain.Aggregates;
 using Iwxxm.Net.Domain.Common;
 using Iwxxm.Net.Presentation;
 
-Result<SignificantWeatherReport> result = IwxxmSigwxParser.ParseFile("WAFS-Example.xml");
+Result<IIwxxmReport> result = IwxxmParser.ParseFile("qvaci-Example.xml");
 
 if (result.IsSuccess)
 {
-    SignificantWeatherReport report = result.Value;
-    Console.WriteLine($"Report ID: {report.Id}");
-    Console.WriteLine($"Originating WAFC: {report.IssuingCentre}");
-    Console.WriteLine($"Vertical Extent: {report.LowerLimit} - {report.UpperLimit}");
-    Console.WriteLine($"Validity: {report.ValidFromUtc:O} to {report.ValidUntilUtc:O}");
+    switch (result.Value)
+    {
+        case AerodromeWeatherReport metarOrSpeci:
+            Console.WriteLine($"{metarOrSpeci.ReportType} at {metarOrSpeci.AerodromeIcao}: QNH {metarOrSpeci.QnhHectopascals} hPa");
+            break;
 
-    foreach (var jetStream in report.JetStreams)
-    {
-        Console.WriteLine($"JetStream {jetStream.Id}: Max {jetStream.MaxWindSpeedKnots:F1} kt at {jetStream.CoreFlightLevel} ({jetStream.AxisTrajectory.Count} vertices)");
-    }
+        case TafReport taf:
+            Console.WriteLine($"TAF for {taf.AerodromeIcao}: {taf.ChangeForecasts.Count} change groups");
+            break;
 
-    foreach (var cloud in report.Clouds)
-    {
-        Console.WriteLine($"Cloud {cloud.Id}: {cloud.DistributionCode} {cloud.TypeCode} (Base: {cloud.BaseFlightLevel?.ToString() ?? "N/A"}, Top: {cloud.TopFlightLevel})");
-    }
+        case SigmetReport sigmet:
+            Console.WriteLine($"{sigmet.ReportType} #{sigmet.SequenceNumber} for FIR {sigmet.FirIcaoOrName}: {sigmet.PhenomenonUri}");
+            break;
 
-    foreach (var turbulence in report.Turbulences)
-    {
-        Console.WriteLine($"Turbulence {turbulence.Id}: {turbulence.Degree} ({turbulence.BaseFlightLevel} - {turbulence.TopFlightLevel})");
-    }
+        case QvaciReport qvaci:
+            Console.WriteLine($"QVACI for volcano {qvaci.VolcanoName}: {qvaci.ConcentrationClouds.Count} ash clouds");
+            break;
 
-    foreach (var icing in report.AirframeIcings)
-    {
-        Console.WriteLine($"Icing {icing.Id}: {icing.Degree} ({icing.BaseFlightLevel} - {icing.TopFlightLevel})");
-    }
+        case SignificantWeatherReport sigwx:
+            Console.WriteLine($"WAFS SIGWX from {sigwx.IssuingCentre} ({sigwx.LowerLimit}-{sigwx.UpperLimit})");
+            break;
 
-    foreach (var volcano in report.Volcanoes)
-    {
-        Console.WriteLine($"Volcano {volcano.Name} at {volcano.Position}");
-    }
-}
-else
-{
-    foreach (ValidationError error in result.Errors)
-    {
-        Console.Error.WriteLine(error);
+        case MeteorologicalBulletin bulletin:
+            Console.WriteLine($"Bulletin {bulletin.BulletinIdentifier} containing {bulletin.Reports.Count} reports");
+            break;
     }
 }
 ```
 
-### 2. Dependency Injection (`IIwxxmSigwxProcessor`)
+### 2. Strongly-Typed Report Parsing (`ParseFileAs<TReport>` & `ParseBulletinFile`)
+
+```csharp
+Result<AerodromeWeatherReport> metarResult = IwxxmParser.ParseFileAs<AerodromeWeatherReport>("metar-A3-1.xml");
+Result<MeteorologicalBulletin> bulletinResult = IwxxmParser.ParseBulletinFile("collect-A3-1-A3-2.xml");
+Result<SignificantWeatherReport> sigwxResult = IwxxmSigwxParser.ParseFile("WAFS-Example.xml");
+```
+
+### 3. Dependency Injection (`IIwxxmReportDispatcher` & `IIwxxmSigwxProcessor`)
 
 ```csharp
 using Iwxxm.Net.Application.Ports;
 using Iwxxm.Net.Presentation;
 using Microsoft.Extensions.DependencyInjection;
 
+services.AddSingleton<IIwxxmReportDispatcher>(_ => IwxxmParser.CreateDispatcher());
 services.AddSingleton<IIwxxmSigwxProcessor>(_ => IwxxmSigwxParser.CreateProcessor());
 ```
 
@@ -105,46 +121,43 @@ The library strictly enforces **Clean Architecture** and **Domain-Driven Design 
 src/Iwxxm.Net/
 ├── Domain/                     # Pure C# Domain Model (Zero XML / Infrastructure dependencies)
 │   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity
-│   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, FlightLevel, WmoCodes, JetStream, Cloud, Tropopause, Volcano, Turbulence, AirframeIcing, WafsPointPhenomena
-│   └── Aggregates/             # SignificantWeatherReport (Aggregate Root)
+│   ├── ValueObjects/           # GeoCoordinate, GeoPolygon (with InteriorRings), FlightLevel, WmoCodes, SIGWX features
+│   └── Aggregates/             # IIwxxmReport, SignificantWeatherReport, AerodromeWeatherReport, TafReport,
+│                               # SigmetReport, AirmetReport, VonaReport, QvaciReport, VolcanicAshAdvisoryReport,
+│                               # TropicalCycloneAdvisoryReport, SpaceWeatherAdvisoryReport, MeteorologicalBulletin
 ├── Application/                # Application Layer (Depends ONLY on Domain)
-│   ├── Ports/                  # IIwxxmSigwxProcessor, IXmlSchemaValidator, ISchematronValidator, ISigwxXmlDeserializer<T>, ISigwxAclMapper<T>
-│   └── UseCases/               # ProcessSigwxReportUseCase<T> (5-step pipeline orchestrator)
-├── Infrastructure/             # Internal Adapters (System.Xml, XSD, XSLT, ACL Mapping)
+│   ├── Ports/                  # IIwxxmReportDispatcher, IIwxxmSigwxProcessor, IXmlSchemaValidator, ISchematronValidator
+│   └── UseCases/               # DispatchIwxxmReportUseCase, ProcessSigwxReportUseCase<T>
+├── Infrastructure/             # Internal Adapters (System.Xml, XSD, XSLT, Offline RDF, ACL Mapping)
 │   ├── Generated/              # XSD-generated classes (namespace Iwxxm20252.Generated)
-│   ├── Resources/              # EmbeddedResourceLoader & EmbeddedXmlUrlResolver
-│   ├── Validation/             # XsdValidator & XsltSchematronValidator (SVRL parser)
-│   ├── Serialization/          # XmlSerializerSigwxDeserializer (cached XmlSerializer instances)
-│   └── Mapping/                # SigwxMapper (Anti-Corruption Layer for GML 3.2.1 -> Domain)
-└── Presentation/               # Public Facade & Composition Root
-    └── IwxxmSigwxParser.cs
+│   ├── Resources/              # EmbeddedResourceLoader & EmbeddedXmlUrlResolver (air-gapped XSD/XSLT/RDF)
+│   ├── Validation/             # XsdValidator & XsltSchematronValidator (SVRL + offline RDF document() lookup)
+│   ├── Serialization/          # XmlSerializerSigwxDeserializer
+│   └── Mapping/                # IwxxmSuiteMapper & SigwxMapper (Anti-Corruption Layer)
+└── Presentation/               # Public Facades & Composition Roots
+    ├── IwxxmParser.cs          # Full IWXXM 2025-2 Suite & SWIM Collective Bulletin Parser
+    └── IwxxmSigwxParser.cs     # Specialized WAFS SIGWX Parser
 ```
 
 ---
 
 ## Design-Time XSD Class Generation
 
-Standard `xsd.exe` fails on OGC GML 3.2.1 and ICAO IWXXM schemas due to complex substitution groups and `xlink` attribute groups. This repository uses a pinned local .NET tool manifest ([`.config/dotnet-tools.json`](.config/dotnet-tools.json)) with `XmlSchemaClassGenerator-console` (`dotnet-xscgen`):
+This repository uses a pinned local .NET tool manifest ([`.config/dotnet-tools.json`](.config/dotnet-tools.json)) with `XmlSchemaClassGenerator-console` (`dotnet-xscgen`):
 
 ```bash
-# Restore local tools defined in .config/dotnet-tools.json
 dotnet tool restore
-
-# Regenerate C# classes from embedded XSDs via script:
 ./tools/generate-xsd-classes.sh
-
-# Or via MSBuild target:
-dotnet build -p:RegenerateXsdClasses=true
 ```
 
 ---
 
 ## Roadmap & Technical Debt
 
-See [**`TECHNICAL_DEBT.md`**](TECHNICAL_DEBT.md) for the complete architectural backlog covering **Phase 2** and **Phase 3**:
+See [**`TECHNICAL_DEBT.md`**](TECHNICAL_DEBT.md) for the complete architectural status:
 
-- [x] **Phase 1 (`v1.0.0-rc.1`)**: Core Clean Architecture, Dual XSD + ISO Schematron XSLT validation engine, GML 3.2.1 Spatial ACL, WMO BUFR code-list registry (`WmoCodeRegistry`), and complete mapping of all 9 IWXXM 2025-2 **SIGWX / WAFS** phenomena (`JetStream`, `Cloud`, `Tropopause`, `Volcano`, `Turbulence`, `AirframeIcing`, `TropicalCyclone`, `Sandstorm`, `RadiationIncident`).
-- [ ] **Phase 2 (`v1.1.0` – `v1.2.0`)**: Polymorphic `IIwxxmReport` dispatcher, En-Route & Volcanic Hazards (`QVACI`, `VONA`, `VolcanicAshAdvisory`, `TropicalCycloneAdvisory`, `SpaceWeatherAdvisory`, `SIGMET`, `AIRMET`), Aerodrome Reports (`METAR`/`SPECI`, `TAF`), and SWIM Collective Bulletin unwrapping (`collect:MeteorologicalBulletin`).
+- [x] **Phase 1 (`v1.0.0-rc.1`)**: Core Clean Architecture, Dual XSD + ISO Schematron XSLT validation engine, GML 3.2.1 Spatial ACL, WMO BUFR code-list registry (`WmoCodeRegistry`), and complete mapping of all 9 IWXXM 2025-2 **SIGWX / WAFS** phenomena.
+- [x] **Phase 2 (`v1.0.0-rc.1`)**: Polymorphic `IIwxxmReport` & `IwxxmParser` dispatcher, En-Route & Volcanic Hazards (`QVACI`, `VONA`, `VolcanicAshAdvisory`, `TropicalCycloneAdvisory`, `SpaceWeatherAdvisory`, `SIGMET`, `AIRMET`), Aerodrome Reports (`METAR`/`SPECI`, `TAF`), SWIM Collective Bulletin unwrapping (`collect:MeteorologicalBulletin`), and Offline WMO 49-2 RDF/SKOS code-list validation (`codes.wmo.int-49-2.rdf`).
 - [ ] **Phase 3 (`v1.0.0` GA)**: XML DoS character-bound hardening, zero-allocation `gml:posList` tokenizer, `BenchmarkDotNet` memory diagnostics suite, and GitHub Actions CI/CD pipeline.
 
 ---

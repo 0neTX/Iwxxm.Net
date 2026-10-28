@@ -15,17 +15,40 @@ namespace Iwxxm.Net.Infrastructure.Validation
     /// </summary>
     internal sealed class XsdValidator : IXmlSchemaValidator
     {
-        private static readonly string[] EmbeddedSchemaFiles =
+        private static readonly string[] SigwxEmbeddedSchemaFiles =
         {
             "Iwxxm.Net.Resources.Xsd.xlink.xsd",
             "Iwxxm.Net.Resources.Xsd.gml.xsd",
+            "Iwxxm.Net.Resources.Xsd.aixm.xsd",
             "Iwxxm.Net.Resources.Xsd.iwxxm-sigwx.xsd"
         };
 
-        private static readonly Lazy<XmlSchemaSet> CompiledSchemaSet =
-            new Lazy<XmlSchemaSet>(BuildAndCompileSchemaSet, isThreadSafe: true);
+        private static readonly string[] FullSuiteEmbeddedSchemaFiles =
+        {
+            "Iwxxm.Net.Resources.Xsd.xlink.xsd",
+            "Iwxxm.Net.Resources.Xsd.gml.xsd",
+            "Iwxxm.Net.Resources.Xsd.aixm.xsd",
+            "Iwxxm.Net.Resources.Xsd.metce.xsd",
+            "Iwxxm.Net.Resources.Xsd.iwxxm-2025-2.xsd",
+            "Iwxxm.Net.Resources.Xsd.collect.xsd"
+        };
 
-        private static XmlSchemaSet BuildAndCompileSchemaSet()
+        private static readonly Lazy<XmlSchemaSet> CompiledSigwxSchemaSet =
+            new Lazy<XmlSchemaSet>(() => BuildAndCompileSchemaSet(SigwxEmbeddedSchemaFiles), isThreadSafe: true);
+
+        private static readonly Lazy<XmlSchemaSet> CompiledFullSuiteSchemaSet =
+            new Lazy<XmlSchemaSet>(() => BuildAndCompileSchemaSet(FullSuiteEmbeddedSchemaFiles), isThreadSafe: true);
+
+        private readonly bool _useFullSuite;
+
+        public XsdValidator(bool useFullSuite = false)
+        {
+            _useFullSuite = useFullSuite;
+        }
+
+        public static XsdValidator CreateFullSuiteValidator() => new XsdValidator(useFullSuite: true);
+
+        private static XmlSchemaSet BuildAndCompileSchemaSet(string[] schemaResourceNames)
         {
             var resolver = new EmbeddedXmlUrlResolver();
             var schemaSet = new XmlSchemaSet
@@ -39,10 +62,11 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 XmlResolver = resolver
             };
 
-            foreach (string resourceName in EmbeddedSchemaFiles)
+            foreach (string resourceName in schemaResourceNames)
             {
+                string fileName = Path.GetFileName(resourceName);
                 using (Stream xsdStream = EmbeddedResourceLoader.GetRequiredResourceStream(resourceName))
-                using (XmlReader schemaReader = XmlReader.Create(xsdStream, readerSettings))
+                using (XmlReader schemaReader = XmlReader.Create(xsdStream, readerSettings, $"embedded://iwxxm-resources/{fileName}"))
                 {
                     XmlSchema schema = XmlSchema.Read(schemaReader, (sender, args) =>
                     {
@@ -68,11 +92,12 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 throw new ArgumentNullException(nameof(xmlStream));
 
             var errors = new List<ValidationError>();
+            XmlSchemaSet activeSchemaSet = _useFullSuite ? CompiledFullSuiteSchemaSet.Value : CompiledSigwxSchemaSet.Value;
 
             var settings = new XmlReaderSettings
             {
                 ValidationType = ValidationType.Schema,
-                Schemas = CompiledSchemaSet.Value,
+                Schemas = activeSchemaSet,
                 ValidationFlags =
                     XmlSchemaValidationFlags.ProcessIdentityConstraints |
                     XmlSchemaValidationFlags.ReportValidationWarnings,

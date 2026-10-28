@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:aixm="http://www.aixm.aero/schema/5.1.1"
+           xmlns:gml="http://www.opengis.net/gml/3.2"
+           xmlns:xlink="http://www.w3.org/1999/xlink"
+           targetNamespace="http://www.aixm.aero/schema/5.1.1"
+           elementFormDefault="qualified"
+           version="5.1.1">
+
+  <xs:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="gml.xsd"/>
+  <xs:import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
+
+  <xs:complexType name="ValDistanceVerticalType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="uom" type="xs:string" use="optional"/>
+        <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="ElevatedPointType">
+    <xs:complexContent>
+      <xs:extension base="gml:PointType">
+        <xs:sequence>
+          <xs:element name="elevation" type="aixm:ValDistanceVerticalType" minOccurs="0"/>
+          <xs:element name="verticalDatum" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="ElevatedPoint" type="aixm:ElevatedPointType"/>
+
+  <xs:complexType name="ElevatedPointPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="aixm:ElevatedPoint"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="UnitTimeSliceType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element ref="gml:validTime" minOccurs="0"/>
+          <xs:element name="interpretation" type="xs:string" minOccurs="0"/>
+          <xs:element name="name" type="xs:string" minOccurs="0"/>
+          <xs:element name="type" type="xs:string" minOccurs="0"/>
+          <xs:element name="compliantICAO" type="xs:string" minOccurs="0"/>
+          <xs:element name="designator" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="UnitTimeSlice" type="aixm:UnitTimeSliceType"/>
+
+  <xs:complexType name="AirportHeliportTimeSliceType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element ref="gml:validTime" minOccurs="0"/>
+          <xs:element name="interpretation" type="xs:string" minOccurs="0"/>
+          <xs:element name="designator" type="xs:string" minOccurs="0"/>
+          <xs:element name="name" type="xs:string" minOccurs="0"/>
+          <xs:element name="locationIndicatorICAO" type="xs:string" minOccurs="0"/>
+          <xs:element name="ARP" type="aixm:ElevatedPointPropertyType" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="AirportHeliportTimeSlice" type="aixm:AirportHeliportTimeSliceType"/>
+
+  <xs:complexType name="AirspaceTimeSliceType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element ref="gml:validTime" minOccurs="0"/>
+          <xs:element name="interpretation" type="xs:string" minOccurs="0"/>
+          <xs:element name="type" type="xs:string" minOccurs="0"/>
+          <xs:element name="designator" type="xs:string" minOccurs="0"/>
+          <xs:element name="name" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="AirspaceTimeSlice" type="aixm:AirspaceTimeSliceType"/>
+
+  <xs:complexType name="RunwayDirectionTimeSliceType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element ref="gml:validTime" minOccurs="0"/>
+          <xs:element name="interpretation" type="xs:string" minOccurs="0"/>
+          <xs:element name="designator" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="RunwayDirectionTimeSlice" type="aixm:RunwayDirectionTimeSliceType"/>
+
+  <xs:complexType name="TimeSlicePropertyType">
+    <xs:choice minOccurs="0">
+      <xs:element ref="aixm:UnitTimeSlice"/>
+      <xs:element ref="aixm:AirportHeliportTimeSlice"/>
+      <xs:element ref="aixm:AirspaceTimeSlice"/>
+      <xs:element ref="aixm:RunwayDirectionTimeSlice"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="AbstractAIXMFeatureType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="timeSlice" type="aixm:TimeSlicePropertyType" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="Unit" type="aixm:AbstractAIXMFeatureType"/>
+  <xs:element name="AirportHeliport" type="aixm:AbstractAIXMFeatureType"/>
+  <xs:element name="Airspace" type="aixm:AbstractAIXMFeatureType"/>
+  <xs:element name="RunwayDirection" type="aixm:AbstractAIXMFeatureType"/>
+
+  <xs:complexType name="SurfaceType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element ref="gml:patches"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="gml:SRSReferenceGroup"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="Surface" type="aixm:SurfaceType"/>
+
+  <xs:complexType name="SurfacePropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:element ref="aixm:Surface"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AirspaceVolumeType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="upperLimit" type="aixm:ValDistanceVerticalType" nillable="true" minOccurs="0"/>
+          <xs:element name="upperLimitReference" type="xs:string" minOccurs="0"/>
+          <xs:element name="maximumLimit" type="aixm:ValDistanceVerticalType" nillable="true" minOccurs="0"/>
+          <xs:element name="lowerLimit" type="aixm:ValDistanceVerticalType" nillable="true" minOccurs="0"/>
+          <xs:element name="lowerLimitReference" type="xs:string" minOccurs="0"/>
+          <xs:element name="horizontalProjection" type="aixm:SurfacePropertyType" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="AirspaceVolume" type="aixm:AirspaceVolumeType"/>
+
+</xs:schema>
