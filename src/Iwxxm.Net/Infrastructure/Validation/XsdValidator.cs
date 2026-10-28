@@ -65,9 +65,12 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 XmlResolver = resolver
             };
 
+            const string resourcePrefix = "Iwxxm.Net.Resources.Xsd.";
             foreach (string resourceName in schemaResourceNames)
             {
-                string fileName = Path.GetFileName(resourceName);
+                string fileName = resourceName.StartsWith(resourcePrefix, StringComparison.Ordinal)
+                    ? resourceName.Substring(resourcePrefix.Length)
+                    : Path.GetFileName(resourceName);
                 using (Stream xsdStream = EmbeddedResourceLoader.GetRequiredResourceStream(resourceName))
                 using (XmlReader schemaReader = XmlReader.Create(xsdStream, readerSettings, $"embedded://iwxxm-resources/{fileName}"))
                 {
@@ -112,11 +115,16 @@ namespace Iwxxm.Net.Infrastructure.Validation
 
             settings.ValidationEventHandler += (sender, args) =>
             {
-                if (args.Severity == XmlSeverityType.Error)
+                bool isMissingRootSchema =
+                    args.Severity == XmlSeverityType.Warning &&
+                    args.Message != null &&
+                    args.Message.IndexOf("Could not find schema information for the element", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (args.Severity == XmlSeverityType.Error || isMissingRootSchema)
                 {
                     errors.Add(new ValidationError(
                         code: "XSD-SCHEMA-VIOLATION",
-                        message: args.Message,
+                        message: args.Message ?? "XSD validation error.",
                         category: ErrorCategory.XsdSchemaValidation,
                         severity: ValidationSeverity.Error,
                         location: args.Exception?.SourceUri,

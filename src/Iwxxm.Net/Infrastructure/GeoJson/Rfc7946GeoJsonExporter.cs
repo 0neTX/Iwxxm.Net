@@ -166,7 +166,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             foreach (var turb in sigwx.Turbulences)
             {
                 var props = CreateBaseProperties(sigwx, "TURBULENCE", bulletinId);
-                props.Add(("degreeUri", turb.DegreeOfTurbulenceUri));
+                props.Add(("degreeUri", turb.RawDegreeReference));
                 props.Add(("degree", turb.Degree.ToString()));
                 props.Add(("baseFlightLevel", turb.BaseFlightLevel?.ToString()));
                 props.Add(("topFlightLevel", turb.TopFlightLevel.ToString()));
@@ -176,7 +176,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             foreach (var icing in sigwx.AirframeIcings)
             {
                 var props = CreateBaseProperties(sigwx, "AIRFRAME_ICING", bulletinId);
-                props.Add(("degreeUri", icing.DegreeOfIcingUri));
+                props.Add(("degreeUri", icing.RawDegreeReference));
                 props.Add(("degree", icing.Degree.ToString()));
                 props.Add(("baseFlightLevel", icing.BaseFlightLevel?.ToString()));
                 props.Add(("topFlightLevel", icing.TopFlightLevel.ToString()));
@@ -595,10 +595,10 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             public void Include(GeoCoordinate coord)
             {
                 HasCoordinates = true;
-                if (coord.Longitude < MinLon) MinLon = coord.Longitude;
-                if (coord.Longitude > MaxLon) MaxLon = coord.Longitude;
-                if (coord.Latitude < MinLat) MinLat = coord.Latitude;
-                if (coord.Latitude > MaxLat) MaxLat = coord.Latitude;
+                if (coord.Lon < MinLon) MinLon = coord.Lon;
+                if (coord.Lon > MaxLon) MaxLon = coord.Lon;
+                if (coord.Lat < MinLat) MinLat = coord.Lat;
+                if (coord.Lat > MaxLat) MaxLat = coord.Lat;
             }
 
             public void IncludeRange(IEnumerable<GeoCoordinate> coords)
@@ -860,9 +860,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             public void WriteCoordinatePair(GeoCoordinate coord)
             {
                 _sb.Append('[');
-                _sb.Append(coord.Longitude.ToString("G15", CultureInfo.InvariantCulture));
+                _sb.Append(coord.Lon.ToString("G15", CultureInfo.InvariantCulture));
                 _sb.Append(_indented ? ", " : ",");
-                _sb.Append(coord.Latitude.ToString("G15", CultureInfo.InvariantCulture));
+                _sb.Append(coord.Lat.ToString("G15", CultureInfo.InvariantCulture));
                 _sb.Append(']');
                 _needsComma = true;
                 _afterPropertyName = false;
@@ -875,9 +875,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 {
                     if (i > 0) _sb.Append(_indented ? ", " : ",");
                     _sb.Append('[');
-                    _sb.Append(coords[i].Longitude.ToString("G15", CultureInfo.InvariantCulture));
+                    _sb.Append(coords[i].Lon.ToString("G15", CultureInfo.InvariantCulture));
                     _sb.Append(_indented ? ", " : ",");
-                    _sb.Append(coords[i].Latitude.ToString("G15", CultureInfo.InvariantCulture));
+                    _sb.Append(coords[i].Lat.ToString("G15", CultureInfo.InvariantCulture));
                     _sb.Append(']');
                 }
                 _sb.Append(']');

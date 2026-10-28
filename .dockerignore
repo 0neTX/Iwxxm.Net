@@ -1,0 +1,15 @@
+# IDE metadata
+.vs/
+.idea/
+.vscode/
+
+# Build outputs & local artifacts
+**/bin/
+**/obj/
+**/TestResults/
+**/BenchmarkDotNet.Artifacts/
+artifacts/
+*.nupkg
+*.snupkg
+*.user
+*.suo

@@ -10,6 +10,7 @@ using Iwxxm.Net.Domain.Aggregates;
 using Iwxxm.Net.Domain.Common;
 using Iwxxm.Net.Domain.ValueObjects;
 using Iwxxm.Net.Infrastructure.Serialization;
+using Iwxxm20252.Generated;
 
 namespace Iwxxm.Net.Infrastructure.Mapping
 {
