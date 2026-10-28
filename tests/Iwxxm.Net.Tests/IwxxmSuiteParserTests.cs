@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using Iwxxm.Net.Application.Ports;
 using Iwxxm.Net.Domain.Aggregates;
 using Iwxxm.Net.Domain.Common;
 using Iwxxm.Net.Domain.ValueObjects;
@@ -49,19 +51,19 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var metar = result.Value;
             Assert.Equal(IwxxmReportType.Metar, metar.ReportType);
-            Assert.Equal("YUDO", metar.AerodromeIcao);
-            Assert.False(metar.AutomatedStation);
+            Assert.Equal("YUDO", metar.AerodromeDesignator);
+            Assert.False(metar.IsAutomatedStation);
             Assert.NotNull(metar.SurfaceWind);
-            Assert.Equal(240.0, metar.SurfaceWind.MeanWindDirectionDegrees);
-            Assert.Equal(4.0, metar.SurfaceWind.MeanWindSpeed);
+            Assert.Equal(240.0, metar.SurfaceWind!.MeanDirectionDegrees);
+            Assert.Equal(4.0, metar.SurfaceWind.MeanSpeedMetersPerSecond);
             Assert.Equal(600.0, metar.PrevailingVisibilityMeters);
-            Assert.Contains("http://codes.wmo.int/49-2/AerodromePresentWeather/RA", metar.PresentWeatherUris);
-            Assert.Contains("http://codes.wmo.int/49-2/AerodromePresentWeather/FG", metar.PresentWeatherUris);
-            Assert.Equal(3, metar.RunwayVisualRanges.Count);
-            Assert.Equal(16.0, metar.AirTemperatureCelsius);
+            Assert.Contains("http://codes.wmo.int/306/4678/DZ", metar.PresentWeatherUris);
+            Assert.Contains("http://codes.wmo.int/306/4678/FG", metar.PresentWeatherUris);
+            Assert.Single(metar.RunwayVisualRanges);
+            Assert.Equal(17.0, metar.AirTemperatureCelsius);
             Assert.Equal(16.0, metar.DewpointTemperatureCelsius);
-            Assert.Equal(1018.0, metar.QnhHectopascals);
-            Assert.NotEmpty(metar.TrendForecasts);
+            Assert.Equal(1018.0, metar.QnhHpa);
+            Assert.Equal(2, metar.TrendForecasts.Count);
         }
 
         [Fact]
@@ -74,7 +76,7 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var speci = result.Value;
             Assert.Equal(IwxxmReportType.Speci, speci.ReportType);
-            Assert.Equal("YUDO", speci.AerodromeIcao);
+            Assert.Equal("YUDO", speci.AerodromeDesignator);
             Assert.NotNull(speci.SurfaceWind);
         }
 
@@ -88,9 +90,9 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var taf = result.Value;
             Assert.Equal(IwxxmReportType.Taf, taf.ReportType);
-            Assert.Equal("YUDO", taf.AerodromeIcao);
-            Assert.NotNull(taf.ValidPeriodStart);
-            Assert.NotNull(taf.ValidPeriodEnd);
+            Assert.Equal("YUDO", taf.AerodromeDesignator);
+            Assert.NotNull(taf.ValidFromUtc);
+            Assert.NotNull(taf.ValidUntilUtc);
             Assert.NotNull(taf.BaseForecast);
             Assert.NotEmpty(taf.ChangeForecasts);
         }
@@ -102,23 +104,24 @@ namespace Iwxxm.Net.Tests
             var tsSigmet = IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-A6-1a-TS.xml");
             Assert.True(tsSigmet.IsSuccess, string.Join(" | ", tsSigmet.Errors));
             Assert.Equal(IwxxmReportType.Sigmet, tsSigmet.Value.ReportType);
-            Assert.Equal("YUDD", tsSigmet.Value.IssuingAtsUnit);
-            Assert.Equal("YUCC", tsSigmet.Value.FirIcaoOrName);
+            Assert.Equal("YUDD", tsSigmet.Value.AtsUnitDesignator);
+            Assert.Equal("YUDD", tsSigmet.Value.FirDesignator);
             Assert.Equal("http://codes.wmo.int/49-2/SigWxPhenomena/OBSC_TS", tsSigmet.Value.PhenomenonUri);
-            Assert.NotEmpty(tsSigmet.Value.AnalysisVolumes);
+            Assert.NotEmpty(tsSigmet.Value.EvolvingConditions);
 
             // 2. Volcanic Ash SIGMET
             var vaSigmet = IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-VA-EGGX.xml");
             Assert.True(vaSigmet.IsSuccess, string.Join(" | ", vaSigmet.Errors));
             Assert.Equal(IwxxmReportType.VolcanicAshSigmet, vaSigmet.Value.ReportType);
-            Assert.Equal("EYJAFJALLAJOKULL", vaSigmet.Value.VolcanoName);
-            Assert.Equal(new GeoCoordinate(63.63, -19.62), vaSigmet.Value.VolcanoPosition);
+            Assert.NotNull(vaSigmet.Value.EruptingVolcano);
+            Assert.Equal("MT HEKLA", vaSigmet.Value.EruptingVolcano!.Name);
+            Assert.Equal(new GeoCoordinate(63.98, -19.67), vaSigmet.Value.EruptingVolcano.Position);
 
             // 3. Tropical Cyclone SIGMET
-            var tcSigmet = IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-TC-VTBS.xml");
+            var tcSigmet = IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-A6-2-TC.xml");
             Assert.True(tcSigmet.IsSuccess, string.Join(" | ", tcSigmet.Errors));
             Assert.Equal(IwxxmReportType.TropicalCycloneSigmet, tcSigmet.Value.ReportType);
-            Assert.Equal("NANGKA", tcSigmet.Value.TropicalCycloneName);
+            Assert.Equal("Gloria", tcSigmet.Value.TropicalCycloneName);
         }
 
         [Fact]
@@ -131,26 +134,27 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var airmet = result.Value;
             Assert.Equal(IwxxmReportType.Airmet, airmet.ReportType);
-            Assert.Equal("YUDD", airmet.IssuingAtsUnit);
+            Assert.Equal("YUDD", airmet.AtsUnitDesignator);
             Assert.Equal("http://codes.wmo.int/49-2/AirWxPhenomena/ISOL_TS", airmet.PhenomenonUri);
-            Assert.Single(airmet.AnalysisVolumes);
+            Assert.Single(airmet.EvolvingConditions);
         }
 
         [Fact]
         public void ParseFileAs_VonaExample_MapsVolcanoObservatoryNotice()
         {
             // Act
-            var result = IwxxmParser.ParseFileAs<VonaReport>("Samples/wmo-examples/vona-Example.xml");
+            var result = IwxxmParser.ParseFileAs<VonaReport>("Samples/wmo-examples/vona-A7-1.xml");
 
             // Assert
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var vona = result.Value;
-            Assert.Equal(IwxxmReportType.VolcanoObservatoryNoticeForAviation, vona.ReportType);
-            Assert.Equal("Cerro Hudson", vona.VolcanoName);
-            Assert.Equal("358057", vona.VolcanoIdentifier);
-            Assert.Equal("http://codes.wmo.int/49-2/AviationColourCode/RED", vona.CurrentColourCodeUri);
-            Assert.Equal("http://codes.wmo.int/49-2/AviationColourCode/ORANGE", vona.PreviousColourCodeUri);
-            Assert.True(vona.IsVolcanicAshCloudPresent);
+            Assert.Equal(IwxxmReportType.VolcanoObservatoryNotice, vona.ReportType);
+            Assert.Single(vona.Volcanoes);
+            Assert.Equal("KARYMSKY", vona.Volcanoes[0].Name);
+            Assert.Equal("300130", vona.Volcanoes[0].WmoNumber);
+            Assert.Equal("http://codes.wmo.int/iwxxm/AviationColourCode/YELLOW", vona.CurrentColourCodeUri);
+            Assert.Equal("http://codes.wmo.int/iwxxm/AviationColourCode/ORANGE", vona.PreviousColourCodeUri);
+            Assert.NotNull(vona.AshCloudElevation);
         }
 
         [Fact]
@@ -163,62 +167,63 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var qvaci = result.Value;
             Assert.Equal(IwxxmReportType.QuantitativeVolcanicAshConcentration, qvaci.ReportType);
-            Assert.Equal("GRIMSVOTN", qvaci.VolcanoName);
-            Assert.Equal("373010", qvaci.VolcanoIdentifier);
-            Assert.NotEmpty(qvaci.ConcentrationClouds);
-            Assert.Contains(qvaci.ConcentrationClouds, c => c.Area.InteriorRings.Count > 0);
+            Assert.Single(qvaci.Volcanoes);
+            Assert.Equal("KRAKATAU", qvaci.Volcanoes[0].Name);
+            Assert.Equal("262000", qvaci.Volcanoes[0].WmoNumber);
+            Assert.NotEmpty(qvaci.AshConcentrationClouds);
+            Assert.Contains(qvaci.AshConcentrationClouds, c => c.Area.InteriorRings.Count > 0);
         }
 
         [Fact]
         public void ParseFileAs_VaacTcacAndSpaceWxExamples_MapAdvisoryReports()
         {
             // 1. Volcanic Ash Advisory (VAAC)
-            var vaac = IwxxmParser.ParseFileAs<VolcanicAshAdvisoryReport>("Samples/wmo-examples/vaac-A2-1.xml");
+            var vaac = IwxxmParser.ParseFileAs<VolcanicAshAdvisoryReport>("Samples/wmo-examples/va-advisory-A7-2.xml");
             Assert.True(vaac.IsSuccess, string.Join(" | ", vaac.Errors));
             Assert.Equal(IwxxmReportType.VolcanicAshAdvisory, vaac.Value.ReportType);
-            Assert.Equal("RJTD", vaac.Value.IssuingCentreCode);
-            Assert.Equal("KARYMSKY", vaac.Value.VolcanoName);
+            Assert.Equal("TOKYO", vaac.Value.IssuingVaacName);
+            Assert.NotNull(vaac.Value.Volcano);
+            Assert.Equal("KARYMSKY 1000-13", vaac.Value.Volcano!.Name);
 
             // 2. Tropical Cyclone Advisory (TCAC)
-            var tcac = IwxxmParser.ParseFileAs<TropicalCycloneAdvisoryReport>("Samples/wmo-examples/tcac-A2-2.xml");
+            var tcac = IwxxmParser.ParseFileAs<TropicalCycloneAdvisoryReport>("Samples/wmo-examples/tc-advisory-A2-2.xml");
             Assert.True(tcac.IsSuccess, string.Join(" | ", tcac.Errors));
             Assert.Equal(IwxxmReportType.TropicalCycloneAdvisory, tcac.Value.ReportType);
-            Assert.Equal("ROSLYN", tcac.Value.TropicalCycloneName);
-            Assert.NotEmpty(tcac.Value.ForecastPositions);
+            Assert.Equal("GLORIA", tcac.Value.CycloneName);
+            Assert.NotEmpty(tcac.Value.Forecasts);
 
             // 3. Space Weather Advisory (SWXC)
             var spaceWx = IwxxmParser.ParseFileAs<SpaceWeatherAdvisoryReport>("Samples/wmo-examples/spacewx-A7-3.xml");
             Assert.True(spaceWx.IsSuccess, string.Join(" | ", spaceWx.Errors));
             Assert.Equal(IwxxmReportType.SpaceWeatherAdvisory, spaceWx.Value.ReportType);
-            Assert.Equal("DONLON", spaceWx.Value.IssuingCentreName);
-            Assert.NotEmpty(spaceWx.Value.PhenomenaUris);
-            Assert.Equal(5, spaceWx.Value.Analyses.Count);
+            Assert.Equal("DONLON", spaceWx.Value.IssuingSwxcName);
+            Assert.Contains("HF_COM", spaceWx.Value.Effects);
+            Assert.NotEmpty(spaceWx.Value.Analyses);
         }
 
         [Fact]
-        public void ParseBulletinFile_CollectA31A32_UnwrapsMeteorologicalBulletinAndNestedReports()
+        public void ParseBulletinFile_MetarNilCollect_UnwrapsMeteorologicalBulletinAndNestedReports()
         {
             // Act
-            var result = IwxxmParser.ParseBulletinFile("Samples/wmo-examples/collect-A3-1-A3-2.xml");
+            var result = IwxxmParser.ParseBulletinFile("Samples/wmo-examples/metar-NIL-collect.xml");
 
             // Assert
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var bulletin = result.Value;
             Assert.Equal(IwxxmReportType.MeteorologicalBulletin, bulletin.ReportType);
-            Assert.Equal("A_LAXX31YPYX160000_C_YPYX_202305160005--.xml", bulletin.BulletinIdentifier);
-            Assert.Equal(2, bulletin.Reports.Count);
+            Assert.Equal("A_LAYU31YUDO221630_C_YUDO_20120822163000.xml", bulletin.BulletinIdentifier);
+            Assert.Single(bulletin.Reports);
             Assert.Equal(IwxxmReportType.Metar, bulletin.Reports[0].ReportType);
-            Assert.Equal(IwxxmReportType.Speci, bulletin.Reports[1].ReportType);
         }
 
         [Fact]
         public void Parse_UnregisteredWmo492CodeListUri_FailsInOfflineRdfSchematronRule()
         {
-            // Arrange: Replace valid RA present weather URI with an unregistered code URI in WMO 49-2 RDF registry
+            // Arrange: Replace valid SCT cloud amount URI with an unregistered code URI in WMO 49-2 RDF registry
             string validMetarXml = File.ReadAllText("Samples/wmo-examples/metar-A3-1.xml");
             string invalidCodeListXml = validMetarXml.Replace(
-                "xlink:href=\"http://codes.wmo.int/49-2/AerodromePresentWeather/RA\"",
-                "xlink:href=\"http://codes.wmo.int/49-2/AerodromePresentWeather/INVALID_NONEXISTENT_WEATHER\"");
+                "xlink:href=\"http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/SCT\"",
+                "xlink:href=\"http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/INVALID_NONEXISTENT_AMOUNT\"");
 
             // Act
             var result = IwxxmParser.Parse(invalidCodeListXml);
@@ -278,6 +283,66 @@ namespace Iwxxm.Net.Tests
                 Assert.Contains(result.Errors, e =>
                     e.Category == ErrorCategory.XmlWellFormedness &&
                     e.Code == "XML-MALFORMED");
+            }
+        }
+
+        [Fact]
+        public void ParseFileToGeoJson_WafsSigwxQvaciAndMetar_ProducesValidRfc7946FeatureCollectionWithLonLatOrder()
+        {
+            // 1. METAR (YUDO ARP is Lat 12.34, Lon -12.34 in GML -> must be [-12.34, 12.34] in RFC 7946 GeoJSON)
+            var metarGeoJsonResult = IwxxmParser.ParseFileToGeoJson("Samples/wmo-examples/metar-A3-1.xml", GeoJsonExportOptions.Pretty);
+            Assert.True(metarGeoJsonResult.IsSuccess, string.Join(" | ", metarGeoJsonResult.Errors));
+
+            using (JsonDocument metarDoc = JsonDocument.Parse(metarGeoJsonResult.Value))
+            {
+                JsonElement root = metarDoc.RootElement;
+                Assert.Equal("FeatureCollection", root.GetProperty("type").GetString());
+                Assert.Equal(4, root.GetProperty("bbox").GetArrayLength());
+
+                JsonElement firstFeature = root.GetProperty("features")[0];
+                Assert.Equal("Feature", firstFeature.GetProperty("type").GetString());
+                JsonElement geom = firstFeature.GetProperty("geometry");
+                Assert.Equal("Point", geom.GetProperty("type").GetString());
+                JsonElement coords = geom.GetProperty("coordinates");
+                Assert.Equal(-12.34, coords[0].GetDouble(), 3); // Longitude first (RFC 7946 Section 3.1.1)
+                Assert.Equal(12.34, coords[1].GetDouble(), 3);  // Latitude second
+
+                JsonElement props = firstFeature.GetProperty("properties");
+                Assert.Equal("YUDO", props.GetProperty("aerodromeDesignator").GetString());
+                Assert.Equal(1018.0, props.GetProperty("qnhHpa").GetDouble());
+            }
+
+            // 2. QVACI (Must export hollow polygon with exterior ring + interior hole ring)
+            var qvaciGeoJsonResult = IwxxmParser.ParseFileToGeoJson("Samples/wmo-examples/qvaci-Example.xml");
+            Assert.True(qvaciGeoJsonResult.IsSuccess, string.Join(" | ", qvaciGeoJsonResult.Errors));
+
+            using (JsonDocument qvaciDoc = JsonDocument.Parse(qvaciGeoJsonResult.Value))
+            {
+                JsonElement features = qvaciDoc.RootElement.GetProperty("features");
+                Assert.True(features.GetArrayLength() >= 2);
+
+                bool foundHollowPolygon = false;
+                foreach (JsonElement feat in features.EnumerateArray())
+                {
+                    JsonElement geom = feat.GetProperty("geometry");
+                    if (geom.GetProperty("type").GetString() == "Polygon" &&
+                        geom.GetProperty("coordinates").GetArrayLength() > 1)
+                    {
+                        foundHollowPolygon = true;
+                        break;
+                    }
+                }
+                Assert.True(foundHollowPolygon, "Expected QVACI GeoJSON export to include a Polygon with an interior hole ring.");
+            }
+
+            // 3. WAFS SIGWX (Must export JetStreams, Clouds, Turbulence, Icing, Tropopause, Volcanoes, etc.)
+            var wafsGeoJsonResult = IwxxmParser.ParseFileToGeoJson("Samples/wmo-examples/WAFS-Example.xml");
+            Assert.True(wafsGeoJsonResult.IsSuccess, string.Join(" | ", wafsGeoJsonResult.Errors));
+
+            using (JsonDocument wafsDoc = JsonDocument.Parse(wafsGeoJsonResult.Value))
+            {
+                JsonElement features = wafsDoc.RootElement.GetProperty("features");
+                Assert.True(features.GetArrayLength() >= 9);
             }
         }
     }
