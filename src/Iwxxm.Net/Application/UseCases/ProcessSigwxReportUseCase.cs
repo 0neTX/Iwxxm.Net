@@ -8,7 +8,7 @@ namespace Iwxxm.Net.Application.UseCases
 {
     /// <summary>
     /// Application Use Case that orchestrates the 5-step SIGWX processing pipeline:
-    /// 1) Read Stream into a seekable in-memory buffer (supporting network or non-seekable streams).
+    /// 1) Read Stream into a bounded seekable in-memory buffer (enforcing <see cref="IwxxmParserOptions.MaxDocumentBytes"/>).
     /// 2) Validate XML structure against embedded XSD schemas.
     /// 3) Validate business rules against embedded Schematron XSLT.
     /// 4) Deserialize using XmlSerializer (via <see cref="ISigwxXmlDeserializer{TDto}"/>).
@@ -22,17 +22,20 @@ namespace Iwxxm.Net.Application.UseCases
         private readonly ISchematronValidator _schematronValidator;
         private readonly ISigwxXmlDeserializer<TDto> _xmlDeserializer;
         private readonly ISigwxAclMapper<TDto> _aclMapper;
+        private readonly IwxxmParserOptions _options;
 
         public ProcessSigwxReportUseCase(
             IXmlSchemaValidator xsdValidator,
             ISchematronValidator schematronValidator,
             ISigwxXmlDeserializer<TDto> xmlDeserializer,
-            ISigwxAclMapper<TDto> aclMapper)
+            ISigwxAclMapper<TDto> aclMapper,
+            IwxxmParserOptions? options = null)
         {
             _xsdValidator = xsdValidator ?? throw new ArgumentNullException(nameof(xsdValidator));
             _schematronValidator = schematronValidator ?? throw new ArgumentNullException(nameof(schematronValidator));
             _xmlDeserializer = xmlDeserializer ?? throw new ArgumentNullException(nameof(xmlDeserializer));
             _aclMapper = aclMapper ?? throw new ArgumentNullException(nameof(aclMapper));
+            _options = options ?? IwxxmParserOptions.Default;
         }
 
         public Result<SignificantWeatherReport> Process(Stream xmlStream)
@@ -48,14 +51,36 @@ namespace Iwxxm.Net.Application.UseCases
                     ErrorCategory.XmlWellFormedness);
             }
 
-            // Step 1: Read the input stream into a reusable byte array buffer so that all three XML passes
+            if (xmlStream.CanSeek && (xmlStream.Length - xmlStream.Position) > _options.MaxDocumentBytes)
+            {
+                return Result<SignificantWeatherReport>.Failure(
+                    "XML-SIZE-LIMIT",
+                    $"The input XML stream length ({xmlStream.Length - xmlStream.Position} bytes) exceeds the maximum allowed limit of {_options.MaxDocumentBytes} bytes.",
+                    ErrorCategory.XmlWellFormedness);
+            }
+
+            // Step 1: Read the input stream into a bounded byte array buffer so that all three XML passes
             // (XSD Validation -> XSLT Schematron Validation -> Deserialization) can read from position 0.
             byte[] rawPayload;
             try
             {
                 using (var buffer = new MemoryStream())
                 {
-                    xmlStream.CopyTo(buffer);
+                    var chunk = new byte[8192];
+                    long totalBytesRead = 0;
+                    int bytesRead;
+                    while ((bytesRead = xmlStream.Read(chunk, 0, chunk.Length)) > 0)
+                    {
+                        totalBytesRead += bytesRead;
+                        if (totalBytesRead > _options.MaxDocumentBytes)
+                        {
+                            return Result<SignificantWeatherReport>.Failure(
+                                "XML-SIZE-LIMIT",
+                                $"The input XML stream exceeds the maximum allowed limit of {_options.MaxDocumentBytes} bytes.",
+                                ErrorCategory.XmlWellFormedness);
+                        }
+                        buffer.Write(chunk, 0, bytesRead);
+                    }
                     rawPayload = buffer.ToArray();
                 }
             }

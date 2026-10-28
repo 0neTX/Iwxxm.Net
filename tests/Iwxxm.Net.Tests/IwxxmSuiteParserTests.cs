@@ -240,5 +240,45 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsFailure);
             Assert.Contains(result.Errors, e => e.Code == "IWXXM-UNEXPECTED-REPORT-TYPE");
         }
+
+        [Fact]
+        public void Process_StreamExceedingMaxDocumentBytes_FailsWithXmlSizeLimit()
+        {
+            // Arrange: Configure strict 256-byte limit and pass a larger XML payload
+            var strictOptions = new IwxxmParserOptions(maxDocumentBytes: 256);
+            var dispatcher = IwxxmParser.CreateDispatcher(strictOptions);
+
+            using (var fileStream = File.OpenRead("Samples/wmo-examples/metar-A3-1.xml"))
+            {
+                // Act
+                var result = dispatcher.Process(fileStream);
+
+                // Assert
+                Assert.True(result.IsFailure);
+                Assert.Contains(result.Errors, e =>
+                    e.Category == ErrorCategory.XmlWellFormedness &&
+                    e.Code == "XML-SIZE-LIMIT");
+            }
+        }
+
+        [Fact]
+        public void Process_DocumentExceedingMaxCharactersInDocument_FailsWithXmlMalformed()
+        {
+            // Arrange: Allow stream bytes but restrict XmlReader MaxCharactersInDocument to 128 chars
+            var strictOptions = new IwxxmParserOptions(maxDocumentBytes: 1024 * 1024, maxCharactersInDocument: 128);
+            var dispatcher = IwxxmParser.CreateDispatcher(strictOptions);
+
+            using (var fileStream = File.OpenRead("Samples/wmo-examples/metar-A3-1.xml"))
+            {
+                // Act
+                var result = dispatcher.Process(fileStream);
+
+                // Assert
+                Assert.True(result.IsFailure);
+                Assert.Contains(result.Errors, e =>
+                    e.Category == ErrorCategory.XmlWellFormedness &&
+                    e.Code == "XML-MALFORMED");
+            }
+        }
     }
 }

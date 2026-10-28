@@ -1,6 +1,6 @@
 # Technical Debt & Architectural Backlog (`Iwxxm.Net`)
 
-This document tracks the planned technical debt, architectural enhancements, and roadmap items across **Phase 1**, **Phase 2**, and **Phase 3**.
+This document tracks the architectural evolution and resolution status of all items planned across **Phase 1**, **Phase 2**, and **Phase 3**.
 
 ---
 
@@ -13,10 +13,10 @@ This document tracks the planned technical debt, architectural enhancements, and
 | **TD-203** | Phase 2 | Domain / ACL / XSD | Aerodrome Reports (`METAR`, `SPECI`, `TAF`) | **Completed** | `1.0.0-rc.1` |
 | **TD-204** | Phase 2 | Infrastructure / SWIM | Collective Bulletin Unwrapping (`collect:MeteorologicalBulletin`) | **Completed** | `1.0.0-rc.1` |
 | **TD-205** | Phase 2 | Infrastructure / Schematron | Full Offline RDF/SKOS Code-List Registry Validation (`codes.wmo.int-49-2.rdf`) | **Completed** | `1.0.0-rc.1` |
-| **TD-301** | Phase 3 | Security / Hardening | XML DoS & Memory Bound Hardening (`MaxCharactersInDocument`) | Open (High) | `1.0.0` (GA) |
-| **TD-302** | Phase 3 | Performance / Memory | Zero-Allocation `gml:posList` Tokenizer (Eliminate `string.Split` Gen0 Arrays) | Open (Medium) | `1.0.0` (GA) |
-| **TD-303** | Phase 3 | Quality / Benchmarks | `BenchmarkDotNet` Performance & Memory Allocation Suite | Open (Medium) | `1.0.0` (GA) |
-| **TD-304** | Phase 3 | DevOps / CI-CD | Automated GitHub Actions Pipeline (`.nupkg` / `.snupkg` Publishing) | Open (High) | `1.0.0` (GA) |
+| **TD-301** | Phase 3 | Security / Hardening | XML DoS & Memory Bound Hardening (`IwxxmParserOptions`, `MaxCharactersInDocument`) | **Completed** | `1.0.0-rc.1` |
+| **TD-302** | Phase 3 | Performance / Memory | Zero-Allocation `gml:posList` Tokenizer (`GmlCoordinateTokenizer`) | **Completed** | `1.0.0-rc.1` |
+| **TD-303** | Phase 3 | Quality / Benchmarks | `BenchmarkDotNet` Performance & Memory Allocation Suite (`Iwxxm.Net.Benchmarks`) | **Completed** | `1.0.0-rc.1` |
+| **TD-304** | Phase 3 | DevOps / CI-CD | Automated GitHub Actions Pipeline (`.github/workflows/ci-cd.yml`) | **Completed** | `1.0.0-rc.1` |
 
 ---
 
@@ -32,35 +32,18 @@ All 5 items in Phase 2 (`TD-201` through `TD-205`) have been implemented and ver
 
 ---
 
-## Phase 3 (Active Backlog): Production Hardening, Zero-Allocation Performance & CI/CD
+## Phase 3 (Completed): Production Hardening, Zero-Allocation Performance & CI/CD
 
-### TD-301: XML DoS & Memory Bound Hardening
-- **Context**: `XsdValidator` and `XmlSerializerSigwxDeserializer` already enforce `DtdProcessing = DtdProcessing.Prohibit` and `XmlResolver = null` to prevent XXE (XML External Entity) and Billion Laughs attacks. However, `ProcessSigwxReportUseCase` and `DispatchIwxxmReportUseCase` buffer the input stream into a `MemoryStream` and do not yet enforce an upper bound on document character count.
-- **Debt / Limitation**: An untrusted multi-gigabyte XML stream could cause excessive memory pressure (LOH allocations) before XSD validation completes.
-- **Remediation Plan**:
-  1. Set `MaxCharactersInDocument = 10_485_760` (10 MB configurable via `IwxxmParserOptions`) and `MaxCharactersFromEntities = 1024` on all `XmlReaderSettings` instances.
-  2. Guard `CopyToSeekableMemoryStream` with a configurable maximum byte limit, returning an `ErrorCategory.XmlWellFormedness` (`XML-SIZE-LIMIT`) result if exceeded.
+All 4 items in Phase 3 (`TD-301` through `TD-304`) have been implemented:
 
-### TD-302: Zero-Allocation `gml:posList` Tokenizer
-- **Context**: `SigwxMapper.ParsePosListToCoordinates` and `IwxxmSuiteMapper.ParsePosListCoordinates` currently call `posListText.Split(WhitespaceSeparators, StringSplitOptions.RemoveEmptyEntries)` to tokenize space-delimited coordinate sequences (`lat1 lon1 lat2 lon2 ...`).
-- **Debt / Limitation**: On large global WAFS SIGWX or QVACI forecasts containing dozens of high-resolution `gml:PolygonPatch` and `gml:CubicSpline` contours, `string.Split` allocates intermediate `string[]` arrays in Gen0 GC heap.
-- **Remediation Plan**:
-  1. Replace `string.Split` with a single-pass character index scanner (`int start`, `int end`) over `string` (compatible with `.NET Standard 2.0` without requiring external `System.Memory` NuGet dependencies) or conditional compilation (`#if NET8_0_OR_GREATER`) using `ReadOnlySpan<char>` and `double.TryParse(ReadOnlySpan<char>, ...)`.
-
-### TD-303: `BenchmarkDotNet` Performance & Memory Allocation Suite
-- **Context**: High-throughput aviation message processors require predictable latency and minimal GC pause time.
-- **Debt / Limitation**: No automated performance benchmark project exists in the solution yet.
-- **Remediation Plan**:
-  1. Create `tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj` targeting `net8.0` with `[MemoryDiagnoser]`.
-  2. Benchmark cold-start schema compilation vs. warm cached `Lazy<XmlSchemaSet>` and `Lazy<XslCompiledTransform>` execution across `WAFS-Example.xml`, `qvaci-Example.xml`, and `collect-A3-1-A3-2.xml`.
-
-### TD-304: Automated CI/CD Pipeline (`.github/workflows/ci-cd.yml`)
-- **Context**: Building, testing, verifying deterministic symbol packages (`.snupkg`), and publishing to NuGet.org is currently manual.
-- **Debt / Limitation**: No GitHub Actions or Azure DevOps pipeline file is checked into the repository.
-- **Remediation Plan**:
-  1. Add `.github/workflows/ci-cd.yml` running on `ubuntu-latest` and `windows-latest`:
-     - `dotnet tool restore`
-     - `dotnet build --configuration Release`
-     - `dotnet test --configuration Release --collect:"XPlat Code Coverage"`
-     - `dotnet pack --configuration Release -p:ContinuousIntegrationBuild=true`
-     - NuGet package signature/metadata verification and tag-triggered release publishing.
+- **TD-301 (Completed — XML DoS & Memory Bound Hardening)**:
+  - Introduced `IwxxmParserOptions` (`MaxDocumentBytes = 10 MB`, `MaxCharactersInDocument = 10,485,760`, `MaxCharactersFromEntities = 1024`).
+  - Enforced bounded 8 KB chunked stream buffering in `ProcessSigwxReportUseCase` and `DispatchIwxxmReportUseCase`, rejecting oversized streams immediately with `XML-SIZE-LIMIT` (`ErrorCategory.XmlWellFormedness`) before LOH exhaustion.
+  - Enforced `MaxCharactersInDocument` and `MaxCharactersFromEntities` on all `XmlReaderSettings` instances across `XsdValidator`, `XsltSchematronValidator`, `XmlSerializerSigwxDeserializer`, and `IwxxmSuiteMapper`.
+- **TD-302 (Completed — Zero-Allocation `gml:posList` Tokenizer)**:
+  - Implemented `GmlCoordinateTokenizer` in `Iwxxm.Net.Infrastructure.Mapping` using a single-pass character index scanner (`TryReadNextDouble`) that parses decimal coordinates directly without `string.Split` array or substring heap allocations on `.NET Standard 2.0`.
+  - Wired `SigwxMapper` and `IwxxmSuiteMapper` to use `GmlCoordinateTokenizer.ParsePosList` and `GmlCoordinateTokenizer.ParseSinglePoint`.
+- **TD-303 (Completed — `BenchmarkDotNet` Performance & Memory Allocation Suite)**:
+  - Added `tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj` and `IwxxmParserBenchmarks.cs` with `[MemoryDiagnoser]` measuring steady-state throughput and GC allocations across WAFS SIGWX, QVACI, SWIM Collective Bulletins, and `GmlCoordinateTokenizer`.
+- **TD-304 (Completed — Automated CI/CD Pipeline)**:
+  - Created `.github/workflows/ci-cd.yml` running multi-OS (`ubuntu-latest`, `windows-latest`) builds, XPlat code coverage tests, deterministic `.nupkg` / `.snupkg` artifact packaging, and automatic incremental publishing (`1.0.0-rc.<run_number>`) exclusively to GitHub Packages (`https://github.com/0neTX/Iwxxm.Net/packages`) on every commit to `main`.

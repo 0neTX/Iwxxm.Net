@@ -15,6 +15,9 @@
     <PackageVersion Include="xunit" Version="2.8.1" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.1" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+
+    <!-- Benchmark suite dependencies -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
   </ItemGroup>
 
 </Project>

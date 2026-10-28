@@ -158,7 +158,7 @@ See [**`TECHNICAL_DEBT.md`**](TECHNICAL_DEBT.md) for the complete architectural 
 
 - [x] **Phase 1 (`v1.0.0-rc.1`)**: Core Clean Architecture, Dual XSD + ISO Schematron XSLT validation engine, GML 3.2.1 Spatial ACL, WMO BUFR code-list registry (`WmoCodeRegistry`), and complete mapping of all 9 IWXXM 2025-2 **SIGWX / WAFS** phenomena.
 - [x] **Phase 2 (`v1.0.0-rc.1`)**: Polymorphic `IIwxxmReport` & `IwxxmParser` dispatcher, En-Route & Volcanic Hazards (`QVACI`, `VONA`, `VolcanicAshAdvisory`, `TropicalCycloneAdvisory`, `SpaceWeatherAdvisory`, `SIGMET`, `AIRMET`), Aerodrome Reports (`METAR`/`SPECI`, `TAF`), SWIM Collective Bulletin unwrapping (`collect:MeteorologicalBulletin`), and Offline WMO 49-2 RDF/SKOS code-list validation (`codes.wmo.int-49-2.rdf`).
-- [ ] **Phase 3 (`v1.0.0` GA)**: XML DoS character-bound hardening, zero-allocation `gml:posList` tokenizer, `BenchmarkDotNet` memory diagnostics suite, and GitHub Actions CI/CD pipeline.
+- [x] **Phase 3 (`v1.0.0-rc.1`)**: XML DoS & stream byte-bound hardening (`IwxxmParserOptions`), zero-allocation `gml:posList` tokenizer (`GmlCoordinateTokenizer`), `BenchmarkDotNet` memory diagnostics suite (`Iwxxm.Net.Benchmarks`), and GitHub Actions CI/CD pipeline (`.github/workflows/ci-cd.yml`).
 
 ---
 
