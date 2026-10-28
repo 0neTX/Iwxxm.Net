@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "dotnet-xscgen": {
+      "version": "2.1.1162",
+      "commands": [
+        "xscgen"
+      ],
+      "rollForward": false
+    }
+  }
+}

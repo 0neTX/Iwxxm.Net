@@ -1,0 +1,31 @@
+## .NET / Visual Studio / Rider / VS Code Build Artifacts
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+TestResults/
+
+## NuGet Packages
+*.nupkg
+*.snupkg
+
+## User-specific & IDE files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+.vscode/
+*.swp
+*~
+.directory
