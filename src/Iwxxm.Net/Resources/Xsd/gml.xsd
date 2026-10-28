@@ -86,6 +86,16 @@
 
   <xs:element name="Point" type="gml:PointType"/>
 
+  <xs:element name="radius" type="gml:MeasureType"/>
+
+  <xs:complexType name="CircleByCenterPointType">
+    <xs:sequence>
+      <xs:element ref="gml:pos"/>
+      <xs:element ref="gml:radius"/>
+    </xs:sequence>
+    <xs:attribute name="numArc" type="xs:positiveInteger" use="optional"/>
+  </xs:complexType>
+
   <xs:complexType name="LineStringSegmentType">
     <xs:sequence>
       <xs:element ref="gml:posList"/>
@@ -104,6 +114,7 @@
     <xs:choice maxOccurs="unbounded">
       <xs:element name="LineStringSegment" type="gml:LineStringSegmentType"/>
       <xs:element name="CubicSpline" type="gml:CubicSplineType"/>
+      <xs:element name="CircleByCenterPoint" type="gml:CircleByCenterPointType"/>
     </xs:choice>
   </xs:complexType>
 
@@ -147,10 +158,13 @@
   </xs:complexType>
 
   <xs:element name="exterior" type="gml:AbstractRingPropertyType"/>
+  <xs:element name="interior" type="gml:AbstractRingPropertyType"/>
+  <xs:element name="validTime" type="xs:anyType"/>
 
   <xs:complexType name="PolygonPatchType">
     <xs:sequence>
       <xs:element ref="gml:exterior" minOccurs="0"/>
+      <xs:element ref="gml:interior" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -167,6 +181,7 @@
       <xs:extension base="gml:AbstractGMLType">
         <xs:sequence>
           <xs:element ref="gml:exterior" minOccurs="0"/>
+          <xs:element ref="gml:interior" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attributeGroup ref="gml:SRSReferenceGroup"/>
       </xs:extension>

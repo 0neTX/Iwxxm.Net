@@ -15,12 +15,28 @@ namespace Iwxxm.Net.Domain.ValueObjects
     {
         public IReadOnlyList<GeoCoordinate> ExteriorRing { get; }
 
-        private GeoPolygon(IReadOnlyList<GeoCoordinate> exteriorRing)
+        /// <summary>
+        /// Optional interior rings (holes) mapped from <c>&lt;gml:interior&gt;</c> elements (e.g., in QVACI ash cloud contours).
+        /// </summary>
+        public IReadOnlyList<IReadOnlyList<GeoCoordinate>> InteriorRings { get; }
+
+        private GeoPolygon(
+            IReadOnlyList<GeoCoordinate> exteriorRing,
+            IReadOnlyList<IReadOnlyList<GeoCoordinate>> interiorRings)
         {
             ExteriorRing = exteriorRing;
+            InteriorRings = interiorRings;
         }
 
         public static Result<GeoPolygon> Create(IEnumerable<GeoCoordinate> coordinates, string? location = null)
+        {
+            return Create(coordinates, null, location);
+        }
+
+        public static Result<GeoPolygon> Create(
+            IEnumerable<GeoCoordinate> coordinates,
+            IEnumerable<IEnumerable<GeoCoordinate>>? interiorRings,
+            string? location = null)
         {
             if (coordinates == null)
                 throw new ArgumentNullException(nameof(coordinates));
@@ -50,14 +66,35 @@ namespace Iwxxm.Net.Domain.ValueObjects
                     location);
             }
 
-            return Result<GeoPolygon>.Success(new GeoPolygon(new ReadOnlyCollection<GeoCoordinate>(vertices)));
+            var holes = new List<IReadOnlyList<GeoCoordinate>>();
+            if (interiorRings != null)
+            {
+                foreach (var hole in interiorRings)
+                {
+                    if (hole == null) continue;
+                    var holeVertices = hole.ToList();
+                    if (holeVertices.Count >= 3)
+                    {
+                        if (holeVertices[0] != holeVertices[holeVertices.Count - 1])
+                        {
+                            holeVertices.Add(holeVertices[0]);
+                        }
+                        holes.Add(new ReadOnlyCollection<GeoCoordinate>(holeVertices));
+                    }
+                }
+            }
+
+            return Result<GeoPolygon>.Success(new GeoPolygon(
+                new ReadOnlyCollection<GeoCoordinate>(vertices),
+                new ReadOnlyCollection<IReadOnlyList<GeoCoordinate>>(holes)));
         }
 
         public bool Equals(GeoPolygon? other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return ExteriorRing.SequenceEqual(other.ExteriorRing);
+            return ExteriorRing.SequenceEqual(other.ExteriorRing) &&
+                   InteriorRings.Count == other.InteriorRings.Count;
         }
 
         public override bool Equals(object? obj) => obj is GeoPolygon other && Equals(other);

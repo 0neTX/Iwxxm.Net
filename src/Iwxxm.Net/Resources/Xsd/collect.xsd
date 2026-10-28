@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:collect="http://def.wmo.int/collect/2014"
+           xmlns:gml="http://www.opengis.net/gml/3.2"
+           xmlns:xlink="http://www.w3.org/1999/xlink"
+           targetNamespace="http://def.wmo.int/collect/2014"
+           elementFormDefault="qualified"
+           version="1.2">
+
+  <xs:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="gml.xsd"/>
+  <xs:import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
+  <xs:import namespace="http://icao.int/iwxxm/2025-2" schemaLocation="iwxxm-2025-2.xsd"/>
+
+  <xs:complexType name="MeteorologicalInformationPropertyType">
+    <xs:sequence minOccurs="0">
+      <xs:any namespace="http://icao.int/iwxxm/2025-2" processContents="strict"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="xlink:simpleAttrs"/>
+    <xs:attribute name="nilReason" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="MeteorologicalBulletinType">
+    <xs:complexContent>
+      <xs:extension base="gml:AbstractGMLType">
+        <xs:sequence>
+          <xs:element name="meteorologicalInformation" type="collect:MeteorologicalInformationPropertyType" maxOccurs="unbounded"/>
+          <xs:element name="bulletinIdentifier" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="MeteorologicalBulletin" type="collect:MeteorologicalBulletinType"/>
+
+</xs:schema>

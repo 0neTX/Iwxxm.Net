@@ -23,21 +23,22 @@ namespace Iwxxm.Net.Infrastructure.Validation
         private static readonly Lazy<XslCompiledTransform> CompiledSchematron =
             new Lazy<XslCompiledTransform>(LoadAndCompileXslt, isThreadSafe: true);
 
+        private static readonly EmbeddedXmlUrlResolver SharedEmbeddedResolver = new EmbeddedXmlUrlResolver();
+
         private static XslCompiledTransform LoadAndCompileXslt()
         {
             var transform = new XslCompiledTransform(enableDebug: false);
-            var resolver = new EmbeddedXmlUrlResolver();
-            var xsltSettings = new XsltSettings(enableDocumentFunction: false, enableScript: false);
+            var xsltSettings = new XsltSettings(enableDocumentFunction: true, enableScript: false);
             var readerSettings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = resolver
+                XmlResolver = SharedEmbeddedResolver
             };
 
             using (Stream xsltStream = EmbeddedResourceLoader.GetRequiredResourceStream(EmbeddedXsltResource))
-            using (XmlReader xsltReader = XmlReader.Create(xsltStream, readerSettings))
+            using (XmlReader xsltReader = XmlReader.Create(xsltStream, readerSettings, "embedded://iwxxm-resources/iwxxm-2025-2-sigwx.xslt"))
             {
-                transform.Load(xsltReader, xsltSettings, resolver);
+                transform.Load(xsltReader, xsltSettings, SharedEmbeddedResolver);
             }
 
             return transform;
@@ -63,7 +64,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
                     using (XmlReader inputReader = XmlReader.Create(xmlStream, inputReaderSettings))
                     using (XmlWriter svrlWriter = XmlWriter.Create(svrlOutputStream, CompiledSchematron.Value.OutputSettings))
                     {
-                        CompiledSchematron.Value.Transform(inputReader, null, svrlWriter, null);
+                        CompiledSchematron.Value.Transform(inputReader, null, svrlWriter, SharedEmbeddedResolver);
                     }
 
                     svrlOutputStream.Position = 0;

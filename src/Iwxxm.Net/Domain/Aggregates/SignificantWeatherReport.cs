@@ -12,9 +12,10 @@ namespace Iwxxm.Net.Domain.Aggregates
     /// under the ICAO/WMO IWXXM 2025-2 standard (covering both WAFSSignificantWeatherForecast and SIGWXReport).
     /// Enforces spatial, vertical, and temporal domain invariants across all 9 WAFS SIGWX phenomena.
     /// </summary>
-    public sealed class SignificantWeatherReport
+    public sealed class SignificantWeatherReport : IIwxxmReport
     {
         public string Id { get; }
+        public IwxxmReportType ReportType => IwxxmReportType.SignificantWeather;
         public string IssuingCentre { get; }
         public string ReportStatus { get; }
         public string PermissibleUsage { get; }
@@ -23,6 +24,8 @@ namespace Iwxxm.Net.Domain.Aggregates
         public DateTimeOffset ValidUntilUtc { get; }
         public FlightLevel LowerLimit { get; }
         public FlightLevel UpperLimit { get; }
+        public bool IsTranslationFailed => false;
+        public string? TranslationFailedTac => null;
 
         public IReadOnlyList<JetStream> JetStreams { get; }
         public IReadOnlyList<Cloud> Clouds { get; }
