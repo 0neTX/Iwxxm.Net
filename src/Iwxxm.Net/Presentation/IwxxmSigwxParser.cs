@@ -20,7 +20,7 @@ namespace Iwxxm.Net.Presentation
     public sealed class IwxxmSigwxParser : IIwxxmSigwxProcessor
     {
         private static readonly Lazy<IIwxxmSigwxProcessor> DefaultProcessorInstance =
-            new Lazy<IIwxxmSigwxProcessor>(CreateProcessor, isThreadSafe: true);
+            new Lazy<IIwxxmSigwxProcessor>(() => CreateProcessor(), isThreadSafe: true);
 
         private readonly IIwxxmSigwxProcessor _innerProcessor;
 
@@ -28,22 +28,26 @@ namespace Iwxxm.Net.Presentation
         /// Initializes a new instance of <see cref="IwxxmSigwxParser"/> wired with the default
         /// embedded XSD validator, Schematron XSLT validator, XmlSerializer adapter, and ACL mapper.
         /// </summary>
-        public IwxxmSigwxParser()
+        public IwxxmSigwxParser(IwxxmParserOptions? options = null)
         {
-            _innerProcessor = DefaultProcessorInstance.Value;
+            _innerProcessor = options == null
+                ? DefaultProcessorInstance.Value
+                : CreateProcessor(options);
         }
 
         /// <summary>
         /// Creates and returns an instance of <see cref="IIwxxmSigwxProcessor"/> suitable for singleton
         /// registration in Dependency Injection containers (.NET 8 IServiceCollection, Autofac, etc.).
         /// </summary>
-        public static IIwxxmSigwxProcessor CreateProcessor()
+        public static IIwxxmSigwxProcessor CreateProcessor(IwxxmParserOptions? options = null)
         {
+            var effectiveOptions = options ?? IwxxmParserOptions.Default;
             return new ProcessSigwxReportUseCase<SigwxDocumentEnvelope>(
-                xsdValidator: new XsdValidator(),
-                schematronValidator: new XsltSchematronValidator(),
-                xmlDeserializer: new XmlSerializerSigwxDeserializer(),
-                aclMapper: new SigwxMapper());
+                xsdValidator: new XsdValidator(useFullSuite: false, options: effectiveOptions),
+                schematronValidator: new XsltSchematronValidator(effectiveOptions),
+                xmlDeserializer: new XmlSerializerSigwxDeserializer(effectiveOptions),
+                aclMapper: new SigwxMapper(),
+                options: effectiveOptions);
         }
 
         /// <summary>

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Iwxxm.Net.Benchmarks</RootNamespace>
+    <AssemblyName>Iwxxm.Net.Benchmarks</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Iwxxm.Net\Iwxxm.Net.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Iwxxm.Net.Tests\Samples\**\*.xml" Link="Samples\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -29,20 +29,23 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         private static readonly XNamespace CollectNs = "http://def.wmo.int/collect/2014";
         private static readonly XNamespace XlinkNs = "http://www.w3.org/1999/xlink";
 
-        private readonly ISigwxXmlDeserializer<SIGWXReportType> _sigwxDeserializer;
-        private readonly ISigwxAclMapper<SIGWXReportType> _sigwxMapper;
+        private readonly ISigwxXmlDeserializer<SigwxDocumentEnvelope> _sigwxDeserializer;
+        private readonly ISigwxAclMapper<SigwxDocumentEnvelope> _sigwxMapper;
+        private readonly IwxxmParserOptions _options;
 
-        public IwxxmSuiteMapper()
-            : this(new XmlSerializerSigwxDeserializer(), new SigwxMapper())
+        public IwxxmSuiteMapper(IwxxmParserOptions? options = null)
+            : this(new XmlSerializerSigwxDeserializer(options), new SigwxMapper(), options)
         {
         }
 
         public IwxxmSuiteMapper(
-            ISigwxXmlDeserializer<SIGWXReportType> sigwxDeserializer,
-            ISigwxAclMapper<SIGWXReportType> sigwxMapper)
+            ISigwxXmlDeserializer<SigwxDocumentEnvelope> sigwxDeserializer,
+            ISigwxAclMapper<SigwxDocumentEnvelope> sigwxMapper,
+            IwxxmParserOptions? options = null)
         {
             _sigwxDeserializer = sigwxDeserializer ?? throw new ArgumentNullException(nameof(sigwxDeserializer));
             _sigwxMapper = sigwxMapper ?? throw new ArgumentNullException(nameof(sigwxMapper));
+            _options = options ?? IwxxmParserOptions.Default;
         }
 
         public Result<IIwxxmReport> MapValidatedStream(Stream xmlStream)
@@ -53,6 +56,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             var readerSettings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
+                MaxCharactersInDocument = _options.MaxCharactersInDocument,
+                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
                 XmlResolver = null
             };
 
@@ -1277,15 +1282,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (string.IsNullOrWhiteSpace(posText))
                 return null;
 
-            var posDto = new DirectPositionListType { Value = posText! };
-            var coordsRes = SigwxMapper.ParseGmlPosList(posDto, contextLocation, 2);
-            if (coordsRes.IsFailure)
+            var coordRes = GmlCoordinateTokenizer.ParseSinglePoint(posText!, contextLocation);
+            if (coordRes.IsFailure)
             {
-                errors.AddRange(coordsRes.Errors);
+                errors.AddRange(coordRes.Errors);
                 return null;
             }
 
-            return coordsRes.Value[0];
+            return coordRes.Value;
         }
 
         private static GeoPolygon? ParseGmlPatchesPolygon(XElement? patchesElem, string contextLocation, List<ValidationError> errors)
@@ -1327,14 +1331,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             string? linearPosList = ringPropElem.Element(GmlNs + "LinearRing")?.Element(GmlNs + "posList")?.Value;
             if (!string.IsNullOrWhiteSpace(linearPosList))
             {
-                var posDto = new DirectPositionListType { Value = linearPosList! };
-                var res = SigwxMapper.ParseGmlPosList(posDto, contextLocation, 2);
+                var res = GmlCoordinateTokenizer.ParsePosList(linearPosList!, 2, contextLocation);
                 if (res.IsFailure)
                 {
                     errors.AddRange(res.Errors);
                     return null;
                 }
-                return res.Value;
+                return res.Value as List<GeoCoordinate> ?? new List<GeoCoordinate>(res.Value);
             }
 
             XElement? ringElem = ringPropElem.Element(GmlNs + "Ring");
@@ -1351,8 +1354,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                         string? segPosList = seg.Element(GmlNs + "posList")?.Value;
                         if (!string.IsNullOrWhiteSpace(segPosList))
                         {
-                            var posDto = new DirectPositionListType { Value = segPosList! };
-                            var res = SigwxMapper.ParseGmlPosList(posDto, contextLocation, 2);
+                            var res = GmlCoordinateTokenizer.ParsePosList(segPosList!, 2, contextLocation);
                             if (res.IsFailure)
                             {
                                 errors.AddRange(res.Errors);

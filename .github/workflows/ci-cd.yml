@@ -1,0 +1,113 @@
+name: CI/CD — Build, Test & Publish to GitHub Packages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  VERSION_PREFIX: '1.0.0'
+  PACKAGE_VERSION: '1.0.0-rc.${{ github.run_number }}'
+  FILE_VERSION: '1.0.0.${{ github.run_number }}'
+
+jobs:
+  build-and-test:
+    name: Build & Test (${{ matrix.os }}) — v1.0.0-rc.${{ github.run_number }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK from global.json
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore local .NET tools
+        run: dotnet tool restore
+
+      - name: Restore NuGet dependencies
+        run: dotnet restore Iwxxm.Net.sln
+
+      - name: Build solution (Release)
+        run: >
+          dotnet build Iwxxm.Net.sln
+          --configuration Release
+          --no-restore
+          -p:Version=${{ env.PACKAGE_VERSION }}
+          -p:FileVersion=${{ env.FILE_VERSION }}
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Run unit & integration tests with code coverage
+        run: >
+          dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj
+          --configuration Release
+          --no-build
+          --verbosity normal
+          --collect:"XPlat Code Coverage"
+
+      - name: Pack NuGet package (.nupkg & .snupkg)
+        if: matrix.os == 'ubuntu-latest'
+        run: >
+          dotnet pack src/Iwxxm.Net/Iwxxm.Net.csproj
+          --configuration Release
+          --no-build
+          --output ./artifacts
+          -p:Version=${{ env.PACKAGE_VERSION }}
+          -p:FileVersion=${{ env.FILE_VERSION }}
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Upload NuGet package artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-nuget-packages
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          if-no-files-found: error
+
+  publish-github-packages:
+    name: Publish v1.0.0-rc.${{ github.run_number }} to GitHub Packages
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download NuGet artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: github-nuget-packages
+          path: ./artifacts
+
+      - name: Publish package to GitHub Packages (https://github.com/0neTX/Iwxxm.Net/packages)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          dotnet nuget push "./artifacts/*.nupkg"
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          --api-key "$GITHUB_TOKEN"
+          --skip-duplicate

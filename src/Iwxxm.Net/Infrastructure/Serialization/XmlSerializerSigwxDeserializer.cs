@@ -21,6 +21,13 @@ namespace Iwxxm.Net.Infrastructure.Serialization
         private static readonly XmlSerializer CompactReportSerializer =
             new XmlSerializer(typeof(SIGWXReportType));
 
+        private readonly IwxxmParserOptions _options;
+
+        public XmlSerializerSigwxDeserializer(IwxxmParserOptions? options = null)
+        {
+            _options = options ?? IwxxmParserOptions.Default;
+        }
+
         public Result<SigwxDocumentEnvelope> Deserialize(Stream xmlStream)
         {
             if (xmlStream == null)
@@ -29,6 +36,8 @@ namespace Iwxxm.Net.Infrastructure.Serialization
             var readerSettings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
+                MaxCharactersInDocument = _options.MaxCharactersInDocument,
+                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
                 XmlResolver = null
             };
 
@@ -36,7 +45,7 @@ namespace Iwxxm.Net.Infrastructure.Serialization
             {
                 using (XmlReader xmlReader = XmlReader.Create(xmlStream, readerSettings))
                 {
-                    if ( xmlReader.MoveToContent() != XmlNodeType.Element)
+                    if (xmlReader.MoveToContent() != XmlNodeType.Element)
                     {
                         return Result<SigwxDocumentEnvelope>.Failure(
                             "XML-NO-ROOT-ELEMENT",

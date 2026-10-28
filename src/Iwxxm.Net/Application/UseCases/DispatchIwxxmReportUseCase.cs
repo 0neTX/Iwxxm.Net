@@ -9,22 +9,25 @@ namespace Iwxxm.Net.Application.UseCases
     /// <summary>
     /// Application Use Case that orchestrates the end-to-end validation and polymorphic dispatching
     /// pipeline for the full ICAO/WMO IWXXM 2025-2 suite and SWIM <c>collect:MeteorologicalBulletin</c> envelopes:
-    /// 1) Buffer Stream -> 2) Validate XSD -> 3) Validate Schematron XSLT (with offline RDF codelists) -> 4) Dispatch &amp; Map to Domain.
+    /// 1) Bounded Buffer Stream -> 2) Validate XSD -> 3) Validate Schematron XSLT (with offline RDF codelists) -> 4) Dispatch &amp; Map to Domain.
     /// </summary>
     internal sealed class DispatchIwxxmReportUseCase : IIwxxmReportDispatcher
     {
         private readonly IXmlSchemaValidator _xsdValidator;
         private readonly ISchematronValidator _schematronValidator;
         private readonly IIwxxmSuiteDocumentMapper _documentMapper;
+        private readonly IwxxmParserOptions _options;
 
         public DispatchIwxxmReportUseCase(
             IXmlSchemaValidator xsdValidator,
             ISchematronValidator schematronValidator,
-            IIwxxmSuiteDocumentMapper documentMapper)
+            IIwxxmSuiteDocumentMapper documentMapper,
+            IwxxmParserOptions? options = null)
         {
             _xsdValidator = xsdValidator ?? throw new ArgumentNullException(nameof(xsdValidator));
             _schematronValidator = schematronValidator ?? throw new ArgumentNullException(nameof(schematronValidator));
             _documentMapper = documentMapper ?? throw new ArgumentNullException(nameof(documentMapper));
+            _options = options ?? IwxxmParserOptions.Default;
         }
 
         public Result<IIwxxmReport> Process(Stream xmlStream)
@@ -40,8 +43,42 @@ namespace Iwxxm.Net.Application.UseCases
                     ErrorCategory.XmlWellFormedness);
             }
 
-            using (MemoryStream buffer = CopyToSeekableMemoryStream(xmlStream))
+            if (xmlStream.CanSeek && (xmlStream.Length - xmlStream.Position) > _options.MaxDocumentBytes)
             {
+                return Result<IIwxxmReport>.Failure(
+                    "XML-SIZE-LIMIT",
+                    $"The input XML stream length ({xmlStream.Length - xmlStream.Position} bytes) exceeds the maximum allowed limit of {_options.MaxDocumentBytes} bytes.",
+                    ErrorCategory.XmlWellFormedness);
+            }
+
+            using (var buffer = new MemoryStream())
+            {
+                try
+                {
+                    var chunk = new byte[8192];
+                    long totalBytesRead = 0;
+                    int bytesRead;
+                    while ((bytesRead = xmlStream.Read(chunk, 0, chunk.Length)) > 0)
+                    {
+                        totalBytesRead += bytesRead;
+                        if (totalBytesRead > _options.MaxDocumentBytes)
+                        {
+                            return Result<IIwxxmReport>.Failure(
+                                "XML-SIZE-LIMIT",
+                                $"The input XML stream exceeds the maximum allowed limit of {_options.MaxDocumentBytes} bytes.",
+                                ErrorCategory.XmlWellFormedness);
+                        }
+                        buffer.Write(chunk, 0, bytesRead);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return Result<IIwxxmReport>.Failure(
+                        "STREAM-READ-ERROR",
+                        $"Failed to read the input XML stream: {ex.Message}",
+                        ErrorCategory.XmlWellFormedness);
+                }
+
                 if (buffer.Length == 0)
                 {
                     return Result<IIwxxmReport>.Failure(
@@ -90,14 +127,6 @@ namespace Iwxxm.Net.Application.UseCases
                 $"Expected a 'collect:MeteorologicalBulletin' document, but parsed '{dispatchResult.Value.ReportType}' ('{dispatchResult.Value.Id}').",
                 ErrorCategory.Deserialization,
                 dispatchResult.Value.Id);
-        }
-
-        private static MemoryStream CopyToSeekableMemoryStream(Stream source)
-        {
-            var memoryStream = new MemoryStream();
-            source.CopyTo(memoryStream);
-            memoryStream.Position = 0;
-            return memoryStream;
         }
     }
 }

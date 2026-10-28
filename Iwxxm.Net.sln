@@ -17,11 +17,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 		TECHNICAL_DEBT.md = TECHNICAL_DEBT.md
 		.config\dotnet-tools.json = .config\dotnet-tools.json
+		.github\workflows\ci-cd.yml = .github\workflows\ci-cd.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iwxxm.Net", "src\Iwxxm.Net\Iwxxm.Net.csproj", "{8A2E5C91-4B1D-4F3A-9C7E-1D2B3A4C5D6E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iwxxm.Net.Tests", "tests\Iwxxm.Net.Tests\Iwxxm.Net.Tests.csproj", "{9B3F6D02-5C2E-4A4B-8D8F-2E3C4B5D6E7F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iwxxm.Net.Benchmarks", "tests\Iwxxm.Net.Benchmarks\Iwxxm.Net.Benchmarks.csproj", "{7C4A7E13-6D3F-4B5C-9E9A-3F4D5C6E7F8A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,5 +40,9 @@ Global
 		{9B3F6D02-5C2E-4A4B-8D8F-2E3C4B5D6E7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B3F6D02-5C2E-4A4B-8D8F-2E3C4B5D6E7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B3F6D02-5C2E-4A4B-8D8F-2E3C4B5D6E7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C4A7E13-6D3F-4B5C-9E9A-3F4D5C6E7F8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C4A7E13-6D3F-4B5C-9E9A-3F4D5C6E7F8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C4A7E13-6D3F-4B5C-9E9A-3F4D5C6E7F8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C4A7E13-6D3F-4B5C-9E9A-3F4D5C6E7F8A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

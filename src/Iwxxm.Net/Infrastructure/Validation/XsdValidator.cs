@@ -40,13 +40,16 @@ namespace Iwxxm.Net.Infrastructure.Validation
             new Lazy<XmlSchemaSet>(() => BuildAndCompileSchemaSet(FullSuiteEmbeddedSchemaFiles), isThreadSafe: true);
 
         private readonly bool _useFullSuite;
+        private readonly IwxxmParserOptions _options;
 
-        public XsdValidator(bool useFullSuite = false)
+        public XsdValidator(bool useFullSuite = false, IwxxmParserOptions? options = null)
         {
             _useFullSuite = useFullSuite;
+            _options = options ?? IwxxmParserOptions.Default;
         }
 
-        public static XsdValidator CreateFullSuiteValidator() => new XsdValidator(useFullSuite: true);
+        public static XsdValidator CreateFullSuiteValidator(IwxxmParserOptions? options = null) =>
+            new XsdValidator(useFullSuite: true, options: options);
 
         private static XmlSchemaSet BuildAndCompileSchemaSet(string[] schemaResourceNames)
         {
@@ -102,6 +105,8 @@ namespace Iwxxm.Net.Infrastructure.Validation
                     XmlSchemaValidationFlags.ProcessIdentityConstraints |
                     XmlSchemaValidationFlags.ReportValidationWarnings,
                 DtdProcessing = DtdProcessing.Prohibit,
+                MaxCharactersInDocument = _options.MaxCharactersInDocument,
+                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
                 XmlResolver = null
             };
 

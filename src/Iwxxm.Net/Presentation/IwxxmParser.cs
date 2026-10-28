@@ -21,7 +21,7 @@ namespace Iwxxm.Net.Presentation
     public sealed class IwxxmParser : IIwxxmReportDispatcher
     {
         private static readonly Lazy<IIwxxmReportDispatcher> DefaultDispatcherInstance =
-            new Lazy<IIwxxmReportDispatcher>(CreateDispatcher, isThreadSafe: true);
+            new Lazy<IIwxxmReportDispatcher>(() => CreateDispatcher(), isThreadSafe: true);
 
         private readonly IIwxxmReportDispatcher _innerDispatcher;
 
@@ -30,21 +30,25 @@ namespace Iwxxm.Net.Presentation
         /// embedded XSD validator, Schematron XSLT validator (with offline WMO RDF code-list lookup),
         /// and polymorphic IWXXM 2025-2 mapper.
         /// </summary>
-        public IwxxmParser()
+        public IwxxmParser(IwxxmParserOptions? options = null)
         {
-            _innerDispatcher = DefaultDispatcherInstance.Value;
+            _innerDispatcher = options == null
+                ? DefaultDispatcherInstance.Value
+                : CreateDispatcher(options);
         }
 
         /// <summary>
         /// Creates and returns an instance of <see cref="IIwxxmReportDispatcher"/> suitable for singleton
         /// registration in Dependency Injection containers (.NET 8 IServiceCollection, Autofac, etc.).
         /// </summary>
-        public static IIwxxmReportDispatcher CreateDispatcher()
+        public static IIwxxmReportDispatcher CreateDispatcher(IwxxmParserOptions? options = null)
         {
+            var effectiveOptions = options ?? IwxxmParserOptions.Default;
             return new DispatchIwxxmReportUseCase(
-                xsdValidator: XsdValidator.CreateFullSuiteValidator(),
-                schematronValidator: new XsltSchematronValidator(),
-                suiteMapper: new IwxxmSuiteMapper());
+                xsdValidator: XsdValidator.CreateFullSuiteValidator(effectiveOptions),
+                schematronValidator: new XsltSchematronValidator(effectiveOptions),
+                documentMapper: new IwxxmSuiteMapper(effectiveOptions),
+                options: effectiveOptions);
         }
 
         /// <summary>
@@ -56,7 +60,7 @@ namespace Iwxxm.Net.Presentation
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
 
-            return DefaultDispatcherInstance.Value.Dispatch(xmlStream);
+            return DefaultDispatcherInstance.Value.Process(xmlStream);
         }
 
         /// <summary>
@@ -76,7 +80,7 @@ namespace Iwxxm.Net.Presentation
             byte[] utf8Bytes = Encoding.UTF8.GetBytes(xmlContent);
             using (var memoryStream = new MemoryStream(utf8Bytes, writable: false))
             {
-                return DefaultDispatcherInstance.Value.Dispatch(memoryStream);
+                return DefaultDispatcherInstance.Value.Process(memoryStream);
             }
         }
 
@@ -99,7 +103,7 @@ namespace Iwxxm.Net.Presentation
 
             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                return DefaultDispatcherInstance.Value.Dispatch(fileStream);
+                return DefaultDispatcherInstance.Value.Process(fileStream);
             }
         }
 
@@ -144,7 +148,7 @@ namespace Iwxxm.Net.Presentation
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
 
-            return DefaultDispatcherInstance.Value.DispatchBulletin(xmlStream);
+            return DefaultDispatcherInstance.Value.ProcessBulletin(xmlStream);
         }
 
         /// <summary>
@@ -163,7 +167,7 @@ namespace Iwxxm.Net.Presentation
             byte[] utf8Bytes = Encoding.UTF8.GetBytes(xmlContent);
             using (var memoryStream = new MemoryStream(utf8Bytes, writable: false))
             {
-                return DefaultDispatcherInstance.Value.DispatchBulletin(memoryStream);
+                return DefaultDispatcherInstance.Value.ProcessBulletin(memoryStream);
             }
         }
 
@@ -185,20 +189,20 @@ namespace Iwxxm.Net.Presentation
 
             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                return DefaultDispatcherInstance.Value.DispatchBulletin(fileStream);
+                return DefaultDispatcherInstance.Value.ProcessBulletin(fileStream);
             }
         }
 
         /// <inheritdoc />
-        public Result<IIwxxmReport> Dispatch(Stream xmlStream)
+        public Result<IIwxxmReport> Process(Stream xmlStream)
         {
-            return _innerDispatcher.Dispatch(xmlStream);
+            return _innerDispatcher.Process(xmlStream);
         }
 
         /// <inheritdoc />
-        public Result<MeteorologicalBulletin> DispatchBulletin(Stream xmlStream)
+        public Result<MeteorologicalBulletin> ProcessBulletin(Stream xmlStream)
         {
-            return _innerDispatcher.DispatchBulletin(xmlStream);
+            return _innerDispatcher.ProcessBulletin(xmlStream);
         }
 
         private static Result<TReport> CastReportResult<TReport>(Result<IIwxxmReport> result)
@@ -213,7 +217,7 @@ namespace Iwxxm.Net.Presentation
                 return Result<TReport>.Failure(
                     "IWXXM-UNEXPECTED-REPORT-TYPE",
                     $"Expected report aggregate of type '{typeof(TReport).Name}', but parsed '{result.Value.GetType().Name}' (ReportType: {result.Value.ReportType}).",
-                    ErrorCategory.DomainMappingRule);
+                    ErrorCategory.DomainMapping);
             }
 
             return Result<TReport>.Success(typed);

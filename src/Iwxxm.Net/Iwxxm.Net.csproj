@@ -28,6 +28,8 @@
   -->
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <InternalsVisibleTo Include="Iwxxm.Net.Tests" />
+    <InternalsVisibleTo Include="Iwxxm.Net.Benchmarks" />
   </ItemGroup>
 
   <!-- 

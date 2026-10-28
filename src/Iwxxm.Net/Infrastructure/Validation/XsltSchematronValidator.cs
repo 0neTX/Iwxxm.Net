@@ -10,7 +10,7 @@ using Iwxxm.Net.Infrastructure.Resources;
 namespace Iwxxm.Net.Infrastructure.Validation
 {
     /// <summary>
-    /// Business rules validation engine for ICAO/WMO IWXXM 2025-2 SIGWX reports.
+    /// Business rules validation engine for ICAO/WMO IWXXM 2025-2 reports.
     /// Executes precompiled ISO Schematron XSLT stylesheets via <see cref="XslCompiledTransform"/>
     /// and parses standard SVRL (<c>svrl:failed-assert</c> and <c>svrl:successful-report</c>) output.
     /// </summary>
@@ -24,6 +24,13 @@ namespace Iwxxm.Net.Infrastructure.Validation
             new Lazy<XslCompiledTransform>(LoadAndCompileXslt, isThreadSafe: true);
 
         private static readonly EmbeddedXmlUrlResolver SharedEmbeddedResolver = new EmbeddedXmlUrlResolver();
+
+        private readonly IwxxmParserOptions _options;
+
+        public XsltSchematronValidator(IwxxmParserOptions? options = null)
+        {
+            _options = options ?? IwxxmParserOptions.Default;
+        }
 
         private static XslCompiledTransform LoadAndCompileXslt()
         {
@@ -54,6 +61,8 @@ namespace Iwxxm.Net.Infrastructure.Validation
             var inputReaderSettings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
+                MaxCharactersInDocument = _options.MaxCharactersInDocument,
+                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
                 XmlResolver = null
             };
 
@@ -68,7 +77,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
                     }
 
                     svrlOutputStream.Position = 0;
-                    ParseSvrlReport(svrlOutputStream, errors);
+                    ParseSvrlReport(svrlOutputStream, errors, _options);
                 }
             }
             catch (XmlException ex)
@@ -97,11 +106,13 @@ namespace Iwxxm.Net.Infrastructure.Validation
             return errors;
         }
 
-        private static void ParseSvrlReport(Stream svrlStream, List<ValidationError> errors)
+        private static void ParseSvrlReport(Stream svrlStream, List<ValidationError> errors, IwxxmParserOptions options)
         {
             var readerSettings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
+                MaxCharactersInDocument = options.MaxCharactersInDocument,
+                MaxCharactersFromEntities = options.MaxCharactersFromEntities,
                 XmlResolver = null
             };
 

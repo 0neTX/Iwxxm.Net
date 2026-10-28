@@ -606,55 +606,18 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     contextLocation);
             }
 
-            string[] tokens = posListDto.Value.Split(WhitespaceDelimiters, StringSplitOptions.RemoveEmptyEntries);
-
-            if (tokens.Length == 0 || tokens.Length % dimension != 0)
+            Result<IReadOnlyList<GeoCoordinate>> parsed = GmlCoordinateTokenizer.ParsePosList(posListDto.Value, dimension, contextLocation);
+            if (parsed.IsFailure)
             {
-                return Result<List<GeoCoordinate>>.Failure(
-                    "GML-POSLIST-TUPLE-MISMATCH",
-                    $"Element <gml:posList> at '{contextLocation}' contains {tokens.Length} scalar values, which is not a multiple of srsDimension ({dimension}).",
-                    ErrorCategory.DomainMapping,
-                    contextLocation);
+                return Result<List<GeoCoordinate>>.Failure(parsed.Errors);
             }
 
-            int pointCount = tokens.Length / dimension;
-            var coordinates = new List<GeoCoordinate>(pointCount);
-
-            for (int i = 0; i < tokens.Length; i += dimension)
-            {
-                if (!double.TryParse(tokens[i], NumberStyles.Float, CultureInfo.InvariantCulture, out double lat))
-                {
-                    return Result<List<GeoCoordinate>>.Failure(
-                        "GML-POSLIST-PARSE-LAT",
-                        $"Failed to parse latitude token '{tokens[i]}' as a floating-point number at '{contextLocation}'.",
-                        ErrorCategory.DomainMapping,
-                        contextLocation);
-                }
-
-                if (!double.TryParse(tokens[i + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out double lon))
-                {
-                    return Result<List<GeoCoordinate>>.Failure(
-                        "GML-POSLIST-PARSE-LON",
-                        $"Failed to parse longitude token '{tokens[i + 1]}' as a floating-point number at '{contextLocation}'.",
-                        ErrorCategory.DomainMapping,
-                        contextLocation);
-                }
-
-                Result<GeoCoordinate> coordResult = GeoCoordinate.Create(lat, lon, contextLocation);
-                if (coordResult.IsFailure)
-                {
-                    return Result<List<GeoCoordinate>>.Failure(coordResult.Errors);
-                }
-
-                coordinates.Add(coordResult.Value);
-            }
-
-            return Result<List<GeoCoordinate>>.Success(coordinates);
+            return Result<List<GeoCoordinate>>.Success(parsed.Value as List<GeoCoordinate> ?? new List<GeoCoordinate>(parsed.Value));
         }
 
         /// <summary>
         /// Extracts a single geographic coordinate from a <c>&lt;gml:Point&gt;/&lt;gml:pos&gt;</c>
-        /// or <c>&lt;iwxxm:ElevatedPoint&gt;/&lt;gml:pos&gt;</c> node.
+        /// or <c>&lt;iwxxm:ElevatedPoint&gt;/&lt;gml:pos&gt;</c> node using zero-array-allocation scanning.
         /// </summary>
         internal static Result<GeoCoordinate> ParseGmlPoint(PointType? pointDto, string contextLocation)
         {
@@ -667,27 +630,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     contextLocation);
             }
 
-            string[] tokens = pointDto.Pos.Value.Split(WhitespaceDelimiters, StringSplitOptions.RemoveEmptyEntries);
-            if (tokens.Length < 2)
-            {
-                return Result<GeoCoordinate>.Failure(
-                    "GML-POS-TUPLE-MISMATCH",
-                    $"Element <gml:pos> at '{contextLocation}' requires at least 2 values (lat lon), but found {tokens.Length}.",
-                    ErrorCategory.DomainMapping,
-                    contextLocation);
-            }
-
-            if (!double.TryParse(tokens[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double lat) ||
-                !double.TryParse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double lon))
-            {
-                return Result<GeoCoordinate>.Failure(
-                    "GML-POS-PARSE-ERROR",
-                    $"Invalid numeric coordinates '{pointDto.Pos.Value}' at '{contextLocation}'.",
-                    ErrorCategory.DomainMapping,
-                    contextLocation);
-            }
-
-            return GeoCoordinate.Create(lat, lon, contextLocation);
+            return GmlCoordinateTokenizer.ParseSinglePoint(pointDto.Pos.Value, contextLocation);
         }
 
         private static Result<List<GeoCoordinate>> ExtractCurveCoordinates(CurveType? curve, string context)
