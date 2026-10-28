@@ -1,10 +1,10 @@
 # Iwxxm.Net — ICAO/WMO IWXXM 2025-2 Aeronautical Meteorology Processor for .NET
 
 [![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-v1.0.0--rc-blue)](https://github.com/0neTX/Iwxxm.Net/packages)
-[![Target Framework](https://img.shields.io/badge/target-netstandard2.0%20%7C%20net48%20%7C%20net8.0-purple)](https://learn.microsoft.com/en-us/dotnet/standard/net-standard)
+[![Target Frameworks](https://img.shields.io/badge/targets-netstandard2.0%20%7C%20netstandard2.1-purple)](https://learn.microsoft.com/en-us/dotnet/standard/net-standard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**`Iwxxm.Net`** is a zero-dependency **.NET Standard 2.0** library architected with **Domain-Driven Design (DDD)** and **Clean Architecture** for parsing, dual-validating (**XSD + ISO Schematron XSLT + Offline WMO RDF/SKOS Code-List Registries**), mapping, and exporting (**Native RFC 7946 GeoJSON**) the complete **ICAO / WMO IWXXM 2025-2** aeronautical meteorological report suite and **SWIM / AMHS Collective Bulletins** (`collect:MeteorologicalBulletin`).
+**`Iwxxm.Net`** is a zero-dependency **.NET Standard 2.0 & .NET Standard 2.1** multi-targeted library architected with **Domain-Driven Design (DDD)** and **Clean Architecture** for parsing, dual-validating (**XSD + ISO Schematron XSLT + Offline WMO RDF/SKOS Code-List Registries**), mapping, and exporting (**Native RFC 7946 GeoJSON**) the complete **ICAO / WMO IWXXM 2025-2** aeronautical meteorological report suite and **SWIM / AMHS Collective Bulletins** (`collect:MeteorologicalBulletin`).
 
 ---
 
@@ -56,7 +56,7 @@
 ## Key Features
 
 - **Zero Third-Party Runtime Dependencies**: Built 100% on the native .NET Base Class Library (`System.Xml`, `XmlSchemaSet`, `XslCompiledTransform`, `XmlSerializer`, `XDocument`). No external GIS, JSON, validation, or mediator packages required at runtime.
-- **Broad .NET Compatibility**: Targets `netstandard2.0` for seamless execution across **.NET Framework 4.8** and **.NET 8+**.
+- **Multi-Targeted `.NET Standard 2.0` & `.NET Standard 2.1`**: Ships dedicated `lib/netstandard2.0/Iwxxm.Net.dll` (for **.NET Framework 4.6.1–4.8**) and `lib/netstandard2.1/Iwxxm.Net.dll` (for **.NET Core 3.0+ and .NET 5 / 6 / 7 / 8 / 9+**, leveraging native `ReadOnlySpan<char>` APIs) inside a single NuGet package.
 - **Embedded Air-Gapped Schemas, Rules & WMO RDF Registries**: Bundles the XSD schemas (`iwxxm-2025-2.xsd`, `iwxxm-sigwx.xsd`, `collect.xsd`, `aixm.xsd`, `metce.xsd`, `gml.xsd`, `xlink.xsd`), precompiled ISO Schematron business rules (`iwxxm-2025-2-sigwx.xslt`), and the offline WMO No. 306 / 49-2 SKOS/RDF code-list registry (`codes.wmo.int-49-2.rdf`) as `<EmbeddedResource>` streams resolved strictly in-memory via `EmbeddedXmlUrlResolver` with zero disk or network I/O.
 - **Dual Validation Pipeline**:
   1. **Structural Validation**: `XmlReaderSettings` against a lazily compiled, thread-safe `XmlSchemaSet` with XXE/DTD protection (`DtdProcessing.Prohibit`).
