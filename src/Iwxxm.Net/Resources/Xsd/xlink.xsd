@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:xlink="http://www.w3.org/1999/xlink"
+           targetNamespace="http://www.w3.org/1999/xlink"
+           elementFormDefault="qualified">
+
+  <xs:attribute name="type" type="xs:string"/>
+  <xs:attribute name="href" type="xs:anyURI"/>
+  <xs:attribute name="role" type="xs:anyURI"/>
+  <xs:attribute name="arcrole" type="xs:anyURI"/>
+  <xs:attribute name="title" type="xs:string"/>
+  <xs:attribute name="show" type="xs:string"/>
+  <xs:attribute name="actuate" type="xs:string"/>
+
+  <xs:attributeGroup name="simpleAttrs">
+    <xs:attribute ref="xlink:type" use="optional"/>
+    <xs:attribute ref="xlink:href" use="optional"/>
+    <xs:attribute ref="xlink:role" use="optional"/>
+    <xs:attribute ref="xlink:arcrole" use="optional"/>
+    <xs:attribute ref="xlink:title" use="optional"/>
+    <xs:attribute ref="xlink:show" use="optional"/>
+    <xs:attribute ref="xlink:actuate" use="optional"/>
+  </xs:attributeGroup>
+
+</xs:schema>

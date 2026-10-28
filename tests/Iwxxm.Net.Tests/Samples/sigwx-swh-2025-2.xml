@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iwxxm:SIGWXReport xmlns:iwxxm="http://icao.int/iwxxm/2025-2"
+                   xmlns:gml="http://www.opengis.net/gml/3.2"
+                   gml:id="uuid.sigwx.wafc.egrr.202610281800"
+                   reportStatus="NORMAL"
+                   permissibleUsage="OPERATIONAL">
+
+  <iwxxm:issueTime>
+    <gml:TimeInstant gml:id="ti-issue">
+      <gml:timePosition>2026-10-28T18:00:00Z</gml:timePosition>
+    </gml:TimeInstant>
+  </iwxxm:issueTime>
+
+  <iwxxm:validPeriod>
+    <gml:TimePeriod gml:id="tp-valid">
+      <gml:beginPosition>2026-10-29T00:00:00Z</gml:beginPosition>
+      <gml:endPosition>2026-10-29T06:00:00Z</gml:endPosition>
+    </gml:TimePeriod>
+  </iwxxm:validPeriod>
+
+  <iwxxm:issuingCentre>EGRR</iwxxm:issuingCentre>
+  <iwxxm:lowerLimit uom="FL">250</iwxxm:lowerLimit>
+  <iwxxm:upperLimit uom="FL">630</iwxxm:upperLimit>
+
+  <!-- Feature 1: Transatlantic JetStream with gml:Curve axis and core point -->
+  <iwxxm:jetStream gml:id="js-north-atlantic-01">
+    <iwxxm:axis>
+      <gml:Curve gml:id="curve-js-01" srsName="http://www.opengis.net/def/crs/EPSG/0/4326" srsDimension="2">
+        <gml:segments>
+          <gml:LineStringSegment>
+            <gml:posList>48.50 -35.00 50.25 -20.50 51.80 -10.00 52.10 02.30</gml:posList>
+          </gml:LineStringSegment>
+        </gml:segments>
+      </gml:Curve>
+    </iwxxm:axis>
+    <iwxxm:flightLevel uom="FL">360</iwxxm:flightLevel>
+    <iwxxm:windSpeed uom="[kn_i]">135</iwxxm:windSpeed>
+    <iwxxm:corePoint>
+      <iwxxm:location>
+        <gml:Point gml:id="pt-js-core-1" srsDimension="2">
+          <gml:pos>50.25 -20.50</gml:pos>
+        </gml:Point>
+      </iwxxm:location>
+      <iwxxm:flightLevel uom="FL">360</iwxxm:flightLevel>
+      <iwxxm:windSpeed uom="[kn_i]">135</iwxxm:windSpeed>
+      <iwxxm:lowerFlightLevel uom="FL">310</iwxxm:lowerFlightLevel>
+      <iwxxm:upperFlightLevel uom="FL">400</iwxxm:upperFlightLevel>
+    </iwxxm:corePoint>
+  </iwxxm:jetStream>
+
+  <!-- Feature 2: Cumulonimbus (CB) cloud distribution area with gml:Polygon -->
+  <iwxxm:cloud gml:id="cb-biscay-01">
+    <iwxxm:cloudAmount>OCNL_EMBD</iwxxm:cloudAmount>
+    <iwxxm:cloudType>CB</iwxxm:cloudType>
+    <iwxxm:base uom="FL">250</iwxxm:base>
+    <iwxxm:top uom="FL">420</iwxxm:top>
+    <iwxxm:geometry>
+      <gml:Polygon gml:id="poly-cb-01" srsName="http://www.opengis.net/def/crs/EPSG/0/4326" srsDimension="2">
+        <gml:exterior>
+          <gml:LinearRing>
+            <gml:posList>43.00 -09.00 46.50 -09.00 46.50 -01.50 43.00 -01.50 43.00 -09.00</gml:posList>
+          </gml:LinearRing>
+        </gml:exterior>
+      </gml:Polygon>
+    </iwxxm:geometry>
+  </iwxxm:cloud>
+
+  <!-- Feature 3: Tropopause spot height -->
+  <iwxxm:tropopause gml:id="tropo-spot-01">
+    <iwxxm:levelType>HIGH</iwxxm:levelType>
+    <iwxxm:spotHeight>
+      <iwxxm:location>
+        <gml:Point gml:id="pt-tropo-1" srsDimension="2">
+          <gml:pos>40.41 -03.70</gml:pos>
+        </gml:Point>
+      </iwxxm:location>
+      <iwxxm:flightLevel uom="FL">450</iwxxm:flightLevel>
+    </iwxxm:spotHeight>
+  </iwxxm:tropopause>
+
+  <!-- Feature 4: Active Volcano -->
+  <iwxxm:volcano gml:id="volcano-etna-01">
+    <iwxxm:name>ETNA</iwxxm:name>
+    <iwxxm:wmoNumber>211060</iwxxm:wmoNumber>
+    <iwxxm:location>
+      <gml:Point gml:id="pt-volcano-etna" srsDimension="2">
+        <gml:pos>37.73 15.00</gml:pos>
+      </gml:Point>
+    </iwxxm:location>
+    <iwxxm:eruptionTime>2026-10-28T16:30:00Z</iwxxm:eruptionTime>
+  </iwxxm:volcano>
+
+</iwxxm:SIGWXReport>
