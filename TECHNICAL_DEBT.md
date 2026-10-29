@@ -265,6 +265,8 @@ Only partially, and inconsistently. The **Infrastructure** layer (`Iwxxm20252.Ge
 
 ### 8.2 Clean Code & SOLID Principles Analysis
 
+> **Prioritization**: DDD and Clean Code items are ranked by criticality, with scope estimates and a recommended execution order, in [`docs/ARCHITECTURE_ANALYSIS.md` §7](docs/ARCHITECTURE_ANALYSIS.md#7-priorización-de-la-deuda-ddd-y-clean-code).
+
 > **Nota de Calibración Pragmática (IWXXM 2025-2 vs Principios de Diseño)**:  
 > Dado que la especificación OACI/OMM 2025-2 define un conjunto finito y cerrado de 13 tipos de reportes, **no se requiere un framework dinámico de plugins externos (evitando sobreingeniería / YAGNI)**. La resolución de OCP en exportadores y mappers se calibra de forma pragmática mediante polimorfismo estático / Visitor pattern.  
 > Sin embargo, **el principio de responsabilidad única (SRP) sigue siendo crítico**: permite aislar el radio de impacto (*blast radius*) de correcciones de bugs de mapeo en esquemas complejos (evitando que tocar cenizas volcánicas o avisos espaciales rompa el viento de un METAR) y prepara la arquitectura para una futura coexistencia multiversión en redes SWIM (2021-2, 2023-1, 2025-2) sin alterar el Dominio Canónico.
