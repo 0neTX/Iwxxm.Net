@@ -38,6 +38,10 @@ namespace Iwxxm.Net.Reports
         public bool IsTranslationFailed => false;
         public string? TranslationFailedTac => null;
 
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         /// <summary>
         /// Gets all successfully parsed IWXXM 2025-2 reports contained inside this collective bulletin.
         /// </summary>

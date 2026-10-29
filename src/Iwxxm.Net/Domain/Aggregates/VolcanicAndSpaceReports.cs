@@ -58,6 +58,11 @@ namespace Iwxxm.Net.Reports
         public string? NextNotice { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
+
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         public IReadOnlyList<Volcano> Volcanoes { get; }
 
         /// <summary>Ash cloud elevation as reported (value, unit and vertical reference), or <c>null</c> when not reported.</summary>
@@ -178,6 +183,11 @@ namespace Iwxxm.Net.Reports
         public string? Remarks { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
+
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         public IReadOnlyList<Volcano> Volcanoes { get; }
         public IReadOnlyList<VolcanicAshConcentrationCloud> AshConcentrationClouds { get; }
 
@@ -282,6 +292,11 @@ namespace Iwxxm.Net.Reports
         public DateTimeOffset? NextAdvisoryTimeUtc { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
+
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         public IReadOnlyList<EnRoutePhenomenonVolume> ObservedAshClouds { get; }
         public IReadOnlyList<EnRoutePhenomenonVolume> ForecastAshClouds { get; }
 
@@ -432,6 +447,10 @@ namespace Iwxxm.Net.Reports
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
 
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         private TropicalCycloneAdvisoryReport(
             string id,
             DateTimeOffset issueTimeUtc,
@@ -569,6 +588,10 @@ namespace Iwxxm.Net.Reports
         public DateTimeOffset? NextAdvisoryTimeUtc { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
+
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         private SpaceWeatherAdvisoryReport(
             string id,

@@ -1,0 +1,146 @@
+SpaceWeatherAdvisoryReport {
+  AdvisoryNumber = "2020/1"
+  Analyses = [
+    SpaceWeatherAnalysisRegion {
+      Id = "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90"
+      Intensity = "SEV"
+      LocationIndicatorUris = [
+        "http://codes.wmo.int/49-2/SpaceWxLocation/MNH"
+        "http://codes.wmo.int/49-2/SpaceWxLocation/EQN"
+        "http://codes.wmo.int/49-2/SpaceWxLocation/EQS"
+        "http://codes.wmo.int/49-2/SpaceWxLocation/MSH"
+        "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"
+      ]
+      PhenomenonTimeUtc = 2020-11-08T01:00:00.0000000+00:00
+      Polygons = [
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = 30
+              Lon = 180
+            }
+            GeoCoordinate {
+              Lat = 60
+              Lon = 180
+            }
+            GeoCoordinate {
+              Lat = 60
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = 30
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = 30
+              Lon = 180
+            }
+          ]
+          InteriorRings = []
+        }
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = 0
+              Lon = 180
+            }
+            GeoCoordinate {
+              Lat = 30
+              Lon = 180
+            }
+            GeoCoordinate {
+              Lat = 30
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = 0
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = 0
+              Lon = 180
+            }
+          ]
+          InteriorRings = []
+        }
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = -30
+              Lon = 180
+            }
+            GeoCoordinate {
+              Lat = 0
+              Lon = 180
+            }
+            GeoCoordinate {
+              Lat = 0
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = -30
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = -30
+              Lon = 180
+            }
+          ]
+          InteriorRings = []
+        }
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = -60
+              Lon = 180
+            }
+            GeoCoordinate {
+              Lat = -30
+              Lon = 180
+            }
+            GeoCoordinate {
+              Lat = -30
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = -60
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = -60
+              Lon = 180
+            }
+          ]
+          InteriorRings = []
+        }
+      ]
+      TimeIndicator = "OBSERVATION"
+    }
+    SpaceWeatherAnalysisRegion {
+      Id = "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90"
+      Intensity = "MOD"
+      LocationIndicatorUris = [
+        "http://codes.wmo.int/49-2/SpaceWxLocation/NIGHTSIDE"
+      ]
+      PhenomenonTimeUtc = 2020-11-08T01:00:00.0000000+00:00
+      Polygons = []
+      TimeIndicator = "OBSERVATION"
+    }
+  ]
+  Effects = [
+    "HF_COM"
+  ]
+  Id = "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2020-11-08T01:00:00.0000000+00:00
+  IssuingSwxcName = "DONLON"
+  NextAdvisoryTimeUtc = 2020-11-08T07:00:00.0000000+00:00
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Remarks = "SWX EVENT IMPACTING LOWER HF COM FREQ BAND. SEE WWW.SPACEWEATHERPROVIDER.WEB"
+  ReplacedAdvisoryNumbers = []
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.SpaceWeatherAdvisory
+  TranslationFailedTac = null
+}

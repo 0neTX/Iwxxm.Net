@@ -98,8 +98,8 @@ graph TD
     subgraph AdaptersOut ["Adaptadores Secundarios (Infrastructure)"]
         XsdAdapter["XsdValidator (WMO Official Schemas)"]
         SchAdapter["XsltSchematronValidator / Saxon Validator"]
-        Mappers["Modular Mappers: MetarMapper, TafMapper..."]
-        GeoJsonAdapters["Modular Exporters / Feature Providers"]
+        Mappers["IwxxmSuiteMapper (composite) + mappers por familia: MetarSpeciMapper, TafMapper..."]
+        GeoJsonAdapters["Rfc7946GeoJsonExporter + feature builders por familia (Visitor)"]
         GeneratedDto["Iwxxm20252.Generated (Internal ACL)"]
     end
 
@@ -260,9 +260,9 @@ La columna **Rompe API** indica si el cambio obliga a modificar código de los c
 | 4 | **DDD-06** | Alta | S (2 ficheros) | No (cambia comportamiento) | Contrato `Equals` / `GetHashCode` de `GeoCoordinate` y `GeoPolygon` | AUD-M6 | Implementado (Unreleased) |
 | 5 | **CLN-04** | Alta | S (1–2 ficheros) | No | Excepciones de I/O fuera de `Result<T>` | AUD-M4 | Implementado (Unreleased) |
 | 6 | **DDD-05** | Alta | M | No (nuevos errores de creación) | Invariantes homogéneas en las fábricas `Create` | AUD-L10 | Implementado (Unreleased) |
-| 7 | **CLN-01** | Media | L (~1.360 líneas) | No | Descomponer `IwxxmSuiteMapper` | AUD-A1 §8.2 | Pendiente |
-| 8 | **CLN-05** | Media | L (~1.000 líneas) | No | Descomponer `SigwxMapper` | AUD-A1 §8.2 | Pendiente |
-| 9 | **CLN-02** | Media | M (~980 líneas) | Sí (Visitor en `IIwxxmReport`) | Visitor y descomposición del exportador GeoJSON | AUD-A1 §8.2 | Pendiente |
+| 7 | **CLN-01** | Media | L (~1.360 líneas) | No | Descomponer `IwxxmSuiteMapper` | AUD-A1 §8.2 | Implementado (Unreleased) |
+| 8 | **CLN-05** | Media | L (~1.000 líneas) | No | Descomponer `SigwxMapper` | AUD-A1 §8.2 | Implementado (Unreleased) |
+| 9 | **CLN-02** | Media | M (~980 líneas) | Sí (Visitor en `IIwxxmReport`) | Visitor y descomposición del exportador GeoJSON | AUD-A1 §8.2 | Implementado (Unreleased) |
 | 10 | **DDD-09** | Media | S–M (6 tipos) | No (cambia comportamiento) | Igualdad estructural en VOs auxiliares | AUD-L10 | Pendiente |
 | 11 | **DDD-04** | Media | S–M | Sí | Segregar `IMeteorologicalReport` / `IBulletinEnvelope` | AUD-M8 | Pendiente |
 | 12 | **DDD-10** | Media | M | Sí | URIs de codelists traducidas en la ACL | AUD-A1 §8.2 | Pendiente |
@@ -272,7 +272,7 @@ La columna **Rompe API** indica si el cambio obliga a modificar código de los c
 | 16 | **CLN-06** | Baja | S | No | Comentarios veraces | AUD-M16, AUD-L1 | Pendiente |
 | 17 | **CLN-07** | Baja | S | No | Duplicación y números mágicos en `WmoCodes` | — | Pendiente |
 
-> **Estado (Unreleased)**: los puntos 1 a 6 están implementados. Decisiones principales: (1) un dato obligatorio según el XSD oficial que falta es un error de mapeo; un dato opcional, nulo o dado solo por `xlink:href` (no resuelto) es `null`; (2) `ReportStatus`, `PermissibleUsage` y `PermissibleUsageReason` son enums y los metadatos de `MeteorologicalBulletin` se derivan de sus informes (hora de emisión más temprana; no operacional si algún informe lo es); (3) `VerticalLimit` conserva valor, unidad, referencia vertical, valor especial y `nilReason`, y `FlightLevel` es solo una vista derivada para STD; (4) `GeoCoordinate` se cuantiza a 1e-7 grados al construirse y se compara de forma exacta; (5) los fallos de E/S y de adaptadores se devuelven como errores tipados (`FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, ...); (6) las fábricas `Create` aplican invariantes físicas homogéneas: periodos ordenados, desfase UTC nulo, dirección en [0, 360], magnitudes no negativas, metadatos definidos y unidad ATS obligatoria en AIRMET. Las reglas de negocio del Schematron oficial no se duplican.
+> **Estado (Unreleased)**: los puntos 1 a 9 están implementados. Decisiones principales: (1) un dato obligatorio según el XSD oficial que falta es un error de mapeo; un dato opcional, nulo o dado solo por `xlink:href` (no resuelto) es `null`; (2) `ReportStatus`, `PermissibleUsage` y `PermissibleUsageReason` son enums y los metadatos de `MeteorologicalBulletin` se derivan de sus informes (hora de emisión más temprana; no operacional si algún informe lo es); (3) `VerticalLimit` conserva valor, unidad, referencia vertical, valor especial y `nilReason`, y `FlightLevel` es solo una vista derivada para STD; (4) `GeoCoordinate` se cuantiza a 1e-7 grados al construirse y se compara de forma exacta; (5) los fallos de E/S y de adaptadores se devuelven como errores tipados (`FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, ...); (6) las fábricas `Create` aplican invariantes físicas homogéneas: periodos ordenados, desfase UTC nulo, dirección en [0, 360], magnitudes no negativas, metadatos definidos y unidad ATS obligatoria en AIRMET. Las reglas de negocio del Schematron oficial no se duplican. (7–9) Las tres *God Classes* se descompusieron sin cambio de comportamiento: `IwxxmSuiteMapper` es un *composite* que carga el documento y despacha por el QName raíz mediante un registro estático (`IwxxmReportMapperRegistry`) hacia un mapper por familia (`Infrastructure/Mapping/Reports`) con lectores compartidos en `Infrastructure/Mapping/Xml`; `SigwxMapper` coordina `WafsForecastMapper`, `CompactSigwxReportMapper` y un extractor por familia de fenómeno WAFS (`Infrastructure/Mapping/Sigwx`); `Rfc7946GeoJsonExporter` usa el Visitor del dominio (`IIwxxmReportVisitor<TResult>`, `IIwxxmReport.Accept<TResult>`) con un *feature builder* por familia y escritores separados. Los *characterization tests* (`tests/Iwxxm.Net.Tests/GoldenMaster`) se generaron antes del refactor sobre los 29 ejemplos oficiales y las dos muestras SIGWX (modelo de dominio completo y GeoJSON) y no cambiaron después. `IwxxmReportType` se conserva por compatibilidad como clasificación descriptiva; las comprobaciones `is MeteorologicalBulletin` / `is TReport` que permanecen son refinamientos de un único tipo, no despacho por tipo de informe.
 
 > **Cambio respecto a la versión 1.0**: DDD-01 bajó de *Alta* a *Baja* y CLN-01 de *Crítica* a *Media*. No porque dejen de ser importantes, sino porque no generan datos erróneos: son deuda de mantenimiento. En cambio, los valores inventados (DDD-07) y el modelo vertical (DDD-08), que no figuraban, sí pueden mostrar al usuario información falsa con apariencia de válida.
 

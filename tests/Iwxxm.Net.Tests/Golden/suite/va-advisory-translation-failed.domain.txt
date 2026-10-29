@@ -1,0 +1,22 @@
+VolcanicAshAdvisoryReport {
+  AdvisoryNumber = null
+  EruptionDetails = null
+  ForecastAshClouds = []
+  Id = "uuid.074f61f2-3775-4e8b-b60c-17b238d60566"
+  InformationSource = null
+  IsTranslationFailed = true
+  IssueTimeUtc = 2008-09-23T01:30:00.0000000+00:00
+  IssuingVaacName = "TOKYO"
+  NextAdvisoryTimeUtc = null
+  ObservedAshClouds = []
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Remarks = null
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.VolcanicAshAdvisory
+  SourceElevation = null
+  StateOrRegion = null
+  TranslationFailedTac = "FVFE01 RJTD 230130 VA ADVISORY    DTG:                        20080923/0130Z VAAC:                       TOKYO VOLCANO:                    KARYMSKY 1000-13 PSN:                        N5403 E15927 INVALID INVALID INVALID"
+  Volcano = null
+}

@@ -35,6 +35,8 @@
     <None Update="TestData\**\*.rdf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Characterization (golden-master) outputs; regenerate with IWXXM_UPDATE_GOLDEN=1 (see CONTRIBUTING.md) -->
+    <None Update="Golden\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

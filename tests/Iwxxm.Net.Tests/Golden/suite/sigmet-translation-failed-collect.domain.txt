@@ -1,0 +1,73 @@
+MeteorologicalBulletin {
+  BulletinIdentifier = "A_LSYU31YUSO101000_C_YUSO_20120810100000.xml"
+  Id = "uuid.fee171e9-1aec-4815-bcca-9e3c467388c6"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2012-08-10T10:00:00.0000000+00:00
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  ReportResults = [
+    Result<IIwxxmReport> {
+      Errors = []
+      IsFailure = false
+      IsSuccess = true
+      Value = SigmetReport {
+        AtsUnitDesignator = "YUDD"
+        AtsUnitName = "YUDD FIC"
+        CancelledReportSequenceNumber = null
+        EruptingVolcano = null
+        EvolvingConditions = []
+        FirDesignator = null
+        FirName = null
+        ForecastPositions = []
+        Id = "uuid.636569b5-6b9b-4ed7-aa60-ad373a9e372b"
+        IsCancelReport = false
+        IsTranslationFailed = true
+        IssueTimeUtc = 2012-08-10T10:00:00.0000000+00:00
+        MwoDesignator = null
+        PermissibleUsage = PermissibleUsage.Operational
+        PermissibleUsageReason = null
+        PermissibleUsageSupplementary = null
+        PhenomenonUri = null
+        ReportStatus = ReportStatus.Normal
+        ReportType = IwxxmReportType.Sigmet
+        SequenceNumber = null
+        TranslationFailedTac = "YUDD SIGMET 2 VALID 101200/101600 YUSO-                                   YUDD SHANLON FIR INVALID TS"
+        TropicalCycloneName = null
+        ValidFromUtc = 2012-08-10T12:00:00.0000000+00:00
+        ValidUntilUtc = 2012-08-10T16:00:00.0000000+00:00
+      }
+    }
+  ]
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.MeteorologicalBulletin
+  Reports = [
+    SigmetReport {
+      AtsUnitDesignator = "YUDD"
+      AtsUnitName = "YUDD FIC"
+      CancelledReportSequenceNumber = null
+      EruptingVolcano = null
+      EvolvingConditions = []
+      FirDesignator = null
+      FirName = null
+      ForecastPositions = []
+      Id = "uuid.636569b5-6b9b-4ed7-aa60-ad373a9e372b"
+      IsCancelReport = false
+      IsTranslationFailed = true
+      IssueTimeUtc = 2012-08-10T10:00:00.0000000+00:00
+      MwoDesignator = null
+      PermissibleUsage = PermissibleUsage.Operational
+      PermissibleUsageReason = null
+      PermissibleUsageSupplementary = null
+      PhenomenonUri = null
+      ReportStatus = ReportStatus.Normal
+      ReportType = IwxxmReportType.Sigmet
+      SequenceNumber = null
+      TranslationFailedTac = "YUDD SIGMET 2 VALID 101200/101600 YUSO-                                   YUDD SHANLON FIR INVALID TS"
+      TropicalCycloneName = null
+      ValidFromUtc = 2012-08-10T12:00:00.0000000+00:00
+      ValidUntilUtc = 2012-08-10T16:00:00.0000000+00:00
+    }
+  ]
+  TranslationFailedTac = null
+}
