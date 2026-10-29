@@ -1,12 +1,12 @@
 using System;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.ValueObjects
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Value Object representing a significant cloud distribution (e.g., ISOL/OCNL/FRQ CB)
     /// bounded by a geographic polygon in a SIGWX report.
-    /// Exposes both the strongly-typed WMO BUFR code enums and the original raw/URI code strings.
+    /// Exposes the strongly-typed WMO BUFR code enums together with the original raw/URI code strings
+    /// (<see cref="CloudAmount"/>, <see cref="CloudType"/>) and the parsed official numeric codes.
     /// </summary>
     public sealed class Cloud : IEquatable<Cloud>
     {
@@ -15,6 +15,18 @@ namespace Iwxxm.Net.Domain.ValueObjects
         public CloudDistributionCode DistributionCode { get; }
         public string CloudType { get; }
         public CloudTypeCode TypeCode { get; }
+
+        /// <summary>
+        /// Official WMO BUFR 0 20 008 code parsed from <see cref="CloudAmount"/> (bare number or code URI),
+        /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
+        /// </summary>
+        public int? DistributionNumericCode => WmoCodeRegistry.TryGetNumericCode(CloudAmount, WmoCodeRegistry.CloudDistributionTableUri);
+
+        /// <summary>
+        /// Official WMO BUFR 0 20 012 code parsed from <see cref="CloudType"/> (bare number or code URI),
+        /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
+        /// </summary>
+        public int? TypeNumericCode => WmoCodeRegistry.TryGetNumericCode(CloudType, WmoCodeRegistry.CloudTypeTableUri);
         public FlightLevel? BaseFlightLevel { get; }
         public FlightLevel TopFlightLevel { get; }
         public GeoPolygon Area { get; }

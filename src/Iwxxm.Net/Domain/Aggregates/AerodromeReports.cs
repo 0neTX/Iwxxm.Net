@@ -2,31 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
 
-namespace Iwxxm.Net.Domain.Aggregates
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Immutable Value Object representing surface wind conditions at an aerodrome.
+    /// Wind speeds keep the unit reported in the document (<c>m/s</c> or <c>[kn_i]</c>);
+    /// use <see cref="Speed.ToMetersPerSecond"/> / <see cref="Speed.ToKnots"/> to normalize.
     /// </summary>
     public sealed class SurfaceWindInfo
     {
         public bool IsVariableDirection { get; }
         public double? MeanDirectionDegrees { get; }
-        public double? MeanSpeedMetersPerSecond { get; }
-        public double? GustSpeedMetersPerSecond { get; }
+        public Speed? MeanSpeed { get; }
+        public Speed? GustSpeed { get; }
 
         public SurfaceWindInfo(
             bool isVariableDirection,
             double? meanDirectionDegrees,
-            double? meanSpeedMetersPerSecond,
-            double? gustSpeedMetersPerSecond = null)
+            Speed? meanSpeed,
+            Speed? gustSpeed = null)
         {
             IsVariableDirection = isVariableDirection;
             MeanDirectionDegrees = meanDirectionDegrees;
-            MeanSpeedMetersPerSecond = meanSpeedMetersPerSecond;
-            GustSpeedMetersPerSecond = gustSpeedMetersPerSecond;
+            MeanSpeed = meanSpeed;
+            GustSpeed = gustSpeed;
         }
     }
 
@@ -48,18 +48,19 @@ namespace Iwxxm.Net.Domain.Aggregates
     }
 
     /// <summary>
-    /// Immutable Value Object representing an aerodrome cloud layer (amount URI, base in feet, and optional convective cloud type URI).
+    /// Immutable Value Object representing an aerodrome cloud layer (amount URI, base height as reported in
+    /// <c>m</c> or <c>[ft_i]</c>, and optional convective cloud type URI).
     /// </summary>
     public sealed class AerodromeCloudLayerInfo
     {
         public string? AmountUri { get; }
-        public double? BaseFeet { get; }
+        public Length? Base { get; }
         public string? CloudTypeUri { get; }
 
-        public AerodromeCloudLayerInfo(string? amountUri, double? baseFeet, string? cloudTypeUri = null)
+        public AerodromeCloudLayerInfo(string? amountUri, Length? @base, string? cloudTypeUri = null)
         {
             AmountUri = amountUri;
-            BaseFeet = baseFeet;
+            Base = @base;
             CloudTypeUri = cloudTypeUri;
         }
     }

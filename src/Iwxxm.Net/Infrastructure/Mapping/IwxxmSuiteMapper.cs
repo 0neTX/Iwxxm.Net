@@ -5,12 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
-using Iwxxm.Net.Infrastructure.Serialization;
-using Iwxxm20252.Generated;
+using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Infrastructure.Mapping
 {
@@ -20,7 +16,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
     /// <c>VONA</c>, <c>QVACI</c>, <c>VolcanicAshAdvisory</c>, <c>TropicalCycloneAdvisory</c>,
     /// <c>SpaceWeatherAdvisory</c>) and SWIM <c>collect:MeteorologicalBulletin</c> envelopes.
     /// </summary>
-    internal sealed class IwxxmSuiteMapper : IIwxxmSuiteDocumentMapper
+    internal sealed class IwxxmSuiteMapper : IIwxxmDocumentMapper
     {
         private static readonly XNamespace IwxxmNs = "http://icao.int/iwxxm/2025-2";
         private static readonly XNamespace GmlNs = "http://www.opengis.net/gml/3.2";
@@ -29,26 +25,28 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         private static readonly XNamespace CollectNs = "http://def.wmo.int/collect/2014";
         private static readonly XNamespace XlinkNs = "http://www.w3.org/1999/xlink";
 
-        private readonly ISigwxXmlDeserializer<SigwxDocumentEnvelope> _sigwxDeserializer;
-        private readonly ISigwxAclMapper<SigwxDocumentEnvelope> _sigwxMapper;
+        // UCUM units required by the official IWXXM 2025-2 rules for single-unit quantities
+        private const string CelsiusUom = "Cel";
+        private const string HectopascalUom = "hPa";
+        private const string DegreeUom = "deg";
+        private const string MeterUom = "m";
+        private const string MilligramPerCubicMeterUom = "mg/m3";
+
+        private readonly ISigwxDocumentMapper _sigwxMapper;
         private readonly IwxxmParserOptions _options;
 
         public IwxxmSuiteMapper(IwxxmParserOptions? options = null)
-            : this(new XmlSerializerSigwxDeserializer(options), new SigwxMapper(), options)
+            : this(new SigwxDocumentMapper(options), options)
         {
         }
 
-        public IwxxmSuiteMapper(
-            ISigwxXmlDeserializer<SigwxDocumentEnvelope> sigwxDeserializer,
-            ISigwxAclMapper<SigwxDocumentEnvelope> sigwxMapper,
-            IwxxmParserOptions? options = null)
+        public IwxxmSuiteMapper(ISigwxDocumentMapper sigwxMapper, IwxxmParserOptions? options = null)
         {
-            _sigwxDeserializer = sigwxDeserializer ?? throw new ArgumentNullException(nameof(sigwxDeserializer));
             _sigwxMapper = sigwxMapper ?? throw new ArgumentNullException(nameof(sigwxMapper));
             _options = options ?? IwxxmParserOptions.Default;
         }
 
-        public Result<IIwxxmReport> MapValidatedStream(Stream xmlStream)
+        public Result<IIwxxmReport> Map(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
@@ -75,7 +73,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 return Result<IIwxxmReport>.Failure(
                     "XML-MALFORMED",
                     ex.Message,
-                    ErrorCategory.XmlWellFormedness);
+                    ErrorCategory.MalformedInput);
             }
 
             XElement? root = doc.Root;
@@ -84,27 +82,18 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 return Result<IIwxxmReport>.Failure(
                     "XML-EMPTY-ROOT",
                     "The XML document does not contain a root element.",
-                    ErrorCategory.XmlWellFormedness);
+                    ErrorCategory.MalformedInput);
             }
 
-            // Delegate SIGWX/WAFS directly to the dedicated XmlSerializer + SigwxMapper pipeline
+            // Delegate SIGWX/WAFS directly to the dedicated SIGWX mapper (transport model + ACL)
             if (root.Name == IwxxmNs + "WAFSSignificantWeatherForecast" ||
                 root.Name == IwxxmNs + "SIGWXReport")
             {
                 xmlStream.Position = 0;
-                var dtoResult = _sigwxDeserializer.Deserialize(xmlStream);
-                if (dtoResult.IsFailure)
-                {
-                    return Result<IIwxxmReport>.Failure(dtoResult.Errors);
-                }
-
-                var sigwxResult = _sigwxMapper.MapToDomain(dtoResult.Value);
-                if (sigwxResult.IsFailure)
-                {
-                    return Result<IIwxxmReport>.Failure(sigwxResult.Errors);
-                }
-
-                return Result<IIwxxmReport>.Success(sigwxResult.Value);
+                var sigwxResult = _sigwxMapper.Map(xmlStream);
+                return sigwxResult.IsSuccess
+                    ? Result<IIwxxmReport>.Success(sigwxResult.Value)
+                    : Result<IIwxxmReport>.Failure(sigwxResult.Errors);
             }
 
             return MapElementToReport(root);
@@ -134,9 +123,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     {
                         root.Save(ms);
                         ms.Position = 0;
-                        var dtoResult = _sigwxDeserializer.Deserialize(ms);
-                        if (dtoResult.IsFailure) return Result<IIwxxmReport>.Failure(dtoResult.Errors);
-                        var sigwxResult = _sigwxMapper.MapToDomain(dtoResult.Value);
+                        var sigwxResult = _sigwxMapper.Map(ms);
                         return sigwxResult.IsSuccess
                             ? Result<IIwxxmReport>.Success(sigwxResult.Value)
                             : Result<IIwxxmReport>.Failure(sigwxResult.Errors);
@@ -259,14 +246,17 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (obsElem != null)
             {
                 cavok = ParseBoolAttribute(obsElem, "cloudAndVisibilityOK");
-                airTemp = ParseOptionalDouble(obsElem.Element(IwxxmNs + "airTemperature"));
-                dewpoint = ParseOptionalDouble(obsElem.Element(IwxxmNs + "dewpointTemperature"));
-                qnh = ParseOptionalDouble(obsElem.Element(IwxxmNs + "qnh"));
-                surfaceWind = ParseSurfaceWind(obsElem.Element(IwxxmNs + "surfaceWind"));
-                visibility = ParseOptionalDouble(
+                airTemp = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "airTemperature"), CelsiusUom, id, errors);
+                dewpoint = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "dewpointTemperature"), CelsiusUom, id, errors);
+                qnh = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "qnh"), HectopascalUom, id, errors);
+                surfaceWind = ParseSurfaceWind(obsElem.Element(IwxxmNs + "surfaceWind"), id, errors);
+                visibility = UomMeasureReader.ReadFixedUnit(
                     obsElem.Element(IwxxmNs + "visibility")
                         ?.Element(IwxxmNs + "AerodromeHorizontalVisibility")
-                        ?.Element(IwxxmNs + "prevailingVisibility"));
+                        ?.Element(IwxxmNs + "prevailingVisibility"),
+                    MeterUom,
+                    id,
+                    errors);
 
                 foreach (XElement rvrProp in obsElem.Elements(IwxxmNs + "rvr"))
                 {
@@ -278,7 +268,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                         ?.Element(AixmNs + "timeSlice")
                         ?.Element(AixmNs + "RunwayDirectionTimeSlice")
                         ?.Element(AixmNs + "designator")?.Value ?? string.Empty;
-                    double? meanRvr = ParseOptionalDouble(rvrElem.Element(IwxxmNs + "meanRVR"));
+                    double? meanRvr = UomMeasureReader.ReadFixedUnit(rvrElem.Element(IwxxmNs + "meanRVR"), MeterUom, id, errors);
                     string? tendency = rvrElem.Attribute("pastTendency")?.Value;
                     rvrs.Add(new RunwayVisualRangeInfo(rwyDesig, meanRvr, tendency));
                 }
@@ -292,7 +282,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     }
                 }
 
-                ParseCloudLayers(obsElem.Element(IwxxmNs + "cloud"), cloudLayers);
+                ParseCloudLayers(obsElem.Element(IwxxmNs + "cloud"), cloudLayers, id, errors);
             }
 
             var trends = new List<AerodromeForecastGroupInfo>();
@@ -301,7 +291,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 XElement? trendElem = trendProp.Element(IwxxmNs + "MeteorologicalAerodromeTrendForecast");
                 if (trendElem != null)
                 {
-                    trends.Add(ParseForecastGroup(trendElem));
+                    trends.Add(ParseForecastGroup(trendElem, errors));
                 }
             }
 
@@ -364,7 +354,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             XElement? baseElem = baseProp?.Element(IwxxmNs + "MeteorologicalAerodromeForecast");
             bool isNilForecast = baseElem == null && !string.IsNullOrWhiteSpace(baseNilReason);
 
-            AerodromeForecastGroupInfo? baseForecast = baseElem != null ? ParseForecastGroup(baseElem) : null;
+            AerodromeForecastGroupInfo? baseForecast = baseElem != null ? ParseForecastGroup(baseElem, errors) : null;
 
             var changes = new List<AerodromeForecastGroupInfo>();
             foreach (XElement changeProp in root.Elements(IwxxmNs + "changeForecast"))
@@ -372,7 +362,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 XElement? changeElem = changeProp.Element(IwxxmNs + "MeteorologicalAerodromeForecast");
                 if (changeElem != null)
                 {
-                    changes.Add(ParseForecastGroup(changeElem));
+                    changes.Add(ParseForecastGroup(changeElem, errors));
                 }
             }
 
@@ -689,7 +679,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                         GeoPolygon? poly = ParseGmlPatchesPolygon(volGeom.Element(GmlNs + "patches"), featId, errors);
                         FlightLevel? lowerFl = ParseOptionalFlightLevel(volGeom.Element(IwxxmNs + "lowerElevation"));
                         FlightLevel? upperFl = ParseOptionalFlightLevel(volGeom.Element(IwxxmNs + "upperElevation"));
-                        double density = ParseOptionalDouble(concElem) ?? 0.0;
+                        double density = UomMeasureReader.ReadFixedUnit(concElem, MilligramPerCubicMeterUom, featId, errors) ?? 0.0;
 
                         if (poly != null)
                         {
@@ -734,7 +724,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             ExtractUnitInfo(root.Element(IwxxmNs + "issuingVolcanicAshAdvisoryCentre"), out string vaacDesig, out string? vaacName);
 
             Volcano? volcano = ParseMetceVolcano(root.Element(IwxxmNs + "volcano"), errors);
-            double? sourceElev = ParseOptionalDouble(root.Element(IwxxmNs + "sourceElevationAMSL"));
+            Length? sourceElev = UomMeasureReader.ReadLength(root.Element(IwxxmNs + "sourceElevationAMSL"), id, errors);
 
             var observedClouds = new List<EnRoutePhenomenonVolume>();
             XElement? obsCond = root
@@ -823,8 +813,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     obsElem.Element(IwxxmNs + "tropicalCyclonePosition")?.Element(GmlNs + "Point"),
                     GetGmlId(obsElem),
                     errors);
-                double? maxWind = ParseOptionalDouble(obsElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"));
-                double? pressure = ParseOptionalDouble(obsElem.Element(IwxxmNs + "centralPressure"));
+                Speed? maxWind = UomMeasureReader.ReadSpeed(obsElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors);
+                double? pressure = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "centralPressure"), HectopascalUom, id, errors);
 
                 if (pos.HasValue)
                 {
@@ -843,7 +833,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     fcstElem.Element(IwxxmNs + "tropicalCyclonePosition")?.Element(GmlNs + "Point"),
                     GetGmlId(fcstElem),
                     errors);
-                double? maxWind = ParseOptionalDouble(fcstElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"));
+                Speed? maxWind = UomMeasureReader.ReadSpeed(fcstElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors);
 
                 if (pos.HasValue)
                 {
@@ -986,16 +976,6 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return string.Equals(val, "true", StringComparison.OrdinalIgnoreCase) || val == "1";
         }
 
-        private static double? ParseOptionalDouble(XElement? elem)
-        {
-            if (elem == null || string.IsNullOrWhiteSpace(elem.Value))
-                return null;
-
-            return double.TryParse(elem.Value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v)
-                ? v
-                : (double?)null;
-        }
-
         private static FlightLevel? ParseOptionalFlightLevel(XElement? measureElem)
         {
             if (measureElem == null || string.IsNullOrWhiteSpace(measureElem.Value))
@@ -1132,7 +1112,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             name = slice.Element(AixmNs + "name")?.Value;
         }
 
-        private static SurfaceWindInfo? ParseSurfaceWind(XElement? surfaceWindProp)
+        private static SurfaceWindInfo? ParseSurfaceWind(XElement? surfaceWindProp, string context, List<ValidationError> errors)
         {
             XElement? windElem = surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWind")
                                  ?? surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWindForecast");
@@ -1140,13 +1120,17 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 return null;
 
             bool isVar = ParseBoolAttribute(windElem, "variableWindDirection");
-            double? dir = ParseOptionalDouble(windElem.Element(IwxxmNs + "meanWindDirection"));
-            double? spd = ParseOptionalDouble(windElem.Element(IwxxmNs + "meanWindSpeed"));
-            double? gust = ParseOptionalDouble(windElem.Element(IwxxmNs + "windGustSpeed"));
+            double? dir = UomMeasureReader.ReadFixedUnit(windElem.Element(IwxxmNs + "meanWindDirection"), DegreeUom, context, errors);
+            Speed? spd = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "meanWindSpeed"), context, errors);
+            Speed? gust = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "windGustSpeed"), context, errors);
             return new SurfaceWindInfo(isVar, dir, spd, gust);
         }
 
-        private static void ParseCloudLayers(XElement? cloudProp, List<AerodromeCloudLayerInfo> target)
+        private static void ParseCloudLayers(
+            XElement? cloudProp,
+            List<AerodromeCloudLayerInfo> target,
+            string context,
+            List<ValidationError> errors)
         {
             XElement? cloudElem = cloudProp?.Element(IwxxmNs + "AerodromeCloud")
                                   ?? cloudProp?.Element(IwxxmNs + "AerodromeCloudForecast");
@@ -1159,13 +1143,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 if (cl == null) continue;
 
                 string? amount = cl.Element(IwxxmNs + "amount")?.Attribute(XlinkNs + "href")?.Value;
-                double? baseFt = ParseOptionalDouble(cl.Element(IwxxmNs + "base"));
+                Length? cloudBase = UomMeasureReader.ReadLength(cl.Element(IwxxmNs + "base"), context, errors);
                 string? cloudType = cl.Element(IwxxmNs + "cloudType")?.Attribute(XlinkNs + "href")?.Value;
-                target.Add(new AerodromeCloudLayerInfo(amount, baseFt, cloudType));
+                target.Add(new AerodromeCloudLayerInfo(amount, cloudBase, cloudType));
             }
         }
 
-        private static AerodromeForecastGroupInfo ParseForecastGroup(XElement fcstElem)
+        private static AerodromeForecastGroupInfo ParseForecastGroup(XElement fcstElem, List<ValidationError> errors)
         {
             string id = GetGmlId(fcstElem);
             string? changeInd = fcstElem.Attribute("changeIndicator")?.Value;
@@ -1178,9 +1162,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 validFrom = ParseTimeInstantProperty(phenTime);
             }
 
-            double? vis = ParseOptionalDouble(fcstElem.Element(IwxxmNs + "prevailingVisibility"));
+            double? vis = UomMeasureReader.ReadFixedUnit(fcstElem.Element(IwxxmNs + "prevailingVisibility"), MeterUom, id, errors);
             string? visOp = fcstElem.Element(IwxxmNs + "prevailingVisibilityOperator")?.Value;
-            SurfaceWindInfo? wind = ParseSurfaceWind(fcstElem.Element(IwxxmNs + "surfaceWind"));
+            SurfaceWindInfo? wind = ParseSurfaceWind(fcstElem.Element(IwxxmNs + "surfaceWind"), id, errors);
 
             var wxList = new List<string>();
             foreach (XElement wx in fcstElem.Elements(IwxxmNs + "weather"))
@@ -1193,7 +1177,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
 
             var layers = new List<AerodromeCloudLayerInfo>();
-            ParseCloudLayers(fcstElem.Element(IwxxmNs + "cloud"), layers);
+            ParseCloudLayers(fcstElem.Element(IwxxmNs + "cloud"), layers, id, errors);
 
             return new AerodromeForecastGroupInfo(
                 id,
@@ -1212,8 +1196,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         {
             string id = GetGmlId(condElem);
             string? intensityChange = condElem.Attribute("intensityChange")?.Value;
-            double? dir = ParseOptionalDouble(condElem.Element(IwxxmNs + "directionOfMotion"));
-            double? spd = ParseOptionalDouble(condElem.Element(IwxxmNs + "speedOfMotion"));
+            double? dir = UomMeasureReader.ReadFixedUnit(condElem.Element(IwxxmNs + "directionOfMotion"), DegreeUom, id, errors);
+            Speed? spd = UomMeasureReader.ReadSpeed(condElem.Element(IwxxmNs + "speedOfMotion"), id, errors);
 
             GeoCoordinate? tcPos = ParseGmlPointElement(
                 condElem.Element(IwxxmNs + "tropicalCyclonePosition")?.Element(GmlNs + "Point"),
@@ -1236,8 +1220,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         private static EnRoutePhenomenonVolume ParseAshCloudVolume(XElement ashElem, List<ValidationError> errors)
         {
             string id = GetGmlId(ashElem);
-            double? dir = ParseOptionalDouble(ashElem.Element(IwxxmNs + "directionOfMotion"));
-            double? spd = ParseOptionalDouble(ashElem.Element(IwxxmNs + "speedOfMotion"));
+            double? dir = UomMeasureReader.ReadFixedUnit(ashElem.Element(IwxxmNs + "directionOfMotion"), DegreeUom, id, errors);
+            Speed? spd = UomMeasureReader.ReadSpeed(ashElem.Element(IwxxmNs + "speedOfMotion"), id, errors);
 
             XElement? volElem = ashElem.Element(IwxxmNs + "ashCloudExtent")?.Element(AixmNs + "AirspaceVolume");
             FlightLevel? lowerFl = ParseOptionalFlightLevel(volElem?.Element(AixmNs + "lowerLimit"));

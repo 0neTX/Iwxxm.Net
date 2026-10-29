@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using System.Xml.Xsl;
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Common;
+using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.Resources;
 
 namespace Iwxxm.Net.Infrastructure.Validation
@@ -17,7 +16,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
     internal sealed class XsltSchematronValidator : ISchematronValidator
     {
         private const string SvrlNamespace = "http://purl.oclc.org/dsdl/svrl";
-        private const string EmbeddedXsltResource = "Iwxxm.Net.Resources.Schematron.iwxxm-2025-2-sigwx.xslt";
+        private const string EmbeddedXsltResource = "Schematron/iwxxm-2025-2-sigwx.xslt";
 
         // XslCompiledTransform is thread-safe for concurrent Transform() executions once loaded.
         private static readonly Lazy<XslCompiledTransform> CompiledSchematron =
@@ -43,7 +42,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
             };
 
             using (Stream xsltStream = EmbeddedResourceLoader.GetRequiredResourceStream(EmbeddedXsltResource))
-            using (XmlReader xsltReader = XmlReader.Create(xsltStream, readerSettings, "embedded://iwxxm-resources/iwxxm-2025-2-sigwx.xslt"))
+            using (XmlReader xsltReader = XmlReader.Create(xsltStream, readerSettings, new Uri(EmbeddedXmlUrlResolver.EmbeddedRootUri, EmbeddedXsltResource).AbsoluteUri))
             {
                 transform.Load(xsltReader, xsltSettings, SharedEmbeddedResolver);
             }
@@ -85,7 +84,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 errors.Add(new ValidationError(
                     code: "XML-MALFORMED",
                     message: ex.Message,
-                    category: ErrorCategory.XmlWellFormedness,
+                    category: ErrorCategory.MalformedInput,
                     severity: ValidationSeverity.Error,
                     location: null,
                     lineNumber: ex.LineNumber,
@@ -96,7 +95,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 errors.Add(new ValidationError(
                     code: "SCHEMATRON-EXECUTION-ERROR",
                     message: $"Error executing Schematron XSLT transformation: {ex.Message}",
-                    category: ErrorCategory.SchematronBusinessRule,
+                    category: ErrorCategory.BusinessRuleViolation,
                     severity: ValidationSeverity.Error,
                     location: null,
                     lineNumber: ex.LineNumber,
@@ -140,7 +139,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
                         errors.Add(new ValidationError(
                             code: ruleId,
                             message: messageText.Trim(),
-                            category: ErrorCategory.SchematronBusinessRule,
+                            category: ErrorCategory.BusinessRuleViolation,
                             severity: severity,
                             location: location));
                     }

@@ -1,7 +1,6 @@
 using System;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.ValueObjects
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Value Object representing a Tropical Cyclone center reported in a WAFS SIGWX chart

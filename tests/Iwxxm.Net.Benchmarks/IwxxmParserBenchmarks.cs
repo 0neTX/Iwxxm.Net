@@ -2,11 +2,8 @@ using System.Collections.Generic;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
+using Iwxxm.Net.Reports;
 using Iwxxm.Net.Infrastructure.Mapping;
-using Iwxxm.Net.Presentation;
 
 namespace Iwxxm.Net.Benchmarks
 {

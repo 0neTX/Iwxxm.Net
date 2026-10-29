@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Iwxxm.Net.Validation.Saxon.Tests</RootNamespace>
+    <AssemblyName>Iwxxm.Net.Validation.Saxon.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Iwxxm.Net.Validation.Saxon\Iwxxm.Net.Validation.Saxon.csproj" />
+  </ItemGroup>
+
+  <!-- The 29 official WMO IWXXM 2025-2 examples (byte-identical copies shared with Iwxxm.Net.Tests) -->
+  <ItemGroup>
+    <None Include="..\Iwxxm.Net.Tests\Samples\wmo-examples\*.xml" Link="Samples\wmo-examples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

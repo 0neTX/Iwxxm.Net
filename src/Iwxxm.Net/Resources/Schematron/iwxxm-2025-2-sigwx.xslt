@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Precompiled ISO Schematron XSLT 1.0 stylesheet for WMO/ICAO IWXXM 2025-2 reports
+  Hand-written ISO Schematron-style XSLT 1.0 stylesheet for WMO/ICAO IWXXM 2025-2 reports
   and SWIM collect:MeteorologicalBulletin envelopes.
-  Enforces business rules from official WMO rule/iwxxm.sch, ICAO Annex 3, and the
-  offline RDF/SKOS code-list registry (codes.wmo.int-49-2.rdf).
+
+  PARTIAL IMPLEMENTATION: the official WMO rule set (IWXXM/rule/iwxxm.sch, 165 rule IDs) uses
+  queryBinding="xslt2" and cannot be executed by System.Xml.Xsl.XslCompiledTransform (XSLT 1.0).
+  This stylesheet re-implements only a subset of it in XSLT 1.0. Official rule IDs implemented here
+  (11 of 165): Common.BasicReport-1, Common.BasicReport-2, MeteorologicalFeature.MeteorologicalFeature-1,
+  MeteorologicalFeature.MeteorologicalFeatureCollection-1, WAFSSignificantWeatherForecast.CloudDistribution,
+  WAFSSignificantWeatherForecast.CloudType, WAFSSignificantWeatherForecast.DegreeOfIcing,
+  WAFSSignificantWeatherForecast.DegreeOfTurbulence, WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-1,
+  WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-2, WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-3.
+  All other rule IDs below are library-specific checks (IWXXM-SIGWX-*, *.Mandatory-*, IWXXM.RdfCodeListRegistry-1, ...).
+
+  Code-list URIs (xlink:href starting with http://codes.wmo.int/) are checked against the 20 official
+  WMO RDF/SKOS code lists embedded under ../Codelists/ (byte-identical copies of IWXXM/rule/*.rdf),
+  selecting the official list from the URI register, with the same owl:versionInfo (IWXXM 2025-2)
+  filter used by the official rules.
+
   Produces standard SVRL (Schematron Validation Report Language) output compatible with
   System.Xml.Xsl.XslCompiledTransform in .NET Standard 2.0.
 -->
@@ -16,12 +30,39 @@
                 xmlns:xlink="http://www.w3.org/1999/xlink"
                 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
                 xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+                xmlns:owl="http://www.w3.org/2002/07/owl#"
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
   <xsl:output method="xml" indent="yes" encoding="UTF-8"/>
 
-  <!-- Offline RDF/SKOS Code-List Registry loaded via air-gapped EmbeddedXmlUrlResolver -->
-  <xsl:variable name="rdfRegistry" select="document('../Codelists/codes.wmo.int-49-2.rdf')"/>
+  <!-- Official WMO RDF/SKOS code lists, resolved in-memory by the air-gapped EmbeddedXmlUrlResolver -->
+  <xsl:variable name="iwxxmVersion" select="'http://icao.int/iwxxm/2025-2'"/>
+  <xsl:variable name="bufrCloudDistribution" select="document('../Codelists/codes.wmo.int-bufr4-codeflag-0-20-008.rdf')"/>
+  <xsl:variable name="bufrCloudType" select="document('../Codelists/codes.wmo.int-bufr4-codeflag-0-20-012.rdf')"/>
+  <xsl:variable name="bufrTurbulence" select="document('../Codelists/codes.wmo.int-bufr4-codeflag-0-11-030.rdf')"/>
+  <xsl:variable name="bufrIcing" select="document('../Codelists/codes.wmo.int-bufr4-codeflag-0-20-041.rdf')"/>
+
+  <!-- Every embedded official code list (whitelist: no other document is ever requested) -->
+  <xsl:variable name="officialCodeLists" select="concat(
+    '|codes.wmo.int-49-2-AerodromePresentOrForecastWeather.rdf|codes.wmo.int-49-2-AerodromeRecentWeather.rdf',
+    '|codes.wmo.int-49-2-AirWxPhenomena.rdf|codes.wmo.int-49-2-AviationColourCode.rdf',
+    '|codes.wmo.int-49-2-CloudAmountReportedAtAerodrome.rdf|codes.wmo.int-49-2-MeteorologicalFeature.rdf',
+    '|codes.wmo.int-49-2-SigConvectiveCloudType.rdf|codes.wmo.int-49-2-SigWxPhenomena.rdf',
+    '|codes.wmo.int-49-2-SpaceWxLocation.rdf|codes.wmo.int-49-2-SpaceWxPhenomena.rdf',
+    '|codes.wmo.int-49-2-WeatherCausingVisibilityReduction.rdf|codes.wmo.int-bufr4-codeflag-0-11-030.rdf',
+    '|codes.wmo.int-bufr4-codeflag-0-20-008.rdf|codes.wmo.int-bufr4-codeflag-0-20-012.rdf',
+    '|codes.wmo.int-bufr4-codeflag-0-20-041.rdf|codes.wmo.int-bufr4-codeflag-0-22-061.rdf',
+    '|codes.wmo.int-common-nil.rdf|codes.wmo.int-iwxxm-AviationColourCode.rdf',
+    '|codes.wmo.int-iwxxm-MeteorologicalFeature.rdf|codes.wmo.int-iwxxm-nil.rdf|')"/>
+
+  <!-- Lists that the official iwxxm.sch filters by owl:versionInfo = IWXXM 2025-2 -->
+  <xsl:variable name="versionedCodeLists" select="concat(
+    '|codes.wmo.int-49-2-AerodromePresentOrForecastWeather.rdf|codes.wmo.int-49-2-AerodromeRecentWeather.rdf',
+    '|codes.wmo.int-49-2-AirWxPhenomena.rdf|codes.wmo.int-49-2-CloudAmountReportedAtAerodrome.rdf',
+    '|codes.wmo.int-49-2-SigConvectiveCloudType.rdf|codes.wmo.int-49-2-SigWxPhenomena.rdf',
+    '|codes.wmo.int-49-2-SpaceWxLocation.rdf|codes.wmo.int-49-2-WeatherCausingVisibilityReduction.rdf',
+    '|codes.wmo.int-iwxxm-AviationColourCode.rdf|codes.wmo.int-iwxxm-MeteorologicalFeature.rdf',
+    '|codes.wmo.int-iwxxm-nil.rdf|')"/>
 
   <xsl:template match="/">
     <svrl:schematron-output title="IWXXM 2025-2 &amp; SWIM Business Rules Validation" schemaVersion="2025-2">
@@ -42,7 +83,7 @@
       </svrl:failed-assert>
     </xsl:if>
 
-    <xsl:if test="(@permissibleUsage = 'OPERATIONAL' or not(@permissibleUsage)) and @permissibleUsageReason">
+    <xsl:if test="@permissibleUsage = 'OPERATIONAL' and @permissibleUsageReason">
       <svrl:failed-assert id="Common.BasicReport-2"
                           role="ERROR"
                           location="{concat('/', name(.))}"
@@ -53,20 +94,67 @@
   </xsl:template>
 
   <!-- =========================================================================
-       Common Helper: Offline RDF/SKOS Code-List Validation (TD-205)
+       Common Helper: Official WMO RDF/SKOS Code-List Validation
+       Selects the official list from the URI register (and, for the shared
+       http://codes.wmo.int/306/4678 register, from the element name), then
+       requires the URI to be a skos:Concept of that list.
        ========================================================================= -->
+  <xsl:template name="ResolveWmoCodeListFile">
+    <xsl:param name="href"/>
+    <xsl:param name="elementName"/>
+    <xsl:choose>
+      <xsl:when test="starts-with($href, 'http://codes.wmo.int/306/4678/')">
+        <xsl:choose>
+          <xsl:when test="$elementName = 'recentWeather'">codes.wmo.int-49-2-AerodromeRecentWeather.rdf</xsl:when>
+          <xsl:otherwise>codes.wmo.int-49-2-AerodromePresentOrForecastWeather.rdf</xsl:otherwise>
+        </xsl:choose>
+      </xsl:when>
+      <xsl:when test="starts-with($href, 'http://codes.wmo.int/49-2/')">
+        <xsl:value-of select="concat('codes.wmo.int-49-2-', substring-before(substring-after($href, 'http://codes.wmo.int/49-2/'), '/'), '.rdf')"/>
+      </xsl:when>
+      <xsl:when test="starts-with($href, 'http://codes.wmo.int/bufr4/codeflag/')">
+        <xsl:value-of select="concat('codes.wmo.int-bufr4-codeflag-', substring-before(substring-after($href, 'http://codes.wmo.int/bufr4/codeflag/'), '/'), '.rdf')"/>
+      </xsl:when>
+      <xsl:when test="starts-with($href, 'http://codes.wmo.int/common/nil/')">codes.wmo.int-common-nil.rdf</xsl:when>
+      <xsl:when test="starts-with($href, 'http://codes.wmo.int/iwxxm/')">
+        <xsl:value-of select="concat('codes.wmo.int-iwxxm-', substring-before(substring-after($href, 'http://codes.wmo.int/iwxxm/'), '/'), '.rdf')"/>
+      </xsl:when>
+    </xsl:choose>
+  </xsl:template>
+
   <xsl:template name="ValidateWmoRdfCodeList">
     <xsl:for-each select=".//*[@xlink:href]">
       <xsl:variable name="href" select="string(@xlink:href)"/>
       <xsl:if test="starts-with($href, 'http://codes.wmo.int/')">
-        <xsl:if test="not($rdfRegistry//skos:Concept[@rdf:about = $href])">
-          <svrl:failed-assert id="IWXXM.RdfCodeListRegistry-1"
-                              role="ERROR"
-                              location="{concat('//', name(.))}"
-                              test="exists(document('codes.wmo.int-49-2.rdf')//skos:Concept[@rdf:about = @xlink:href])">
-            <svrl:text>WMO code-list URI '<xsl:value-of select="$href"/>' on element '<xsl:value-of select="name(.)"/>' is not registered in the offline WMO SKOS/RDF code-list catalog (codes.wmo.int-49-2.rdf).</svrl:text>
-          </svrl:failed-assert>
-        </xsl:if>
+        <xsl:variable name="codeListFileFragment">
+          <xsl:call-template name="ResolveWmoCodeListFile">
+            <xsl:with-param name="href" select="$href"/>
+            <xsl:with-param name="elementName" select="local-name(.)"/>
+          </xsl:call-template>
+        </xsl:variable>
+        <xsl:variable name="codeListFile" select="string($codeListFileFragment)"/>
+        <xsl:choose>
+          <xsl:when test="string-length($codeListFile) = 0 or not(contains($officialCodeLists, concat('|', $codeListFile, '|')))">
+            <svrl:failed-assert id="IWXXM.RdfCodeListRegistry-1"
+                                role="ERROR"
+                                location="{concat('//', name(.))}"
+                                test="@xlink:href is a member of an official WMO code list">
+              <svrl:text>WMO code-list URI '<xsl:value-of select="$href"/>' on element '<xsl:value-of select="name(.)"/>' does not belong to any of the 20 official WMO RDF/SKOS code lists embedded in this library.</svrl:text>
+            </svrl:failed-assert>
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:variable name="concept" select="document(concat('../Codelists/', $codeListFile))//skos:Concept[@rdf:about = $href]"/>
+            <xsl:variable name="isVersioned" select="contains($versionedCodeLists, concat('|', $codeListFile, '|'))"/>
+            <xsl:if test="not($concept) or ($isVersioned and not($concept/owl:versionInfo[@rdf:resource = $iwxxmVersion]))">
+              <svrl:failed-assert id="IWXXM.RdfCodeListRegistry-1"
+                                  role="ERROR"
+                                  location="{concat('//', name(.))}"
+                                  test="@xlink:href = document('{$codeListFile}')//skos:Concept/@rdf:about">
+                <svrl:text>WMO code-list URI '<xsl:value-of select="$href"/>' on element '<xsl:value-of select="name(.)"/>' is not a member of the official WMO code list <xsl:value-of select="$codeListFile"/><xsl:if test="$isVersioned"> registered for IWXXM 2025-2</xsl:if>.</svrl:text>
+              </svrl:failed-assert>
+            </xsl:if>
+          </xsl:otherwise>
+        </xsl:choose>
       </xsl:if>
     </xsl:for-each>
   </xsl:template>
@@ -140,44 +228,44 @@
     </xsl:for-each>
 
     <xsl:for-each select=".//iwxxm:CloudDistribution">
-      <xsl:if test="not(@nilReason) and not(starts-with(string(@xlink:href), 'http://codes.wmo.int/bufr4/codeflag/0-20-008/'))">
+      <xsl:if test="not(@nilReason) and not(@xlink:href = $bufrCloudDistribution//skos:Concept/@rdf:about)">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.CloudDistribution"
                             role="ERROR"
                             location="//iwxxm:CloudDistribution"
-                            test="starts-with(@xlink:href, 'http://codes.wmo.int/bufr4/codeflag/0-20-008/') or @nilReason">
+                            test="@xlink:href = document('codes.wmo.int-bufr4-codeflag-0-20-008.rdf')/rdf:RDF//skos:member/skos:Concept/@rdf:about or @nilReason">
           <svrl:text>Element in iwxxm:CloudDistribution should be a member of code list http://codes.wmo.int/bufr4/codeflag/0-20-008</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
     </xsl:for-each>
 
     <xsl:for-each select=".//iwxxm:CloudType">
-      <xsl:if test="not(@nilReason) and not(starts-with(string(@xlink:href), 'http://codes.wmo.int/bufr4/codeflag/0-20-012/'))">
+      <xsl:if test="not(@nilReason) and not(@xlink:href = $bufrCloudType//skos:Concept/@rdf:about)">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.CloudType"
                             role="ERROR"
                             location="//iwxxm:CloudType"
-                            test="starts-with(@xlink:href, 'http://codes.wmo.int/bufr4/codeflag/0-20-012/') or @nilReason">
+                            test="@xlink:href = document('codes.wmo.int-bufr4-codeflag-0-20-012.rdf')/rdf:RDF//skos:member/skos:Concept/@rdf:about or @nilReason">
           <svrl:text>Element in iwxxm:CloudType should be a member of code list http://codes.wmo.int/bufr4/codeflag/0-20-012</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
     </xsl:for-each>
 
     <xsl:for-each select=".//iwxxm:DegreeOfTurbulence">
-      <xsl:if test="not(@nilReason) and not(starts-with(string(@xlink:href), 'http://codes.wmo.int/bufr4/codeflag/0-11-030/'))">
+      <xsl:if test="not(@nilReason) and not(@xlink:href = $bufrTurbulence//skos:Concept/@rdf:about)">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.DegreeOfTurbulence"
                             role="ERROR"
                             location="//iwxxm:DegreeOfTurbulence"
-                            test="starts-with(@xlink:href, 'http://codes.wmo.int/bufr4/codeflag/0-11-030/') or @nilReason">
+                            test="@xlink:href = document('codes.wmo.int-bufr4-codeflag-0-11-030.rdf')/rdf:RDF//skos:member/skos:Concept/@rdf:about or @nilReason">
           <svrl:text>Element in iwxxm:DegreeOfTurbulence should be a member of code list http://codes.wmo.int/bufr4/codeflag/0-11-030</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
     </xsl:for-each>
 
     <xsl:for-each select=".//iwxxm:DegreeOfIcing">
-      <xsl:if test="not(@nilReason) and not(starts-with(string(@xlink:href), 'http://codes.wmo.int/bufr4/codeflag/0-20-041/'))">
+      <xsl:if test="not(@nilReason) and not(@xlink:href = $bufrIcing//skos:Concept/@rdf:about)">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.DegreeOfIcing"
                             role="ERROR"
                             location="//iwxxm:DegreeOfIcing"
-                            test="starts-with(@xlink:href, 'http://codes.wmo.int/bufr4/codeflag/0-20-041/') or @nilReason">
+                            test="@xlink:href = document('codes.wmo.int-bufr4-codeflag-0-20-041.rdf')/rdf:RDF//skos:member/skos:Concept/@rdf:about or @nilReason">
           <svrl:text>Element in iwxxm:DegreeOfIcing should be a member of code list http://codes.wmo.int/bufr4/codeflag/0-20-041</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -198,7 +286,7 @@
   </xsl:template>
 
   <!-- =========================================================================
-       2. Compact SIGWXReport Business Rules
+       2. Compact SIGWXReport Business Rules (NON-STANDARD extension root)
        ========================================================================= -->
   <xsl:template match="iwxxm:SIGWXReport">
     <svrl:active-pattern id="SIGWX-Core-Rules" name="SIGWX Core Meteorological Rules"/>
@@ -322,7 +410,7 @@
     <xsl:call-template name="ValidateCommonReportAttributes"/>
     <xsl:call-template name="ValidateWmoRdfCodeList"/>
 
-    <xsl:if test="not(@translationFailedTAC) and (@isCancelReport != 'true') and not(iwxxm:baseForecast)">
+    <xsl:if test="not(@translationFailedTAC) and not(@isCancelReport = 'true') and not(iwxxm:baseForecast)">
       <svrl:failed-assert id="TAF.BaseForecastMandatory-1"
                           role="ERROR"
                           location="/iwxxm:TAF"
