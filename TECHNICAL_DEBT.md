@@ -244,51 +244,62 @@ The codebase is well structured and the pipeline is green (0 warnings, 82/82 tes
 
 Only partially, and inconsistently. The **Infrastructure** layer (`Iwxxm20252.Generated`, mappers) mirrors the XSD vocabulary, which is correct for an anti-corruption layer. The **Domain** layer uses its own names, which is also correct in DDD (ubiquitous language), but they are neither consistently aligned with the official IWXXM / ICAO Annex 3 vocabulary nor consistent among themselves:
 
-| Official IWXXM element | Domain type | Observation |
-| :--- | :--- | :--- |
-| `METAR` / `SPECI` (`MeteorologicalAerodromeObservation`) | `AerodromeWeatherReport` | Invented name; neither the XSD nor the operational term. |
-| `TAF` | `TafReport` | Acronym in PascalCase plus `Report` suffix. |
-| `SIGMET` / `AIRMET` | `SigmetReport` / `AirmetReport` | Consistent with `TafReport`. |
-| `VolcanoObservatoryNoticeForAviation` | `VonaReport` | Acronym. |
-| `QuantitativeVolcanicAshConcentrationInformation` | `QvaciReport` | Acronym. |
-| `VolcanicAshAdvisory` / `TropicalCycloneAdvisory` / `SpaceWeatherAdvisory` | `…AdvisoryReport` | "Advisory" and "Report" are redundant. |
-| `WAFSSignificantWeatherForecast` | `SignificantWeatherReport` | Forecast renamed as "report". |
-| `AerodromeSurfaceWind` / `AerodromeCloud` / `AerodromeRunwayVisualRange` | `SurfaceWindInfo` / `AerodromeCloudLayerInfo` / `RunwayVisualRangeInfo` | `Info` suffix only in the aerodrome model; en-route uses `Cloud`, `Turbulence`, `AirframeIcing`. |
+| Official IWXXM element | Domain type (Current) | Target Operational Acronym | Broken Principle & Observation |
+| :--- | :--- | :--- | :--- |
+| `METAR` (`MeteorologicalAerodromeObservation`) | `AerodromeWeatherReport` | `MetarReport` (or `Metar`) | **DDD Ubiquitous Language**: Invented generic name combining METAR/SPECI; lacks operational clarity. |
+| `SPECI` (`MeteorologicalAerodromeObservation`) | `AerodromeWeatherReport` | `SpeciReport` (or `Speci`) | **DDD Ubiquitous Language**: Distinct operational aggregate collapsed into METAR container. |
+| `TAF` | `TafReport` | `TafReport` (or `Taf`) | Consistent acronym. |
+| `SIGMET` / `AIRMET` | `SigmetReport` / `AirmetReport` | `SigmetReport` / `AirmetReport` | Consistent acronym. |
+| `VolcanoObservatoryNoticeForAviation` | `VonaReport` | `VonaReport` (or `Vona`) | Consistent acronym. |
+| `QuantitativeVolcanicAshConcentrationInformation` | `QvaciReport` | `QvaciReport` (or `Qvaci`) | Consistent acronym. |
+| `VolcanicAshAdvisory` / `TropicalCycloneAdvisory` / `SpaceWeatherAdvisory` | `…AdvisoryReport` | `VaaReport`, `TcaReport`, `SpaceWxReport` | **Clean Code (Naming & Conciseness)**: "Advisory" and "Report" are redundant. |
+| `WAFSSignificantWeatherForecast` | `SignificantWeatherReport` | `SigwxReport` (or `Sigwx`) | **DDD Ubiquitous Language**: Forecast renamed as "report"; operational standard is SIGWX. |
+| `AerodromeSurfaceWind` / `AerodromeCloud` / `AerodromeRunwayVisualRange` | `SurfaceWindInfo` / `AerodromeCloudLayerInfo` / `RunwayVisualRangeInfo` | `SurfaceWind`, `AerodromeCloudLayer`, `RunwayVisualRange` | **Clean Code (Noise Words)**: `Info` suffix is an anti-pattern; en-route models use `Cloud`, `Turbulence`. |
 
-**Recommendation**: adopt one documented naming rule. Either align Domain names with the official IWXXM feature names (`MeteorologicalAerodromeObservation`, `VolcanicAshAdvisory`, …) or with operational ICAO terms (`Metar`, `Speci`, `Taf`, `Sigmet`, …), drop the `Info` / redundant `Report` suffixes, and keep XSD-specific names strictly inside Infrastructure.
+**Agreed Architectural Decision**:
+1. Adopt **Customary Operational Aeronautical Acronyms** for domain aggregates (`Metar`, `Speci`, `Taf`, `Sigwx`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, and `MeteorologicalBulletin`).
+2. Drop all noise-word suffixes (`*Info`, redundant `*Report` where applicable) in Value Objects.
+3. Keep XSD-specific transport types strictly encapsulated inside `Infrastructure`.
 
-### 8.2 Clean Code
+---
 
-| Issue | Evidence | Recommendation |
-| :--- | :--- | :--- |
-| God classes | `IwxxmSuiteMapper.cs` 1374 lines / 34 static methods covering 11 report types; `SigwxMapper.cs` 987; `Rfc7946GeoJsonExporter.cs` 960. | One mapper per report family behind a common interface; shared GML/measure/time helpers. |
-| Several public types per file | `AerodromeReports.cs` (6 types), `VolcanicAndSpaceReports.cs` (8), `EnRouteHazardReports.cs` (3), `WafsPointPhenomena.cs` (3). | One public type per file. |
-| Units encoded in property names over raw `double?` | The XSD does not fix units (`gml:SpeedType`, `gml:LengthType`, `MeasureType` with a required free `uom`); the official `iwxxm.sch` restricts them. Single-unit fields (`AirTemperatureCelsius` = `Cel`, `QnhHpa` = `hPa`, `PrevailingVisibilityMeters` / `MeanRvrMeters` = `m`) are backed by the rules. Dual-unit fields are not: `meanWindSpeed` / `windGustSpeed` (`m/s` or `[kn_i]`), cloud `base` (`m` or `[ft_i]`), `speedOfMotion` (`km/h` or `[kn_i]`), yet they are exposed as `MeanSpeedMetersPerSecond`, `BaseFeet`, `SpeedOfMotionKnots` without conversion (AUD-C2). | Keep suffixes only for single-unit fields and verify `uom` anyway; for dual-unit fields use `Speed` / `Length` value objects carrying the original value + unit with explicit conversions. |
-| Primitive obsession / linked-data leakage | Domain stores code-list URIs as `string` (`amountUri`, `presentWeather` hrefs, `cloudType`); `reportStatus` / `permissibleUsage` as `string`. | Typed enums / value objects; URI stays in Infrastructure. |
-| Type-switch dispatch | `IwxxmReportType` enum + `IIwxxmReport` consumers switching on it. | Polymorphism or a visitor (`IIwxxmReportVisitor<T>`). |
-| Value objects with reference equality | `SurfaceWindInfo`, `RunwayVisualRangeInfo`, `AerodromeCloudLayerInfo`, `EnRoutePhenomenonVolume`, `JetStreamCorePoint`. | Structural equality. |
-| Misleading comments / claims | "Generated" file is hand-written; "official" schemas; "zero-allocation" tokenizer. | Keep comments truthful. |
+### 8.2 Clean Code & SOLID Principles Analysis
+
+Every architectural deficiency below directly breaks one or more foundational Clean Code or SOLID design principles:
+
+| Issue | Broken Clean Code / SOLID Principle | Evidence | Architectural Impact & Recommendation |
+| :--- | :--- | :--- | :--- |
+| **God classes** | **Single Responsibility Principle (SRP)**<br>*(Clean Code: "Classes should have only one reason to change")* | `IwxxmSuiteMapper.cs` (1359 lines / 34 methods); `SigwxMapper.cs` (987 lines); `Rfc7946GeoJsonExporter.cs` (984 lines). | **Critical**. A modification to Space Weather advisory parsing or TC wind schemas forces recompilation and risks regressions in aerodrome surface wind mapping. **Fix**: Decompose into per-aggregate mappers (`MetarReportMapper`, `TafReportMapper`, `SigmetReportMapper`, etc.) behind a composite mapper, and modular GeoJSON feature extractors. |
+| **Type-switch dispatch** | **Open/Closed Principle (OCP)**<br>*(Clean Code: "Open for extension, closed for modification")* | `Rfc7946GeoJsonExporter.cs:77-125`<br>(`switch (report) { case MeteorologicalBulletin: ... case SignificantWeatherReport: ... }`). | **High**. Adding a new report type requires modifying existing exporter dispatch methods. **Fix**: Implement the polymorphic **Visitor Pattern** (`IIwxxmReportVisitor<TResult>`) on `IIwxxmReport` or an extensible feature provider registry. |
+| **Several public types per file** | **Clean Code File Organization**<br>*(Clean Code: "One primary concept / type per file")* | `AerodromeReports.cs` (6 public types); `VolcanicAndSpaceReports.cs` (8 public types); `EnRouteHazardReports.cs` (3 public types). | **Medium**. Obscures navigation, increases Git merge conflict probability, and conceals domain concepts. **Fix**: Split into dedicated, single-type files (`SurfaceWind.cs`, `Metar.cs`, etc.). |
+| **Primitive obsession & linked-data leakage** | **Primitive Obsession Code Smell**<br>*(Clean Code: "Encapsulate domain concepts in Value Objects")* | `reportStatus` and `permissibleUsage` stored as raw `string`; WMO RDF code-list URIs (`amountUri`, `presentWeather` hrefs) stored directly in domain entities. | **Medium**. Domain lacks compile-time safety and accepts arbitrary strings. Linked Data URIs are an external infrastructure concern. **Fix**: Strongly typed Domain enums (`ReportStatus`, `PermissibleUsage`) and Domain Value Objects; map RDF URIs at the Anti-Corruption Layer. |
+| **Leaking I/O exceptions outside `Result<T>`** | **Robustness Principle & Functional Error Handling**<br>*(Clean Code: "Error handling is a separate concern; do not violate API contracts")* | `IwxxmParser.cs:198-201` (`ProcessFile` creates `FileStream` without handling `UnauthorizedAccessException` or `IOException`). | **Medium**. Consumers expecting the promised non-throwing `Result<T>` encounter unhandled runtime exceptions. **Fix**: Wrap I/O operations in structured `try/catch` blocks returning explicit `Result<T>.Failure` errors. |
+| **Incomplete value object equality contracts** | **Liskov Substitution Principle (LSP) & .NET Contract Consistency**<br>*(Clean Code: "Follow standard platform contracts consistently")* | `GeoCoordinate.cs:59,67` uses `1e-6` floating-point tolerance in `Equals` but exact doubles in `GetHashCode()`. `GeoPolygon.cs:97` compares holes only by count. | **Medium**. Inconsistent equality breaks hash-based collections (`HashSet<T>`, `Dictionary<K, V>`), causing silent look-up failures. **Fix**: Quantize coordinates before hashing, and implement structural comparison across all polygon rings. |
+| **Bloated envelope interface** | **Interface Segregation Principle (ISP)**<br>*(SOLID: "Clients should not be forced to depend on methods they do not use")* | `IIwxxmReport.cs` forces `MeteorologicalBulletin` (a SWIM transport envelope) to implement `TranslationFailedTac` (always null) and `PermissibleUsage`. | **Medium**. Forces container envelopes to mimic report payload contracts. **Fix**: Segregate `IMeteorologicalReport` from `IBulletinEnvelope`. |
+| **I/O coupling in application ports** | **Dependency Inversion Principle (DIP)**<br>*(Hexagonal: "Keep I/O at the outermost boundaries")* | `IIwxxmDocumentMapper.Map(Stream xmlStream)` accepts a binary `Stream`, forcing Infrastructure to re-apply XML reader quotas. | **Medium**. Application port is polluted with low-level stream handling. **Fix**: Boundary sanitizes input and passes a clean reader/document abstraction. |
+
+---
 
 ### 8.3 Hexagonal Architecture
 
 **Status: Resolved (Unreleased)** — see the Status column below. Namespace map, layer rules and the public API are documented in README ("Namespaces & Hexagonal Architecture") and CONTRIBUTING ("Hexagonal Architecture Rules").
 
 What is correct:
-- Domain has no dependency on Application, Infrastructure or `System.Xml`.
-- Use cases live in Application and depend only on ports.
-- Infrastructure adapters implement Application ports.
+- Domain has zero dependencies on Application, Infrastructure, `System.Xml`, or `System.IO`.
+- Use cases live in Application and depend only on Ports.
+- Infrastructure adapters implement Application ports (driven adapters).
+- Architecture constraints enforced at bytecode (IL) level via NetArchTest and Mono.Cecil in `HexagonalArchitectureTests.cs`.
 
 Deviations:
 
-| Issue | Evidence | Recommendation | Status |
-| :--- | :--- | :--- | :--- |
-| Driving adapter wired to driven adapters | `Presentation/IwxxmParser.cs:8-9` and `IwxxmSigwxParser.cs:4,9-11` import `Infrastructure.Mapping`, `Infrastructure.Validation`, `Infrastructure.Serialization` and `Iwxxm20252.Generated`; `IwxxmGeoJsonExporter.cs:4` imports `Infrastructure.GeoJson`. | Move wiring into a dedicated composition root (`IwxxmServiceCollectionExtensions` / builder); the facade should depend only on inbound ports. | Resolved (Unreleased): `Composition/IwxxmParserBuilder.cs` is the only non-Infrastructure code referencing Infrastructure; facades take inbound ports. Static helpers obtain their default instance from the builder. |
-| No explicit inbound (driving) ports | Use cases are `internal sealed` classes; public ports `IIwxxmReportDispatcher` / `IIwxxmSigwxProcessor` mix inbound and outbound roles. | Separate `Ports/In` (use-case interfaces) from `Ports/Out` (validators, mappers, exporters). | Resolved (Unreleased): `Application/Ports/In` (`IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor`, new `IGeoJsonExportService`) and `Application/Ports/Out`. |
-| Driven ports not pluggable | `InternalValidationPorts.cs` (`IXmlSchemaValidator`, `ISchematronValidator`, `ISigwxXmlDeserializer`, `ISigwxAclMapper`) and `IIwxxmSuiteDocumentMapper` are `internal`. | Make outbound ports public (or provide options) so hosts can replace or disable adapters. | Resolved (Unreleased): public `ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter` (`Iwxxm.Net.Extensibility`, stream/`ValidationError`/`Result` signatures, no `System.Xml`); the generic DTO ports became Infrastructure details behind `ISigwxDocumentMapper`. Builder: `Use*`, `WithoutSchematron()`, `WithOptions()`. |
-| Infrastructure concerns in the Domain | `IwxxmParserOptions.MaxCharactersFromEntities` (an `XmlReaderSettings` quota) and `ErrorCategory.XsdSchemaValidation` live in `Domain/Common`. | Move to Application (options) and keep Domain errors technology-agnostic. | Resolved (Unreleased): `Application/Options/IwxxmParserOptions.cs`; `ErrorCategory` renamed to `MalformedInput` / `SchemaViolation` / `BusinessRuleViolation` (values and error codes unchanged; documented as BREAKING in CHANGELOG). |
-| Layer names in the public API | Consumers write `using Iwxxm.Net.Presentation;`, `using Iwxxm.Net.Domain.Common;`. | Public surface in the root `Iwxxm.Net` namespace; layers are an internal concern. | Resolved (Unreleased): public types only in `Iwxxm.Net`, `Iwxxm.Net.Reports`, `Iwxxm.Net.Extensibility` (IL test). |
-| Static service locator | Static `Parse*` methods over `Lazy` singletons with default options. | Instance-based facade + DI registration; keep static helpers as thin convenience wrappers. | Resolved (Unreleased): instance API (`Process*`) over inbound ports; static `Parse*` wrap `IwxxmParser.Default` etc. |
-| Generated XSD types public | 48 public types in `Iwxxm20252.Generated` (AUD-H8). | `internal`. | Resolved (Unreleased), see AUD-H8. |
+| Issue | Broken Principle | Evidence | Recommendation | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| Driving adapter wired to driven adapters | **Inversion of Control (IoC) / Separation of Concerns** | `Presentation/IwxxmParser.cs:8-9` imported Infrastructure namespaces. | Move wiring into a dedicated composition root (`IwxxmParserBuilder`). Facades depend only on inbound ports. | Resolved (Unreleased) |
+| No explicit inbound (driving) ports | **Ports & Adapters Boundary Separation** | Public ports mixed driving and driven responsibilities. | Separate `Ports/In` (use-case contracts) from `Ports/Out` (adapters). | Resolved (Unreleased) |
+| Driven ports not pluggable | **Dependency Inversion Principle (DIP)** | Validation and mapping ports were `internal`. | Expose public outbound interfaces in `Iwxxm.Net.Extensibility` to allow custom adapters. | Resolved (Unreleased) |
+| Infrastructure concerns in Domain | **Domain Model Purity** | XML reader quota options resided in `Domain/Common`. | Moved to `Application/Options`. | Resolved (Unreleased) |
+| Layer names leaked to public API | **Information Hiding (Parnas Principle)** | Consumers imported `Iwxxm.Net.Presentation`. | Public surface concentrated in `Iwxxm.Net`, `Iwxxm.Net.Reports`, and `Iwxxm.Net.Extensibility`. | Resolved (Unreleased) |
+| Static service locator | **Inversion of Control (IoC) / Testability** | Static `Parse*` methods over `Lazy` singletons with default options. | Instance-based facade + DI registration; keep static helpers as thin convenience wrappers. | Resolved (Unreleased) |
 
 Verification: `tests/Iwxxm.Net.Tests/HexagonalArchitectureTests.cs` checks these rules at IL level (NetArchTest.Rules / Mono.Cecil, test-only dependency) and replaces the former reflection-signature tests and the Dockerfile `grep` audit.
 
