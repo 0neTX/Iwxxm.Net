@@ -11,19 +11,20 @@ namespace Iwxxm.Net.Reports
     public sealed class TropopauseSpotHeight : IEquatable<TropopauseSpotHeight>
     {
         public GeoCoordinate Location { get; }
-        public FlightLevel FlightLevel { get; }
+        /// <summary>Tropopause level as reported (value, unit and vertical reference).</summary>
+        public VerticalLimit Level { get; }
 
-        public TropopauseSpotHeight(GeoCoordinate location, FlightLevel flightLevel)
+        public TropopauseSpotHeight(GeoCoordinate location, VerticalLimit level)
         {
             Location = location;
-            FlightLevel = flightLevel;
+            Level = level;
         }
 
         public bool Equals(TropopauseSpotHeight? other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return Location == other.Location && FlightLevel == other.FlightLevel;
+            return Location == other.Location && Level == other.Level;
         }
 
         public override bool Equals(object? obj) => obj is TropopauseSpotHeight other && Equals(other);
@@ -32,7 +33,7 @@ namespace Iwxxm.Net.Reports
         {
             unchecked
             {
-                return (Location.GetHashCode() * 397) ^ FlightLevel.GetHashCode();
+                return (Location.GetHashCode() * 397) ^ Level.GetHashCode();
             }
         }
     }
@@ -43,13 +44,15 @@ namespace Iwxxm.Net.Reports
     public sealed class Tropopause : IEquatable<Tropopause>
     {
         public string Id { get; }
-        public string LevelType { get; }
+        /// <summary>Level type reported by the compact format (e.g. <c>SPOT</c>); <c>null</c> when the source does not
+        /// report one (WAFSSignificantWeatherForecast). Never invented.</summary>
+        public string? LevelType { get; }
         public IReadOnlyList<TropopauseSpotHeight> SpotHeights { get; }
         public GeoPolygon? ContourPolygon { get; }
 
         private Tropopause(
             string id,
-            string levelType,
+            string? levelType,
             IReadOnlyList<TropopauseSpotHeight> spotHeights,
             GeoPolygon? contourPolygon)
         {
@@ -83,7 +86,7 @@ namespace Iwxxm.Net.Reports
                     id);
             }
 
-            string normalizedType = string.IsNullOrWhiteSpace(levelType) ? "SPOT" : levelType!;
+            string? normalizedType = string.IsNullOrWhiteSpace(levelType) ? null : levelType!.Trim();
             return Result<Tropopause>.Success(
                 new Tropopause(id, normalizedType, new ReadOnlyCollection<TropopauseSpotHeight>(list), contourPolygon));
         }
@@ -104,7 +107,7 @@ namespace Iwxxm.Net.Reports
         {
             unchecked
             {
-                return (Id.GetHashCode() * 397) ^ LevelType.GetHashCode();
+                return (Id.GetHashCode() * 397) ^ (LevelType == null ? 0 : LevelType.GetHashCode());
             }
         }
     }

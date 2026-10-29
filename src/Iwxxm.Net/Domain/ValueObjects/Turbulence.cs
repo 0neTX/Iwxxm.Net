@@ -9,7 +9,8 @@ namespace Iwxxm.Net.Reports
     public sealed class Turbulence : IEquatable<Turbulence>
     {
         public string Id { get; }
-        public string RawDegreeReference { get; }
+        /// <summary>Raw degree reference (code URI or value) as reported; <c>null</c> when absent or nil (never invented).</summary>
+        public string? RawDegreeReference { get; }
         public TurbulenceDegreeCode Degree { get; }
 
         /// <summary>
@@ -17,31 +18,33 @@ namespace Iwxxm.Net.Reports
         /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
         /// </summary>
         public int? DegreeNumericCode => WmoCodeRegistry.TryGetNumericCode(RawDegreeReference, WmoCodeRegistry.TurbulenceDegreeTableUri);
-        public FlightLevel? BaseFlightLevel { get; }
-        public FlightLevel TopFlightLevel { get; }
+        /// <summary>Lower limit as reported (value, unit, vertical reference or nil reason); <c>null</c> when not reported.</summary>
+        public VerticalLimit? Base { get; }
+        /// <summary>Upper limit as reported (value, unit, vertical reference or nil reason).</summary>
+        public VerticalLimit Top { get; }
         public GeoPolygon Area { get; }
 
         private Turbulence(
             string id,
-            string rawDegreeReference,
+            string? rawDegreeReference,
             TurbulenceDegreeCode degree,
-            FlightLevel? baseFlightLevel,
-            FlightLevel topFlightLevel,
+            VerticalLimit? baseLimit,
+            VerticalLimit topLimit,
             GeoPolygon area)
         {
             Id = id;
             RawDegreeReference = rawDegreeReference;
             Degree = degree;
-            BaseFlightLevel = baseFlightLevel;
-            TopFlightLevel = topFlightLevel;
+            Base = baseLimit;
+            Top = topLimit;
             Area = area;
         }
 
         public static Result<Turbulence> Create(
             string id,
-            string rawDegreeReference,
-            FlightLevel? baseFlightLevel,
-            FlightLevel topFlightLevel,
+            string? rawDegreeReference,
+            VerticalLimit? baseLimit,
+            VerticalLimit topLimit,
             GeoPolygon area)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -50,15 +53,6 @@ namespace Iwxxm.Net.Reports
                     "DOMAIN-TURBULENCE-ID",
                     "The Turbulence feature gml:id identifier is required.",
                     ErrorCategory.DomainMapping);
-            }
-
-            if (string.IsNullOrWhiteSpace(rawDegreeReference))
-            {
-                return Result<Turbulence>.Failure(
-                    "DOMAIN-TURBULENCE-DEGREE",
-                    $"DegreeOfTurbulence in '{id}' is required.",
-                    ErrorCategory.DomainMapping,
-                    id);
             }
 
             if (area == null)
@@ -70,11 +64,11 @@ namespace Iwxxm.Net.Reports
                     id);
             }
 
-            if (baseFlightLevel.HasValue && topFlightLevel <= baseFlightLevel.Value)
+            if (baseLimit.HasValue && topLimit.TryCompareTo(baseLimit.Value, out int order) && order <= 0)
             {
                 return Result<Turbulence>.Failure(
                     "DOMAIN-TURBULENCE-VERTICAL-EXTENT",
-                    $"Turbulence upper flight level for '{id}' ({topFlightLevel}) must be strictly greater than its lower level ({baseFlightLevel.Value}).",
+                    $"Turbulence upper limit for '{id}' ({topLimit}) must be strictly greater than its lower level ({baseLimit.Value}).",
                     ErrorCategory.DomainMapping,
                     id);
             }
@@ -83,10 +77,10 @@ namespace Iwxxm.Net.Reports
 
             return Result<Turbulence>.Success(new Turbulence(
                 id,
-                rawDegreeReference.Trim(),
+                string.IsNullOrWhiteSpace(rawDegreeReference) ? null : rawDegreeReference!.Trim(),
                 degree,
-                baseFlightLevel,
-                topFlightLevel,
+                baseLimit,
+                topLimit,
                 area));
         }
 
@@ -97,8 +91,8 @@ namespace Iwxxm.Net.Reports
             return Id == other.Id &&
                    RawDegreeReference == other.RawDegreeReference &&
                    Degree == other.Degree &&
-                   Nullable.Equals(BaseFlightLevel, other.BaseFlightLevel) &&
-                   TopFlightLevel == other.TopFlightLevel &&
+                   Nullable.Equals(Base, other.Base) &&
+                   Top == other.Top &&
                    Area.Equals(other.Area);
         }
 
@@ -109,8 +103,8 @@ namespace Iwxxm.Net.Reports
             unchecked
             {
                 int hash = Id.GetHashCode();
-                hash = (hash * 397) ^ RawDegreeReference.GetHashCode();
-                hash = (hash * 397) ^ TopFlightLevel.GetHashCode();
+                hash = (hash * 397) ^ (RawDegreeReference == null ? 0 : RawDegreeReference.GetHashCode());
+                hash = (hash * 397) ^ Top.GetHashCode();
                 return hash;
             }
         }

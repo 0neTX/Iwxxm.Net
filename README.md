@@ -69,7 +69,7 @@
   1. **Structural Validation (official XSD)**: the root element QName selects the schema set: the official IWXXM 2025-2 / COLLECT set for every standard root (unknown roots are rejected through `XmlSchemaSet.GlobalElements`, not message text), or the non-standard legacy set for `iwxxm:SIGWXReport`. Both sets are compiled lazily once per process (thread-safe) with XXE/DTD protection (`DtdProcessing.Prohibit`); the official set compiles in roughly 0.15-0.5 s on first use.
   2. **Business Rule & Official RDF Code-List Validation (partial)**: Executes the XSLT 1.0 rule subset via `XslCompiledTransform` (11 of 165 official rule IDs, official BUFR code-table membership for WAFS SIGWX, and membership of every `codes.wmo.int` URI in the matching official code list, with the official `owl:versionInfo` filter for IWXXM 2025-2) and extracts SVRL (`<svrl:failed-assert>`) findings.
 - **Units of Measure Preserved**: Speeds and lengths whose unit is not fixed by the official rules (surface wind and gusts, tropical-cyclone maximum wind, jet-stream wind, speed of motion, cloud base, volcanic source elevation) are exposed as `Speed` / `Length` value objects carrying the reported value and unit (`m/s`, `[kn_i]`, `km/h`, `m`, `[ft_i]`, ...), with exact conversion methods. Single-unit quantities (`Cel`, `hPa`, `deg`, visibility/RVR in `m`, ash density in `mg/m3`) keep unit-specific property names and the mapper rejects any other unit. A missing or unknown `@uom` is a `DomainMapping` error; no unit is ever assumed.
-- **Native Spatial & WMO Code Value Objects**: Translates GML 3.2.1 geometries (`gml:Curve`, `gml:CubicSpline`, `gml:LineStringSegment`, `gml:Polygon`, `gml:PolygonPatch` with interior holes `gml:interior`, `gml:CircleByCenterPoint`, `gml:Point`, `gml:posList`, `gml:pos`) and AIXM 5.1.1 `AirspaceVolume` bounds into immutable Domain Value Objects (`GeoCoordinate`, `GeoPolygon`, `FlightLevel`) using a zero-array-allocation coordinate scanner (`GmlCoordinateTokenizer`).
+- **Native Spatial & WMO Code Value Objects**: Translates GML 3.2.1 geometries (`gml:Curve`, `gml:CubicSpline`, `gml:LineStringSegment`, `gml:Polygon`, `gml:PolygonPatch` with interior holes `gml:interior`, `gml:CircleByCenterPoint`, `gml:Point`, `gml:posList`, `gml:pos`) and AIXM 5.1.1 `AirspaceVolume` bounds into immutable Domain Value Objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`) using a zero-array-allocation coordinate scanner (`GmlCoordinateTokenizer`).
 - **Native RFC 7946 GeoJSON Export**: Converts any `IIwxxmReport` (or `collect:MeteorologicalBulletin`) directly into an RFC 7946 `FeatureCollection` with `[longitude, latitude]` coordinate tuples, polygon interior hole rings, and computed `bbox` bounds—with zero third-party JSON or GIS dependencies.
 - **Functional `Result<T>` Pattern**: Explicit, allocation-friendly error handling categorized by technology-agnostic pipeline stage (`MalformedInput`, `SchemaViolation`, `BusinessRuleViolation`, `Deserialization`, `DomainMapping`); the stable machine-readable contract is `ValidationError.Code`.
 
@@ -149,7 +149,7 @@ switch (result.Value)
         break;
 
     case SignificantWeatherReport sigwx:
-        Console.WriteLine($"[SIGWX] Centre: {sigwx.IssuingCentre} ({sigwx.LowerLimit}-{sigwx.UpperLimit}) — JetStreams: {sigwx.JetStreams.Count}");
+        Console.WriteLine($"[SIGWX] Centre: {sigwx.IssuingCentre} ({sigwx.LowerLimit} - {sigwx.UpperLimit}) — JetStreams: {sigwx.JetStreams.Count}"); // e.g. "FL100 STD - FL600 STD"
         break;
 
     case QvaciReport qvaci:
@@ -200,7 +200,8 @@ if (metarResult.IsSuccess)
     Console.WriteLine($"Type            : {metar.ReportType}"); // Metar or Speci
     Console.WriteLine($"Aerodrome       : {metar.AerodromeDesignator} ({metar.AerodromeName})");
     Console.WriteLine($"ARP Coordinate  : {metar.AerodromePosition}"); // e.g., (52.3086, 4.7639)
-    Console.WriteLine($"Observation UTC : {metar.ObservationTimeUtc:O}");
+    Console.WriteLine($"Observation UTC : {metar.ObservationTimeUtc:O}"); // null when given only by an unresolved xlink:href
+    Console.WriteLine($"Status / usage  : {metar.ReportStatus} / {metar.PermissibleUsage} {metar.PermissibleUsageReason}"); // Normal / Operational
     Console.WriteLine($"Automated (AUTO): {metar.IsAutomatedStation}");
     Console.WriteLine($"CAVOK           : {metar.CloudAndVisibilityOk}");
     Console.WriteLine($"Temperature     : {metar.AirTemperatureCelsius} °C (Dewpoint: {metar.DewpointTemperatureCelsius} °C)");
@@ -291,7 +292,11 @@ if (sigmetResult.IsSuccess)
     Console.WriteLine($"ATS Unit / MWO  : {sigmet.AtsUnitDesignator} ({sigmet.AtsUnitName}) / MWO {sigmet.MwoDesignator}");
     Console.WriteLine($"FIR             : {sigmet.FirDesignator} ({sigmet.FirName})");
     Console.WriteLine($"Sequence Number : {sigmet.SequenceNumber}");
-    Console.WriteLine($"Validity        : {sigmet.ValidFromUtc:O} to {sigmet.ValidUntilUtc:O}");
+    Console.WriteLine($"Validity        : {sigmet.ValidFromUtc:O} to {sigmet.ValidUntilUtc:O}"); // null only for an unresolved xlink:href
+    if (sigmet.PermissibleUsage == PermissibleUsage.NonOperational)
+    {
+        Console.WriteLine($"NON-OPERATIONAL ({sigmet.PermissibleUsageReason}): {sigmet.PermissibleUsageSupplementary}");
+    }
     Console.WriteLine($"Phenomenon URI  : {sigmet.PhenomenonUri}");
 
     if (sigmet.EruptingVolcano != null)
@@ -302,7 +307,10 @@ if (sigmetResult.IsSuccess)
     foreach (EnRoutePhenomenonVolume volume in sigmet.EvolvingConditions)
     {
         Console.WriteLine($"Evolving Volume {volume.Id}:");
-        Console.WriteLine($"  Vertical Extent : {volume.LowerLimit?.ToString() ?? "SFC"} to {volume.UpperLimit}");
+        // VerticalLimit keeps value, unit and reference: "FL250 STD", "15000 M MSL", "GND SFC", "NIL(unknown)".
+        // A missing limit is null (never assumed to be the surface).
+        Console.WriteLine($"  Vertical Extent : {volume.LowerLimit?.ToString() ?? "(not reported)"} to {volume.UpperLimit}");
+        Console.WriteLine($"  Upper as FL     : {volume.UpperLimit?.AsFlightLevel()?.ToString() ?? "n/a (not an STD flight level)"}");
         Console.WriteLine($"  Intensity Change: {volume.IntensityChange}");
         Console.WriteLine($"  Motion          : {volume.DirectionOfMotionDegrees}° at {volume.SpeedOfMotion} ({volume.SpeedOfMotion?.ToKnots():F0} kt)");
         Console.WriteLine($"  Polygon Vertices: {volume.Area?.ExteriorRing.Count ?? 0}");
@@ -340,25 +348,25 @@ if (result.IsSuccess)
     // 1. Jet Streams (CubicSpline / LineString trajectories + wind symbol core points)
     foreach (JetStream js in sigwx.JetStreams)
     {
-        Console.WriteLine($"JetStream {js.Id}: Max {js.MaxWindSpeed} ({js.MaxWindSpeed.ToKnots():F1} kt) at {js.CoreFlightLevel} ({js.AxisTrajectory.Count} axis points, {js.CorePoints.Count} core symbols)");
+        Console.WriteLine($"JetStream {js.Id}: Max {js.MaxWindSpeed} ({js.MaxWindSpeed.ToKnots():F1} kt) at {js.CoreLevel} ({js.AxisTrajectory.Count} axis points, {js.CorePoints.Count} core symbols)");
     }
 
     // 2. Clouds (WMO BUFR 0-20-008 Distribution & 0-20-012 Cloud Type)
     foreach (Cloud cloud in sigwx.Clouds)
     {
-        Console.WriteLine($"Cloud {cloud.Id}: {cloud.DistributionCode} {cloud.TypeCode} ({cloud.BaseFlightLevel?.ToString() ?? "XXX"}-{cloud.TopFlightLevel})");
+        Console.WriteLine($"Cloud {cloud.Id}: {cloud.DistributionCode} {cloud.TypeCode} ({cloud.Base?.ToString() ?? "XXX"}-{cloud.Top})");
     }
 
     // 3. Clear Air Turbulence (WMO BUFR 0-11-030 Extended Degree of Turbulence)
     foreach (Turbulence turb in sigwx.Turbulences)
     {
-        Console.WriteLine($"Turbulence {turb.Id}: {turb.Degree} ({turb.BaseFlightLevel}-{turb.TopFlightLevel})");
+        Console.WriteLine($"Turbulence {turb.Id}: {turb.Degree} ({turb.Base}-{turb.Top}) — e.g. "10363.2 M MSL-12192 M MSL", never converted to FL340-FL400");
     }
 
     // 4. Airframe Icing (WMO BUFR 0-20-041 Airframe Icing)
     foreach (AirframeIcing icing in sigwx.AirframeIcings)
     {
-        Console.WriteLine($"Icing {icing.Id}: {icing.Degree} ({icing.BaseFlightLevel}-{icing.TopFlightLevel})");
+        Console.WriteLine($"Icing {icing.Id}: {icing.Degree} ({icing.Base}-{icing.Top})");
     }
 
     // 5. Tropopause Contours & Spot Heights
@@ -511,8 +519,9 @@ if (reportResult.IsSuccess)
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2023-05-29T18:00:00.0000000+00:00",
-        "coreFlightLevel": "FL500",
-        "coreFlightLevelHundredFeet": 500,
+        "coreLevel": 15240,
+        "coreLevelUom": "M",
+        "coreLevelReference": "MSL",
         "maxWindSpeed": 61.8,
         "maxWindSpeedUom": "m/s"
       }
@@ -525,7 +534,27 @@ if (reportResult.IsSuccess)
 
 ### 4.8 Dual Validation & Structured Error Diagnostics (`Result<T>` & `ValidationError`)
 
-Every parsing operation returns an immutable `Result<T>` without throwing exceptions on invalid XML, XSD schema violations, Schematron rule failures, or unregistered WMO RDF code-list URIs:
+Every parsing operation returns an immutable `Result<T>` without throwing exceptions on invalid XML, XSD schema violations, Schematron rule failures, unregistered WMO RDF code-list URIs, file-system errors or failing adapters. **Only argument validation throws**: `ArgumentNullException` for a `null` stream and `ArgumentException` for a `null`, empty or whitespace file path.
+
+| Code | Category | Meaning |
+| :--- | :--- | :--- |
+| `FILE-NOT-FOUND` | `MalformedInput` | The file or its directory does not exist. |
+| `ACCESS-DENIED` | `MalformedInput` | Permission denied (or the path is a directory). |
+| `FILE-READ-ERROR` | `MalformedInput` | Sharing violation, path too long, malformed path or other I/O error. |
+| `XML-SIZE-LIMIT`, `XML-MALFORMED`, `STREAM-*` | `MalformedInput` | Size limits, malformed XML, unreadable or empty stream. |
+| `XSD-*` / `SCHEMA-VALIDATOR-ERROR` | `SchemaViolation` | Schema violation / the schema validator threw or returned nothing. |
+| official rule ids / `RULE-VALIDATOR-ERROR` | `BusinessRuleViolation` | Schematron or code-list rule / the rule validator threw or returned nothing. |
+| `MAPPER-ERROR` | `DomainMapping` | The document mapper threw or returned nothing. |
+| `GEOJSON-EXPORT-ERROR` | `DomainMapping` | The GeoJSON exporter threw (`*ToGeoJson` members). |
+| `ACL-REPORT-STATUS-MISSING` / `-INVALID`, `ACL-PERMISSIBLE-USAGE-MISSING` / `-INVALID`, `ACL-PERMISSIBLE-USAGE-REASON-INVALID` | `DomainMapping` | Required metadata absent or not an official code (never defaulted to `NORMAL` / `OPERATIONAL`). |
+| `ACL-ISSUE-TIME-MISSING`, `ACL-OBSERVATION-TIME-MISSING`, `ACL-VALID-PERIOD-MISSING`, `ACL-TIME-INVALID` | `DomainMapping` | Mandatory time absent (an `issueTime` given only by `xlink:href` is also reported) or unparseable. |
+| `ACL-ASH-DENSITY-MISSING`, `ACL-VOLCANO-NAME-MISSING` | `DomainMapping` | Mandatory QVACI density / volcano name element absent. |
+| `ACL-VERTICAL-UOM-UNSUPPORTED`, `ACL-VERTICAL-REFERENCE-UNSUPPORTED` | `DomainMapping` | Vertical unit or reference outside AIXM / UCUM codes. |
+| `DOMAIN-<REPORT>-VALID-PERIOD`, `DOMAIN-TAF-CANCELLED-VALID-PERIOD`, `DOMAIN-FORECAST-GROUP-PERIOD` | `DomainMapping` | End of a period not strictly after its start. |
+| `DOMAIN-TIME-NOT-UTC`, `DOMAIN-ISSUE-TIME-MISSING` | `DomainMapping` | A `*Utc` value with a non-zero offset / a default issue time. |
+| `DOMAIN-DIRECTION-OUT-OF-RANGE`, `DOMAIN-NEGATIVE-SPEED`, `DOMAIN-NEGATIVE-VISIBILITY`, `DOMAIN-NEGATIVE-RVR` | `DomainMapping` | Physical ranges: direction within [0, 360]°, non-negative magnitudes. |
+| `DOMAIN-AIRMET-ATS-UNIT`, `DOMAIN-REPORT-STATUS-INVALID`, `DOMAIN-PERMISSIBLE-USAGE-INVALID`, `DOMAIN-BULLETIN-EMPTY`, `DOMAIN-VERTICAL-LIMIT-INVALID` | `DomainMapping` | Structural invariants of the aggregate factories. |
+
 
 ```csharp
 using System;
@@ -656,9 +685,11 @@ Result<IIwxxmReport> result = parser.ProcessFile("metar.xml");
 
 | Value Object | Namespace | Description |
 | :--- | :--- | :--- |
-| **`GeoCoordinate`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` enforcing WGS84 geodetic bounds (`Lat` $\in [-90, 90]$, `Lon` $\in [-180, 180]$). |
-| **`GeoPolygon`** | `Iwxxm.Net.Reports` | Immutable polygon enforcing $\ge 3$ distinct vertices, automatic ring closure, and optional `InteriorRings` (`IReadOnlyList<IReadOnlyList<GeoCoordinate>>`) for hollow contours. |
-| **`FlightLevel`** | `Iwxxm.Net.Reports` | Immutable vertical altitude (`readonly struct`) with automatic unit conversion from `FL` (hundreds of feet), `M` / `m` (ICAO standard conversion $1\text{ ft} = 0.3048\text{ m}$), and `[ft_i]` / `FT`. |
+| **`GeoCoordinate`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` enforcing WGS84 geodetic bounds (`Lat` $\in [-90, 90]$, `Lon` $\in [-180, 180]$). Values are quantized once at construction to 7 decimal degrees (`GeoCoordinate.Precision` = 1e-7, ~1.1 cm) and compared exactly, so `Equals`/`GetHashCode` agree and equality is transitive. |
+| **`GeoPolygon`** | `Iwxxm.Net.Reports` | Immutable polygon enforcing $\ge 3$ distinct vertices, automatic ring closure, and optional `InteriorRings` (`IReadOnlyList<IReadOnlyList<GeoCoordinate>>`) for hollow contours. Equality and hash code cover every exterior and interior vertex. |
+| **`VerticalLimit`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` keeping a vertical limit exactly as reported: `Value`, `Unit` (`VerticalUnit`: `FlightLevel`, `Feet`, `Meters`, `Kilometers`, `StandardMeters`), `Reference` (`VerticalReference`: `Sfc`, `Msl`, `W84`, `Std`, `Other`; `null` when not reported), `SpecialValue` (`GND`, `UNL`, `FLOOR`, `CEILING`) and `NilReason`. "15 km AMSL" is not FL492 and `GND SFC` is not FL000. Exact structural equality; `TryCompareTo` only compares commensurable limits. |
+| **`FlightLevel`** | `Iwxxm.Net.Reports` | Derived view: `VerticalLimit.AsFlightLevel()` returns a flight level only for STD limits in `FL` (or exact hundreds of `FT`). |
+| **`ReportStatus` / `PermissibleUsage` / `PermissibleUsageReason`** | `Iwxxm.Net.Reports` | Typed report metadata (`common.xsd`). Missing or unknown required values are mapping errors; a report is never presented as operational by default. |
 | **`Speed`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` holding a reported speed value and its `SpeedUnit` (`MetersPerSecond`, `Knots`, `KilometersPerHour`); exact conversions `ToMetersPerSecond()`, `ToKnots()`, `ToKilometersPerHour()` (1 kt = 1852/3600 m/s). Equality is exact on value and unit. |
 | **`Length`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` holding a reported length and its `LengthUnit` (`Meters`, `Feet`, `Kilometers`, `NauticalMiles`, `StatuteMiles`); exact conversions `ToMeters()`, `ToFeet()`, ... (1 ft = 0.3048 m). |
 | **`WmoCodeRegistry`** | `Iwxxm.Net.Reports` | Resolves WMO BUFR code-table URIs (`0-20-008`, `0-20-012`, `0-11-030`, `0-20-041`), bare codes and TAC abbreviations into `CloudDistributionCode`, `CloudTypeCode`, `TurbulenceDegreeCode`, and `IcingDegreeCode`. Every official code maps to a member whose numeric value equals the official code and whose name reflects the official meaning (verified against the official RDF tables); `Cloud`, `Turbulence` and `AirframeIcing` also expose the raw value and the parsed official numeric code (`DistributionNumericCode`, `TypeNumericCode`, `DegreeNumericCode`). |
@@ -674,7 +705,7 @@ Consumers never need a layer name in a `using` directive. The public API is grou
 | Namespace | Contents |
 | :--- | :--- |
 | `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, inbound ports (`IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor`, `IGeoJsonExportService`), and the `UseOfficialSchematron()` extension of the optional Saxon package |
-| `Iwxxm.Net.Reports` | Domain model: report aggregates (`IIwxxmReport`, `AerodromeWeatherReport`, `TafReport`, `SigmetReport`, ..., `MeteorologicalBulletin`) and value objects (`GeoCoordinate`, `GeoPolygon`, `FlightLevel`, `Speed`, `Length`, WMO codes, ...) |
+| `Iwxxm.Net.Reports` | Domain model: report aggregates (`IIwxxmReport`, `AerodromeWeatherReport`, `TafReport`, `SigmetReport`, ..., `MeteorologicalBulletin`) and value objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`, `FlightLevel`, `Speed`, `Length`, WMO codes, ...) |
 | `Iwxxm.Net.Extensibility` | Outbound ports for custom adapters (`ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter`) |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
 
@@ -688,7 +719,7 @@ Folders express the hexagonal layers; IL-level tests (`HexagonalArchitectureTest
 src/Iwxxm.Net/
 ├── Domain/                     # Depends on nothing (no System.Xml, System.IO, Application or Infrastructure)
 │   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity        (ns Iwxxm.Net)
-│   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, FlightLevel, Speed, Length, WmoCodes, ... (ns Iwxxm.Net.Reports)
+│   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, VerticalLimit, FlightLevel, Speed, Length, WmoCodes, ... (ns Iwxxm.Net.Reports)
 │   └── Aggregates/             # IIwxxmReport and every report aggregate                               (ns Iwxxm.Net.Reports)
 ├── Application/                # Depends only on Domain (no System.Xml)
 │   ├── Options/                # IwxxmParserOptions, GeoJsonExportOptions                              (ns Iwxxm.Net)

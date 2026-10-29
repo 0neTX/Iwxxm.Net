@@ -24,6 +24,15 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         private static readonly XNamespace MetceNs = "http://def.wmo.int/metce/2013";
         private static readonly XNamespace CollectNs = "http://def.wmo.int/collect/2014";
         private static readonly XNamespace XlinkNs = "http://www.w3.org/1999/xlink";
+        private static readonly XNamespace XsiNs = "http://www.w3.org/2001/XMLSchema-instance";
+
+        // Mapping error codes for mandatory content that is absent or cannot be interpreted (never defaulted)
+        internal const string IssueTimeMissingCode = "ACL-ISSUE-TIME-MISSING";
+        internal const string ObservationTimeMissingCode = "ACL-OBSERVATION-TIME-MISSING";
+        internal const string ValidPeriodMissingCode = "ACL-VALID-PERIOD-MISSING";
+        internal const string TimeInvalidCode = "ACL-TIME-INVALID";
+        internal const string AshDensityMissingCode = "ACL-ASH-DENSITY-MISSING";
+        internal const string VolcanoNameMissingCode = "ACL-VOLCANO-NAME-MISSING";
 
         // UCUM units required by the official IWXXM 2025-2 rules for single-unit quantities
         private const string CelsiusUom = "Cel";
@@ -212,14 +221,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             bool isAutomated = ParseBoolAttribute(root, "automatedStation");
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null || root.Attribute("translatedBulletinID") != null && root.Element(IwxxmNs + "observation") == null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
-            DateTimeOffset obsTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "observationTime")) ?? issueTime;
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
+
+            // observationTime is mandatory (metarSpeci.xsd): absent -> mapping error; xlink:href only -> null (unresolved).
+            DateTimeOffset? obsTime = ReadRequiredInstant(
+                root.Element(IwxxmNs + "observationTime"), "observationTime", ObservationTimeMissingCode, id, errors);
 
             ExtractAerodromeInfo(
                 root.Element(IwxxmNs + "aerodrome"),
@@ -262,12 +273,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 {
                     XElement? rvrElem = rvrProp.Element(IwxxmNs + "AerodromeRunwayVisualRange");
                     if (rvrElem == null) continue;
-                    string rwyDesig = rvrElem
+
+                    // The runway may be given only by an xlink:href reference (not resolved): the designator is then null.
+                    string? rwyDesig = GetText(rvrElem
                         .Element(IwxxmNs + "runway")
                         ?.Element(AixmNs + "RunwayDirection")
                         ?.Element(AixmNs + "timeSlice")
                         ?.Element(AixmNs + "RunwayDirectionTimeSlice")
-                        ?.Element(AixmNs + "designator")?.Value ?? string.Empty;
+                        ?.Element(AixmNs + "designator"));
                     double? meanRvr = UomMeasureReader.ReadFixedUnit(rvrElem.Element(IwxxmNs + "meanRVR"), MeterUom, id, errors);
                     string? tendency = rvrElem.Attribute("pastTendency")?.Value;
                     rvrs.Add(new RunwayVisualRangeInfo(rwyDesig, meanRvr, tendency));
@@ -305,8 +318,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 reportType,
                 issueTime,
                 obsTime,
-                reportStatus,
-                permissibleUsage,
+                metadata.Status,
+                metadata.Usage,
                 isAutomated,
                 designator,
                 name,
@@ -324,20 +337,21 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 rvrs,
                 presentWeather,
                 cloudLayers,
-                trends);
+                trends,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         private static Result<TafReport> MapTaf(XElement root)
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             bool isCancel = ParseBoolAttribute(root, "isCancelReport");
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
 
             ExtractAerodromeInfo(
                 root.Element(IwxxmNs + "aerodrome"),
@@ -346,8 +360,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 out string? name,
                 out GeoCoordinate? position);
 
-            ParseTimePeriodProperty(root.Element(IwxxmNs + "validPeriod"), out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
-            ParseTimePeriodProperty(root.Element(IwxxmNs + "cancelledReportValidPeriod"), out DateTimeOffset? cancelFrom, out DateTimeOffset? cancelUntil);
+            // validPeriod and cancelledReportValidPeriod are minOccurs="0" (taf.xsd): optional.
+            ReadPeriod(root.Element(IwxxmNs + "validPeriod"), "validPeriod", null, id, errors, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
+            ReadPeriod(root.Element(IwxxmNs + "cancelledReportValidPeriod"), "cancelledReportValidPeriod", null, id, errors, out DateTimeOffset? cancelFrom, out DateTimeOffset? cancelUntil);
 
             XElement? baseProp = root.Element(IwxxmNs + "baseForecast");
             string? baseNilReason = baseProp?.Attribute("nilReason")?.Value;
@@ -374,8 +389,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return TafReport.Create(
                 id,
                 issueTime,
-                reportStatus,
-                permissibleUsage,
+                metadata.Status,
+                metadata.Usage,
                 designator,
                 name,
                 position,
@@ -389,7 +404,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 isTranslationFailed,
                 failedTac,
                 baseForecast,
-                changes);
+                changes,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         // =====================================================================
@@ -400,20 +417,21 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             bool isCancel = ParseBoolAttribute(root, "isCancelReport");
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
-            ExtractUnitInfo(root.Element(IwxxmNs + "issuingAirTrafficServicesUnit"), out string atsDesig, out string? atsName);
-            ExtractUnitInfo(root.Element(IwxxmNs + "originatingMeteorologicalWatchOffice"), out string mwoDesig, out _);
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
+            ExtractUnitInfo(root.Element(IwxxmNs + "issuingAirTrafficServicesUnit"), out string? atsDesig, out string? atsName);
+            ExtractUnitInfo(root.Element(IwxxmNs + "originatingMeteorologicalWatchOffice"), out string? mwoDesig, out _);
             ExtractAirspaceInfo(root.Element(IwxxmNs + "issuingAirTrafficServicesRegion"), out string? firDesig, out string? firName);
 
-            string? seqNumber = root.Element(IwxxmNs + "sequenceNumber")?.Value;
-            string? cancelSeqNumber = root.Element(IwxxmNs + "cancelledReportSequenceNumber")?.Value;
-            ParseTimePeriodProperty(root.Element(IwxxmNs + "validPeriod"), out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
+            string? seqNumber = GetText(root.Element(IwxxmNs + "sequenceNumber"));
+            string? cancelSeqNumber = GetText(root.Element(IwxxmNs + "cancelledReportSequenceNumber"));
+
+            // validPeriod is mandatory (sigmet.xsd): absent -> mapping error; xlink:href only -> null (unresolved).
+            ReadPeriod(root.Element(IwxxmNs + "validPeriod"), "validPeriod", ValidPeriodMissingCode, id, errors, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
             string? phenomenonUri = root.Element(IwxxmNs + "phenomenon")?.Attribute(XlinkNs + "href")?.Value;
 
             var evolvingConditions = new List<EnRoutePhenomenonVolume>();
@@ -472,16 +490,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 id,
                 reportType,
                 issueTime,
-                reportStatus,
-                permissibleUsage,
-                atsDesig,
+                metadata.Status,
+                metadata.Usage,
+                atsDesig ?? string.Empty,
                 atsName,
-                string.IsNullOrWhiteSpace(mwoDesig) ? null : mwoDesig,
+                mwoDesig,
                 firDesig,
                 firName,
                 seqNumber,
-                validFrom ?? issueTime,
-                validUntil ?? issueTime,
+                validFrom,
+                validUntil,
                 phenomenonUri,
                 isCancel,
                 cancelSeqNumber,
@@ -490,25 +508,28 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 eruptingVolcano,
                 tcName,
                 evolvingConditions,
-                forecastPositions);
+                forecastPositions,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         private static Result<AirmetReport> MapAirmet(XElement root)
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
-            ExtractUnitInfo(root.Element(IwxxmNs + "issuingAirTrafficServicesUnit"), out string atsDesig, out string? atsName);
-            ExtractUnitInfo(root.Element(IwxxmNs + "originatingMeteorologicalWatchOffice"), out string mwoDesig, out _);
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
+            ExtractUnitInfo(root.Element(IwxxmNs + "issuingAirTrafficServicesUnit"), out string? atsDesig, out string? atsName);
+            ExtractUnitInfo(root.Element(IwxxmNs + "originatingMeteorologicalWatchOffice"), out string? mwoDesig, out _);
             ExtractAirspaceInfo(root.Element(IwxxmNs + "issuingAirTrafficServicesRegion"), out string? firDesig, out string? firName);
 
-            string? seqNumber = root.Element(IwxxmNs + "sequenceNumber")?.Value;
-            ParseTimePeriodProperty(root.Element(IwxxmNs + "validPeriod"), out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
+            string? seqNumber = GetText(root.Element(IwxxmNs + "sequenceNumber"));
+
+            // validPeriod is mandatory (airmet.xsd): absent -> mapping error; xlink:href only -> null (unresolved).
+            ReadPeriod(root.Element(IwxxmNs + "validPeriod"), "validPeriod", ValidPeriodMissingCode, id, errors, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
             string? phenomenonUri = root.Element(IwxxmNs + "phenomenon")?.Attribute(XlinkNs + "href")?.Value;
 
             var evolvingConditions = new List<EnRoutePhenomenonVolume>();
@@ -536,20 +557,22 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return AirmetReport.Create(
                 id,
                 issueTime,
-                reportStatus,
-                permissibleUsage,
-                atsDesig,
+                metadata.Status,
+                metadata.Usage,
+                atsDesig ?? string.Empty,
                 atsName,
-                string.IsNullOrWhiteSpace(mwoDesig) ? null : mwoDesig,
+                mwoDesig,
                 firDesig,
                 firName,
                 seqNumber,
-                validFrom ?? issueTime,
-                validUntil ?? issueTime,
+                validFrom,
+                validUntil,
                 phenomenonUri,
                 isTranslationFailed,
                 failedTac,
-                evolvingConditions);
+                evolvingConditions,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         // =====================================================================
@@ -560,16 +583,15 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
-            ExtractUnitInfo(root.Element(IwxxmNs + "originatingCentre"), out string centreDesig, out string? centreName);
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
+            ExtractUnitInfo(root.Element(IwxxmNs + "originatingCentre"), out string? centreDesig, out string? centreName);
 
             var volcanoes = new List<Volcano>();
-            FlightLevel? ashLevel = null;
+            VerticalLimit? ashLevel = null;
 
             foreach (XElement featProp in root.Elements(IwxxmNs + "feature"))
             {
@@ -586,21 +608,20 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     XElement? volElem = feat.Element(IwxxmNs + "phenomenonProperty")?.Element(IwxxmNs + "Volcano");
                     if (pos.HasValue && volElem != null)
                     {
-                        string vName = volElem.Element(IwxxmNs + "name")?.Value ?? "UNKNOWN";
-                        string? iavcei = volElem.Element(IwxxmNs + "IAVCEINumber")?.Value;
-                        var vRes = Volcano.Create(featId, vName, iavcei, pos.Value);
-                        if (vRes.IsSuccess) volcanoes.Add(vRes.Value);
-                        else errors.AddRange(vRes.Errors);
+                        AddIwxxmVolcano(volElem, featId, pos.Value, volcanoes, errors);
                     }
                 }
                 else if (phenHref != null && phenHref.EndsWith("/VOLCANIC_ASH", StringComparison.OrdinalIgnoreCase))
                 {
-                    XElement? elevElem = feat
+                    XElement? levelElem = feat
                         .Element(IwxxmNs + "phenomenonGeometry")
-                        ?.Element(IwxxmNs + "ElevatedLevel")
-                        ?.Element(IwxxmNs + "elevation");
+                        ?.Element(IwxxmNs + "ElevatedLevel");
 
-                    ashLevel = ParseOptionalFlightLevel(elevElem);
+                    ashLevel = VerticalLimitReader.Read(
+                        levelElem?.Element(IwxxmNs + "elevation"),
+                        levelElem?.Element(IwxxmNs + "verticalReference"),
+                        featId,
+                        errors);
                 }
             }
 
@@ -612,34 +633,35 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return VonaReport.Create(
                 id,
                 issueTime,
-                reportStatus,
-                permissibleUsage,
-                centreName ?? centreDesig,
+                metadata.Status,
+                metadata.Usage,
+                centreName ?? centreDesig ?? string.Empty,
                 centreDesig,
-                root.Element(IwxxmNs + "stateOrRegion")?.Value,
-                root.Element(IwxxmNs + "noticeNumber")?.Value,
+                GetText(root.Element(IwxxmNs + "stateOrRegion")),
+                GetText(root.Element(IwxxmNs + "noticeNumber")),
                 root.Element(IwxxmNs + "currentColourCode")?.Attribute(XlinkNs + "href")?.Value,
                 root.Element(IwxxmNs + "previousColourCode")?.Attribute(XlinkNs + "href")?.Value,
-                root.Element(IwxxmNs + "contacts")?.Value,
-                root.Element(IwxxmNs + "remarks")?.Value,
-                root.Element(IwxxmNs + "nextNotice")?.Value,
+                GetText(root.Element(IwxxmNs + "contacts")),
+                GetText(root.Element(IwxxmNs + "remarks")),
+                GetText(root.Element(IwxxmNs + "nextNotice")),
                 isTranslationFailed,
                 failedTac,
                 volcanoes,
-                ashLevel);
+                ashLevel,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         private static Result<QvaciReport> MapQvaci(XElement root)
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
-            ExtractUnitInfo(root.Element(IwxxmNs + "originatingCentre"), out string centreDesig, out string? centreName);
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
+            ExtractUnitInfo(root.Element(IwxxmNs + "originatingCentre"), out string? centreDesig, out string? centreName);
 
             var volcanoes = new List<Volcano>();
             var ashClouds = new List<VolcanicAshConcentrationCloud>();
@@ -659,69 +681,76 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     XElement? volElem = feat.Element(IwxxmNs + "phenomenonProperty")?.Element(IwxxmNs + "Volcano");
                     if (pos.HasValue && volElem != null)
                     {
-                        string vName = volElem.Element(IwxxmNs + "name")?.Value ?? "UNKNOWN";
-                        string? iavcei = volElem.Element(IwxxmNs + "IAVCEINumber")?.Value;
-                        var vRes = Volcano.Create(featId, vName, iavcei, pos.Value);
-                        if (vRes.IsSuccess) volcanoes.Add(vRes.Value);
-                        else errors.AddRange(vRes.Errors);
+                        AddIwxxmVolcano(volElem, featId, pos.Value, volcanoes, errors);
                     }
                 }
                 else if (phenHref != null && phenHref.EndsWith("/VOLCANIC_ASH", StringComparison.OrdinalIgnoreCase))
                 {
                     XElement? volGeom = feat.Element(IwxxmNs + "phenomenonGeometry")?.Element(IwxxmNs + "ElevatedVolume");
-                    XElement? concElem = feat
+                    XElement? concProp = feat
                         .Element(IwxxmNs + "phenomenonProperty")
-                        ?.Element(IwxxmNs + "VolcanicAshCloudConcentration")
-                        ?.Element(IwxxmNs + "ashDensityEqualsOrExceeds");
+                        ?.Element(IwxxmNs + "VolcanicAshCloudConcentration");
 
-                    if (volGeom != null && concElem != null)
+                    if (volGeom != null && concProp != null)
                     {
                         GeoPolygon? poly = ParseGmlPatchesPolygon(volGeom.Element(GmlNs + "patches"), featId, errors);
-                        FlightLevel? lowerFl = ParseOptionalFlightLevel(volGeom.Element(IwxxmNs + "lowerElevation"));
-                        FlightLevel? upperFl = ParseOptionalFlightLevel(volGeom.Element(IwxxmNs + "upperElevation"));
-                        double density = UomMeasureReader.ReadFixedUnit(concElem, MilligramPerCubicMeterUom, featId, errors) ?? 0.0;
+                        VerticalLimit? lower = VerticalLimitReader.Read(
+                            volGeom.Element(IwxxmNs + "lowerElevation"), volGeom.Element(IwxxmNs + "lowerVerticalReference"), featId, errors);
+                        VerticalLimit? upper = VerticalLimitReader.Read(
+                            volGeom.Element(IwxxmNs + "upperElevation"), volGeom.Element(IwxxmNs + "upperVerticalReference"), featId, errors);
 
-                        if (poly != null)
+                        // ashDensityEqualsOrExceeds is a mandatory gml:MeasureType (qvaci.xsd): never defaulted to 0.
+                        double? density = UomMeasureReader.ReadFixedUnit(
+                            concProp.Element(IwxxmNs + "ashDensityEqualsOrExceeds"), MilligramPerCubicMeterUom, featId, errors);
+                        if (!density.HasValue)
                         {
-                            ashClouds.Add(new VolcanicAshConcentrationCloud(featId, poly, lowerFl, upperFl, density));
+                            errors.Add(MappingError(
+                                AshDensityMissingCode,
+                                $"The mandatory ashDensityEqualsOrExceeds of ash cloud '{featId}' is missing or nil; no density is assumed.",
+                                featId));
+                        }
+                        else if (poly != null)
+                        {
+                            ashClouds.Add(new VolcanicAshConcentrationCloud(featId, poly, lower, upper, density.Value));
                         }
                     }
                 }
             }
+
+            DateTimeOffset? modelInitTime = ReadOptionalInstant(root.Element(IwxxmNs + "dispersionModelInitialisationTime"), "dispersionModelInitialisationTime", id, errors);
 
             if (errors.Count > 0)
             {
                 return Result<QvaciReport>.Failure(errors);
             }
 
-            DateTimeOffset? modelInitTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "dispersionModelInitialisationTime"));
-
             return QvaciReport.Create(
                 id,
                 issueTime,
-                reportStatus,
-                permissibleUsage,
-                centreName ?? centreDesig,
+                metadata.Status,
+                metadata.Usage,
+                centreName ?? centreDesig ?? string.Empty,
                 centreDesig,
                 modelInitTime,
-                root.Element(IwxxmNs + "remarks")?.Value,
+                GetText(root.Element(IwxxmNs + "remarks")),
                 isTranslationFailed,
                 failedTac,
                 volcanoes,
-                ashClouds);
+                ashClouds,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         private static Result<VolcanicAshAdvisoryReport> MapVolcanicAshAdvisory(XElement root)
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
-            ExtractUnitInfo(root.Element(IwxxmNs + "issuingVolcanicAshAdvisoryCentre"), out string vaacDesig, out string? vaacName);
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
+            ExtractUnitInfo(root.Element(IwxxmNs + "issuingVolcanicAshAdvisoryCentre"), out string? vaacDesig, out string? vaacName);
 
             Volcano? volcano = ParseMetceVolcano(root.Element(IwxxmNs + "volcano"), errors);
             Length? sourceElev = UomMeasureReader.ReadLength(root.Element(IwxxmNs + "sourceElevationAMSL"), id, errors);
@@ -759,6 +788,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 }
             }
 
+            DateTimeOffset? nextAdvisory = ReadOptionalInstant(root.Element(IwxxmNs + "nextAdvisoryTime"), "nextAdvisoryTime", id, errors);
+
             if (errors.Count > 0)
             {
                 return Result<VolcanicAshAdvisoryReport>.Failure(errors);
@@ -767,34 +798,35 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return VolcanicAshAdvisoryReport.Create(
                 id,
                 issueTime,
-                reportStatus,
-                permissibleUsage,
-                vaacName ?? vaacDesig,
+                metadata.Status,
+                metadata.Usage,
+                vaacName ?? vaacDesig ?? string.Empty,
                 volcano,
-                root.Element(IwxxmNs + "stateOrRegion")?.Value,
+                GetText(root.Element(IwxxmNs + "stateOrRegion")),
                 sourceElev,
-                root.Element(IwxxmNs + "advisoryNumber")?.Value,
-                root.Element(IwxxmNs + "informationSource")?.Value,
-                root.Element(IwxxmNs + "eruptionDetails")?.Value,
-                root.Element(IwxxmNs + "remarks")?.Value,
-                ParseTimeInstantProperty(root.Element(IwxxmNs + "nextAdvisoryTime")),
+                GetText(root.Element(IwxxmNs + "advisoryNumber")),
+                GetText(root.Element(IwxxmNs + "informationSource")),
+                GetText(root.Element(IwxxmNs + "eruptionDetails")),
+                GetText(root.Element(IwxxmNs + "remarks")),
+                nextAdvisory,
                 isTranslationFailed,
                 failedTac,
                 observedClouds,
-                forecastClouds);
+                forecastClouds,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         private static Result<TropicalCycloneAdvisoryReport> MapTropicalCycloneAdvisory(XElement root)
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
-            ExtractUnitInfo(root.Element(IwxxmNs + "issuingTropicalCycloneAdvisoryCentre"), out string tcacDesig, out string? tcacName);
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
+            ExtractUnitInfo(root.Element(IwxxmNs + "issuingTropicalCycloneAdvisoryCentre"), out string? tcacDesig, out string? tcacName);
 
             string? cycloneName = root
                 .Element(IwxxmNs + "tropicalCycloneName")
@@ -808,7 +840,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             if (obsElem != null)
             {
-                DateTimeOffset? obsTime = ParseTimeInstantProperty(obsElem.Element(IwxxmNs + "phenomenonTime"));
+                DateTimeOffset? obsTime = ReadOptionalInstant(obsElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", id, errors);
                 GeoCoordinate? pos = ParseGmlPointElement(
                     obsElem.Element(IwxxmNs + "tropicalCyclonePosition")?.Element(GmlNs + "Point"),
                     GetGmlId(obsElem),
@@ -828,7 +860,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 XElement? fcstElem = fcstProp.Element(IwxxmNs + "TropicalCycloneForecastConditions");
                 if (fcstElem == null) continue;
 
-                DateTimeOffset? fcstTime = ParseTimeInstantProperty(fcstElem.Element(IwxxmNs + "phenomenonTime"));
+                DateTimeOffset? fcstTime = ReadOptionalInstant(fcstElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", id, errors);
                 GeoCoordinate? pos = ParseGmlPointElement(
                     fcstElem.Element(IwxxmNs + "tropicalCyclonePosition")?.Element(GmlNs + "Point"),
                     GetGmlId(fcstElem),
@@ -841,6 +873,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 }
             }
 
+            DateTimeOffset? nextAdvisory = ReadOptionalInstant(root.Element(IwxxmNs + "nextAdvisoryTime"), "nextAdvisoryTime", id, errors);
+
             if (errors.Count > 0)
             {
                 return Result<TropicalCycloneAdvisoryReport>.Failure(errors);
@@ -849,30 +883,31 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return TropicalCycloneAdvisoryReport.Create(
                 id,
                 issueTime,
-                reportStatus,
-                permissibleUsage,
-                string.IsNullOrWhiteSpace(tcacDesig) ? (tcacName ?? string.Empty) : tcacDesig,
+                metadata.Status,
+                metadata.Usage,
+                tcacDesig ?? tcacName ?? string.Empty,
                 cycloneName,
-                root.Element(IwxxmNs + "advisoryNumber")?.Value,
+                GetText(root.Element(IwxxmNs + "advisoryNumber")),
                 obsPoint,
                 forecasts,
-                root.Element(IwxxmNs + "remarks")?.Value,
-                ParseTimeInstantProperty(root.Element(IwxxmNs + "nextAdvisoryTime")),
+                GetText(root.Element(IwxxmNs + "remarks")),
+                nextAdvisory,
                 isTranslationFailed,
-                failedTac);
+                failedTac,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         private static Result<SpaceWeatherAdvisoryReport> MapSpaceWeatherAdvisory(XElement root)
         {
             var errors = new List<ValidationError>();
             string id = GetGmlId(root);
-            string? reportStatus = root.Attribute("reportStatus")?.Value;
-            string? permissibleUsage = root.Attribute("permissibleUsage")?.Value;
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(root, id, errors);
             string? failedTac = root.Attribute("translationFailedTAC")?.Value;
             bool isTranslationFailed = failedTac != null;
 
-            DateTimeOffset issueTime = ParseTimeInstantProperty(root.Element(IwxxmNs + "issueTime")) ?? DateTimeOffset.MinValue;
-            ExtractUnitInfo(root.Element(IwxxmNs + "issuingSpaceWeatherCentre"), out string swxcDesig, out string? swxcName);
+            DateTimeOffset issueTime = ReadIssueTime(root, id, errors);
+            ExtractUnitInfo(root.Element(IwxxmNs + "issuingSpaceWeatherCentre"), out string? swxcDesig, out string? swxcName);
 
             var replacedNumbers = root
                 .Elements(IwxxmNs + "replacedAdvisoryNumber")
@@ -894,14 +929,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
                 string analysisId = GetGmlId(analysisElem);
                 string? timeInd = analysisElem.Attribute("timeIndicator")?.Value;
-                DateTimeOffset? phenTime = ParseTimeInstantProperty(analysisElem.Element(IwxxmNs + "phenomenonTime"));
+                DateTimeOffset? phenTime = ReadOptionalInstant(analysisElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", analysisId, errors);
 
                 foreach (XElement irProp in analysisElem.Elements(IwxxmNs + "intensityAndRegion"))
                 {
                     XElement? irElem = irProp.Element(IwxxmNs + "SpaceWeatherIntensityAndRegion");
                     if (irElem == null) continue;
 
-                    string? intensity = irElem.Element(IwxxmNs + "intensity")?.Value;
+                    string? intensity = GetText(irElem.Element(IwxxmNs + "intensity"));
                     var locUris = new List<string>();
                     var polygons = new List<GeoPolygon>();
 
@@ -940,6 +975,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 }
             }
 
+            DateTimeOffset? nextAdvisory = ReadOptionalInstant(root.Element(IwxxmNs + "nextAdvisoryTime"), "nextAdvisoryTime", id, errors);
+
             if (errors.Count > 0)
             {
                 return Result<SpaceWeatherAdvisoryReport>.Failure(errors);
@@ -948,17 +985,19 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return SpaceWeatherAdvisoryReport.Create(
                 id,
                 issueTime,
-                reportStatus,
-                permissibleUsage,
-                swxcName ?? swxcDesig,
-                root.Element(IwxxmNs + "advisoryNumber")?.Value,
+                metadata.Status,
+                metadata.Usage,
+                swxcName ?? swxcDesig ?? string.Empty,
+                GetText(root.Element(IwxxmNs + "advisoryNumber")),
                 replacedNumbers,
                 effects,
                 analyses,
-                root.Element(IwxxmNs + "remarks")?.Value,
-                ParseTimeInstantProperty(root.Element(IwxxmNs + "nextAdvisoryTime")),
+                GetText(root.Element(IwxxmNs + "remarks")),
+                nextAdvisory,
                 isTranslationFailed,
-                failedTac);
+                failedTac,
+                metadata.Reason,
+                metadata.Supplementary);
         }
 
         // =====================================================================
@@ -970,72 +1009,132 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return elem.Attribute(GmlNs + "id")?.Value ?? string.Empty;
         }
 
+        /// <summary>
+        /// Returns the trimmed text of an element, or <c>null</c> when the element is absent, <c>xsi:nil</c>, carries a
+        /// <c>nilReason</c> without content, or is empty (a nil string is never turned into an empty string).
+        /// </summary>
+        private static string? GetText(XElement? elem)
+        {
+            if (elem == null || IsXsiNil(elem))
+                return null;
+
+            string value = elem.Value.Trim();
+            return value.Length == 0 ? null : value;
+        }
+
+        private static bool IsXsiNil(XElement elem)
+        {
+            string? nil = elem.Attribute(XsiNs + "nil")?.Value;
+            return string.Equals(nil, "true", StringComparison.Ordinal) || string.Equals(nil, "1", StringComparison.Ordinal);
+        }
+
         private static bool ParseBoolAttribute(XElement elem, string attrName)
         {
             string? val = elem.Attribute(attrName)?.Value;
             return string.Equals(val, "true", StringComparison.OrdinalIgnoreCase) || val == "1";
         }
 
-        private static FlightLevel? ParseOptionalFlightLevel(XElement? measureElem)
-        {
-            if (measureElem == null || string.IsNullOrWhiteSpace(measureElem.Value))
-                return null;
+        private static ValidationError MappingError(string code, string message, string location) =>
+            new ValidationError(code, message, ErrorCategory.DomainMapping, ValidationSeverity.Error, string.IsNullOrEmpty(location) ? null : location);
 
-            string rawVal = measureElem.Value.Trim();
-            if (string.Equals(rawVal, "GND", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(rawVal, "SFC", StringComparison.OrdinalIgnoreCase))
+        /// <summary>
+        /// Reads the mandatory <c>issueTime</c>. An absent element, or one given only by an <c>xlink:href</c> reference
+        /// (not resolved by this version), is a mapping error: the issue time is never invented.
+        /// </summary>
+        private static DateTimeOffset ReadIssueTime(XElement root, string id, List<ValidationError> errors)
+        {
+            XElement? prop = root.Element(IwxxmNs + "issueTime");
+            if (prop == null)
             {
-                return new FlightLevel(0);
+                errors.Add(MappingError(IssueTimeMissingCode, "The mandatory element 'issueTime' is missing; no issue time is assumed.", id));
+                return default;
             }
 
-            if (!double.TryParse(rawVal, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericVal))
-                return null;
+            XElement? instant = prop.Element(GmlNs + "TimeInstant");
+            if (instant == null)
+            {
+                string? href = prop.Attribute(XlinkNs + "href")?.Value;
+                errors.Add(MappingError(
+                    IssueTimeMissingCode,
+                    href != null
+                        ? $"The mandatory element 'issueTime' is given only by the reference xlink:href='{href}', which is not resolved; no issue time is assumed."
+                        : "The mandatory element 'issueTime' has no gml:TimeInstant; no issue time is assumed.",
+                    id));
+                return default;
+            }
 
-            string? uom = measureElem.Attribute("uom")?.Value;
-            var res = FlightLevel.Create(numericVal, uom);
-            return res.IsSuccess ? res.Value : (FlightLevel?)null;
+            return ParseTimePosition(instant.Element(GmlNs + "timePosition")?.Value, "issueTime", id, errors) ?? default;
         }
 
-        private static DateTimeOffset? ParseTimeInstantProperty(XElement? propElem)
+        /// <summary>
+        /// Reads a mandatory time-instant property: absent -> mapping error <paramref name="missingCode"/>; given by an
+        /// unresolved <c>xlink:href</c> or nil -> <c>null</c>; inline -> the parsed UTC instant.
+        /// </summary>
+        private static DateTimeOffset? ReadRequiredInstant(XElement? prop, string field, string missingCode, string id, List<ValidationError> errors)
         {
-            string? posText = propElem
-                ?.Element(GmlNs + "TimeInstant")
-                ?.Element(GmlNs + "timePosition")?.Value;
-
-            if (string.IsNullOrWhiteSpace(posText))
+            if (prop == null)
+            {
+                errors.Add(MappingError(missingCode, $"The mandatory element '{field}' is missing; no value is assumed.", id));
                 return null;
+            }
 
-            return DateTimeOffset.TryParse(posText!.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset dt)
-                ? dt.ToUniversalTime()
-                : (DateTimeOffset?)null;
+            return ReadOptionalInstant(prop, field, id, errors);
         }
 
-        private static void ParseTimePeriodProperty(
-            XElement? propElem,
+        /// <summary>Reads an optional time-instant property: absent, nil or <c>xlink:href</c>-only -> <c>null</c>.</summary>
+        private static DateTimeOffset? ReadOptionalInstant(XElement? prop, string field, string id, List<ValidationError> errors)
+        {
+            XElement? instant = prop?.Element(GmlNs + "TimeInstant");
+            if (instant == null)
+                return null;
+
+            return ParseTimePosition(instant.Element(GmlNs + "timePosition")?.Value, field, id, errors);
+        }
+
+        /// <summary>
+        /// Reads a time-period property. When <paramref name="missingCode"/> is given the property is mandatory and its
+        /// absence is a mapping error; an <c>xlink:href</c>-only or nil property yields <c>null</c> bounds.
+        /// </summary>
+        private static void ReadPeriod(
+            XElement? prop,
+            string field,
+            string? missingCode,
+            string id,
+            List<ValidationError> errors,
             out DateTimeOffset? beginUtc,
             out DateTimeOffset? endUtc)
         {
             beginUtc = null;
             endUtc = null;
 
-            XElement? periodElem = propElem?.Element(GmlNs + "TimePeriod");
+            if (prop == null)
+            {
+                if (missingCode != null)
+                {
+                    errors.Add(MappingError(missingCode, $"The mandatory element '{field}' is missing; no period is assumed.", id));
+                }
+
+                return;
+            }
+
+            XElement? periodElem = prop.Element(GmlNs + "TimePeriod");
             if (periodElem == null)
                 return;
 
-            string? beginText = periodElem.Element(GmlNs + "beginPosition")?.Value;
-            string? endText = periodElem.Element(GmlNs + "endPosition")?.Value;
+            beginUtc = ParseTimePosition(periodElem.Element(GmlNs + "beginPosition")?.Value, field + "/beginPosition", id, errors);
+            endUtc = ParseTimePosition(periodElem.Element(GmlNs + "endPosition")?.Value, field + "/endPosition", id, errors);
+        }
 
-            if (!string.IsNullOrWhiteSpace(beginText) &&
-                DateTimeOffset.TryParse(beginText!.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset b))
-            {
-                beginUtc = b.ToUniversalTime();
-            }
+        private static DateTimeOffset? ParseTimePosition(string? text, string field, string id, List<ValidationError> errors)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
 
-            if (!string.IsNullOrWhiteSpace(endText) &&
-                DateTimeOffset.TryParse(endText!.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset e))
-            {
-                endUtc = e.ToUniversalTime();
-            }
+            if (DateTimeOffset.TryParse(text!.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset dt))
+                return dt.ToUniversalTime();
+
+            errors.Add(MappingError(TimeInvalidCode, $"The time position '{text.Trim()}' of '{field}' is not a valid ISO 8601 date-time.", id));
+            return null;
         }
 
         private static void ExtractAerodromeInfo(
@@ -1057,10 +1156,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (slice == null)
                 return;
 
-            designator = slice.Element(AixmNs + "designator")?.Value
-                         ?? slice.Element(AixmNs + "locationIndicatorICAO")?.Value
+            designator = GetText(slice.Element(AixmNs + "designator"))
+                         ?? GetText(slice.Element(AixmNs + "locationIndicatorICAO"))
                          ?? string.Empty;
-            name = slice.Element(AixmNs + "name")?.Value;
+            name = GetText(slice.Element(AixmNs + "name"));
 
             XElement? arpPt = slice
                 .Element(AixmNs + "ARP")
@@ -1072,12 +1171,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
         }
 
+        /// <summary>
+        /// Reads an <c>aixm:Unit</c> time slice. The designator is <c>null</c> when <c>aixm:designator</c> is absent
+        /// (it is not replaced by the unit name).
+        /// </summary>
         private static void ExtractUnitInfo(
             XElement? unitProp,
-            out string designator,
+            out string? designator,
             out string? name)
         {
-            designator = string.Empty;
+            designator = null;
             name = null;
 
             XElement? slice = unitProp
@@ -1088,8 +1191,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (slice == null)
                 return;
 
-            name = slice.Element(AixmNs + "name")?.Value;
-            designator = slice.Element(AixmNs + "designator")?.Value ?? name ?? string.Empty;
+            name = GetText(slice.Element(AixmNs + "name"));
+            designator = GetText(slice.Element(AixmNs + "designator"));
         }
 
         private static void ExtractAirspaceInfo(
@@ -1108,8 +1211,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (slice == null)
                 return;
 
-            designator = slice.Element(AixmNs + "designator")?.Value;
-            name = slice.Element(AixmNs + "name")?.Value;
+            designator = GetText(slice.Element(AixmNs + "designator"));
+            name = GetText(slice.Element(AixmNs + "name"));
         }
 
         private static SurfaceWindInfo? ParseSurfaceWind(XElement? surfaceWindProp, string context, List<ValidationError> errors)
@@ -1155,15 +1258,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             string? changeInd = fcstElem.Attribute("changeIndicator")?.Value;
             bool cavok = ParseBoolAttribute(fcstElem, "cloudAndVisibilityOK");
 
+            // phenomenonTime may be a period, an instant, or an unresolved xlink:href reference (-> null bounds).
             XElement? phenTime = fcstElem.Element(IwxxmNs + "phenomenonTime");
-            ParseTimePeriodProperty(phenTime, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
-            if (!validFrom.HasValue)
+            ReadPeriod(phenTime, "phenomenonTime", null, id, errors, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
+            if (!validFrom.HasValue && !validUntil.HasValue)
             {
-                validFrom = ParseTimeInstantProperty(phenTime);
+                validFrom = ReadOptionalInstant(phenTime, "phenomenonTime", id, errors);
             }
 
             double? vis = UomMeasureReader.ReadFixedUnit(fcstElem.Element(IwxxmNs + "prevailingVisibility"), MeterUom, id, errors);
-            string? visOp = fcstElem.Element(IwxxmNs + "prevailingVisibilityOperator")?.Value;
+            string? visOp = GetText(fcstElem.Element(IwxxmNs + "prevailingVisibilityOperator"));
             SurfaceWindInfo? wind = ParseSurfaceWind(fcstElem.Element(IwxxmNs + "surfaceWind"), id, errors);
 
             var wxList = new List<string>();
@@ -1205,8 +1309,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 errors);
 
             XElement? volElem = condElem.Element(IwxxmNs + "geometry")?.Element(AixmNs + "AirspaceVolume");
-            FlightLevel? lowerFl = ParseOptionalFlightLevel(volElem?.Element(AixmNs + "lowerLimit"));
-            FlightLevel? upperFl = ParseOptionalFlightLevel(volElem?.Element(AixmNs + "upperLimit"));
+            ReadAirspaceVolumeLimits(volElem, id, errors, out VerticalLimit? lower, out VerticalLimit? upper);
             XElement? patches = volElem
                 ?.Element(AixmNs + "horizontalProjection")
                 ?.Element(AixmNs + "Surface")
@@ -1214,7 +1317,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             GeoPolygon? area = patches != null ? ParseGmlPatchesPolygon(patches, id, errors) : null;
 
-            return new EnRoutePhenomenonVolume(id, area, lowerFl, upperFl, intensityChange, dir, spd, tcPos);
+            return new EnRoutePhenomenonVolume(id, area, lower, upper, intensityChange, dir, spd, tcPos);
         }
 
         private static EnRoutePhenomenonVolume ParseAshCloudVolume(XElement ashElem, List<ValidationError> errors)
@@ -1224,8 +1327,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             Speed? spd = UomMeasureReader.ReadSpeed(ashElem.Element(IwxxmNs + "speedOfMotion"), id, errors);
 
             XElement? volElem = ashElem.Element(IwxxmNs + "ashCloudExtent")?.Element(AixmNs + "AirspaceVolume");
-            FlightLevel? lowerFl = ParseOptionalFlightLevel(volElem?.Element(AixmNs + "lowerLimit"));
-            FlightLevel? upperFl = ParseOptionalFlightLevel(volElem?.Element(AixmNs + "upperLimit"));
+            ReadAirspaceVolumeLimits(volElem, id, errors, out VerticalLimit? lower, out VerticalLimit? upper);
             XElement? patches = volElem
                 ?.Element(AixmNs + "horizontalProjection")
                 ?.Element(AixmNs + "Surface")
@@ -1233,9 +1335,43 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             GeoPolygon? area = patches != null ? ParseGmlPatchesPolygon(patches, id, errors) : null;
 
-            return new EnRoutePhenomenonVolume(id, area, lowerFl, upperFl, null, dir, spd);
+            return new EnRoutePhenomenonVolume(id, area, lower, upper, null, dir, spd);
         }
 
+        /// <summary>
+        /// Reads <c>aixm:lowerLimit</c> / <c>aixm:lowerLimitReference</c> and <c>aixm:upperLimit</c> /
+        /// <c>aixm:upperLimitReference</c> exactly as reported (no flight-level conversion, no assumed reference).
+        /// </summary>
+        private static void ReadAirspaceVolumeLimits(
+            XElement? volElem,
+            string context,
+            List<ValidationError> errors,
+            out VerticalLimit? lower,
+            out VerticalLimit? upper)
+        {
+            lower = VerticalLimitReader.Read(volElem?.Element(AixmNs + "lowerLimit"), volElem?.Element(AixmNs + "lowerLimitReference"), context, errors);
+            upper = VerticalLimitReader.Read(volElem?.Element(AixmNs + "upperLimit"), volElem?.Element(AixmNs + "upperLimitReference"), context, errors);
+        }
+
+        /// <summary>
+        /// Maps an <c>iwxxm:Volcano</c> (VONA / QVACI). <c>iwxxm:name</c> is mandatory but nillable (<c>metFeature.xsd</c>):
+        /// an absent name is a mapping error, a nil name maps to <c>null</c>.
+        /// </summary>
+        private static void AddIwxxmVolcano(XElement volElem, string featId, GeoCoordinate position, List<Volcano> volcanoes, List<ValidationError> errors)
+        {
+            XElement? nameElem = volElem.Element(IwxxmNs + "name");
+            if (nameElem == null)
+            {
+                errors.Add(MappingError(VolcanoNameMissingCode, $"The mandatory element iwxxm:name of volcano '{featId}' is missing; no name is assumed.", featId));
+                return;
+            }
+
+            var vRes = Volcano.Create(featId, GetText(nameElem), GetText(volElem.Element(IwxxmNs + "IAVCEINumber")), position);
+            if (vRes.IsSuccess) volcanoes.Add(vRes.Value);
+            else errors.AddRange(vRes.Errors);
+        }
+
+        /// <summary>Maps a <c>metce:Volcano</c>; <c>metce:name</c> is a mandatory, non-nillable string (<c>phenomena.xsd</c>).</summary>
         private static Volcano? ParseMetceVolcano(XElement? propElem, List<ValidationError> errors)
         {
             XElement? volElem = propElem?.Element(MetceNs + "Volcano")
@@ -1244,7 +1380,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 return null;
 
             string id = GetGmlId(volElem);
-            string name = volElem.Element(MetceNs + "name")?.Value ?? "UNKNOWN";
+            string? name = GetText(volElem.Element(MetceNs + "name"));
+            if (name == null)
+            {
+                errors.Add(MappingError(VolcanoNameMissingCode, $"The mandatory element metce:name of volcano '{id}' is missing or empty; no name is assumed.", id));
+                return null;
+            }
+
             XElement? ptElem = volElem.Element(MetceNs + "position")?.Element(GmlNs + "Point");
             GeoCoordinate? pos = ParseGmlPointElement(ptElem, id, errors);
             if (!pos.HasValue)

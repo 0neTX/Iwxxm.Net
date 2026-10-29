@@ -46,14 +46,27 @@ namespace Iwxxm.Net.Reports
         DateTimeOffset IssueTimeUtc { get; }
 
         /// <summary>
-        /// Gets the report status (e.g., <c>NORMAL</c>, <c>AMENDMENT</c>, <c>CORRECTION</c>).
+        /// Gets the report status (<c>reportStatus</c>: <c>NORMAL</c>, <c>AMENDMENT</c>, <c>CORRECTION</c>).
+        /// The attribute is required by the official schema; a missing or unknown value is a mapping error, never a default.
         /// </summary>
-        string ReportStatus { get; }
+        ReportStatus ReportStatus { get; }
 
         /// <summary>
-        /// Gets the operational usage indicator (<c>OPERATIONAL</c> or <c>NON-OPERATIONAL</c>).
+        /// Gets the permissible usage (<c>permissibleUsage</c>: <c>OPERATIONAL</c> or <c>NON-OPERATIONAL</c>).
+        /// The attribute is required by the official schema; a report without it is never presented as operational.
         /// </summary>
-        string PermissibleUsage { get; }
+        PermissibleUsage PermissibleUsage { get; }
+
+        /// <summary>
+        /// Gets the optional reason for non-operational data (<c>permissibleUsageReason</c>: <c>TEST</c> or <c>EXERCISE</c>),
+        /// or <c>null</c> when not reported.
+        /// </summary>
+        PermissibleUsageReason? PermissibleUsageReason { get; }
+
+        /// <summary>
+        /// Gets the optional human-readable <c>permissibleUsageSupplementary</c> text, or <c>null</c> when not reported.
+        /// </summary>
+        string? PermissibleUsageSupplementary { get; }
 
         /// <summary>
         /// Gets a value indicating whether TAC-to-XML translation failed (<c>translationFailedTAC</c> present).

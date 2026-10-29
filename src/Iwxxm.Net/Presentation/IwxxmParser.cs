@@ -19,6 +19,13 @@ namespace Iwxxm.Net
     /// and thread-safe; register one as a singleton.</para>
     /// <para>The static <c>Parse*</c> members are convenience wrappers over <see cref="Default"/>, an instance built with
     /// the default adapters and <see cref="IwxxmParserOptions.Default"/>.</para>
+    /// <para><b>Error contract.</b> Every member returning <see cref="Result{T}"/> reports I/O and adapter failures as
+    /// typed errors and never throws for them: <c>FILE-NOT-FOUND</c> (missing file or directory), <c>ACCESS-DENIED</c>
+    /// (permission denied, or the path is a directory), <c>FILE-READ-ERROR</c> (sharing violation, path too long, malformed
+    /// path, other I/O errors), <c>SCHEMA-VALIDATOR-ERROR</c>, <c>RULE-VALIDATOR-ERROR</c>, <c>MAPPER-ERROR</c> and
+    /// <c>GEOJSON-EXPORT-ERROR</c> (an adapter threw or returned nothing). Only argument validation throws:
+    /// <see cref="ArgumentNullException"/> for a <c>null</c> stream and <see cref="ArgumentException"/> for a <c>null</c>,
+    /// empty or whitespace file path.</para>
     /// </remarks>
     public sealed class IwxxmParser : IIwxxmReportDispatcher
     {
@@ -160,10 +167,34 @@ namespace Iwxxm.Net
         // Helpers
         // =====================================================================
 
-        private Result<string> ToGeoJsonResult(Result<IIwxxmReport> result, GeoJsonExportOptions? options) =>
-            result.IsSuccess
-                ? Result<string>.Success(_geoJsonExporter.Export(result.Value, options))
-                : Result<string>.Failure(result.Errors);
+        private Result<string> ToGeoJsonResult(Result<IIwxxmReport> result, GeoJsonExportOptions? options)
+        {
+            if (result.IsFailure)
+                return Result<string>.Failure(result.Errors);
+
+            try
+            {
+                string json = _geoJsonExporter.Export(result.Value, options);
+                if (json == null)
+                {
+                    return Result<string>.Failure(
+                        "GEOJSON-EXPORT-ERROR",
+                        "The GeoJSON exporter returned no document.",
+                        ErrorCategory.DomainMapping,
+                        result.Value.Id);
+                }
+
+                return Result<string>.Success(json);
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
+            {
+                return Result<string>.Failure(
+                    "GEOJSON-EXPORT-ERROR",
+                    $"The GeoJSON export failed: {ex.Message}",
+                    ErrorCategory.DomainMapping,
+                    result.Value.Id);
+            }
+        }
 
         internal static Result<T> WithUtf8Stream<T>(string xmlContent, Func<Stream, Result<T>> process)
         {
@@ -187,19 +218,34 @@ namespace Iwxxm.Net
             if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentException("File path cannot be null or whitespace.", nameof(filePath));
 
-            if (!File.Exists(filePath))
+            FileStream fileStream;
+            try
             {
-                return Result<T>.Failure(
-                    "FILE-NOT-FOUND",
-                    $"The specified {description} does not exist: '{filePath}'.",
-                    ErrorCategory.MalformedInput);
+                fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            }
+            catch (Exception ex) when (ex is FileNotFoundException || ex is DirectoryNotFoundException)
+            {
+                return FileFailure<T>("FILE-NOT-FOUND", $"The specified {description} does not exist: '{filePath}'.", filePath);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return FileFailure<T>("ACCESS-DENIED", $"Access to the specified {description} '{filePath}' is denied: {ex.Message}", filePath);
+            }
+            catch (Exception ex) when (ex is IOException || ex is NotSupportedException || ex is ArgumentException || ex is System.Security.SecurityException)
+            {
+                // IOException covers PathTooLongException and sharing violations; ArgumentException / NotSupportedException
+                // cover malformed paths (the null / whitespace check above is the only argument validation that throws).
+                return FileFailure<T>("FILE-READ-ERROR", $"The specified {description} '{filePath}' cannot be opened: {ex.Message}", filePath);
             }
 
-            using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (fileStream)
             {
                 return process(fileStream);
             }
         }
+
+        private static Result<T> FileFailure<T>(string code, string message, string filePath) =>
+            Result<T>.Failure(new ValidationError(code, message, ErrorCategory.MalformedInput, ValidationSeverity.Error, filePath));
 
         private static Result<TReport> CastReportResult<TReport>(Result<IIwxxmReport> result)
             where TReport : class, IIwxxmReport

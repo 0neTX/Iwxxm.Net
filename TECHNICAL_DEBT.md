@@ -37,18 +37,18 @@ The codebase is well structured and the pipeline is green (0 warnings, 82/82 tes
 | AUD-H2 | High | Mapping | Local `xlink:href="#id"` references never resolved | Open |
 | AUD-H3 | High | Domain/Mapping | AIRMET cancellation and most AIRMET content not modelled | Open |
 | AUD-H4 | High | Mapping | METAR/SPECI trend surface wind always lost | Open |
-| AUD-H5 | High | Mapping/Domain | Missing values replaced by invented defaults | Open |
+| AUD-H5 | High | Mapping/Domain | Missing values replaced by invented defaults | Resolved (Unreleased) |
 | AUD-H6 | High | Validation | TAF Schematron rule can never fire (XPath 1.0 `!=` semantics) | Resolved (Unreleased) |
 | AUD-H7 | High | DevOps | Local CI script can publish a package accidentally | Open |
 | AUD-H8 | High | Packaging | 48 `Iwxxm20252.Generated` types leak as public API | Resolved (Unreleased) |
 | AUD-M1 | Medium | GeoJSON | RFC 7946 right-hand rule not enforced | Open |
 | AUD-M2 | Medium | GeoJSON | Antimeridian crossings not split; naive bbox | Open |
 | AUD-M3 | Medium | GeoJSON | `NaN` written as a bare token (invalid JSON) | Open |
-| AUD-M4 | Medium | Presentation | Exceptions escape the `Result` contract | Open |
+| AUD-M4 | Medium | Presentation | Exceptions escape the `Result` contract | Resolved (Unreleased) |
 | AUD-M5 | Medium | Presentation | `Parse(string)` ignores the declared XML encoding | Open |
-| AUD-M6 | Medium | Domain | Equality / hash-code contracts broken in value objects | Partially resolved (`JetStream` exact equality); `GeoCoordinate`, `GeoPolygon` open |
-| AUD-M7 | Medium | Domain | Vertical limits modelled lossily (no reference, nil reason, unit) | Open |
-| AUD-M8 | Medium | Domain | Report metadata stringly typed, silently defaulted, incomplete | Open |
+| AUD-M6 | Medium | Domain | Equality / hash-code contracts broken in value objects | Resolved (Unreleased): `JetStream`, `GeoCoordinate`, `GeoPolygon` |
+| AUD-M7 | Medium | Domain | Vertical limits modelled lossily (no reference, nil reason, unit) | Resolved (Unreleased) |
+| AUD-M8 | Medium | Domain | Report metadata stringly typed, silently defaulted, incomplete | Partially resolved (Unreleased): enums, no defaulting, reason/supplementary added; translation metadata and interface segregation (DDD-04) open |
 | AUD-M9 | Medium | Mapping | Time context flattened (OBS/FCST, VAA +6/+12/+18 HR, trend indicators) | Open |
 | AUD-M10 | Medium | Mapping | CRS / axis order / dimension assumed, never read | Open |
 | AUD-M11 | Medium | Mapping | TAC qualifiers and NSW/NSC semantics dropped | Open |
@@ -62,8 +62,8 @@ The codebase is well structured and the pipeline is green (0 warnings, 82/82 tes
 | AUD-M19 | Medium | CI/CD | Over-broad permissions and fragile versioning | Open |
 | AUD-M20 | Medium | Testing | Architecture checks easy to bypass | Open |
 | AUD-M21 | Medium | Testing | Test-quality gaps (weak assertions, untested public APIs) | Open |
-| AUD-L1..L14 | Low | Various | See section 6 (AUD-L7 resolved: exact resource lookup) | Open |
-| AUD-U1..U8 | Improvement | API / DX | See section 7 | Open |
+| AUD-L1..L14 | Low | Various | See section 6 (AUD-L7 resolved: exact resource lookup; AUD-L10 invariants part resolved) | Open |
+| AUD-U1..U8 | Improvement | API / DX | See section 7 (AUD-U7 resolved, AUD-U8 partially resolved) | Open |
 | AUD-A1 | Medium | Architecture | Naming, Clean Code and Hexagonal deviations | Partially resolved (Unreleased): section 8.3 (Hexagonal) resolved; sections 8.1 (naming) and 8.2 (Clean Code) open |
 | AUD-N1 | Critical (candidate) | Validation | `XDocument.Validate` recursion: deeply nested input may cause an uncatchable `StackOverflowException` (regression from streaming validation) | Open — under review |
 | AUD-N2 | Medium | Validation | Shared `XmlSchemaSet` used by concurrent `XDocument.Validate` calls; thread safety unverified, no concurrency test | Open — under review |
@@ -148,6 +148,7 @@ The codebase is well structured and the pipeline is green (0 warnings, 82/82 tes
 - QVACI density defaults to `0.0` (`:692`); volcano name defaults to `"UNKNOWN"`.
 - `reportStatus` / `permissibleUsage` default to `NORMAL` / `OPERATIONAL` in every `Create` (e.g. `AerodromeReports.cs:239`) — can turn a TEST message into an operational one. `MeteorologicalBulletin.cs:21-22,81` hard-codes metadata and `MinValue`.
 - **Fix**: return an error or keep the field nullable.
+- **Status — Resolved (Unreleased)**: required content (official XSD `use="required"` / no `minOccurs="0"`) that is absent is a `DomainMapping` error (`ACL-ISSUE-TIME-MISSING`, `ACL-OBSERVATION-TIME-MISSING`, `ACL-VALID-PERIOD-MISSING`, `ACL-REPORT-STATUS-*`, `ACL-PERMISSIBLE-USAGE-*`, `ACL-ASH-DENSITY-MISSING`, `ACL-VOLCANO-NAME-MISSING`); optional, nil or unresolved-`xlink:href` content maps to `null` (`ObservationTimeUtc`, SIGMET/AIRMET validity, `Volcano.Name`, `RunwayDesignator`, SIGWX cloud/turbulence/icing references, `Tropopause.LevelType`); unparseable times are reported (`ACL-TIME-INVALID`); transport-model defaults and `MeasureType.Value = 0` removed; bulletin metadata derived from its reports. `issueTime` given only by `xlink:href` is reported as an error (href resolution remains AUD-H2). Tests: `ReportMetadataAndNoInventedValuesTests` (including a sentinel scan of all 29 official examples).
 
 ### AUD-H6 — TAF Schematron rule can never fire
 - **Where**: `iwxxm-2025-2-sigwx.xslt:325` — `(@isCancelReport != 'true')` is false in XPath 1.0 when the attribute is absent, so a TAF without `baseForecast` passes.
@@ -183,11 +184,11 @@ The codebase is well structured and the pipeline is green (0 warnings, 82/82 tes
 | AUD-M1 | `Rfc7946GeoJsonExporter.cs:560-569` | Rings written in source order; `sigmet-VA-EGGX.xml` exterior is clockwise → spherical renderers (d3-geo) draw the complement. | Compute signed area; exterior CCW, holes CW. |
 | AUD-M2 | `Rfc7946GeoJsonExporter.cs:587-602` | No antimeridian splitting; bbox is plain min/max. | Split per RFC 7946 §3.1.9; west > east bbox per §5.2. |
 | AUD-M3 | `IwxxmSuiteMapper.cs:994`, `Rfc7946GeoJsonExporter.cs:803` | `NaN` accepted and emitted as bare `NaN`. | Reject non-finite values or write `null`. |
-| AUD-M4 | `IwxxmParser.cs:96,104,190,204,216,228`; `IwxxmSigwxParser.cs:102`; `DispatchIwxxmReportUseCase.cs:90-108` | `FileStream` / exporter / pipeline exceptions escape although README promises a non-throwing API. | Wrap I/O and each pipeline step; map to error codes; document argument exceptions. |
+| AUD-M4 | `IwxxmParser.cs:96,104,190,204,216,228`; `IwxxmSigwxParser.cs:102`; `DispatchIwxxmReportUseCase.cs:90-108` | `FileStream` / exporter / pipeline exceptions escape although README promises a non-throwing API. | Wrap I/O and each pipeline step; map to error codes; document argument exceptions. **Resolved (Unreleased)**: `FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, `SCHEMA-VALIDATOR-ERROR`, `RULE-VALIDATOR-ERROR`, `MAPPER-ERROR`, `GEOJSON-EXPORT-ERROR`; only null/whitespace arguments throw (`FacadeErrorContractTests`). |
 | AUD-M5 | `IwxxmParser.cs:80,167`; `IwxxmSigwxParser.cs:79` | String converted to UTF-8 bytes and read as a byte stream → `encoding="UTF-16"` fails, `ISO-8859-1` produces mojibake. | Use a `TextReader` path (`StringReader`). |
-| AUD-M6 | `GeoCoordinate.cs:59,67`; `JetStream.cs:112`; `GeoPolygon.cs:97` | Tolerance equality with non-tolerant hash; non-transitive; holes compared by count only. | Quantize once and compare exactly; compare ring contents. |
-| AUD-M7 | `FlightLevel.cs:15,44-46`; `IwxxmSuiteMapper.cs:1008-1016` | Single `int`; no SFC/MSL/STD reference, no nil reason; metres AMSL turned into FL ("15KM AMSL" → FL492); `UNL` / unknown units → `null`. | Introduce a `VerticalLimit` value object (value, unit, reference, nil reason). |
-| AUD-M8 | `IIwxxmReport.cs:51,56`; `MeteorologicalBulletin.cs` | Status/usage as strings; missing `permissibleUsageReason`, `permissibleUsageSupplementary`, translation metadata; bulletin metadata forced onto `IIwxxmReport`. | Enums; fail on missing; add fields; segregate interfaces. |
+| AUD-M6 | `GeoCoordinate.cs:59,67`; `JetStream.cs:112`; `GeoPolygon.cs:97` | Tolerance equality with non-tolerant hash; non-transitive; holes compared by count only. | Quantize once and compare exactly; compare ring contents. **Resolved (Unreleased)**: 1e-7 quantization at construction, exact equality, interior rings compared and hashed (`GeoEqualityContractTests`). |
+| AUD-M7 | `FlightLevel.cs:15,44-46`; `IwxxmSuiteMapper.cs:1008-1016` | Single `int`; no SFC/MSL/STD reference, no nil reason; metres AMSL turned into FL ("15KM AMSL" → FL492); `UNL` / unknown units → `null`. | Introduce a `VerticalLimit` value object (value, unit, reference, nil reason). **Resolved (Unreleased)**: `VerticalLimit` (value, `VerticalUnit`, `VerticalReference`, `GND`/`UNL`/`FLOOR`/`CEILING`, nil reason) for SIGMET, AIRMET, VAA, VONA, QVACI and SIGWX (limits, jet-stream and tropopause levels); `AsFlightLevel()` for STD only; GeoJSON emits value, unit and reference. Space-weather region limits are still not modelled. |
+| AUD-M8 | `IIwxxmReport.cs:51,56`; `MeteorologicalBulletin.cs` | Status/usage as strings; missing `permissibleUsageReason`, `permissibleUsageSupplementary`, translation metadata; bulletin metadata forced onto `IIwxxmReport`. | Enums; fail on missing; add fields; segregate interfaces. **Partially resolved (Unreleased)**: `ReportStatus`, `PermissibleUsage`, `PermissibleUsageReason` enums, mapping errors when missing/unknown, `PermissibleUsageSupplementary`; bulletin metadata derived from its reports. Open: translation metadata, `IMeteorologicalReport` / `IBulletinEnvelope` segregation (DDD-04). |
 | AUD-M9 | `IwxxmSuiteMapper.cs:432-467,757-770,1168-1209` | SIGMET `phenomenonTime` / `@timeIndicator`, VAA forecast times and `@status`, METAR trend `timeIndicator` not read. | Model time context per element. |
 | AUD-M10 | `IwxxmSuiteMapper.cs:1334,1357` | `srsName`, `axisLabels`, `srsDimension` ignored; dimension hard-coded to 2. | Read CRS metadata; swap axes when needed; support 3-D. |
 | AUD-M11 | `IwxxmSuiteMapper.cs:1151-1153,1186-1192` | RVR/wind operators, extreme wind directions, minimum visibility, vertical visibility, TAF TX/TN not read; NSW/NSC indistinguishable from "not reported". | Map the elements; preserve nil reasons. |
@@ -217,7 +218,7 @@ The codebase is well structured and the pipeline is green (0 warnings, 82/82 tes
 | AUD-L7 | Resolver | Case-insensitive suffix match can pick the wrong resource; `FileNotFoundException` lists all embedded names. |
 | AUD-L8 | Schematron | SIGWX-002 tests `< 41.0` m/s but message says 41.1 (80 kt = 41.16 m/s); SVRL locations are not real XPaths; warnings and `successful-report` fail the whole parse. |
 | AUD-L9 | GeoJSON | `G15` does not round-trip doubles (use `R`/`G17`); 3-position holes accepted; `null` in string list → `NullReferenceException` (`:845`); U+2028/2029 not escaped. |
-| AUD-L10 | Domain | Aerodrome/en-route "value objects" use reference equality; inconsistent invariants (empty AIRMET ATS unit allowed, `ValidUntil > ValidFrom` only checked for SIGWX, `*Utc` offsets not checked). |
+| AUD-L10 | Domain | Aerodrome/en-route "value objects" use reference equality; inconsistent invariants (empty AIRMET ATS unit allowed, `ValidUntil > ValidFrom` only checked for SIGWX, `*Utc` offsets not checked). **Invariants part resolved (Unreleased)**: homogeneous factory invariants (ordered periods, UTC offsets, ATS unit, direction 0-360, non-negative speed/visibility/RVR, defined enums; `AggregateInvariantTests`). Reference equality of the aerodrome/en-route value objects (DDD-09) remains open. |
 | AUD-L11 | Dockerfile | `nuget.config` not copied before restore; unnecessary `dotnet tool restore`; `.git` not in `.dockerignore`. |
 | AUD-L12 | Packaging | `GeneratePackageOnBuild=true` packs on every build (`Iwxxm.Net.csproj:11`). |
 | AUD-L13 | Documentation | `XML-SIZE-LIMIT-EXCEEDED` vs actual `XML-SIZE-LIMIT` (`README:573`); ".NET 8.0 SDK container" vs `sdk:9.0` (`README:645`); "never throws" claim; CHANGELOG lists non-existent `collect-A3-1-A3-2.xml`; benchmark command lacks `-- --filter '*'`. |
@@ -235,8 +236,8 @@ The codebase is well structured and the pipeline is green (0 warnings, 82/82 tes
 | AUD-U4 | Partial results for bulletins (successful reports + per-item errors). |
 | AUD-U5 | Separate warnings from errors; succeed with warnings. |
 | AUD-U6 | Richer `Result<T>`: `Map`, `Bind`, `Match`, `TryGetValue`. |
-| AUD-U7 | `VerticalLimit` value object (value, unit, reference, nil reason) with FL as a derived view. |
-| AUD-U8 | Enums for `reportStatus` / `permissibleUsage` and full translation metadata. |
+| AUD-U7 | `VerticalLimit` value object (value, unit, reference, nil reason) with FL as a derived view. **Resolved (Unreleased).** |
+| AUD-U8 | Enums for `reportStatus` / `permissibleUsage` and full translation metadata. **Partially resolved (Unreleased)**: enums done; translation metadata open. |
 
 ## 8. Naming, Clean Code & Hexagonal Architecture
 

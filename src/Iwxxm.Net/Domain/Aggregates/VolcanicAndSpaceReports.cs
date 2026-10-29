@@ -8,20 +8,22 @@ namespace Iwxxm.Net.Reports
     /// <summary>
     /// Immutable Value Object representing a quantitative volcanic ash concentration cloud contour
     /// inside a <see cref="QvaciReport"/> (<c>QuantitativeVolcanicAshConcentrationInformation</c>).
+    /// <see cref="AshDensityMgPerM3"/> is the reported <c>ashDensityEqualsOrExceeds</c> (mandatory in <c>qvaci.xsd</c>);
+    /// vertical limits keep the reported value, unit and reference.
     /// </summary>
     public sealed class VolcanicAshConcentrationCloud
     {
         public string Id { get; }
         public GeoPolygon Area { get; }
-        public FlightLevel? LowerLimit { get; }
-        public FlightLevel? UpperLimit { get; }
+        public VerticalLimit? LowerLimit { get; }
+        public VerticalLimit? UpperLimit { get; }
         public double AshDensityMgPerM3 { get; }
 
         public VolcanicAshConcentrationCloud(
             string id,
             GeoPolygon area,
-            FlightLevel? lowerLimit,
-            FlightLevel? upperLimit,
+            VerticalLimit? lowerLimit,
+            VerticalLimit? upperLimit,
             double ashDensityMgPerM3)
         {
             Id = id ?? string.Empty;
@@ -41,8 +43,10 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType => IwxxmReportType.VolcanoObservatoryNotice;
         public DateTimeOffset IssueTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public string OriginatingCentre { get; }
         public string? OriginatingCentreDesignator { get; }
         public string? StateOrRegion { get; }
@@ -55,13 +59,17 @@ namespace Iwxxm.Net.Reports
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
         public IReadOnlyList<Volcano> Volcanoes { get; }
-        public FlightLevel? AshCloudElevation { get; }
+
+        /// <summary>Ash cloud elevation as reported (value, unit and vertical reference), or <c>null</c> when not reported.</summary>
+        public VerticalLimit? AshCloudElevation { get; }
 
         private VonaReport(
             string id,
             DateTimeOffset issueTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             string originatingCentre,
             string? originatingCentreDesignator,
             string? stateOrRegion,
@@ -74,12 +82,14 @@ namespace Iwxxm.Net.Reports
             bool isTranslationFailed,
             string? translationFailedTac,
             IReadOnlyList<Volcano> volcanoes,
-            FlightLevel? ashCloudElevation)
+            VerticalLimit? ashCloudElevation)
         {
             Id = id;
             IssueTimeUtc = issueTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             OriginatingCentre = originatingCentre;
             OriginatingCentreDesignator = originatingCentreDesignator;
             StateOrRegion = stateOrRegion;
@@ -98,8 +108,8 @@ namespace Iwxxm.Net.Reports
         public static Result<VonaReport> Create(
             string id,
             DateTimeOffset issueTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             string originatingCentre,
             string? originatingCentreDesignator = null,
             string? stateOrRegion = null,
@@ -112,21 +122,27 @@ namespace Iwxxm.Net.Reports
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
             IEnumerable<Volcano>? volcanoes = null,
-            FlightLevel? ashCloudElevation = null)
+            VerticalLimit? ashCloudElevation = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-VONA-ID", "The VONA report gml:id identifier is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+
+            if (invariants.HasErrors)
             {
-                return Result<VonaReport>.Failure(
-                    "DOMAIN-VONA-ID",
-                    "The VONA report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                return Result<VonaReport>.Failure(invariants.Errors);
             }
 
             return Result<VonaReport>.Success(new VonaReport(
                 id,
                 issueTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 originatingCentre ?? string.Empty,
                 originatingCentreDesignator,
                 stateOrRegion,
@@ -152,8 +168,10 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType => IwxxmReportType.QuantitativeVolcanicAshConcentration;
         public DateTimeOffset IssueTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public string OriginatingCentre { get; }
         public string? OriginatingCentreDesignator { get; }
         public DateTimeOffset? DispersionModelInitialisationTimeUtc { get; }
@@ -166,8 +184,10 @@ namespace Iwxxm.Net.Reports
         private QvaciReport(
             string id,
             DateTimeOffset issueTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             string originatingCentre,
             string? originatingCentreDesignator,
             DateTimeOffset? dispersionModelInitialisationTimeUtc,
@@ -181,6 +201,8 @@ namespace Iwxxm.Net.Reports
             IssueTimeUtc = issueTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             OriginatingCentre = originatingCentre;
             OriginatingCentreDesignator = originatingCentreDesignator;
             DispersionModelInitialisationTimeUtc = dispersionModelInitialisationTimeUtc;
@@ -194,8 +216,8 @@ namespace Iwxxm.Net.Reports
         public static Result<QvaciReport> Create(
             string id,
             DateTimeOffset issueTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             string originatingCentre,
             string? originatingCentreDesignator = null,
             DateTimeOffset? dispersionModelInitialisationTimeUtc = null,
@@ -203,21 +225,28 @@ namespace Iwxxm.Net.Reports
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
             IEnumerable<Volcano>? volcanoes = null,
-            IEnumerable<VolcanicAshConcentrationCloud>? ashConcentrationClouds = null)
+            IEnumerable<VolcanicAshConcentrationCloud>? ashConcentrationClouds = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-QVACI-ID", "The QVACI report gml:id identifier is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireUtc(dispersionModelInitialisationTimeUtc, "dispersion model initialisation time");
+
+            if (invariants.HasErrors)
             {
-                return Result<QvaciReport>.Failure(
-                    "DOMAIN-QVACI-ID",
-                    "The QVACI report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                return Result<QvaciReport>.Failure(invariants.Errors);
             }
 
             return Result<QvaciReport>.Success(new QvaciReport(
                 id,
                 issueTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 originatingCentre ?? string.Empty,
                 originatingCentreDesignator,
                 dispersionModelInitialisationTimeUtc,
@@ -238,8 +267,10 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType => IwxxmReportType.VolcanicAshAdvisory;
         public DateTimeOffset IssueTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public string IssuingVaacName { get; }
         public Volcano? Volcano { get; }
         public string? StateOrRegion { get; }
@@ -257,8 +288,10 @@ namespace Iwxxm.Net.Reports
         private VolcanicAshAdvisoryReport(
             string id,
             DateTimeOffset issueTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             string issuingVaacName,
             Volcano? volcano,
             string? stateOrRegion,
@@ -277,6 +310,8 @@ namespace Iwxxm.Net.Reports
             IssueTimeUtc = issueTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             IssuingVaacName = issuingVaacName;
             Volcano = volcano;
             StateOrRegion = stateOrRegion;
@@ -295,8 +330,8 @@ namespace Iwxxm.Net.Reports
         public static Result<VolcanicAshAdvisoryReport> Create(
             string id,
             DateTimeOffset issueTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             string issuingVaacName,
             Volcano? volcano = null,
             string? stateOrRegion = null,
@@ -309,21 +344,32 @@ namespace Iwxxm.Net.Reports
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
             IEnumerable<EnRoutePhenomenonVolume>? observedAshClouds = null,
-            IEnumerable<EnRoutePhenomenonVolume>? forecastAshClouds = null)
+            IEnumerable<EnRoutePhenomenonVolume>? forecastAshClouds = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-VAA-ID", "The VolcanicAshAdvisory report gml:id identifier is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireUtc(nextAdvisoryTimeUtc, "next advisory time");
+            foreach (EnRoutePhenomenonVolume cloud in (observedAshClouds ?? Enumerable.Empty<EnRoutePhenomenonVolume>()).Concat(forecastAshClouds ?? Enumerable.Empty<EnRoutePhenomenonVolume>()))
             {
-                return Result<VolcanicAshAdvisoryReport>.Failure(
-                    "DOMAIN-VAA-ID",
-                    "The VolcanicAshAdvisory report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                invariants.Check(cloud);
+            }
+
+            if (invariants.HasErrors)
+            {
+                return Result<VolcanicAshAdvisoryReport>.Failure(invariants.Errors);
             }
 
             return Result<VolcanicAshAdvisoryReport>.Success(new VolcanicAshAdvisoryReport(
                 id,
                 issueTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 issuingVaacName ?? string.Empty,
                 volcano,
                 stateOrRegion,
@@ -372,8 +418,10 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType => IwxxmReportType.TropicalCycloneAdvisory;
         public DateTimeOffset IssueTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public string IssuingTcacDesignator { get; }
         public string? CycloneName { get; }
         public string? AdvisoryNumber { get; }
@@ -387,8 +435,10 @@ namespace Iwxxm.Net.Reports
         private TropicalCycloneAdvisoryReport(
             string id,
             DateTimeOffset issueTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             string issuingTcacDesignator,
             string? cycloneName,
             string? advisoryNumber,
@@ -403,6 +453,8 @@ namespace Iwxxm.Net.Reports
             IssueTimeUtc = issueTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             IssuingTcacDesignator = issuingTcacDesignator;
             CycloneName = cycloneName;
             AdvisoryNumber = advisoryNumber;
@@ -417,8 +469,8 @@ namespace Iwxxm.Net.Reports
         public static Result<TropicalCycloneAdvisoryReport> Create(
             string id,
             DateTimeOffset issueTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             string issuingTcacDesignator,
             string? cycloneName = null,
             string? advisoryNumber = null,
@@ -427,21 +479,33 @@ namespace Iwxxm.Net.Reports
             string? remarks = null,
             DateTimeOffset? nextAdvisoryTimeUtc = null,
             bool isTranslationFailed = false,
-            string? translationFailedTac = null)
+            string? translationFailedTac = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-TCA-ID", "The TropicalCycloneAdvisory report gml:id identifier is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireUtc(nextAdvisoryTimeUtc, "next advisory time");
+            invariants.Check(observation, "observed tropical cyclone");
+            foreach (TropicalCycloneTrackPoint forecast in forecasts ?? Enumerable.Empty<TropicalCycloneTrackPoint>())
             {
-                return Result<TropicalCycloneAdvisoryReport>.Failure(
-                    "DOMAIN-TCA-ID",
-                    "The TropicalCycloneAdvisory report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                invariants.Check(forecast, "forecast tropical cyclone");
+            }
+
+            if (invariants.HasErrors)
+            {
+                return Result<TropicalCycloneAdvisoryReport>.Failure(invariants.Errors);
             }
 
             return Result<TropicalCycloneAdvisoryReport>.Success(new TropicalCycloneAdvisoryReport(
                 id,
                 issueTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 issuingTcacDesignator ?? string.Empty,
                 cycloneName,
                 advisoryNumber,
@@ -492,8 +556,10 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType => IwxxmReportType.SpaceWeatherAdvisory;
         public DateTimeOffset IssueTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public string IssuingSwxcName { get; }
         public string? AdvisoryNumber { get; }
         public IReadOnlyList<string> ReplacedAdvisoryNumbers { get; }
@@ -507,8 +573,10 @@ namespace Iwxxm.Net.Reports
         private SpaceWeatherAdvisoryReport(
             string id,
             DateTimeOffset issueTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             string issuingSwxcName,
             string? advisoryNumber,
             IReadOnlyList<string> replacedAdvisoryNumbers,
@@ -523,6 +591,8 @@ namespace Iwxxm.Net.Reports
             IssueTimeUtc = issueTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             IssuingSwxcName = issuingSwxcName;
             AdvisoryNumber = advisoryNumber;
             ReplacedAdvisoryNumbers = replacedAdvisoryNumbers;
@@ -537,8 +607,8 @@ namespace Iwxxm.Net.Reports
         public static Result<SpaceWeatherAdvisoryReport> Create(
             string id,
             DateTimeOffset issueTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             string issuingSwxcName,
             string? advisoryNumber = null,
             IEnumerable<string>? replacedAdvisoryNumbers = null,
@@ -547,21 +617,32 @@ namespace Iwxxm.Net.Reports
             string? remarks = null,
             DateTimeOffset? nextAdvisoryTimeUtc = null,
             bool isTranslationFailed = false,
-            string? translationFailedTac = null)
+            string? translationFailedTac = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-SWX-ID", "The SpaceWeatherAdvisory report gml:id identifier is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireUtc(nextAdvisoryTimeUtc, "next advisory time");
+            foreach (SpaceWeatherAnalysisRegion analysis in analyses ?? Enumerable.Empty<SpaceWeatherAnalysisRegion>())
             {
-                return Result<SpaceWeatherAdvisoryReport>.Failure(
-                    "DOMAIN-SWX-ID",
-                    "The SpaceWeatherAdvisory report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                invariants.RequireUtc(analysis?.PhenomenonTimeUtc, "space weather analysis time");
+            }
+
+            if (invariants.HasErrors)
+            {
+                return Result<SpaceWeatherAdvisoryReport>.Failure(invariants.Errors);
             }
 
             return Result<SpaceWeatherAdvisoryReport>.Success(new SpaceWeatherAdvisoryReport(
                 id,
                 issueTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 issuingSwxcName ?? string.Empty,
                 advisoryNumber,
                 new ReadOnlyCollection<string>(replacedAdvisoryNumbers?.ToList() ?? new List<string>(0)),

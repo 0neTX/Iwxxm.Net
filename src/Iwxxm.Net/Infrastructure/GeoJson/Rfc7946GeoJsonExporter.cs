@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Infrastructure.Mapping;
 using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Infrastructure.GeoJson
@@ -10,7 +11,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
     /// <summary>
     /// Zero-dependency RFC 7946 GeoJSON exporter for all ICAO/WMO IWXXM 2025-2 Domain Aggregate Roots.
     /// Translates Domain spatial primitives (<see cref="GeoCoordinate"/>, <see cref="GeoPolygon"/> with interior holes,
-    /// <see cref="FlightLevel"/>) into RFC 7946 <c>FeatureCollection</c> JSON with <c>[longitude, latitude]</c> axis order.
+    /// <see cref="VerticalLimit"/>) into RFC 7946 <c>FeatureCollection</c> JSON with <c>[longitude, latitude]</c> axis order.
     /// </summary>
     internal sealed class Rfc7946GeoJsonExporter : IGeoJsonExporter
     {
@@ -47,8 +48,17 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             writer.WriteProperty("id", report.Id);
             writer.WriteProperty("reportType", report.ReportType.ToString());
             writer.WriteProperty("issueTimeUtc", report.IssueTimeUtc.ToString("O", CultureInfo.InvariantCulture));
-            writer.WriteProperty("reportStatus", report.ReportStatus);
-            writer.WriteProperty("permissibleUsage", report.PermissibleUsage);
+            writer.WriteProperty("reportStatus", ReportMetadataCodes.ToCode(report.ReportStatus));
+            writer.WriteProperty("permissibleUsage", ReportMetadataCodes.ToCode(report.PermissibleUsage));
+            if (report.PermissibleUsageReason.HasValue)
+            {
+                writer.WriteProperty("permissibleUsageReason", ReportMetadataCodes.ToCode(report.PermissibleUsageReason.Value));
+            }
+
+            if (report.PermissibleUsageSupplementary != null)
+            {
+                writer.WriteProperty("permissibleUsageSupplementary", report.PermissibleUsageSupplementary);
+            }
             if (report is MeteorologicalBulletin bulletin)
             {
                 writer.WriteProperty("bulletinIdentifier", bulletin.BulletinIdentifier);
@@ -134,8 +144,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             foreach (var js in sigwx.JetStreams)
             {
                 var props = CreateBaseProperties(sigwx, "JETSTREAM", bulletinId);
-                props.Add(("coreFlightLevel", js.CoreFlightLevel.ToString()));
-                props.Add(("coreFlightLevelHundredFeet", js.CoreFlightLevel.Value));
+                AddVerticalLimit(props, "coreLevel", js.CoreLevel);
                 AddSpeed(props, "maxWindSpeed", js.MaxWindSpeed);
                 features.Add(GeoJsonFeatureEntry.CreateLineString(js.Id, js.AxisTrajectory, props, bbox));
 
@@ -144,7 +153,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                     var cp = js.CorePoints[i];
                     var cpProps = CreateBaseProperties(sigwx, "JETSTREAM_CORE_POINT", bulletinId);
                     cpProps.Add(("parentJetStreamId", js.Id));
-                    cpProps.Add(("flightLevel", cp.FlightLevel.ToString()));
+                    AddVerticalLimit(cpProps, "level", cp.Level);
                     AddSpeed(cpProps, "windSpeed", cp.WindSpeed);
                     features.Add(GeoJsonFeatureEntry.CreatePoint($"{js.Id}#core-{i + 1}", cp.Location, cpProps, bbox));
                 }
@@ -159,8 +168,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("cloudTypeUri", cloud.CloudType));
                 props.Add(("typeCode", cloud.TypeCode.ToString()));
                 props.Add(("typeNumericCode", cloud.TypeNumericCode));
-                props.Add(("baseFlightLevel", cloud.BaseFlightLevel?.ToString()));
-                props.Add(("topFlightLevel", cloud.TopFlightLevel.ToString()));
+                AddVerticalLimit(props, "base", cloud.Base);
+                AddVerticalLimit(props, "top", cloud.Top);
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(cloud.Id, cloud.Area, props, bbox));
             }
 
@@ -170,8 +179,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("degreeUri", turb.RawDegreeReference));
                 props.Add(("degree", turb.Degree.ToString()));
                 props.Add(("degreeNumericCode", turb.DegreeNumericCode));
-                props.Add(("baseFlightLevel", turb.BaseFlightLevel?.ToString()));
-                props.Add(("topFlightLevel", turb.TopFlightLevel.ToString()));
+                AddVerticalLimit(props, "base", turb.Base);
+                AddVerticalLimit(props, "top", turb.Top);
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(turb.Id, turb.Area, props, bbox));
             }
 
@@ -181,8 +190,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("degreeUri", icing.RawDegreeReference));
                 props.Add(("degree", icing.Degree.ToString()));
                 props.Add(("degreeNumericCode", icing.DegreeNumericCode));
-                props.Add(("baseFlightLevel", icing.BaseFlightLevel?.ToString()));
-                props.Add(("topFlightLevel", icing.TopFlightLevel.ToString()));
+                AddVerticalLimit(props, "base", icing.Base);
+                AddVerticalLimit(props, "top", icing.Top);
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(icing.Id, icing.Area, props, bbox));
             }
 
@@ -200,8 +209,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                     var sh = trop.SpotHeights[i];
                     var props = CreateBaseProperties(sigwx, "TROPOPAUSE_SPOT_HEIGHT", bulletinId);
                     props.Add(("levelModification", trop.LevelType));
-                    props.Add(("flightLevel", sh.FlightLevel.ToString()));
-                    props.Add(("flightLevelHundredFeet", sh.FlightLevel.Value));
+                    AddVerticalLimit(props, "level", sh.Level);
                     features.Add(GeoJsonFeatureEntry.CreatePoint($"{trop.Id}#spot-{i + 1}", sh.Location, props, bbox));
                 }
             }
@@ -244,7 +252,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             var props = CreateBaseProperties(report, report.ReportType == IwxxmReportType.Speci ? "SPECI_OBSERVATION" : "METAR_OBSERVATION", bulletinId);
             props.Add(("aerodromeDesignator", report.AerodromeDesignator));
             props.Add(("aerodromeName", report.AerodromeName));
-            props.Add(("observationTimeUtc", report.ObservationTimeUtc.ToString("O", CultureInfo.InvariantCulture)));
+            props.Add(("observationTimeUtc", report.ObservationTimeUtc?.ToString("O", CultureInfo.InvariantCulture)));
             props.Add(("isAutomatedStation", report.IsAutomatedStation));
             props.Add(("isNilObservation", report.IsNilObservation));
             props.Add(("cloudAndVisibilityOk", report.CloudAndVisibilityOk));
@@ -344,8 +352,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("firDesignator", firDesignator));
                 props.Add(("sequenceNumber", sequenceNumber));
                 props.Add(("phenomenonUri", phenomenonUri));
-                props.Add(("lowerLimit", vol.LowerLimit?.ToString()));
-                props.Add(("upperLimit", vol.UpperLimit?.ToString()));
+                AddVerticalLimit(props, "lowerLimit", vol.LowerLimit);
+                AddVerticalLimit(props, "upperLimit", vol.UpperLimit);
                 props.Add(("intensityChange", vol.IntensityChange));
                 props.Add(("directionOfMotionDegrees", vol.DirectionOfMotionDegrees));
                 AddSpeed(props, "speedOfMotion", vol.SpeedOfMotion);
@@ -376,7 +384,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("noticeNumber", vona.NoticeNumber));
                 props.Add(("currentColourCodeUri", vona.CurrentColourCodeUri));
                 props.Add(("previousColourCodeUri", vona.PreviousColourCodeUri));
-                props.Add(("ashCloudElevation", vona.AshCloudElevation?.ToString()));
+                AddVerticalLimit(props, "ashCloudElevation", vona.AshCloudElevation);
                 features.Add(GeoJsonFeatureEntry.CreatePoint(vol.Id, vol.Position, props, bbox));
             }
         }
@@ -400,8 +408,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             {
                 var props = CreateBaseProperties(qvaci, "ASH_CONCENTRATION_CLOUD", bulletinId);
                 props.Add(("ashDensityMgPerM3", cloud.AshDensityMgPerM3));
-                props.Add(("lowerLimit", cloud.LowerLimit?.ToString()));
-                props.Add(("upperLimit", cloud.UpperLimit?.ToString()));
+                AddVerticalLimit(props, "lowerLimit", cloud.LowerLimit);
+                AddVerticalLimit(props, "upperLimit", cloud.UpperLimit);
                 props.Add(("interiorHoleCount", cloud.Area.InteriorRings.Count));
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(cloud.Id, cloud.Area, props, bbox));
             }
@@ -428,8 +436,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 if (cloud.Area == null) continue;
                 var props = CreateBaseProperties(vaa, "OBSERVED_ASH_CLOUD", bulletinId);
                 props.Add(("advisoryNumber", vaa.AdvisoryNumber));
-                props.Add(("lowerLimit", cloud.LowerLimit?.ToString()));
-                props.Add(("upperLimit", cloud.UpperLimit?.ToString()));
+                AddVerticalLimit(props, "lowerLimit", cloud.LowerLimit);
+                AddVerticalLimit(props, "upperLimit", cloud.UpperLimit);
                 props.Add(("directionOfMotionDegrees", cloud.DirectionOfMotionDegrees));
                 AddSpeed(props, "speedOfMotion", cloud.SpeedOfMotion);
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(cloud.Id, cloud.Area, props, bbox));
@@ -440,8 +448,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 if (cloud.Area == null) continue;
                 var props = CreateBaseProperties(vaa, "FORECAST_ASH_CLOUD", bulletinId);
                 props.Add(("advisoryNumber", vaa.AdvisoryNumber));
-                props.Add(("lowerLimit", cloud.LowerLimit?.ToString()));
-                props.Add(("upperLimit", cloud.UpperLimit?.ToString()));
+                AddVerticalLimit(props, "lowerLimit", cloud.LowerLimit);
+                AddVerticalLimit(props, "upperLimit", cloud.UpperLimit);
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(cloud.Id, cloud.Area, props, bbox));
             }
         }
@@ -530,6 +538,27 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
         {
             props.Add((name, length?.Value));
             props.Add((name + "Uom", length?.UnitOfMeasure));
+        }
+
+        /// <summary>
+        /// Emits a vertical limit as reported: <c>{name}</c> holds the numeric value, <c>{name}Uom</c> the unit
+        /// (<c>FL</c>, <c>FT</c>, <c>M</c>, <c>SM</c>, <c>km</c>), <c>{name}Reference</c> the vertical reference
+        /// (<c>SFC</c>, <c>MSL</c>, <c>W84</c>, <c>STD</c>, <c>OTHER</c>), <c>{name}SpecialValue</c> <c>GND</c>/<c>UNL</c>/...,
+        /// <c>{name}NilReason</c> the nil reason and <c>{name}FlightLevel</c> the derived flight level (STD only).
+        /// Absent components are omitted; no conversion is applied.
+        /// </summary>
+        private static void AddVerticalLimit(List<(string Key, object? Value)> props, string name, VerticalLimit? limit)
+        {
+            if (!limit.HasValue)
+                return;
+
+            VerticalLimit value = limit.Value;
+            props.Add((name, value.Value));
+            props.Add((name + "Uom", value.UnitOfMeasure));
+            props.Add((name + "Reference", value.ReferenceCode));
+            props.Add((name + "SpecialValue", value.SpecialValueCode));
+            props.Add((name + "NilReason", value.IsNil ? (value.NilReason ?? "nil") : null));
+            props.Add((name + "FlightLevel", value.AsFlightLevel()?.ToString()));
         }
 
         private static List<(string Key, object? Value)> CreateBaseProperties(

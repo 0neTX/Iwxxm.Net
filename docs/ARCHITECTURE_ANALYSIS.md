@@ -252,25 +252,27 @@ La columna **Rompe API** indica si el cambio obliga a modificar código de los c
 
 ### 7.2 Ranking consolidado
 
-| # | Código | Criticidad | Alcance | Rompe API | Resumen | Referencias |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | **DDD-07** | Crítica | M (~10 ficheros, 41 puntos) | Sí (campos pasan a nullable) | Eliminar valores inventados por defecto | AUD-H5 |
-| 2 | **DDD-03** | Crítica | M | Sí | `ReportStatus` / `PermissibleUsage` tipados y sin *defaulting* | AUD-M8, AUD-U8 |
-| 3 | **DDD-08** | Alta | M–L | Sí | `VerticalLimit` con referencia vertical | AUD-M7, AUD-U7 |
-| 4 | **DDD-06** | Alta | S (2 ficheros) | No (cambia comportamiento) | Contrato `Equals` / `GetHashCode` de `GeoCoordinate` y `GeoPolygon` | AUD-M6 |
-| 5 | **CLN-04** | Alta | S (1–2 ficheros) | No | Excepciones de I/O fuera de `Result<T>` | AUD-M4 |
-| 6 | **DDD-05** | Alta | M | No (nuevos errores de creación) | Invariantes homogéneas en las fábricas `Create` | AUD-L10 |
-| 7 | **CLN-01** | Media | L (~1.360 líneas) | No | Descomponer `IwxxmSuiteMapper` | AUD-A1 §8.2 |
-| 8 | **CLN-05** | Media | L (~1.000 líneas) | No | Descomponer `SigwxMapper` | AUD-A1 §8.2 |
-| 9 | **CLN-02** | Media | M (~980 líneas) | Sí (Visitor en `IIwxxmReport`) | Visitor y descomposición del exportador GeoJSON | AUD-A1 §8.2 |
-| 10 | **DDD-09** | Media | S–M (6 tipos) | No (cambia comportamiento) | Igualdad estructural en VOs auxiliares | AUD-L10 |
-| 11 | **DDD-04** | Media | S–M | Sí | Segregar `IMeteorologicalReport` / `IBulletinEnvelope` | AUD-M8 |
-| 12 | **DDD-10** | Media | M | Sí | URIs de codelists traducidas en la ACL | AUD-A1 §8.2 |
-| 13 | **DDD-01** | Baja | L (transversal) | Sí | Nombres operativos (`Metar`, `Speci`, `Sigwx`, …) | AUD-A1 §8.1 |
-| 14 | **DDD-02** | Baja | S | Sí | Eliminar el sufijo `Info` | AUD-A1 §8.1 |
-| 15 | **CLN-03** | Baja | S (mecánico, ~5 ficheros → ~25) | No | Un tipo público por fichero | AUD-A1 §8.2 |
-| 16 | **CLN-06** | Baja | S | No | Comentarios veraces | AUD-M16, AUD-L1 |
-| 17 | **CLN-07** | Baja | S | No | Duplicación y números mágicos en `WmoCodes` | — |
+| # | Código | Criticidad | Alcance | Rompe API | Resumen | Referencias | Estado |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | **DDD-07** | Crítica | M (~10 ficheros, 41 puntos) | Sí (campos pasan a nullable) | Eliminar valores inventados por defecto | AUD-H5 | Implementado (Unreleased) |
+| 2 | **DDD-03** | Crítica | M | Sí | `ReportStatus` / `PermissibleUsage` tipados y sin *defaulting* | AUD-M8, AUD-U8 | Implementado (Unreleased); segregación de interfaces pendiente (DDD-04) |
+| 3 | **DDD-08** | Alta | M–L | Sí | `VerticalLimit` con referencia vertical | AUD-M7, AUD-U7 | Implementado (Unreleased) |
+| 4 | **DDD-06** | Alta | S (2 ficheros) | No (cambia comportamiento) | Contrato `Equals` / `GetHashCode` de `GeoCoordinate` y `GeoPolygon` | AUD-M6 | Implementado (Unreleased) |
+| 5 | **CLN-04** | Alta | S (1–2 ficheros) | No | Excepciones de I/O fuera de `Result<T>` | AUD-M4 | Implementado (Unreleased) |
+| 6 | **DDD-05** | Alta | M | No (nuevos errores de creación) | Invariantes homogéneas en las fábricas `Create` | AUD-L10 | Implementado (Unreleased) |
+| 7 | **CLN-01** | Media | L (~1.360 líneas) | No | Descomponer `IwxxmSuiteMapper` | AUD-A1 §8.2 | Pendiente |
+| 8 | **CLN-05** | Media | L (~1.000 líneas) | No | Descomponer `SigwxMapper` | AUD-A1 §8.2 | Pendiente |
+| 9 | **CLN-02** | Media | M (~980 líneas) | Sí (Visitor en `IIwxxmReport`) | Visitor y descomposición del exportador GeoJSON | AUD-A1 §8.2 | Pendiente |
+| 10 | **DDD-09** | Media | S–M (6 tipos) | No (cambia comportamiento) | Igualdad estructural en VOs auxiliares | AUD-L10 | Pendiente |
+| 11 | **DDD-04** | Media | S–M | Sí | Segregar `IMeteorologicalReport` / `IBulletinEnvelope` | AUD-M8 | Pendiente |
+| 12 | **DDD-10** | Media | M | Sí | URIs de codelists traducidas en la ACL | AUD-A1 §8.2 | Pendiente |
+| 13 | **DDD-01** | Baja | L (transversal) | Sí | Nombres operativos (`Metar`, `Speci`, `Sigwx`, …) | AUD-A1 §8.1 | Pendiente |
+| 14 | **DDD-02** | Baja | S | Sí | Eliminar el sufijo `Info` | AUD-A1 §8.1 | Pendiente |
+| 15 | **CLN-03** | Baja | S (mecánico, ~5 ficheros → ~25) | No | Un tipo público por fichero | AUD-A1 §8.2 | Pendiente |
+| 16 | **CLN-06** | Baja | S | No | Comentarios veraces | AUD-M16, AUD-L1 | Pendiente |
+| 17 | **CLN-07** | Baja | S | No | Duplicación y números mágicos en `WmoCodes` | — | Pendiente |
+
+> **Estado (Unreleased)**: los puntos 1 a 6 están implementados. Decisiones principales: (1) un dato obligatorio según el XSD oficial que falta es un error de mapeo; un dato opcional, nulo o dado solo por `xlink:href` (no resuelto) es `null`; (2) `ReportStatus`, `PermissibleUsage` y `PermissibleUsageReason` son enums y los metadatos de `MeteorologicalBulletin` se derivan de sus informes (hora de emisión más temprana; no operacional si algún informe lo es); (3) `VerticalLimit` conserva valor, unidad, referencia vertical, valor especial y `nilReason`, y `FlightLevel` es solo una vista derivada para STD; (4) `GeoCoordinate` se cuantiza a 1e-7 grados al construirse y se compara de forma exacta; (5) los fallos de E/S y de adaptadores se devuelven como errores tipados (`FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, ...); (6) las fábricas `Create` aplican invariantes físicas homogéneas: periodos ordenados, desfase UTC nulo, dirección en [0, 360], magnitudes no negativas, metadatos definidos y unidad ATS obligatoria en AIRMET. Las reglas de negocio del Schematron oficial no se duplican.
 
 > **Cambio respecto a la versión 1.0**: DDD-01 bajó de *Alta* a *Baja* y CLN-01 de *Crítica* a *Media*. No porque dejen de ser importantes, sino porque no generan datos erróneos: son deuda de mantenimiento. En cambio, los valores inventados (DDD-07) y el modelo vertical (DDD-08), que no figuraban, sí pueden mostrar al usuario información falsa con apariencia de válida.
 

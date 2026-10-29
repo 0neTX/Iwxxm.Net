@@ -12,21 +12,22 @@ namespace Iwxxm.Net.Reports
     public sealed class JetStreamCorePoint
     {
         public GeoCoordinate Location { get; }
-        public FlightLevel FlightLevel { get; }
+        /// <summary>Level of the core point as reported (value, unit and vertical reference; e.g. <c>15240 M MSL</c>).</summary>
+        public VerticalLimit Level { get; }
         /// <summary>Wind speed exactly as reported (<c>m/s</c> or <c>[kn_i]</c>).</summary>
         public Speed WindSpeed { get; }
-        public FlightLevel? LowerIsotachLimit { get; }
-        public FlightLevel? UpperIsotachLimit { get; }
+        public VerticalLimit? LowerIsotachLimit { get; }
+        public VerticalLimit? UpperIsotachLimit { get; }
 
         public JetStreamCorePoint(
             GeoCoordinate location,
-            FlightLevel flightLevel,
+            VerticalLimit level,
             Speed windSpeed,
-            FlightLevel? lowerIsotachLimit = null,
-            FlightLevel? upperIsotachLimit = null)
+            VerticalLimit? lowerIsotachLimit = null,
+            VerticalLimit? upperIsotachLimit = null)
         {
             Location = location;
-            FlightLevel = flightLevel;
+            Level = level;
             WindSpeed = windSpeed;
             LowerIsotachLimit = lowerIsotachLimit;
             UpperIsotachLimit = upperIsotachLimit;
@@ -41,7 +42,9 @@ namespace Iwxxm.Net.Reports
     {
         public string Id { get; }
         public IReadOnlyList<GeoCoordinate> AxisTrajectory { get; }
-        public FlightLevel CoreFlightLevel { get; }
+        /// <summary>Level of the maximum wind as reported (value, unit and vertical reference); use
+        /// <see cref="VerticalLimit.AsFlightLevel"/> for the flight-level view of STD levels.</summary>
+        public VerticalLimit CoreLevel { get; }
         /// <summary>Maximum wind speed exactly as reported (<c>m/s</c> or <c>[kn_i]</c>).</summary>
         public Speed MaxWindSpeed { get; }
         public IReadOnlyList<JetStreamCorePoint> CorePoints { get; }
@@ -49,13 +52,13 @@ namespace Iwxxm.Net.Reports
         private JetStream(
             string id,
             IReadOnlyList<GeoCoordinate> axisTrajectory,
-            FlightLevel coreFlightLevel,
+            VerticalLimit coreLevel,
             Speed maxWindSpeed,
             IReadOnlyList<JetStreamCorePoint> corePoints)
         {
             Id = id;
             AxisTrajectory = axisTrajectory;
-            CoreFlightLevel = coreFlightLevel;
+            CoreLevel = coreLevel;
             MaxWindSpeed = maxWindSpeed;
             CorePoints = corePoints;
         }
@@ -63,7 +66,7 @@ namespace Iwxxm.Net.Reports
         public static Result<JetStream> Create(
             string id,
             IEnumerable<GeoCoordinate> axisCoordinates,
-            FlightLevel coreFlightLevel,
+            VerticalLimit coreLevel,
             Speed maxWindSpeed,
             IEnumerable<JetStreamCorePoint>? corePoints = null)
         {
@@ -99,7 +102,7 @@ namespace Iwxxm.Net.Reports
             return Result<JetStream>.Success(new JetStream(
                 id,
                 new ReadOnlyCollection<GeoCoordinate>(trajectory),
-                coreFlightLevel,
+                coreLevel,
                 maxWindSpeed,
                 new ReadOnlyCollection<JetStreamCorePoint>(points)));
         }
@@ -109,7 +112,7 @@ namespace Iwxxm.Net.Reports
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
             return Id == other.Id &&
-                   CoreFlightLevel == other.CoreFlightLevel &&
+                   CoreLevel == other.CoreLevel &&
                    MaxWindSpeed == other.MaxWindSpeed &&
                    AxisTrajectory.SequenceEqual(other.AxisTrajectory);
         }
@@ -121,7 +124,7 @@ namespace Iwxxm.Net.Reports
             unchecked
             {
                 int hash = Id.GetHashCode();
-                hash = (hash * 397) ^ CoreFlightLevel.GetHashCode();
+                hash = (hash * 397) ^ CoreLevel.GetHashCode();
                 hash = (hash * 397) ^ MaxWindSpeed.GetHashCode();
                 return hash;
             }

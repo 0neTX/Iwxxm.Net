@@ -15,13 +15,19 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType => IwxxmReportType.SignificantWeather;
         public string IssuingCentre { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public DateTimeOffset IssueTimeUtc { get; }
         public DateTimeOffset ValidFromUtc { get; }
         public DateTimeOffset ValidUntilUtc { get; }
-        public FlightLevel LowerLimit { get; }
-        public FlightLevel UpperLimit { get; }
+
+        /// <summary>Lower limit of the bounding volume as reported (value, unit, vertical reference or nil reason).</summary>
+        public VerticalLimit LowerLimit { get; }
+
+        /// <summary>Upper limit of the bounding volume as reported (value, unit, vertical reference or nil reason).</summary>
+        public VerticalLimit UpperLimit { get; }
         public bool IsTranslationFailed => false;
         public string? TranslationFailedTac => null;
 
@@ -38,13 +44,15 @@ namespace Iwxxm.Net.Reports
         private SignificantWeatherReport(
             string id,
             string issuingCentre,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             DateTimeOffset issueTimeUtc,
             DateTimeOffset validFromUtc,
             DateTimeOffset validUntilUtc,
-            FlightLevel lowerLimit,
-            FlightLevel upperLimit,
+            VerticalLimit lowerLimit,
+            VerticalLimit upperLimit,
             IReadOnlyList<JetStream> jetStreams,
             IReadOnlyList<Cloud> clouds,
             IReadOnlyList<Tropopause> tropopauses,
@@ -59,6 +67,8 @@ namespace Iwxxm.Net.Reports
             IssuingCentre = issuingCentre;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             IssueTimeUtc = issueTimeUtc;
             ValidFromUtc = validFromUtc;
             ValidUntilUtc = validUntilUtc;
@@ -78,13 +88,13 @@ namespace Iwxxm.Net.Reports
         public static Result<SignificantWeatherReport> Create(
             string id,
             string issuingCentre,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             DateTimeOffset issueTimeUtc,
             DateTimeOffset validFromUtc,
             DateTimeOffset validUntilUtc,
-            FlightLevel lowerLimit,
-            FlightLevel upperLimit,
+            VerticalLimit lowerLimit,
+            VerticalLimit upperLimit,
             IEnumerable<JetStream>? jetStreams = null,
             IEnumerable<Cloud>? clouds = null,
             IEnumerable<Tropopause>? tropopauses = null,
@@ -93,9 +103,16 @@ namespace Iwxxm.Net.Reports
             IEnumerable<AirframeIcing>? airframeIcings = null,
             IEnumerable<TropicalCyclone>? tropicalCyclones = null,
             IEnumerable<Sandstorm>? sandstorms = null,
-            IEnumerable<RadiationIncident>? radiationIncidents = null)
+            IEnumerable<RadiationIncident>? radiationIncidents = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            var errors = new List<ValidationError>();
+            var invariants = new DomainInvariants(id);
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireUtc(validFromUtc, "validity start");
+            invariants.RequireUtc(validUntilUtc, "validity end");
+            var errors = new List<ValidationError>(invariants.Errors);
 
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -125,7 +142,7 @@ namespace Iwxxm.Net.Reports
                     id));
             }
 
-            if (upperLimit <= lowerLimit)
+            if (upperLimit.TryCompareTo(lowerLimit, out int verticalOrder) && verticalOrder <= 0)
             {
                 errors.Add(new ValidationError(
                     "DOMAIN-SIGWX-VERTICAL-LIMITS",
@@ -143,8 +160,10 @@ namespace Iwxxm.Net.Reports
             return Result<SignificantWeatherReport>.Success(new SignificantWeatherReport(
                 id,
                 issuingCentre.Trim(),
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 issueTimeUtc,
                 validFromUtc,
                 validUntilUtc,
