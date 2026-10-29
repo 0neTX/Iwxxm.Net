@@ -11,9 +11,11 @@ namespace Iwxxm.Net.Reports
     public sealed class Cloud : IEquatable<Cloud>
     {
         public string Id { get; }
-        public string CloudAmount { get; }
+        /// <summary>Raw cloud distribution reference as reported; <c>null</c> when absent or nil (never invented).</summary>
+        public string? CloudAmount { get; }
         public CloudDistributionCode DistributionCode { get; }
-        public string CloudType { get; }
+        /// <summary>Raw cloud type reference as reported; <c>null</c> when absent or nil (never invented).</summary>
+        public string? CloudType { get; }
         public CloudTypeCode TypeCode { get; }
 
         /// <summary>
@@ -27,18 +29,20 @@ namespace Iwxxm.Net.Reports
         /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
         /// </summary>
         public int? TypeNumericCode => WmoCodeRegistry.TryGetNumericCode(CloudType, WmoCodeRegistry.CloudTypeTableUri);
-        public FlightLevel? BaseFlightLevel { get; }
-        public FlightLevel TopFlightLevel { get; }
+        /// <summary>Lower limit as reported (value, unit, vertical reference or nil reason); <c>null</c> when not reported.</summary>
+        public VerticalLimit? Base { get; }
+        /// <summary>Upper limit as reported (value, unit, vertical reference or nil reason).</summary>
+        public VerticalLimit Top { get; }
         public GeoPolygon Area { get; }
 
         private Cloud(
             string id,
-            string cloudAmount,
+            string? cloudAmount,
             CloudDistributionCode distributionCode,
-            string cloudType,
+            string? cloudType,
             CloudTypeCode typeCode,
-            FlightLevel? baseFlightLevel,
-            FlightLevel topFlightLevel,
+            VerticalLimit? baseLimit,
+            VerticalLimit topLimit,
             GeoPolygon area)
         {
             Id = id;
@@ -46,17 +50,17 @@ namespace Iwxxm.Net.Reports
             DistributionCode = distributionCode;
             CloudType = cloudType;
             TypeCode = typeCode;
-            BaseFlightLevel = baseFlightLevel;
-            TopFlightLevel = topFlightLevel;
+            Base = baseLimit;
+            Top = topLimit;
             Area = area;
         }
 
         public static Result<Cloud> Create(
             string id,
-            string cloudAmount,
-            string cloudType,
-            FlightLevel? baseFlightLevel,
-            FlightLevel topFlightLevel,
+            string? cloudAmount,
+            string? cloudType,
+            VerticalLimit? baseLimit,
+            VerticalLimit topLimit,
             GeoPolygon area)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -65,24 +69,6 @@ namespace Iwxxm.Net.Reports
                     "DOMAIN-CLOUD-ID",
                     "The cloud phenomenon gml:id identifier is required.",
                     ErrorCategory.DomainMapping);
-            }
-
-            if (string.IsNullOrWhiteSpace(cloudAmount))
-            {
-                return Result<Cloud>.Failure(
-                    "DOMAIN-CLOUD-AMOUNT",
-                    $"Cloud amount/distribution in '{id}' is required.",
-                    ErrorCategory.DomainMapping,
-                    id);
-            }
-
-            if (string.IsNullOrWhiteSpace(cloudType))
-            {
-                return Result<Cloud>.Failure(
-                    "DOMAIN-CLOUD-TYPE",
-                    $"Cloud type in '{id}' is required.",
-                    ErrorCategory.DomainMapping,
-                    id);
             }
 
             if (area == null)
@@ -94,11 +80,11 @@ namespace Iwxxm.Net.Reports
                     id);
             }
 
-            if (baseFlightLevel.HasValue && topFlightLevel <= baseFlightLevel.Value)
+            if (baseLimit.HasValue && topLimit.TryCompareTo(baseLimit.Value, out int order) && order <= 0)
             {
                 return Result<Cloud>.Failure(
                     "DOMAIN-CLOUD-VERTICAL-EXTENT",
-                    $"Cloud top flight level for '{id}' ({topFlightLevel}) must be strictly greater than its base ({baseFlightLevel.Value}).",
+                    $"Cloud top limit for '{id}' ({topLimit}) must be strictly greater than its base ({baseLimit.Value}).",
                     ErrorCategory.DomainMapping,
                     id);
             }
@@ -108,12 +94,12 @@ namespace Iwxxm.Net.Reports
 
             return Result<Cloud>.Success(new Cloud(
                 id,
-                cloudAmount.Trim(),
+                string.IsNullOrWhiteSpace(cloudAmount) ? null : cloudAmount!.Trim(),
                 distCode,
-                cloudType.Trim(),
+                string.IsNullOrWhiteSpace(cloudType) ? null : cloudType!.Trim(),
                 typeCode,
-                baseFlightLevel,
-                topFlightLevel,
+                baseLimit,
+                topLimit,
                 area));
         }
 
@@ -124,8 +110,8 @@ namespace Iwxxm.Net.Reports
             return Id == other.Id &&
                    CloudAmount == other.CloudAmount &&
                    CloudType == other.CloudType &&
-                   Nullable.Equals(BaseFlightLevel, other.BaseFlightLevel) &&
-                   TopFlightLevel == other.TopFlightLevel &&
+                   Nullable.Equals(Base, other.Base) &&
+                   Top == other.Top &&
                    Area.Equals(other.Area);
         }
 
@@ -136,9 +122,9 @@ namespace Iwxxm.Net.Reports
             unchecked
             {
                 int hash = Id.GetHashCode();
-                hash = (hash * 397) ^ CloudAmount.GetHashCode();
-                hash = (hash * 397) ^ CloudType.GetHashCode();
-                hash = (hash * 397) ^ TopFlightLevel.GetHashCode();
+                hash = (hash * 397) ^ (CloudAmount == null ? 0 : CloudAmount.GetHashCode());
+                hash = (hash * 397) ^ (CloudType == null ? 0 : CloudType.GetHashCode());
+                hash = (hash * 397) ^ Top.GetHashCode();
                 return hash;
             }
         }

@@ -9,7 +9,6 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Xml.Schema;
@@ -100,11 +99,12 @@ namespace Iwxxm20252.Generated
         [XmlIgnore]
         public bool IsNil => !string.IsNullOrWhiteSpace(NilReason) || string.IsNullOrWhiteSpace(RawValue);
 
+        /// <summary>Parsed numeric value, or <c>null</c> when the text is not a number (never defaulted to 0).</summary>
         [XmlIgnore]
-        public double Value =>
+        public double? Value =>
             double.TryParse(RawValue?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v)
                 ? v
-                : 0.0;
+                : (double?)null;
     }
 
     [Serializable]
@@ -386,13 +386,13 @@ namespace Iwxxm20252.Generated
         [XmlElement("upperCorner", Namespace = XmlNamespaces.Gml)]
         public DirectPositionType? UpperCorner { get; set; }
 
-        [XmlElement("upperElevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        [XmlElement("upperElevation", Namespace = XmlNamespaces.Iwxxm)]
         public MeasureType? UpperElevation { get; set; }
 
         [XmlElement("upperVerticalReference", Namespace = XmlNamespaces.Iwxxm)]
         public string? UpperVerticalReference { get; set; }
 
-        [XmlElement("lowerElevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        [XmlElement("lowerElevation", Namespace = XmlNamespaces.Iwxxm)]
         public MeasureType? LowerElevation { get; set; }
 
         [XmlElement("lowerVerticalReference", Namespace = XmlNamespaces.Iwxxm)]
@@ -413,7 +413,7 @@ namespace Iwxxm20252.Generated
     [XmlType("ElevatedPointType", Namespace = XmlNamespaces.Iwxxm)]
     internal partial class ElevatedPointType : PointType
     {
-        [XmlElement("elevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        [XmlElement("elevation", Namespace = XmlNamespaces.Iwxxm)]
         public MeasureType? Elevation { get; set; }
 
         [XmlElement("verticalReference", Namespace = XmlNamespaces.Iwxxm)]
@@ -434,7 +434,7 @@ namespace Iwxxm20252.Generated
     [XmlType("ElevatedLevelType", Namespace = XmlNamespaces.Iwxxm)]
     internal partial class ElevatedLevelType : AbstractGMLType
     {
-        [XmlElement("elevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        [XmlElement("elevation", Namespace = XmlNamespaces.Iwxxm)]
         public MeasureType? Elevation { get; set; }
 
         [XmlElement("verticalReference", Namespace = XmlNamespaces.Iwxxm)]
@@ -449,13 +449,13 @@ namespace Iwxxm20252.Generated
         [XmlElement("patches", Namespace = XmlNamespaces.Gml)]
         public SurfacePatchArrayPropertyType? Patches { get; set; }
 
-        [XmlElement("upperElevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        [XmlElement("upperElevation", Namespace = XmlNamespaces.Iwxxm)]
         public MeasureType? UpperElevation { get; set; }
 
         [XmlElement("upperVerticalReference", Namespace = XmlNamespaces.Iwxxm)]
         public string? UpperVerticalReference { get; set; }
 
-        [XmlElement("lowerElevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        [XmlElement("lowerElevation", Namespace = XmlNamespaces.Iwxxm)]
         public MeasureType? LowerElevation { get; set; }
 
         [XmlElement("lowerVerticalReference", Namespace = XmlNamespaces.Iwxxm)]
@@ -485,13 +485,13 @@ namespace Iwxxm20252.Generated
         [XmlElement("windSpeed", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
         public MeasureType? WindSpeed { get; set; }
 
-        [XmlElement("IsotachUpperElevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        [XmlElement("IsotachUpperElevation", Namespace = XmlNamespaces.Iwxxm)]
         public MeasureType? IsotachUpperElevation { get; set; }
 
         [XmlElement("IsotachUpperVerticalReference", Namespace = XmlNamespaces.Iwxxm)]
         public string? IsotachUpperVerticalReference { get; set; }
 
-        [XmlElement("IsotachLowerElevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        [XmlElement("IsotachLowerElevation", Namespace = XmlNamespaces.Iwxxm)]
         public MeasureType? IsotachLowerElevation { get; set; }
 
         [XmlElement("IsotachLowerVerticalReference", Namespace = XmlNamespaces.Iwxxm)]
@@ -687,16 +687,18 @@ namespace Iwxxm20252.Generated
         [XmlElement("feature", Namespace = XmlNamespaces.Iwxxm)]
         public List<MeteorologicalFeaturePropertyType> Features { get; set; } = new List<MeteorologicalFeaturePropertyType>();
 
+        // Required attributes (common.xsd): no default value, a missing attribute stays null (never invented).
         [XmlAttribute("reportStatus")]
-        [DefaultValue("NORMAL")]
-        public string ReportStatus { get; set; } = "NORMAL";
+        public string? ReportStatus { get; set; }
 
         [XmlAttribute("permissibleUsage")]
-        [DefaultValue("OPERATIONAL")]
-        public string PermissibleUsage { get; set; } = "OPERATIONAL";
+        public string? PermissibleUsage { get; set; }
 
         [XmlAttribute("permissibleUsageReason")]
         public string? PermissibleUsageReason { get; set; }
+
+        [XmlAttribute("permissibleUsageSupplementary")]
+        public string? PermissibleUsageSupplementary { get; set; }
     }
 
     // =========================================================================
@@ -847,12 +849,17 @@ namespace Iwxxm20252.Generated
         [XmlElement("volcano", Namespace = XmlNamespaces.Iwxxm)]
         public List<WAFSVolcanoType> Volcanoes { get; set; } = new List<WAFSVolcanoType>();
 
+        // Required attributes (common.xsd): no default value, a missing attribute stays null (never invented).
         [XmlAttribute("reportStatus")]
-        [DefaultValue("NORMAL")]
-        public string ReportStatus { get; set; } = "NORMAL";
+        public string? ReportStatus { get; set; }
 
         [XmlAttribute("permissibleUsage")]
-        [DefaultValue("OPERATIONAL")]
-        public string PermissibleUsage { get; set; } = "OPERATIONAL";
+        public string? PermissibleUsage { get; set; }
+
+        [XmlAttribute("permissibleUsageReason")]
+        public string? PermissibleUsageReason { get; set; }
+
+        [XmlAttribute("permissibleUsageSupplementary")]
+        public string? PermissibleUsageSupplementary { get; set; }
     }
 }

@@ -43,12 +43,28 @@ namespace Iwxxm.Net.Tests
         public void Read_NilledNullableElementYieldsNull()
         {
             var element = XElement.Parse(
+                $"<iwxxm:WAFSJetStreamWindSymbol xmlns:iwxxm='{Iwxxm}' xmlns:xsi='{Xsi}'>" +
+                "<iwxxm:windSpeed xsi:nil='true' nilReason='missing'/></iwxxm:WAFSJetStreamWindSymbol>");
+
+            var dto = AttributeDrivenXmlReader.Read<WAFSJetStreamWindSymbolType>(element);
+
+            Assert.Null(dto.WindSpeed);
+        }
+
+        [Fact]
+        public void Read_NilledElevationKeepsItsNilReason()
+        {
+            // Vertical measures are not declared nullable so that the nilReason reaches VerticalLimit.Nil (DDD-08).
+            var element = XElement.Parse(
                 $"<iwxxm:ElevatedLevel xmlns:iwxxm='{Iwxxm}' xmlns:xsi='{Xsi}'>" +
                 "<iwxxm:elevation xsi:nil='true' nilReason='missing'/></iwxxm:ElevatedLevel>");
 
             var dto = AttributeDrivenXmlReader.Read<ElevatedLevelType>(element);
 
-            Assert.Null(dto.Elevation);
+            Assert.NotNull(dto.Elevation);
+            Assert.True(dto.Elevation!.IsNil);
+            Assert.Equal("missing", dto.Elevation.NilReason);
+            Assert.Null(dto.Elevation.Value);
         }
 
         [Fact]

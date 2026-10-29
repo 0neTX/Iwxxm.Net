@@ -46,7 +46,7 @@ namespace Iwxxm.Net.Application.UseCases
             // Step 1: Structural validation against the official IWXXM 2025-2 / COLLECT schema closure
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                var schemaErrors = _schemaValidator.Validate(view);
+                var schemaErrors = PipelineGuard.Validate(() => _schemaValidator.Validate(view), PipelineGuard.SchemaValidatorErrorCode, ErrorCategory.SchemaViolation, "schema validator");
                 if (schemaErrors.Count > 0)
                 {
                     return Result<IIwxxmReport>.Failure(schemaErrors);
@@ -56,7 +56,7 @@ namespace Iwxxm.Net.Application.UseCases
             // Step 2: Business-rule and code-list validation
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                var ruleErrors = _schematronValidator.Validate(view);
+                var ruleErrors = PipelineGuard.Validate(() => _schematronValidator.Validate(view), PipelineGuard.RuleValidatorErrorCode, ErrorCategory.BusinessRuleViolation, "business-rule validator");
                 if (ruleErrors.Count > 0)
                 {
                     return Result<IIwxxmReport>.Failure(ruleErrors);
@@ -66,7 +66,7 @@ namespace Iwxxm.Net.Application.UseCases
             // Step 3: Polymorphic root element dispatch and Anti-Corruption Layer (ACL) Domain mapping
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                return _documentMapper.Map(view);
+                return PipelineGuard.Map(() => _documentMapper.Map(view));
             }
         }
 

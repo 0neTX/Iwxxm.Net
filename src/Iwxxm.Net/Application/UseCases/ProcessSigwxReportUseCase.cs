@@ -46,7 +46,7 @@ namespace Iwxxm.Net.Application.UseCases
 
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                var schemaErrors = _schemaValidator.Validate(view);
+                var schemaErrors = PipelineGuard.Validate(() => _schemaValidator.Validate(view), PipelineGuard.SchemaValidatorErrorCode, ErrorCategory.SchemaViolation, "schema validator");
                 if (schemaErrors.Count > 0)
                 {
                     return Result<SignificantWeatherReport>.Failure(schemaErrors);
@@ -55,7 +55,7 @@ namespace Iwxxm.Net.Application.UseCases
 
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                var ruleErrors = _schematronValidator.Validate(view);
+                var ruleErrors = PipelineGuard.Validate(() => _schematronValidator.Validate(view), PipelineGuard.RuleValidatorErrorCode, ErrorCategory.BusinessRuleViolation, "business-rule validator");
                 if (ruleErrors.Count > 0)
                 {
                     return Result<SignificantWeatherReport>.Failure(ruleErrors);
@@ -64,7 +64,7 @@ namespace Iwxxm.Net.Application.UseCases
 
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                return _documentMapper.Map(view);
+                return PipelineGuard.Map(() => _documentMapper.Map(view));
             }
         }
     }

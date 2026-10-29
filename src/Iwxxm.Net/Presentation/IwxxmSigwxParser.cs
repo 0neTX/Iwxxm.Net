@@ -12,6 +12,10 @@ namespace Iwxxm.Net
     /// Instances are created by <see cref="IwxxmParserBuilder.BuildSigwxParser"/> and depend only on the inbound port
     /// <see cref="IIwxxmSigwxProcessor"/>; they are immutable and thread-safe. The static members are convenience wrappers
     /// over <see cref="Default"/>.
+    /// <para>I/O and adapter failures are returned as typed errors (<c>FILE-NOT-FOUND</c>, <c>ACCESS-DENIED</c>,
+    /// <c>FILE-READ-ERROR</c>, <c>SCHEMA-VALIDATOR-ERROR</c>, <c>RULE-VALIDATOR-ERROR</c>, <c>MAPPER-ERROR</c>); only a
+    /// <c>null</c> stream (<see cref="ArgumentNullException"/>) or a <c>null</c>/whitespace path
+    /// (<see cref="ArgumentException"/>) throws.</para>
     /// </remarks>
     public sealed class IwxxmSigwxParser : IIwxxmSigwxProcessor
     {

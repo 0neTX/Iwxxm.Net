@@ -8,14 +8,16 @@ namespace Iwxxm.Net.Reports
     /// <summary>
     /// Immutable Value Object representing an airspace volume (horizontal polygon + vertical limits + motion)
     /// used in <c>SIGMET</c>, <c>AIRMET</c>, and <c>VolcanicAshAdvisory</c> conditions.
-    /// The speed of motion keeps the reported unit (<c>km/h</c> or <c>[kn_i]</c>).
+    /// The speed of motion keeps the reported unit (<c>km/h</c> or <c>[kn_i]</c>). Vertical limits keep the reported
+    /// value, unit and reference (<c>aixm:lowerLimit</c> / <c>aixm:lowerLimitReference</c>, ...): use
+    /// <see cref="VerticalLimit.AsFlightLevel"/> for the flight-level view of STD limits.
     /// </summary>
     public sealed class EnRoutePhenomenonVolume
     {
         public string Id { get; }
         public GeoPolygon? Area { get; }
-        public FlightLevel? LowerLimit { get; }
-        public FlightLevel? UpperLimit { get; }
+        public VerticalLimit? LowerLimit { get; }
+        public VerticalLimit? UpperLimit { get; }
         public string? IntensityChange { get; }
         public double? DirectionOfMotionDegrees { get; }
         public Speed? SpeedOfMotion { get; }
@@ -24,8 +26,8 @@ namespace Iwxxm.Net.Reports
         public EnRoutePhenomenonVolume(
             string id,
             GeoPolygon? area,
-            FlightLevel? lowerLimit,
-            FlightLevel? upperLimit,
+            VerticalLimit? lowerLimit,
+            VerticalLimit? upperLimit,
             string? intensityChange = null,
             double? directionOfMotionDegrees = null,
             Speed? speedOfMotion = null,
@@ -52,16 +54,22 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType { get; }
         public DateTimeOffset IssueTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public string AtsUnitDesignator { get; }
         public string? AtsUnitName { get; }
         public string? MwoDesignator { get; }
         public string? FirDesignator { get; }
         public string? FirName { get; }
         public string? SequenceNumber { get; }
-        public DateTimeOffset ValidFromUtc { get; }
-        public DateTimeOffset ValidUntilUtc { get; }
+
+        /// <summary>Start of <c>validPeriod</c> (mandatory in <c>sigmet.xsd</c>); <c>null</c> only when given by an unresolved <c>xlink:href</c>.</summary>
+        public DateTimeOffset? ValidFromUtc { get; }
+
+        /// <summary>End of <c>validPeriod</c> (mandatory in <c>sigmet.xsd</c>); <c>null</c> only when given by an unresolved <c>xlink:href</c>.</summary>
+        public DateTimeOffset? ValidUntilUtc { get; }
         public string? PhenomenonUri { get; }
         public bool IsCancelReport { get; }
         public string? CancelledReportSequenceNumber { get; }
@@ -76,16 +84,18 @@ namespace Iwxxm.Net.Reports
             string id,
             IwxxmReportType reportType,
             DateTimeOffset issueTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             string atsUnitDesignator,
             string? atsUnitName,
             string? mwoDesignator,
             string? firDesignator,
             string? firName,
             string? sequenceNumber,
-            DateTimeOffset validFromUtc,
-            DateTimeOffset validUntilUtc,
+            DateTimeOffset? validFromUtc,
+            DateTimeOffset? validUntilUtc,
             string? phenomenonUri,
             bool isCancelReport,
             string? cancelledReportSequenceNumber,
@@ -101,6 +111,8 @@ namespace Iwxxm.Net.Reports
             IssueTimeUtc = issueTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             AtsUnitDesignator = atsUnitDesignator;
             AtsUnitName = atsUnitName;
             MwoDesignator = mwoDesignator;
@@ -124,16 +136,16 @@ namespace Iwxxm.Net.Reports
             string id,
             IwxxmReportType reportType,
             DateTimeOffset issueTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             string atsUnitDesignator,
             string? atsUnitName,
             string? mwoDesignator,
             string? firDesignator,
             string? firName,
             string? sequenceNumber,
-            DateTimeOffset validFromUtc,
-            DateTimeOffset validUntilUtc,
+            DateTimeOffset? validFromUtc,
+            DateTimeOffset? validUntilUtc,
             string? phenomenonUri = null,
             bool isCancelReport = false,
             string? cancelledReportSequenceNumber = null,
@@ -142,31 +154,37 @@ namespace Iwxxm.Net.Reports
             Volcano? eruptingVolcano = null,
             string? tropicalCycloneName = null,
             IEnumerable<EnRoutePhenomenonVolume>? evolvingConditions = null,
-            IEnumerable<EnRoutePhenomenonVolume>? forecastPositions = null)
+            IEnumerable<EnRoutePhenomenonVolume>? forecastPositions = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var evolving = evolvingConditions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
+            var positions = forecastPositions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
+
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-SIGMET-ID", "The SIGMET report gml:id identifier is required.");
+            invariants.RequireText(atsUnitDesignator, "DOMAIN-SIGMET-ATS-UNIT", "The issuing Air Traffic Services unit designator is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireOrderedPeriod(validFromUtc, validUntilUtc, "DOMAIN-SIGMET-VALID-PERIOD", "SIGMET validity period");
+            foreach (EnRoutePhenomenonVolume volume in evolving.Concat(positions))
             {
-                return Result<SigmetReport>.Failure(
-                    "DOMAIN-SIGMET-ID",
-                    "The SIGMET report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                invariants.Check(volume);
             }
 
-            if (string.IsNullOrWhiteSpace(atsUnitDesignator))
+            if (invariants.HasErrors)
             {
-                return Result<SigmetReport>.Failure(
-                    "DOMAIN-SIGMET-ATS-UNIT",
-                    "The issuing Air Traffic Services unit designator is required.",
-                    ErrorCategory.DomainMapping,
-                    id);
+                return Result<SigmetReport>.Failure(invariants.Errors);
             }
 
             return Result<SigmetReport>.Success(new SigmetReport(
                 id,
                 reportType,
                 issueTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 atsUnitDesignator.Trim(),
                 atsUnitName,
                 mwoDesignator,
@@ -182,8 +200,8 @@ namespace Iwxxm.Net.Reports
                 translationFailedTac,
                 eruptingVolcano,
                 tropicalCycloneName,
-                new ReadOnlyCollection<EnRoutePhenomenonVolume>(evolvingConditions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0)),
-                new ReadOnlyCollection<EnRoutePhenomenonVolume>(forecastPositions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0))));
+                new ReadOnlyCollection<EnRoutePhenomenonVolume>(evolving),
+                new ReadOnlyCollection<EnRoutePhenomenonVolume>(positions)));
         }
     }
 
@@ -196,16 +214,21 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType => IwxxmReportType.Airmet;
         public DateTimeOffset IssueTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public string AtsUnitDesignator { get; }
         public string? AtsUnitName { get; }
         public string? MwoDesignator { get; }
         public string? FirDesignator { get; }
         public string? FirName { get; }
         public string? SequenceNumber { get; }
-        public DateTimeOffset ValidFromUtc { get; }
-        public DateTimeOffset ValidUntilUtc { get; }
+        /// <summary>Start of <c>validPeriod</c> (mandatory in <c>airmet.xsd</c>); <c>null</c> only when given by an unresolved <c>xlink:href</c>.</summary>
+        public DateTimeOffset? ValidFromUtc { get; }
+
+        /// <summary>End of <c>validPeriod</c> (mandatory in <c>airmet.xsd</c>); <c>null</c> only when given by an unresolved <c>xlink:href</c>.</summary>
+        public DateTimeOffset? ValidUntilUtc { get; }
         public string? PhenomenonUri { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
@@ -214,16 +237,18 @@ namespace Iwxxm.Net.Reports
         private AirmetReport(
             string id,
             DateTimeOffset issueTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             string atsUnitDesignator,
             string? atsUnitName,
             string? mwoDesignator,
             string? firDesignator,
             string? firName,
             string? sequenceNumber,
-            DateTimeOffset validFromUtc,
-            DateTimeOffset validUntilUtc,
+            DateTimeOffset? validFromUtc,
+            DateTimeOffset? validUntilUtc,
             string? phenomenonUri,
             bool isTranslationFailed,
             string? translationFailedTac,
@@ -233,6 +258,8 @@ namespace Iwxxm.Net.Reports
             IssueTimeUtc = issueTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             AtsUnitDesignator = atsUnitDesignator;
             AtsUnitName = atsUnitName;
             MwoDesignator = mwoDesignator;
@@ -250,35 +277,49 @@ namespace Iwxxm.Net.Reports
         public static Result<AirmetReport> Create(
             string id,
             DateTimeOffset issueTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             string atsUnitDesignator,
             string? atsUnitName,
             string? mwoDesignator,
             string? firDesignator,
             string? firName,
             string? sequenceNumber,
-            DateTimeOffset validFromUtc,
-            DateTimeOffset validUntilUtc,
+            DateTimeOffset? validFromUtc,
+            DateTimeOffset? validUntilUtc,
             string? phenomenonUri = null,
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
-            IEnumerable<EnRoutePhenomenonVolume>? evolvingConditions = null)
+            IEnumerable<EnRoutePhenomenonVolume>? evolvingConditions = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var evolving = evolvingConditions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
+
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-AIRMET-ID", "The AIRMET report gml:id identifier is required.");
+            invariants.RequireText(atsUnitDesignator, "DOMAIN-AIRMET-ATS-UNIT", "The issuing Air Traffic Services unit designator is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireOrderedPeriod(validFromUtc, validUntilUtc, "DOMAIN-AIRMET-VALID-PERIOD", "AIRMET validity period");
+            foreach (EnRoutePhenomenonVolume volume in evolving)
             {
-                return Result<AirmetReport>.Failure(
-                    "DOMAIN-AIRMET-ID",
-                    "The AIRMET report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                invariants.Check(volume);
+            }
+
+            if (invariants.HasErrors)
+            {
+                return Result<AirmetReport>.Failure(invariants.Errors);
             }
 
             return Result<AirmetReport>.Success(new AirmetReport(
                 id,
                 issueTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
-                atsUnitDesignator ?? string.Empty,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
+                atsUnitDesignator.Trim(),
                 atsUnitName,
                 mwoDesignator,
                 firDesignator,
@@ -289,7 +330,7 @@ namespace Iwxxm.Net.Reports
                 phenomenonUri,
                 isTranslationFailed,
                 translationFailedTac,
-                new ReadOnlyCollection<EnRoutePhenomenonVolume>(evolvingConditions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0))));
+                new ReadOnlyCollection<EnRoutePhenomenonVolume>(evolving)));
         }
     }
 }

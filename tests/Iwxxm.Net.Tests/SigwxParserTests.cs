@@ -28,10 +28,11 @@ namespace Iwxxm.Net.Tests
 
             Assert.Equal("uuid.ce3b61b9-d360-4da1-83b9-67e668406869", report.Id);
             Assert.Equal("London", report.IssuingCentre);
-            Assert.Equal("NORMAL", report.ReportStatus);
-            Assert.Equal("OPERATIONAL", report.PermissibleUsage);
-            Assert.Equal(new FlightLevel(100), report.LowerLimit);
-            Assert.Equal(new FlightLevel(600), report.UpperLimit);
+            Assert.Equal(ReportStatus.Normal, report.ReportStatus);
+            Assert.Equal(PermissibleUsage.Operational, report.PermissibleUsage);
+            Assert.Equal(Vertical(100, VerticalUnit.FlightLevel, VerticalReference.Std), report.LowerLimit);
+            Assert.Equal(Vertical(600, VerticalUnit.FlightLevel, VerticalReference.Std), report.UpperLimit);
+            Assert.Equal(new FlightLevel(100), report.LowerLimit.AsFlightLevel());
 
             // 1. Verify JetStream mapped from MeteorologicalFeature (CubicSpline + 5 WAFSJetStreamWindSymbols)
             Assert.Single(report.JetStreams);
@@ -41,8 +42,9 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(new GeoCoordinate(35.4, -104.7), jetStream.AxisTrajectory[0]);
             Assert.Equal(new GeoCoordinate(41.9, -78.9), jetStream.AxisTrajectory[10]);
             Assert.Equal(5, jetStream.CorePoints.Count);
-            // Max wind speed is 61.8 m/s (~120.13 kt) at 15240 m (FL500)
-            Assert.Equal(new FlightLevel(500), jetStream.CoreFlightLevel);
+            // Max wind speed is 61.8 m/s (~120.13 kt) at 15240 m MSL (kept as reported, not converted to FL500)
+            Assert.Equal(Vertical(15240, VerticalUnit.Meters, VerticalReference.Msl), jetStream.CoreLevel);
+            Assert.Null(jetStream.CoreLevel.AsFlightLevel());
             Assert.Equal(new Speed(61.8, SpeedUnit.MetersPerSecond), jetStream.MaxWindSpeed); // kept as reported
             Assert.True(jetStream.MaxWindSpeed.ToKnots() > 120.0);
 
@@ -56,16 +58,17 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(CloudTypeCode.Cumulonimbus, cloud.TypeCode);
             Assert.Equal(10, cloud.DistributionNumericCode);
             Assert.Equal(9, cloud.TypeNumericCode);
-            Assert.Null(cloud.BaseFlightLevel); // lowerElevation has xsi:nil="true" nilReason=".../inapplicable"
-            Assert.Equal(new FlightLevel(410), cloud.TopFlightLevel); // 12496.8 m = 41000 ft = FL410
+            Assert.True(cloud.Base!.Value.IsNil); // lowerElevation has xsi:nil="true" nilReason=".../inapplicable"
+            Assert.Equal(Vertical(12496.8, VerticalUnit.Meters, VerticalReference.Msl), cloud.Top); // kept as reported (MSL, not FL410)
             Assert.Equal(9, cloud.Area.ExteriorRing.Count);
 
-            // 3. Verify Tropopause mapped from MeteorologicalFeature (Polygon + ElevatedLevel 14020 m = FL460)
+            // 3. Verify Tropopause mapped from MeteorologicalFeature (Polygon + ElevatedLevel 14020 m MSL)
             Assert.Single(report.Tropopauses);
             var tropopause = report.Tropopauses[0];
             Assert.Equal("uuid.4cefc622-5784-49db-9d3d-7463c7a05dc6", tropopause.Id);
             Assert.NotNull(tropopause.ContourPolygon);
-            Assert.Equal(new FlightLevel(460), tropopause.SpotHeights[0].FlightLevel);
+            Assert.Equal(Vertical(14020, VerticalUnit.Meters, VerticalReference.Msl), tropopause.SpotHeights[0].Level);
+            Assert.Null(tropopause.LevelType); // not reported by WAFSSignificantWeatherForecast: not invented
 
             // 4. Verify Volcano mapped from MeteorologicalFeature (ETNA at 37.7, 15.0)
             Assert.Single(report.Volcanoes);
@@ -74,7 +77,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal("ETNA", volcano.Name);
             Assert.Equal(new GeoCoordinate(37.7, 15.0), volcano.Position);
 
-            // 5. Verify Turbulence mapped from MeteorologicalFeature (ElevatedVolume FL340-FL400 + DegreeOfTurbulence 10)
+            // 5. Verify Turbulence mapped from MeteorologicalFeature (ElevatedVolume 10363.2-12192.0 m MSL + DegreeOfTurbulence 10)
             Assert.Single(report.Turbulences);
             var turbulence = report.Turbulences[0];
             Assert.Equal("uuid.aaaf9f38-dc4c-410d-b056-c130a049bde9", turbulence.Id);
@@ -83,11 +86,11 @@ namespace Iwxxm.Net.Tests
             // (the previous expectation, ModerateClearAir, encoded a wrong mapping).
             Assert.Equal(TurbulenceDegreeCode.Moderate, turbulence.Degree);
             Assert.Equal(10, turbulence.DegreeNumericCode);
-            Assert.Equal(new FlightLevel(340), turbulence.BaseFlightLevel); // 10363.2 m = 34000 ft = FL340
-            Assert.Equal(new FlightLevel(400), turbulence.TopFlightLevel);  // 12192.0 m = 40000 ft = FL400
+            Assert.Equal(Vertical(10363.2, VerticalUnit.Meters, VerticalReference.Msl), turbulence.Base);
+            Assert.Equal(Vertical(12192.0, VerticalUnit.Meters, VerticalReference.Msl), turbulence.Top);
             Assert.Equal(17, turbulence.Area.ExteriorRing.Count);
 
-            // 6. Verify AirframeIcing mapped from MeteorologicalFeature (ElevatedVolume FL100-FL240 + DegreeOfIcing 3)
+            // 6. Verify AirframeIcing mapped from MeteorologicalFeature (ElevatedVolume uom="FL" 100-240 with MSL reference + DegreeOfIcing 3)
             Assert.Single(report.AirframeIcings);
             var icing = report.AirframeIcings[0];
             Assert.Equal("uuid.48f96fb3-6534-4593-b760-9c65d0b9fa96", icing.Id);
@@ -96,8 +99,8 @@ namespace Iwxxm.Net.Tests
             // (the previous expectation, Moderate, encoded a wrong mapping).
             Assert.Equal(IcingDegreeCode.LightInPrecipitation, icing.Degree);
             Assert.Equal(3, icing.DegreeNumericCode);
-            Assert.Equal(new FlightLevel(100), icing.BaseFlightLevel);
-            Assert.Equal(new FlightLevel(240), icing.TopFlightLevel);
+            Assert.Equal(Vertical(100, VerticalUnit.FlightLevel, VerticalReference.Msl), icing.Base);
+            Assert.Equal(Vertical(240, VerticalUnit.FlightLevel, VerticalReference.Msl), icing.Top);
             Assert.Equal(21, icing.Area.ExteriorRing.Count);
 
             // 7. Verify TropicalCyclone mapped from MeteorologicalFeature (FRED at 25.0, -78.0)
@@ -134,8 +137,9 @@ namespace Iwxxm.Net.Tests
 
             Assert.Equal("uuid.sigwx.wafc.egrr.202610281800", report.Id);
             Assert.Equal("EGRR", report.IssuingCentre);
-            Assert.Equal(new FlightLevel(250), report.LowerLimit);
-            Assert.Equal(new FlightLevel(630), report.UpperLimit);
+            // The compact format declares no vertical reference: none is invented.
+            Assert.Equal(Vertical(250, VerticalUnit.FlightLevel, null), report.LowerLimit);
+            Assert.Equal(Vertical(630, VerticalUnit.FlightLevel, null), report.UpperLimit);
             Assert.Single(report.JetStreams);
             Assert.Single(report.Clouds);
             Assert.Equal(CloudDistributionCode.OccasionalEmbedded, report.Clouds[0].DistributionCode);
@@ -232,6 +236,9 @@ namespace Iwxxm.Net.Tests
                 e.Category == ErrorCategory.DomainMapping &&
                 e.Code == "GEO-INVALID-LAT");
         }
+
+        private static VerticalLimit Vertical(double value, VerticalUnit unit, VerticalReference? reference) =>
+            VerticalLimit.Create(value, unit, reference).Value;
 
         public static IEnumerable<object[]> GetNonSigwxWmoExampleFiles()
         {

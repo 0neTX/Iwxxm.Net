@@ -32,16 +32,18 @@ namespace Iwxxm.Net.Reports
 
     /// <summary>
     /// Immutable Value Object representing Runway Visual Range (RVR) reported for a specific runway direction.
+    /// <see cref="RunwayDesignator"/> is <c>null</c> when the runway is given only by an <c>xlink:href</c> reference
+    /// (not resolved by this version) or is not reported.
     /// </summary>
     public sealed class RunwayVisualRangeInfo
     {
-        public string RunwayDesignator { get; }
+        public string? RunwayDesignator { get; }
         public double? MeanRvrMeters { get; }
         public string? PastTendency { get; }
 
-        public RunwayVisualRangeInfo(string runwayDesignator, double? meanRvrMeters, string? pastTendency = null)
+        public RunwayVisualRangeInfo(string? runwayDesignator, double? meanRvrMeters, string? pastTendency = null)
         {
-            RunwayDesignator = runwayDesignator ?? string.Empty;
+            RunwayDesignator = string.IsNullOrWhiteSpace(runwayDesignator) ? null : runwayDesignator;
             MeanRvrMeters = meanRvrMeters;
             PastTendency = pastTendency;
         }
@@ -115,9 +117,16 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType { get; }
         public DateTimeOffset IssueTimeUtc { get; }
-        public DateTimeOffset ObservationTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+
+        /// <summary>
+        /// Observation time (<c>observationTime</c>, mandatory in <c>metarSpeci.xsd</c>); <c>null</c> when the document
+        /// gives it only by an <c>xlink:href</c> reference, which this version does not resolve. Never defaulted to the issue time.
+        /// </summary>
+        public DateTimeOffset? ObservationTimeUtc { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public bool IsAutomatedStation { get; }
         public string AerodromeDesignator { get; }
         public string? AerodromeName { get; }
@@ -141,9 +150,11 @@ namespace Iwxxm.Net.Reports
             string id,
             IwxxmReportType reportType,
             DateTimeOffset issueTimeUtc,
-            DateTimeOffset observationTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            DateTimeOffset? observationTimeUtc,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             bool isAutomatedStation,
             string aerodromeDesignator,
             string? aerodromeName,
@@ -169,6 +180,8 @@ namespace Iwxxm.Net.Reports
             ObservationTimeUtc = observationTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             IsAutomatedStation = isAutomatedStation;
             AerodromeDesignator = aerodromeDesignator;
             AerodromeName = aerodromeName;
@@ -193,9 +206,9 @@ namespace Iwxxm.Net.Reports
             string id,
             IwxxmReportType reportType,
             DateTimeOffset issueTimeUtc,
-            DateTimeOffset observationTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            DateTimeOffset? observationTimeUtc,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             bool isAutomatedStation,
             string aerodromeDesignator,
             string? aerodromeName,
@@ -213,23 +226,34 @@ namespace Iwxxm.Net.Reports
             IEnumerable<RunwayVisualRangeInfo>? runwayVisualRanges = null,
             IEnumerable<string>? presentWeatherUris = null,
             IEnumerable<AerodromeCloudLayerInfo>? cloudLayers = null,
-            IEnumerable<AerodromeForecastGroupInfo>? trendForecasts = null)
+            IEnumerable<AerodromeForecastGroupInfo>? trendForecasts = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var rvrList = runwayVisualRanges?.ToList() ?? new List<RunwayVisualRangeInfo>(0);
+            var trendList = trendForecasts?.ToList() ?? new List<AerodromeForecastGroupInfo>(0);
+
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-METAR-ID", "The METAR/SPECI report gml:id identifier is required.");
+            invariants.RequireText(aerodromeDesignator, "DOMAIN-METAR-AERODROME", "The aerodrome ICAO designator is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireUtc(observationTimeUtc, "observation time");
+            invariants.Check(surfaceWind, "surface wind");
+            invariants.RequireNonNegative(prevailingVisibilityMeters, DomainErrorCodes.NegativeVisibility, "prevailing visibility");
+            foreach (RunwayVisualRangeInfo rvr in rvrList)
             {
-                return Result<AerodromeWeatherReport>.Failure(
-                    "DOMAIN-METAR-ID",
-                    "The METAR/SPECI report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                invariants.RequireNonNegative(rvr?.MeanRvrMeters, DomainErrorCodes.NegativeRvr, $"mean RVR of runway '{rvr?.RunwayDesignator}'");
             }
 
-            if (string.IsNullOrWhiteSpace(aerodromeDesignator))
+            foreach (AerodromeForecastGroupInfo trend in trendList)
             {
-                return Result<AerodromeWeatherReport>.Failure(
-                    "DOMAIN-METAR-AERODROME",
-                    "The aerodrome ICAO designator is required.",
-                    ErrorCategory.DomainMapping,
-                    id);
+                invariants.Check(trend);
+            }
+
+            if (invariants.HasErrors)
+            {
+                return Result<AerodromeWeatherReport>.Failure(invariants.Errors);
             }
 
             return Result<AerodromeWeatherReport>.Success(new AerodromeWeatherReport(
@@ -237,8 +261,10 @@ namespace Iwxxm.Net.Reports
                 reportType,
                 issueTimeUtc,
                 observationTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 isAutomatedStation,
                 aerodromeDesignator.Trim(),
                 aerodromeName,
@@ -253,10 +279,10 @@ namespace Iwxxm.Net.Reports
                 qnhHpa,
                 surfaceWind,
                 prevailingVisibilityMeters,
-                new ReadOnlyCollection<RunwayVisualRangeInfo>(runwayVisualRanges?.ToList() ?? new List<RunwayVisualRangeInfo>(0)),
+                new ReadOnlyCollection<RunwayVisualRangeInfo>(rvrList),
                 new ReadOnlyCollection<string>(presentWeatherUris?.ToList() ?? new List<string>(0)),
                 new ReadOnlyCollection<AerodromeCloudLayerInfo>(cloudLayers?.ToList() ?? new List<AerodromeCloudLayerInfo>(0)),
-                new ReadOnlyCollection<AerodromeForecastGroupInfo>(trendForecasts?.ToList() ?? new List<AerodromeForecastGroupInfo>(0))));
+                new ReadOnlyCollection<AerodromeForecastGroupInfo>(trendList)));
         }
     }
 
@@ -269,8 +295,10 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         public IwxxmReportType ReportType => IwxxmReportType.Taf;
         public DateTimeOffset IssueTimeUtc { get; }
-        public string ReportStatus { get; }
-        public string PermissibleUsage { get; }
+        public ReportStatus ReportStatus { get; }
+        public PermissibleUsage PermissibleUsage { get; }
+        public PermissibleUsageReason? PermissibleUsageReason { get; }
+        public string? PermissibleUsageSupplementary { get; }
         public string AerodromeDesignator { get; }
         public string? AerodromeName { get; }
         public GeoCoordinate? AerodromePosition { get; }
@@ -289,8 +317,10 @@ namespace Iwxxm.Net.Reports
         private TafReport(
             string id,
             DateTimeOffset issueTimeUtc,
-            string reportStatus,
-            string permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             string aerodromeDesignator,
             string? aerodromeName,
             GeoCoordinate? aerodromePosition,
@@ -310,6 +340,8 @@ namespace Iwxxm.Net.Reports
             IssueTimeUtc = issueTimeUtc;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             AerodromeDesignator = aerodromeDesignator;
             AerodromeName = aerodromeName;
             AerodromePosition = aerodromePosition;
@@ -329,8 +361,8 @@ namespace Iwxxm.Net.Reports
         public static Result<TafReport> Create(
             string id,
             DateTimeOffset issueTimeUtc,
-            string? reportStatus,
-            string? permissibleUsage,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
             string aerodromeDesignator,
             string? aerodromeName,
             GeoCoordinate? aerodromePosition,
@@ -344,30 +376,37 @@ namespace Iwxxm.Net.Reports
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
             AerodromeForecastGroupInfo? baseForecast = null,
-            IEnumerable<AerodromeForecastGroupInfo>? changeForecasts = null)
+            IEnumerable<AerodromeForecastGroupInfo>? changeForecasts = null,
+            PermissibleUsageReason? permissibleUsageReason = null,
+            string? permissibleUsageSupplementary = null)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            var changeList = changeForecasts?.ToList() ?? new List<AerodromeForecastGroupInfo>(0);
+
+            var invariants = new DomainInvariants(id);
+            invariants.RequireText(id, "DOMAIN-TAF-ID", "The TAF report gml:id identifier is required.");
+            invariants.RequireText(aerodromeDesignator, "DOMAIN-TAF-AERODROME", "The aerodrome ICAO designator is required.");
+            invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
+            invariants.RequireIssueTime(issueTimeUtc);
+            invariants.RequireOrderedPeriod(validFromUtc, validUntilUtc, "DOMAIN-TAF-VALID-PERIOD", "TAF validity period");
+            invariants.RequireOrderedPeriod(cancelledReportValidFromUtc, cancelledReportValidUntilUtc, "DOMAIN-TAF-CANCELLED-VALID-PERIOD", "cancelled TAF validity period");
+            invariants.Check(baseForecast);
+            foreach (AerodromeForecastGroupInfo change in changeList)
             {
-                return Result<TafReport>.Failure(
-                    "DOMAIN-TAF-ID",
-                    "The TAF report gml:id identifier is required.",
-                    ErrorCategory.DomainMapping);
+                invariants.Check(change);
             }
 
-            if (string.IsNullOrWhiteSpace(aerodromeDesignator))
+            if (invariants.HasErrors)
             {
-                return Result<TafReport>.Failure(
-                    "DOMAIN-TAF-AERODROME",
-                    "The aerodrome ICAO designator is required.",
-                    ErrorCategory.DomainMapping,
-                    id);
+                return Result<TafReport>.Failure(invariants.Errors);
             }
 
             return Result<TafReport>.Success(new TafReport(
                 id,
                 issueTimeUtc,
-                string.IsNullOrWhiteSpace(reportStatus) ? "NORMAL" : reportStatus!,
-                string.IsNullOrWhiteSpace(permissibleUsage) ? "OPERATIONAL" : permissibleUsage!,
+                reportStatus,
+                permissibleUsage,
+                permissibleUsageReason,
+                permissibleUsageSupplementary,
                 aerodromeDesignator.Trim(),
                 aerodromeName,
                 aerodromePosition,
@@ -381,7 +420,7 @@ namespace Iwxxm.Net.Reports
                 isTranslationFailed,
                 translationFailedTac,
                 baseForecast,
-                new ReadOnlyCollection<AerodromeForecastGroupInfo>(changeForecasts?.ToList() ?? new List<AerodromeForecastGroupInfo>(0))));
+                new ReadOnlyCollection<AerodromeForecastGroupInfo>(changeList)));
         }
     }
 }

@@ -43,18 +43,23 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         {
             var errors = new List<ValidationError>();
 
-            DateTimeOffset issueTime = ExtractTimeInstant(dto.IssueTime, "issueTime", errors);
-            (DateTimeOffset validFrom, DateTimeOffset validUntil) = ExtractTimePeriod(dto.BoundingPeriod, "boundingPeriod", errors);
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(
+                dto.ReportStatus, dto.PermissibleUsage, dto.PermissibleUsageReason, dto.PermissibleUsageSupplementary, dto.Id, errors);
+            DateTimeOffset? issueTime = ExtractTimeInstant(dto.IssueTime, "issueTime", errors);
+            (DateTimeOffset? validFrom, DateTimeOffset? validUntil) = ExtractTimePeriod(dto.BoundingPeriod, "boundingPeriod", errors);
 
             string issuingCentre = dto.OriginatingCentre?.WorldAreaForecastCentre ?? string.Empty;
 
-            FlightLevel lowerLimit = ExtractFlightLevel(
-                dto.BoundingVolume?.ElevatedEnvelope?.LowerElevation,
+            ElevatedEnvelopeType? envelope = dto.BoundingVolume?.ElevatedEnvelope;
+            VerticalLimit? lowerLimit = ReadRequiredVertical(
+                envelope?.LowerElevation,
+                envelope?.LowerVerticalReference,
                 "boundingVolume/ElevatedEnvelope/lowerElevation",
                 errors);
-            FlightLevel upperLimit = ExtractFlightLevel(
-                dto.BoundingVolume?.ElevatedEnvelope?.UpperElevation,
-                "boundingVolume/ElevatedEnvelope/UpperElevation",
+            VerticalLimit? upperLimit = ReadRequiredVertical(
+                envelope?.UpperElevation,
+                envelope?.UpperVerticalReference,
+                "boundingVolume/ElevatedEnvelope/upperElevation",
                 errors);
 
             var jetStreams = new List<JetStream>();
@@ -145,13 +150,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return SignificantWeatherReport.Create(
                 id: dto.Id,
                 issuingCentre: issuingCentre,
-                reportStatus: dto.ReportStatus,
-                permissibleUsage: dto.PermissibleUsage,
-                issueTimeUtc: issueTime,
-                validFromUtc: validFrom,
-                validUntilUtc: validUntil,
-                lowerLimit: lowerLimit,
-                upperLimit: upperLimit,
+                reportStatus: metadata.Status,
+                permissibleUsage: metadata.Usage,
+                issueTimeUtc: issueTime!.Value,
+                validFromUtc: validFrom!.Value,
+                validUntilUtc: validUntil!.Value,
+                lowerLimit: lowerLimit!.Value,
+                upperLimit: upperLimit!.Value,
                 jetStreams: jetStreams,
                 clouds: clouds,
                 tropopauses: tropopauses,
@@ -160,7 +165,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 airframeIcings: airframeIcings,
                 tropicalCyclones: tropicalCyclones,
                 sandstorms: sandstorms,
-                radiationIncidents: radiationIncidents);
+                radiationIncidents: radiationIncidents,
+                permissibleUsageReason: metadata.Reason,
+                permissibleUsageSupplementary: metadata.Supplementary);
         }
 
         private static Result<JetStream> MapWafsJetStreamFeature(MeteorologicalFeatureType feature)
@@ -175,9 +182,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
 
             var corePoints = new List<JetStreamCorePoint>();
-            Speed maxWindSpeed = default;
-            FlightLevel maxWindFlightLevel = default;
-            bool hasCoreLevel = false;
+            Speed? maxWindSpeed = null;
+            VerticalLimit? maxWindLevel = null;
 
             foreach (PhenomenonPropertyRoleType prop in feature.PhenomenonProperties)
             {
@@ -198,47 +204,36 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                         context);
                 }
 
-                var flResult = FlightLevel.Create(elevatedPt.Elevation.Value, elevatedPt.Elevation.Uom, context);
-                if (flResult.IsFailure)
-                    return Result<JetStream>.Failure(flResult.Errors);
+                var levelErrors = new List<ValidationError>();
+                VerticalLimit? level = ReadVertical(elevatedPt.Elevation, elevatedPt.VerticalReference, $"{context}/WAFSJetStreamWindSymbol[@gml:id='{symbol.Id}']/elevation", levelErrors);
+                if (!level.HasValue)
+                    return Result<JetStream>.Failure(levelErrors);
 
                 var speedResult = ReadRequiredSpeed(symbol.WindSpeed, $"{context}/WAFSJetStreamWindSymbol[@gml:id='{symbol.Id}']/windSpeed");
                 if (speedResult.IsFailure)
                     return Result<JetStream>.Failure(speedResult.Errors);
                 Speed windSpeed = speedResult.Value;
 
-                FlightLevel? lowerIso = null;
-                if (symbol.IsotachLowerElevation != null && !symbol.IsotachLowerElevation.IsNil)
-                {
-                    var lowRes = FlightLevel.Create(symbol.IsotachLowerElevation.Value, symbol.IsotachLowerElevation.Uom, context);
-                    if (lowRes.IsFailure) return Result<JetStream>.Failure(lowRes.Errors);
-                    lowerIso = lowRes.Value;
-                }
+                VerticalLimit? lowerIso = ReadVertical(symbol.IsotachLowerElevation, symbol.IsotachLowerVerticalReference, $"{context}/IsotachLowerElevation", levelErrors);
+                VerticalLimit? upperIso = ReadVertical(symbol.IsotachUpperElevation, symbol.IsotachUpperVerticalReference, $"{context}/IsotachUpperElevation", levelErrors);
+                if (levelErrors.Count > 0)
+                    return Result<JetStream>.Failure(levelErrors);
 
-                FlightLevel? upperIso = null;
-                if (symbol.IsotachUpperElevation != null && !symbol.IsotachUpperElevation.IsNil)
-                {
-                    var upRes = FlightLevel.Create(symbol.IsotachUpperElevation.Value, symbol.IsotachUpperElevation.Uom, context);
-                    if (upRes.IsFailure) return Result<JetStream>.Failure(upRes.Errors);
-                    upperIso = upRes.Value;
-                }
-
-                if (!hasCoreLevel || windSpeed.ToMetersPerSecond() > maxWindSpeed.ToMetersPerSecond())
+                if (!maxWindSpeed.HasValue || windSpeed.ToMetersPerSecond() > maxWindSpeed.Value.ToMetersPerSecond())
                 {
                     maxWindSpeed = windSpeed;
-                    maxWindFlightLevel = flResult.Value;
-                    hasCoreLevel = true;
+                    maxWindLevel = level.Value;
                 }
 
                 corePoints.Add(new JetStreamCorePoint(
                     ptCoordResult.Value,
-                    flResult.Value,
+                    level.Value,
                     windSpeed,
                     lowerIso,
                     upperIso));
             }
 
-            if (!hasCoreLevel)
+            if (!maxWindSpeed.HasValue || !maxWindLevel.HasValue)
             {
                 return Result<JetStream>.Failure(
                     "ACL-WAFS-JS-NO-WIND-SYMBOLS",
@@ -250,8 +245,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return JetStream.Create(
                 id: feature.Id,
                 axisCoordinates: axisCoordsResult.Value,
-                coreFlightLevel: maxWindFlightLevel,
-                maxWindSpeed: maxWindSpeed,
+                coreLevel: maxWindLevel.Value,
+                maxWindSpeed: maxWindSpeed.Value,
                 corePoints: corePoints);
         }
 
@@ -272,10 +267,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             return Cloud.Create(
                 id: feature.Id,
-                cloudAmount: cloudAmount ?? "UNKNOWN",
-                cloudType: cloudType ?? "UNKNOWN",
-                baseFlightLevel: volumeRes.Value.BaseFl,
-                topFlightLevel: volumeRes.Value.TopFl,
+                cloudAmount: cloudAmount,
+                cloudType: cloudType,
+                baseLimit: volumeRes.Value.Base,
+                topLimit: volumeRes.Value.Top,
                 area: volumeRes.Value.Polygon);
         }
 
@@ -292,9 +287,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             return Turbulence.Create(
                 id: feature.Id,
-                rawDegreeReference: degreeHref ?? "UNKNOWN",
-                baseFlightLevel: volumeRes.Value.BaseFl,
-                topFlightLevel: volumeRes.Value.TopFl,
+                rawDegreeReference: degreeHref,
+                baseLimit: volumeRes.Value.Base,
+                topLimit: volumeRes.Value.Top,
                 area: volumeRes.Value.Polygon);
         }
 
@@ -311,9 +306,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             return AirframeIcing.Create(
                 id: feature.Id,
-                rawDegreeReference: degreeHref ?? "UNKNOWN",
-                baseFlightLevel: volumeRes.Value.BaseFl,
-                topFlightLevel: volumeRes.Value.TopFl,
+                rawDegreeReference: degreeHref,
+                baseLimit: volumeRes.Value.Base,
+                topLimit: volumeRes.Value.Top,
                 area: volumeRes.Value.Polygon);
         }
 
@@ -333,9 +328,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     context);
             }
 
-            var flResult = FlightLevel.Create(elevatedLevel.Elevation.Value, elevatedLevel.Elevation.Uom, context);
-            if (flResult.IsFailure)
-                return Result<Tropopause>.Failure(flResult.Errors);
+            var levelErrors = new List<ValidationError>();
+            VerticalLimit? level = ReadVertical(elevatedLevel.Elevation, elevatedLevel.VerticalReference, $"{context}/ElevatedLevel/elevation", levelErrors);
+            if (!level.HasValue)
+                return Result<Tropopause>.Failure(levelErrors);
 
             var spotHeights = new List<TropopauseSpotHeight>();
             GeoPolygon? contourPolygon = null;
@@ -357,7 +353,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 contourPolygon = polyRes.Value;
                 foreach (GeoCoordinate vertex in ringCoordsRes.Value)
                 {
-                    spotHeights.Add(new TropopauseSpotHeight(vertex, flResult.Value));
+                    spotHeights.Add(new TropopauseSpotHeight(vertex, level.Value));
                 }
             }
             else if (feature.PhenomenonGeometry?.Point != null)
@@ -366,10 +362,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 if (ptRes.IsFailure)
                     return Result<Tropopause>.Failure(ptRes.Errors);
 
-                spotHeights.Add(new TropopauseSpotHeight(ptRes.Value, flResult.Value));
+                spotHeights.Add(new TropopauseSpotHeight(ptRes.Value, level.Value));
             }
 
-            return Tropopause.Create(feature.Id, "CONTOUR", spotHeights, contourPolygon);
+            // WAFSSignificantWeatherForecast does not report a level type: none is invented.
+            return Tropopause.Create(feature.Id, null, spotHeights, contourPolygon);
         }
 
         private static Result<Volcano> MapWafsVolcanoFeature(MeteorologicalFeatureType feature)
@@ -383,7 +380,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 .Select(p => p.Volcano)
                 .FirstOrDefault(v => v != null);
 
-            string name = volcanoProp?.Name?.Value ?? string.Empty;
+            // iwxxm:name is nillable: a nil or absent name stays null (never invented).
+            string? name = string.IsNullOrWhiteSpace(volcanoProp?.Name?.NilReason) ? volcanoProp?.Name?.Value : null;
             string? wmoNumber = volcanoProp?.IAVCEINumber?.Value ?? volcanoProp?.WmoNumber;
 
             return Volcano.Create(
@@ -441,13 +439,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return RadiationIncident.Create(feature.Id, siteName, ptRes.Value, incidentTime);
         }
 
-        private static Result<(GeoPolygon Polygon, FlightLevel? BaseFl, FlightLevel TopFl)> ExtractElevatedVolumeGeometryAndLimits(
+        private static Result<(GeoPolygon Polygon, VerticalLimit? Base, VerticalLimit Top)> ExtractElevatedVolumeGeometryAndLimits(
             ElevatedVolumeType? volume,
             string context)
         {
             if (volume == null)
             {
-                return Result<(GeoPolygon, FlightLevel?, FlightLevel)>.Failure(
+                return Result<(GeoPolygon, VerticalLimit?, VerticalLimit)>.Failure(
                     "ACL-WAFS-MISSING-VOLUME",
                     $"Feature at '{context}' is missing an <iwxxm:ElevatedVolume> geometry.",
                     ErrorCategory.DomainMapping,
@@ -456,35 +454,28 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             var ringCoordsResult = ExtractElevatedVolumeRingCoordinates(volume, context);
             if (ringCoordsResult.IsFailure)
-                return Result<(GeoPolygon, FlightLevel?, FlightLevel)>.Failure(ringCoordsResult.Errors);
+                return Result<(GeoPolygon, VerticalLimit?, VerticalLimit)>.Failure(ringCoordsResult.Errors);
 
             var polyResult = GeoPolygon.Create(ringCoordsResult.Value, context);
             if (polyResult.IsFailure)
-                return Result<(GeoPolygon, FlightLevel?, FlightLevel)>.Failure(polyResult.Errors);
+                return Result<(GeoPolygon, VerticalLimit?, VerticalLimit)>.Failure(polyResult.Errors);
 
-            FlightLevel? baseFl = null;
-            if (volume.LowerElevation != null && !volume.LowerElevation.IsNil)
+            if (volume.UpperElevation == null)
             {
-                var baseRes = FlightLevel.Create(volume.LowerElevation.Value, volume.LowerElevation.Uom, $"{context}/lowerElevation");
-                if (baseRes.IsFailure)
-                    return Result<(GeoPolygon, FlightLevel?, FlightLevel)>.Failure(baseRes.Errors);
-                baseFl = baseRes.Value;
-            }
-
-            if (volume.UpperElevation == null || volume.UpperElevation.IsNil)
-            {
-                return Result<(GeoPolygon, FlightLevel?, FlightLevel)>.Failure(
+                return Result<(GeoPolygon, VerticalLimit?, VerticalLimit)>.Failure(
                     "ACL-WAFS-MISSING-UPPER-ELEV",
-                    $"ElevatedVolume at '{context}' is missing a valid <iwxxm:upperElevation>.",
+                    $"ElevatedVolume at '{context}' is missing the mandatory <iwxxm:upperElevation>.",
                     ErrorCategory.DomainMapping,
                     context);
             }
 
-            var topRes = FlightLevel.Create(volume.UpperElevation.Value, volume.UpperElevation.Uom, $"{context}/upperElevation");
-            if (topRes.IsFailure)
-                return Result<(GeoPolygon, FlightLevel?, FlightLevel)>.Failure(topRes.Errors);
+            var errors = new List<ValidationError>();
+            VerticalLimit? baseLimit = ReadVertical(volume.LowerElevation, volume.LowerVerticalReference, $"{context}/lowerElevation", errors);
+            VerticalLimit? topLimit = ReadVertical(volume.UpperElevation, volume.UpperVerticalReference, $"{context}/upperElevation", errors);
+            if (errors.Count > 0 || !topLimit.HasValue)
+                return Result<(GeoPolygon, VerticalLimit?, VerticalLimit)>.Failure(errors);
 
-            return Result<(GeoPolygon, FlightLevel?, FlightLevel)>.Success((polyResult.Value, baseFl, topRes.Value));
+            return Result<(GeoPolygon, VerticalLimit?, VerticalLimit)>.Success((polyResult.Value, baseLimit, topLimit.Value));
         }
 
         // =====================================================================
@@ -495,11 +486,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         {
             var errors = new List<ValidationError>();
 
-            DateTimeOffset issueTime = ExtractTimeInstant(dto.IssueTime, "issueTime", errors);
-            (DateTimeOffset validFrom, DateTimeOffset validUntil) = ExtractTimePeriod(dto.ValidPeriod, "validPeriod", errors);
+            ReportMetadataCodes.Metadata metadata = ReportMetadataCodes.Read(
+                dto.ReportStatus, dto.PermissibleUsage, dto.PermissibleUsageReason, dto.PermissibleUsageSupplementary, dto.Id, errors);
+            DateTimeOffset? issueTime = ExtractTimeInstant(dto.IssueTime, "issueTime", errors);
+            (DateTimeOffset? validFrom, DateTimeOffset? validUntil) = ExtractTimePeriod(dto.ValidPeriod, "validPeriod", errors);
 
-            FlightLevel lowerLimit = ExtractFlightLevel(dto.LowerLimit, "lowerLimit", errors);
-            FlightLevel upperLimit = ExtractFlightLevel(dto.UpperLimit, "upperLimit", errors);
+            // The compact format reports no vertical reference: none is assumed.
+            VerticalLimit? lowerLimit = ReadRequiredVertical(dto.LowerLimit, null, "lowerLimit", errors);
+            VerticalLimit? upperLimit = ReadRequiredVertical(dto.UpperLimit, null, "upperLimit", errors);
 
             var jetStreams = new List<JetStream>();
             if (dto.JetStreams != null)
@@ -553,17 +547,19 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return SignificantWeatherReport.Create(
                 id: dto.Id,
                 issuingCentre: dto.IssuingCentre,
-                reportStatus: dto.ReportStatus,
-                permissibleUsage: dto.PermissibleUsage,
-                issueTimeUtc: issueTime,
-                validFromUtc: validFrom,
-                validUntilUtc: validUntil,
-                lowerLimit: lowerLimit,
-                upperLimit: upperLimit,
+                reportStatus: metadata.Status,
+                permissibleUsage: metadata.Usage,
+                issueTimeUtc: issueTime!.Value,
+                validFromUtc: validFrom!.Value,
+                validUntilUtc: validUntil!.Value,
+                lowerLimit: lowerLimit!.Value,
+                upperLimit: upperLimit!.Value,
                 jetStreams: jetStreams,
                 clouds: clouds,
                 tropopauses: tropopauses,
-                volcanoes: volcanoes);
+                volcanoes: volcanoes,
+                permissibleUsageReason: metadata.Reason,
+                permissibleUsageSupplementary: metadata.Supplementary);
         }
 
         // =====================================================================
@@ -764,9 +760,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     context);
             }
 
-            var flResult = FlightLevel.Create(dto.FlightLevel.Value, dto.FlightLevel.Uom, context);
-            if (flResult.IsFailure)
-                return Result<JetStream>.Failure(flResult.Errors);
+            var levelErrors = new List<ValidationError>();
+            VerticalLimit? coreLevel = ReadVertical(dto.FlightLevel, null, $"{context}/flightLevel", levelErrors);
+            if (!coreLevel.HasValue)
+                return Result<JetStream>.Failure(levelErrors);
 
             var windSpeedResult = ReadRequiredSpeed(dto.WindSpeed, $"{context}/windSpeed");
             if (windSpeedResult.IsFailure)
@@ -785,25 +782,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     if (cpDto.FlightLevel == null)
                         return Result<JetStream>.Failure("ACL-JS-CORE-FL", "Missing flightLevel in corePoint.", ErrorCategory.DomainMapping, context);
 
-                    var cpFlResult = FlightLevel.Create(cpDto.FlightLevel.Value, cpDto.FlightLevel.Uom, $"{context}/corePoint");
-                    if (cpFlResult.IsFailure)
-                        return Result<JetStream>.Failure(cpFlResult.Errors);
-
-                    FlightLevel? lowerFl = null;
-                    if (cpDto.LowerFlightLevel != null && !cpDto.LowerFlightLevel.IsNil)
-                    {
-                        var lowRes = FlightLevel.Create(cpDto.LowerFlightLevel.Value, cpDto.LowerFlightLevel.Uom, $"{context}/corePoint/lowerFlightLevel");
-                        if (lowRes.IsFailure) return Result<JetStream>.Failure(lowRes.Errors);
-                        lowerFl = lowRes.Value;
-                    }
-
-                    FlightLevel? upperFl = null;
-                    if (cpDto.UpperFlightLevel != null && !cpDto.UpperFlightLevel.IsNil)
-                    {
-                        var upRes = FlightLevel.Create(cpDto.UpperFlightLevel.Value, cpDto.UpperFlightLevel.Uom, $"{context}/corePoint/upperFlightLevel");
-                        if (upRes.IsFailure) return Result<JetStream>.Failure(upRes.Errors);
-                        upperFl = upRes.Value;
-                    }
+                    var cpErrors = new List<ValidationError>();
+                    VerticalLimit? cpLevel = ReadVertical(cpDto.FlightLevel, null, $"{context}/corePoint/flightLevel", cpErrors);
+                    VerticalLimit? lowerFl = ReadVertical(cpDto.LowerFlightLevel, null, $"{context}/corePoint/lowerFlightLevel", cpErrors);
+                    VerticalLimit? upperFl = ReadVertical(cpDto.UpperFlightLevel, null, $"{context}/corePoint/upperFlightLevel", cpErrors);
+                    if (cpErrors.Count > 0 || !cpLevel.HasValue)
+                        return Result<JetStream>.Failure(cpErrors.Count > 0
+                            ? cpErrors
+                            : new List<ValidationError> { new ValidationError("ACL-JS-CORE-FL", "Missing flightLevel in corePoint.", ErrorCategory.DomainMapping, ValidationSeverity.Error, context) });
 
                     Speed coreSpeed = windSpeed;
                     if (cpDto.WindSpeed != null)
@@ -816,14 +802,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
                     corePoints.Add(new JetStreamCorePoint(
                         ptResult.Value,
-                        cpFlResult.Value,
+                        cpLevel.Value,
                         coreSpeed,
                         lowerFl,
                         upperFl));
                 }
             }
 
-            return JetStream.Create(dto.Id, axisCoordsResult.Value, flResult.Value, windSpeed, corePoints);
+            return JetStream.Create(dto.Id, axisCoordsResult.Value, coreLevel.Value, windSpeed, corePoints);
         }
 
         private static Result<Cloud> MapCompactCloud(CloudDistributionFeatureType dto)
@@ -843,16 +829,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (polygonResult.IsFailure)
                 return Result<Cloud>.Failure(polygonResult.Errors);
 
-            FlightLevel? baseFl = null;
-            if (dto.Base != null && !dto.Base.IsNil)
-            {
-                var baseRes = FlightLevel.Create(dto.Base.Value, dto.Base.Uom, $"{context}/base");
-                if (baseRes.IsFailure)
-                    return Result<Cloud>.Failure(baseRes.Errors);
-                baseFl = baseRes.Value;
-            }
-
-            if (dto.Top == null || dto.Top.IsNil)
+            if (dto.Top == null)
             {
                 return Result<Cloud>.Failure(
                     "ACL-CLOUD-MISSING-TOP",
@@ -861,16 +838,18 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     context);
             }
 
-            var topRes = FlightLevel.Create(dto.Top.Value, dto.Top.Uom, $"{context}/top");
-            if (topRes.IsFailure)
-                return Result<Cloud>.Failure(topRes.Errors);
+            var limitErrors = new List<ValidationError>();
+            VerticalLimit? baseLimit = ReadVertical(dto.Base, null, $"{context}/base", limitErrors);
+            VerticalLimit? topLimit = ReadVertical(dto.Top, null, $"{context}/top", limitErrors);
+            if (limitErrors.Count > 0 || !topLimit.HasValue)
+                return Result<Cloud>.Failure(limitErrors);
 
             return Cloud.Create(
                 id: dto.Id,
                 cloudAmount: dto.CloudAmount,
                 cloudType: dto.CloudType,
-                baseFlightLevel: baseFl,
-                topFlightLevel: topRes.Value,
+                baseLimit: baseLimit,
+                topLimit: topLimit.Value,
                 area: polygonResult.Value);
         }
 
@@ -896,11 +875,12 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                             context);
                     }
 
-                    var flResult = FlightLevel.Create(ptDto.FlightLevel.Value, ptDto.FlightLevel.Uom, $"{context}/spotHeight");
-                    if (flResult.IsFailure)
-                        return Result<Tropopause>.Failure(flResult.Errors);
+                    var levelErrors = new List<ValidationError>();
+                    VerticalLimit? level = ReadVertical(ptDto.FlightLevel, null, $"{context}/spotHeight/flightLevel", levelErrors);
+                    if (!level.HasValue)
+                        return Result<Tropopause>.Failure(levelErrors);
 
-                    spotHeights.Add(new TropopauseSpotHeight(coordResult.Value, flResult.Value));
+                    spotHeights.Add(new TropopauseSpotHeight(coordResult.Value, level.Value));
                 }
             }
 
@@ -922,13 +902,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             return Volcano.Create(
                 id: dto.Id,
-                name: dto.Name?.Value ?? string.Empty,
+                name: string.IsNullOrWhiteSpace(dto.Name?.NilReason) ? dto.Name?.Value : null,
                 wmoNumber: dto.WmoNumber ?? dto.IAVCEINumber?.Value,
                 position: posResult.Value,
                 eruptionTimeUtc: eruptionUtc);
         }
 
-        private static DateTimeOffset ExtractTimeInstant(
+        private static DateTimeOffset? ExtractTimeInstant(
             TimeInstantPropertyType? prop,
             string fieldName,
             List<ValidationError> errors)
@@ -941,13 +921,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     ErrorCategory.DomainMapping,
                     ValidationSeverity.Error,
                     fieldName));
-                return DateTimeOffset.MinValue;
+                return null;
             }
 
             return NormalizeToUtc(prop.TimeInstant.TimePosition);
         }
 
-        private static (DateTimeOffset From, DateTimeOffset Until) ExtractTimePeriod(
+        private static (DateTimeOffset? From, DateTimeOffset? Until) ExtractTimePeriod(
             TimePeriodPropertyType? prop,
             string fieldName,
             List<ValidationError> errors)
@@ -960,7 +940,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     ErrorCategory.DomainMapping,
                     ValidationSeverity.Error,
                     fieldName));
-                return (DateTimeOffset.MinValue, DateTimeOffset.MinValue);
+                return (null, null);
             }
 
             return (
@@ -968,30 +948,29 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 NormalizeToUtc(prop.TimePeriod.EndPosition));
         }
 
-        private static FlightLevel ExtractFlightLevel(
-            MeasureType? measure,
-            string fieldName,
-            List<ValidationError> errors)
+        /// <summary>Reads an optional vertical measure exactly as reported (<c>null</c> when the element is absent).</summary>
+        private static VerticalLimit? ReadVertical(MeasureType? measure, string? reference, string location, List<ValidationError> errors) =>
+            measure == null
+                ? (VerticalLimit?)null
+                : VerticalLimitReader.Read(measure.RawValue, measure.Uom, measure.NilReason, false, reference, location, errors);
+
+        /// <summary>Reads a mandatory vertical measure: an absent element is a mapping error (nil stays an explicit nil).</summary>
+        private static VerticalLimit? ReadRequiredVertical(MeasureType? measure, string? reference, string location, List<ValidationError> errors)
         {
-            if (measure == null || measure.IsNil)
+            if (measure == null)
             {
                 errors.Add(new ValidationError(
                     "ACL-MISSING-FLIGHT-LEVEL",
-                    $"Required vertical limit '{fieldName}' is missing.",
+                    $"Required vertical limit '{location}' is missing.",
                     ErrorCategory.DomainMapping,
                     ValidationSeverity.Error,
-                    fieldName));
-                return default;
+                    location));
+                return null;
             }
 
-            var flRes = FlightLevel.Create(measure.Value, measure.Uom, fieldName);
-            if (flRes.IsFailure)
-            {
-                errors.AddRange(flRes.Errors);
-                return default;
-            }
-
-            return flRes.Value;
+            int before = errors.Count;
+            VerticalLimit? limit = ReadVertical(measure, reference, location, errors);
+            return errors.Count > before ? null : limit;
         }
 
         private static DateTimeOffset NormalizeToUtc(DateTime dt)
