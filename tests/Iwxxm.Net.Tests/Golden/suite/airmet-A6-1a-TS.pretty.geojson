@@ -1,0 +1,37 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [50, -50, 70, -40],
+  "metadata": {
+    "id": "uuid.69a2497b-193c-47bf-a6bd-1cc71acbc8e5",
+    "reportType": "Airmet",
+    "issueTimeUtc": "2014-05-15T15:20:00.0000000+00:00",
+    "reportStatus": "NORMAL",
+    "permissibleUsage": "OPERATIONAL"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "uuid.deeb1ae5-0094-4ec8-af92-aa7b3f156a3f",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[50, -50], [70, -50], [70, -40], [50, -40], [50, -50]]
+        ]
+      },
+      "properties": {
+        "featureType": "AIRMET_EVOLVING_VOLUME",
+        "reportId": "uuid.69a2497b-193c-47bf-a6bd-1cc71acbc8e5",
+        "reportType": "Airmet",
+        "issueTimeUtc": "2014-05-15T15:20:00.0000000+00:00",
+        "firDesignator": "YUDD",
+        "sequenceNumber": "1",
+        "phenomenonUri": "http://codes.wmo.int/49-2/AirWxPhenomena/ISOL_TS",
+        "upperLimit": 100,
+        "upperLimitUom": "FL",
+        "upperLimitReference": "STD",
+        "upperLimitFlightLevel": "FL100",
+        "intensityChange": "WEAKEN"
+      }
+    }
+  ]
+}

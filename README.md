@@ -178,6 +178,19 @@ switch (result.Value)
 }
 ```
 
+For exhaustive, compiler-checked handling, implement `IIwxxmReportVisitor<TResult>` (one `Visit` overload per report type) and call `report.Accept(visitor)`: when a report type is added, every visitor stops compiling until it handles it.
+
+```csharp
+sealed class DescribeVisitor : IIwxxmReportVisitor<string>
+{
+    public string Visit(AerodromeWeatherReport report) => $"{report.ReportType} {report.AerodromeDesignator}";
+    public string Visit(TafReport report) => $"TAF {report.AerodromeDesignator}";
+    // ... one overload per report type, including SignificantWeatherReport and MeteorologicalBulletin
+}
+
+string description = result.Value.Accept(new DescribeVisitor());
+```
+
 ---
 
 ### 4.2 Aerodrome Observations & Forecasts (`METAR`, `SPECI`, `TAF`)
@@ -705,7 +718,7 @@ Consumers never need a layer name in a `using` directive. The public API is grou
 | Namespace | Contents |
 | :--- | :--- |
 | `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, inbound ports (`IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor`, `IGeoJsonExportService`), and the `UseOfficialSchematron()` extension of the optional Saxon package |
-| `Iwxxm.Net.Reports` | Domain model: report aggregates (`IIwxxmReport`, `AerodromeWeatherReport`, `TafReport`, `SigmetReport`, ..., `MeteorologicalBulletin`) and value objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`, `FlightLevel`, `Speed`, `Length`, WMO codes, ...) |
+| `Iwxxm.Net.Reports` | Domain model: report aggregates (`IIwxxmReport`, `IIwxxmReportVisitor<TResult>`, `AerodromeWeatherReport`, `TafReport`, `SigmetReport`, ..., `MeteorologicalBulletin`) and value objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`, `FlightLevel`, `Speed`, `Length`, WMO codes, ...) |
 | `Iwxxm.Net.Extensibility` | Outbound ports for custom adapters (`ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter`) |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
 
@@ -720,7 +733,7 @@ src/Iwxxm.Net/
 ├── Domain/                     # Depends on nothing (no System.Xml, System.IO, Application or Infrastructure)
 │   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity        (ns Iwxxm.Net)
 │   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, VerticalLimit, FlightLevel, Speed, Length, WmoCodes, ... (ns Iwxxm.Net.Reports)
-│   └── Aggregates/             # IIwxxmReport and every report aggregate                               (ns Iwxxm.Net.Reports)
+│   └── Aggregates/             # IIwxxmReport, IIwxxmReportVisitor<TResult> and every report aggregate (ns Iwxxm.Net.Reports)
 ├── Application/                # Depends only on Domain (no System.Xml)
 │   ├── Options/                # IwxxmParserOptions, GeoJsonExportOptions                              (ns Iwxxm.Net)
 │   ├── Ports/In/               # Inbound ports (use-case interfaces)                                   (ns Iwxxm.Net)
@@ -731,8 +744,13 @@ src/Iwxxm.Net/
 │   ├── Resources/              # EmbeddedResourceLoader & EmbeddedXmlUrlResolver (air-gapped XSD/XSLT/RDF)
 │   ├── Validation/             # XsdValidator, XsltSchematronValidator, DisabledSchematronValidator
 │   ├── Serialization/          # SigwxXmlDeserializer + AttributeDrivenXmlReader (reflection reader for the internal model)
-│   ├── Mapping/                # IwxxmSuiteMapper, SigwxDocumentMapper, SigwxMapper, UomMeasureReader, GmlCoordinateTokenizer
-│   └── GeoJson/                # Rfc7946GeoJsonExporter
+│   ├── Mapping/                # IwxxmSuiteMapper (composite), SigwxDocumentMapper, SigwxMapper, UomMeasureReader, GmlCoordinateTokenizer
+│   │   ├── Reports/            # One mapper per report family + IwxxmReportMapperRegistry (dispatch by root QName)
+│   │   ├── Xml/                # Shared LINQ to XML readers: GML time/geometry, AIXM features, text, error codes
+│   │   └── Sigwx/              # WAFS/compact SIGWX mappers and one extractor per phenomenon family
+│   └── GeoJson/                # Rfc7946GeoJsonExporter + GeoJsonFeatureCollector (IIwxxmReportVisitor)
+│       ├── Features/           # One feature builder per report family
+│       └── Writing/            # RFC 8259 JSON writer and FeatureCollection writer
 ├── Composition/                # IwxxmParserBuilder: the only place that references Infrastructure  (ns Iwxxm.Net)
 └── Presentation/               # Facades over inbound ports only                                       (ns Iwxxm.Net)
     ├── IwxxmParser.cs

@@ -77,5 +77,11 @@ namespace Iwxxm.Net.Reports
         /// Gets the raw Traditional Alphanumeric Code (TAC) text when <see cref="IsTranslationFailed"/> is <c>true</c>.
         /// </summary>
         string? TranslationFailedTac { get; }
+
+        /// <summary>
+        /// Dispatches to the <see cref="IIwxxmReportVisitor{TResult}"/> overload of this concrete report type.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"><paramref name="visitor"/> is <c>null</c>.</exception>
+        TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor);
     }
 }

@@ -1,0 +1,331 @@
+VolcanicAshAdvisoryReport {
+  AdvisoryNumber = "2024/4"
+  EruptionDetails = "FL300 REPORTED"
+  ForecastAshClouds = [
+    EnRoutePhenomenonVolume {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = 160.5
+          }
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = 162.5
+          }
+          GeoCoordinate {
+            Lat = 53.5
+            Lon = 162.5
+          }
+          GeoCoordinate {
+            Lat = 53.5
+            Lon = 160.5
+          }
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = 160.5
+          }
+        ]
+        InteriorRings = []
+      }
+      DirectionOfMotionDegrees = null
+      Id = "uuid.b8b23d9c-2794-406f-8b8a-6eb5cde393fb"
+      IntensityChange = null
+      LowerLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 250
+      }
+      SpeedOfMotion = null
+      TropicalCycloneCentre = null
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 350
+      }
+    }
+    EnRoutePhenomenonVolume {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 48.5
+            Lon = 163.5
+          }
+          GeoCoordinate {
+            Lat = 48.5
+            Lon = 166.5
+          }
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = 166.5
+          }
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = 163.5
+          }
+          GeoCoordinate {
+            Lat = 48.5
+            Lon = 163.5
+          }
+        ]
+        InteriorRings = []
+      }
+      DirectionOfMotionDegrees = null
+      Id = "uuid.29dff823-5132-42ea-bcda-6e94a6b64983"
+      IntensityChange = null
+      LowerLimit = VerticalLimit {
+        IsGround = true
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Sfc
+        ReferenceCode = "SFC"
+        SpecialValue = VerticalSpecialValue.Ground
+        SpecialValueCode = "GND"
+        Unit = null
+        UnitOfMeasure = null
+        Value = null
+      }
+      SpeedOfMotion = null
+      TropicalCycloneCentre = null
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 180
+      }
+    }
+    EnRoutePhenomenonVolume {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 48.5
+            Lon = 161.5
+          }
+          GeoCoordinate {
+            Lat = 48.5
+            Lon = 166
+          }
+          GeoCoordinate {
+            Lat = 53
+            Lon = 166
+          }
+          GeoCoordinate {
+            Lat = 53
+            Lon = 161.5
+          }
+          GeoCoordinate {
+            Lat = 48.5
+            Lon = 161.5
+          }
+        ]
+        InteriorRings = []
+      }
+      DirectionOfMotionDegrees = null
+      Id = "uuid.bcc01180-95c0-4ac1-8f13-53bbbfa430b7"
+      IntensityChange = null
+      LowerLimit = VerticalLimit {
+        IsGround = true
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Sfc
+        ReferenceCode = "SFC"
+        SpecialValue = VerticalSpecialValue.Ground
+        SpecialValueCode = "GND"
+        Unit = null
+        UnitOfMeasure = null
+        Value = null
+      }
+      SpeedOfMotion = null
+      TropicalCycloneCentre = null
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 270
+      }
+    }
+  ]
+  Id = "uuid.fb4861a8-0438-4f17-b8a7-efc13de58dec"
+  InformationSource = "HIMAWARI-8 KVERT KEMSD"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2024-09-23T01:30:00.0000000+00:00
+  IssuingVaacName = "TOKYO"
+  NextAdvisoryTimeUtc = 2024-09-23T07:30:00.0000000+00:00
+  ObservedAshClouds = [
+    EnRoutePhenomenonVolume {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 54
+            Lon = 159.5
+          }
+          GeoCoordinate {
+            Lat = 53
+            Lon = 159.75
+          }
+          GeoCoordinate {
+            Lat = 54
+            Lon = 161
+          }
+          GeoCoordinate {
+            Lat = 54
+            Lon = 159.5
+          }
+        ]
+        InteriorRings = []
+      }
+      DirectionOfMotionDegrees = 135
+      Id = "uuid.4dd54d1a-9a18-4065-b9e9-a0f25ced8f17"
+      IntensityChange = null
+      LowerLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 250
+      }
+      SpeedOfMotion = Speed {
+        Unit = SpeedUnit.Knots
+        UnitOfMeasure = "[kn_i]"
+        Value = 20
+      }
+      TropicalCycloneCentre = null
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 300
+      }
+    }
+    EnRoutePhenomenonVolume {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = 161.5
+          }
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = 162.5
+          }
+          GeoCoordinate {
+            Lat = 52.5
+            Lon = 162.5
+          }
+          GeoCoordinate {
+            Lat = 52.5
+            Lon = 161.5
+          }
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = 161.5
+          }
+        ]
+        InteriorRings = []
+      }
+      DirectionOfMotionDegrees = 135
+      Id = "uuid.1f272bcf-ff35-45fe-9206-7963d574c752"
+      IntensityChange = null
+      LowerLimit = VerticalLimit {
+        IsGround = true
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Sfc
+        ReferenceCode = "SFC"
+        SpecialValue = VerticalSpecialValue.Ground
+        SpecialValueCode = "GND"
+        Unit = null
+        UnitOfMeasure = null
+        Value = null
+      }
+      SpeedOfMotion = Speed {
+        Unit = SpeedUnit.Knots
+        UnitOfMeasure = "[kn_i]"
+        Value = 15
+      }
+      TropicalCycloneCentre = null
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 200
+      }
+    }
+  ]
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Remarks = "LATEST REP FM KVERT (0120Z) INDICATES ERUPTION HAS CEASED.  TWO DISPERSING VA CLD ARE EVIDENT ON SATELLITE IMAGERY"
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.VolcanicAshAdvisory
+  SourceElevation = Length {
+    Unit = LengthUnit.Meters
+    UnitOfMeasure = "m"
+    Value = 1536
+  }
+  StateOrRegion = "RUSSIA"
+  TranslationFailedTac = null
+  Volcano = Volcano {
+    EruptionTimeUtc = null
+    Id = "uuid.1b9ee023-c87d-4fa0-bf9b-bb1c7215286c"
+    Name = "KARYMSKY 1000-13"
+    Position = GeoCoordinate {
+      Lat = 54.05
+      Lon = 159.45
+    }
+    WmoNumber = null
+  }
+}

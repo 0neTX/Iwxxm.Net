@@ -1,0 +1,58 @@
+SpaceWeatherAdvisoryReport {
+  AdvisoryNumber = "2020/15"
+  Analyses = [
+    SpaceWeatherAnalysisRegion {
+      Id = "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90"
+      Intensity = "MOD"
+      LocationIndicatorUris = []
+      PhenomenonTimeUtc = 2020-11-08T01:00:00.0000000+00:00
+      Polygons = [
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = 80
+              Lon = -180
+            }
+            GeoCoordinate {
+              Lat = 70
+              Lon = 75
+            }
+            GeoCoordinate {
+              Lat = 60
+              Lon = 15
+            }
+            GeoCoordinate {
+              Lat = 70
+              Lon = -75
+            }
+            GeoCoordinate {
+              Lat = 80
+              Lon = -180
+            }
+          ]
+          InteriorRings = []
+        }
+      ]
+      TimeIndicator = "OBSERVATION"
+    }
+  ]
+  Effects = [
+    "RADIATION"
+  ]
+  Id = "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2020-11-08T01:00:00.0000000+00:00
+  IssuingSwxcName = "DONLON"
+  NextAdvisoryTimeUtc = 2020-11-08T07:00:00.0000000+00:00
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Remarks = "RTN TO BACKGROUND LVL INSIDE THE FIRST FCST PERIOD. SEE WWW.SPACEWEATHERPROVIDER.WEB"
+  ReplacedAdvisoryNumbers = [
+    "2020/13"
+    "2020/14"
+  ]
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.SpaceWeatherAdvisory
+  TranslationFailedTac = null
+}

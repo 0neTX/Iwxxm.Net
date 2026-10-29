@@ -31,6 +31,10 @@ namespace Iwxxm.Net.Reports
         public bool IsTranslationFailed => false;
         public string? TranslationFailedTac => null;
 
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         public IReadOnlyList<JetStream> JetStreams { get; }
         public IReadOnlyList<Cloud> Clouds { get; }
         public IReadOnlyList<Tropopause> Tropopauses { get; }

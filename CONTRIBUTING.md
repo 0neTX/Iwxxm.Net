@@ -73,3 +73,42 @@ Further rules:
 2. **Public API**: public types live only in `Iwxxm.Net`, `Iwxxm.Net.Reports` and `Iwxxm.Net.Extensibility`; consumers must never need a layer name in a `using` directive. Outbound ports use technology-neutral signatures (streams, `Result<T>`, `ValidationError`), never `System.Xml` types.
 3. **Error contract**: `ValidationError.Code` strings are the stable contract; `ErrorCategory` names stay technology-agnostic.
 4. **Coding Standards**: Follow [`.editorconfig`](.editorconfig) and write all XML documentation and code comments in **English**.
+
+---
+
+## Adding or Changing a Report Family
+
+IWXXM 2025-2 defines a closed catalog of report types, so extension points are static (no reflection or plug-ins). Each report family is isolated in its own files so that a change to one family cannot regress another:
+
+1. **Domain**: add the aggregate in `Domain/Aggregates` (namespace `Iwxxm.Net.Reports`), implement `IIwxxmReport.Accept<TResult>` as `visitor.Visit(this)`, and add a `Visit` overload to `IIwxxmReportVisitor<TResult>`. Every visitor (including `GeoJsonFeatureCollector`) then fails to compile until it handles the new type.
+2. **Mapping (LINQ to XML)**: add `Infrastructure/Mapping/Reports/<Family>Mapper.cs` with a static `Map(XElement root)` that starts with `ReportHeader.Read(root, errors)` and reuses the shared readers in `Infrastructure/Mapping/Xml` (`GmlTimeReader`, `GmlGeometryReader`, `AixmFeatureReader`, `XmlValueReader`, `MappingErrors`, `UcumUnits`) and `UomMeasureReader` / `VerticalLimitReader`. Register the root element QName in `IwxxmReportMapperRegistry`; `IwxxmSuiteMapper` stays a thin composite (document loading, SIGWX and bulletin dispatch).
+3. **SIGWX phenomena**: add or change the extractor of the phenomenon family in `Infrastructure/Mapping/Sigwx` and, for WAFS features, its phenomenon suffix in the `WafsForecastMapper` table.
+4. **GeoJSON**: add `Infrastructure/GeoJson/Features/<Family>FeatureBuilder.cs` (build properties with `GeoJsonProperties`, return `GeoJsonFeature` instances) and call it from the new `Visit` overload of `GeoJsonFeatureCollector`. The JSON writers in `Infrastructure/GeoJson/Writing` are shared and should not need changes.
+5. Add an official example to `tests/Iwxxm.Net.Tests/Samples/wmo-examples` (byte-identical) and generate its golden files (below).
+
+Keep each file to one responsibility (as a guide, under about 300 lines).
+
+---
+
+## Golden-Master (Characterization) Tests
+
+[`GoldenMasterTests`](tests/Iwxxm.Net.Tests/GoldenMaster/GoldenMasterTests.cs) compare, for every official example in `Samples/wmo-examples` and both SIGWX samples, three outputs against committed files in `tests/Iwxxm.Net.Tests/Golden/{suite,sigwx}/`:
+
+- `<sample>.domain.txt`: the full mapped Domain model, written by the test-only `CanonicalDomainDumper` (reflection over public properties in ordinal order, invariant culture, round-trip numbers, ISO 8601 instants);
+- `<sample>.pretty.geojson`: GeoJSON with `GeoJsonExportOptions.Pretty`;
+- `<sample>.compact.geojson`: compact GeoJSON without `bbox`.
+
+A refactor must leave every golden file unchanged. If a behaviour change is intentional, document it in `CHANGELOG.md` and regenerate the goldens by running the tests with `IWXXM_UPDATE_GOLDEN=1` (files are written to the source `Golden/` directory, found by walking up from the test output directory to `Iwxxm.Net.Tests.csproj`), or with `IWXXM_UPDATE_GOLDEN=<directory>` to write them elsewhere. Then review the diff before committing:
+
+```bash
+IWXXM_UPDATE_GOLDEN=1 dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj -c Release --filter "FullyQualifiedName~GoldenMaster"
+git diff --stat tests/Iwxxm.Net.Tests/Golden
+```
+
+With the container build, mount the golden directory and pass the variable:
+
+```bash
+podman build --target build -t iwxxm-net-build .
+podman run --rm -v "$PWD/tests/Iwxxm.Net.Tests/Golden:/golden:Z" -e IWXXM_UPDATE_GOLDEN=/golden iwxxm-net-build \
+  dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~GoldenMaster"
+```

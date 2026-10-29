@@ -1,0 +1,77 @@
+MeteorologicalBulletin {
+  BulletinIdentifier = "A_LAYU31YUDO221630_C_YUDO_20120822163000.xml"
+  Id = "uuid.6f353602-12a1-40a7-b6b5-3edb14c6241e"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  ReportResults = [
+    Result<IIwxxmReport> {
+      Errors = []
+      IsFailure = false
+      IsSuccess = true
+      Value = AerodromeWeatherReport {
+        AerodromeDesignator = "YUDO"
+        AerodromeName = "DONLON/INTERNATIONAL"
+        AerodromePosition = null
+        AirTemperatureCelsius = null
+        CloudAndVisibilityOk = false
+        CloudLayers = []
+        DewpointTemperatureCelsius = null
+        Id = "uuid.15ff064a-6dc4-41e0-bafa-8ee78ed4dc25"
+        IsAutomatedStation = false
+        IsNilObservation = true
+        IsTranslationFailed = false
+        IssueTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+        ObservationNilReason = "http://codes.wmo.int/common/nil/missing"
+        ObservationTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+        PermissibleUsage = PermissibleUsage.Operational
+        PermissibleUsageReason = null
+        PermissibleUsageSupplementary = null
+        PresentWeatherUris = []
+        PrevailingVisibilityMeters = null
+        QnhHpa = null
+        ReportStatus = ReportStatus.Normal
+        ReportType = IwxxmReportType.Metar
+        RunwayVisualRanges = []
+        SurfaceWind = null
+        TranslationFailedTac = null
+        TrendForecasts = []
+      }
+    }
+  ]
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.MeteorologicalBulletin
+  Reports = [
+    AerodromeWeatherReport {
+      AerodromeDesignator = "YUDO"
+      AerodromeName = "DONLON/INTERNATIONAL"
+      AerodromePosition = null
+      AirTemperatureCelsius = null
+      CloudAndVisibilityOk = false
+      CloudLayers = []
+      DewpointTemperatureCelsius = null
+      Id = "uuid.15ff064a-6dc4-41e0-bafa-8ee78ed4dc25"
+      IsAutomatedStation = false
+      IsNilObservation = true
+      IsTranslationFailed = false
+      IssueTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+      ObservationNilReason = "http://codes.wmo.int/common/nil/missing"
+      ObservationTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+      PermissibleUsage = PermissibleUsage.Operational
+      PermissibleUsageReason = null
+      PermissibleUsageSupplementary = null
+      PresentWeatherUris = []
+      PrevailingVisibilityMeters = null
+      QnhHpa = null
+      ReportStatus = ReportStatus.Normal
+      ReportType = IwxxmReportType.Metar
+      RunwayVisualRanges = []
+      SurfaceWind = null
+      TranslationFailedTac = null
+      TrendForecasts = []
+    }
+  ]
+  TranslationFailedTac = null
+}

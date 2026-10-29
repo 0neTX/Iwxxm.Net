@@ -1,0 +1,240 @@
+SignificantWeatherReport {
+  AirframeIcings = []
+  Clouds = [
+    Cloud {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 43
+            Lon = -9
+          }
+          GeoCoordinate {
+            Lat = 46.5
+            Lon = -9
+          }
+          GeoCoordinate {
+            Lat = 46.5
+            Lon = -1.5
+          }
+          GeoCoordinate {
+            Lat = 43
+            Lon = -1.5
+          }
+          GeoCoordinate {
+            Lat = 43
+            Lon = -9
+          }
+        ]
+        InteriorRings = []
+      }
+      Base = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = null
+        ReferenceCode = null
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 250
+      }
+      CloudAmount = "OCNL_EMBD"
+      CloudType = "CB"
+      DistributionCode = CloudDistributionCode.OccasionalEmbedded
+      DistributionNumericCode = null
+      Id = "cb-biscay-01"
+      Top = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = null
+        ReferenceCode = null
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 420
+      }
+      TypeCode = CloudTypeCode.Cumulonimbus
+      TypeNumericCode = null
+    }
+  ]
+  Id = "uuid.sigwx.wafc.egrr.202610281800"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2026-10-28T18:00:00.0000000+00:00
+  IssuingCentre = "EGRR"
+  JetStreams = [
+    JetStream {
+      AxisTrajectory = [
+        GeoCoordinate {
+          Lat = 48.5
+          Lon = -35
+        }
+        GeoCoordinate {
+          Lat = 50.25
+          Lon = -20.5
+        }
+        GeoCoordinate {
+          Lat = 51.8
+          Lon = -10
+        }
+        GeoCoordinate {
+          Lat = 52.1
+          Lon = 2.3
+        }
+      ]
+      CoreLevel = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = null
+        ReferenceCode = null
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 360
+      }
+      CorePoints = [
+        JetStreamCorePoint {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = null
+            ReferenceCode = null
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.FlightLevel
+            UnitOfMeasure = "FL"
+            Value = 360
+          }
+          Location = GeoCoordinate {
+            Lat = 50.25
+            Lon = -20.5
+          }
+          LowerIsotachLimit = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = null
+            ReferenceCode = null
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.FlightLevel
+            UnitOfMeasure = "FL"
+            Value = 310
+          }
+          UpperIsotachLimit = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = null
+            ReferenceCode = null
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.FlightLevel
+            UnitOfMeasure = "FL"
+            Value = 400
+          }
+          WindSpeed = Speed {
+            Unit = SpeedUnit.Knots
+            UnitOfMeasure = "[kn_i]"
+            Value = 135
+          }
+        }
+      ]
+      Id = "js-north-atlantic-01"
+      MaxWindSpeed = Speed {
+        Unit = SpeedUnit.Knots
+        UnitOfMeasure = "[kn_i]"
+        Value = 135
+      }
+    }
+  ]
+  LowerLimit = VerticalLimit {
+    IsGround = false
+    IsNil = false
+    IsUnlimited = false
+    NilReason = null
+    Reference = null
+    ReferenceCode = null
+    SpecialValue = VerticalSpecialValue.None
+    SpecialValueCode = null
+    Unit = VerticalUnit.FlightLevel
+    UnitOfMeasure = "FL"
+    Value = 250
+  }
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  RadiationIncidents = []
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.SignificantWeather
+  Sandstorms = []
+  TranslationFailedTac = null
+  TropicalCyclones = []
+  Tropopauses = [
+    Tropopause {
+      ContourPolygon = null
+      Id = "tropo-spot-01"
+      LevelType = "HIGH"
+      SpotHeights = [
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = null
+            ReferenceCode = null
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.FlightLevel
+            UnitOfMeasure = "FL"
+            Value = 450
+          }
+          Location = GeoCoordinate {
+            Lat = 40.41
+            Lon = -3.7
+          }
+        }
+      ]
+    }
+  ]
+  Turbulences = []
+  UpperLimit = VerticalLimit {
+    IsGround = false
+    IsNil = false
+    IsUnlimited = false
+    NilReason = null
+    Reference = null
+    ReferenceCode = null
+    SpecialValue = VerticalSpecialValue.None
+    SpecialValueCode = null
+    Unit = VerticalUnit.FlightLevel
+    UnitOfMeasure = "FL"
+    Value = 630
+  }
+  ValidFromUtc = 2026-10-29T00:00:00.0000000+00:00
+  ValidUntilUtc = 2026-10-29T06:00:00.0000000+00:00
+  Volcanoes = [
+    Volcano {
+      EruptionTimeUtc = 2026-10-28T16:30:00.0000000+00:00
+      Id = "volcano-etna-01"
+      Name = "ETNA"
+      Position = GeoCoordinate {
+        Lat = 37.73
+        Lon = 15
+      }
+      WmoNumber = "211060"
+    }
+  ]
+}

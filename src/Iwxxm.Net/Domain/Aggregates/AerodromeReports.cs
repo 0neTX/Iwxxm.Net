@@ -135,6 +135,11 @@ namespace Iwxxm.Net.Reports
         public string? ObservationNilReason { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
+
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         public bool CloudAndVisibilityOk { get; }
         public double? AirTemperatureCelsius { get; }
         public double? DewpointTemperatureCelsius { get; }
@@ -311,6 +316,11 @@ namespace Iwxxm.Net.Reports
         public string? BaseForecastNilReason { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
+
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         public AerodromeForecastGroupInfo? BaseForecast { get; }
         public IReadOnlyList<AerodromeForecastGroupInfo> ChangeForecasts { get; }
 

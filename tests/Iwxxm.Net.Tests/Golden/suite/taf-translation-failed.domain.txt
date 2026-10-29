@@ -1,0 +1,23 @@
+TafReport {
+  AerodromeDesignator = "YUDO"
+  AerodromeName = "DONLON/INTERNATIONAL"
+  AerodromePosition = null
+  BaseForecast = null
+  BaseForecastNilReason = null
+  CancelledReportValidFromUtc = null
+  CancelledReportValidUntilUtc = null
+  ChangeForecasts = []
+  Id = "uuid.fa3ce106-f401-4670-ae50-cdf76bf68912"
+  IsCancelReport = false
+  IsNilForecast = false
+  IsTranslationFailed = true
+  IssueTimeUtc = 2012-08-15T18:00:00.0000000+00:00
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.Taf
+  TranslationFailedTac = "TAF YUDO 151800Z 1600/1618 INVALID"
+  ValidFromUtc = 2012-08-16T00:00:00.0000000+00:00
+  ValidUntilUtc = 2012-08-16T18:00:00.0000000+00:00
+}

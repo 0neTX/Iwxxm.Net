@@ -1,0 +1,18 @@
+SpaceWeatherAdvisoryReport {
+  AdvisoryNumber = null
+  Analyses = []
+  Effects = []
+  Id = "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2"
+  IsTranslationFailed = true
+  IssueTimeUtc = 2016-11-08T00:00:00.0000000+00:00
+  IssuingSwxcName = "DONLON"
+  NextAdvisoryTimeUtc = null
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Remarks = null
+  ReplacedAdvisoryNumbers = []
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.SpaceWeatherAdvisory
+  TranslationFailedTac = "FVFE01 RJTD 230130     SWX ADVISORY     DTG:                20161108/0100Z      SWXC:               DONLON     ADVISORY NR:        2016/1     INVALID INVALID INVALID"
+}

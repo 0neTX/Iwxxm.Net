@@ -75,6 +75,11 @@ namespace Iwxxm.Net.Reports
         public string? CancelledReportSequenceNumber { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
+
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         public Volcano? EruptingVolcano { get; }
         public string? TropicalCycloneName { get; }
         public IReadOnlyList<EnRoutePhenomenonVolume> EvolvingConditions { get; }
@@ -232,6 +237,11 @@ namespace Iwxxm.Net.Reports
         public string? PhenomenonUri { get; }
         public bool IsTranslationFailed { get; }
         public string? TranslationFailedTac { get; }
+
+        /// <inheritdoc />
+        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+            (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
+
         public IReadOnlyList<EnRoutePhenomenonVolume> EvolvingConditions { get; }
 
         private AirmetReport(

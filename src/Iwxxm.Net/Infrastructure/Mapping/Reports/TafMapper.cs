@@ -1,0 +1,77 @@
+using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.Xml;
+using Iwxxm.Net.Reports;
+using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
+using static Iwxxm.Net.Infrastructure.Mapping.Xml.XmlValueReader;
+
+namespace Iwxxm.Net.Infrastructure.Mapping.Reports
+{
+    /// <summary>Maps <c>iwxxm:TAF</c> (<c>taf.xsd</c>) onto <see cref="TafReport"/>.</summary>
+    internal static class TafMapper
+    {
+        public static Result<TafReport> Map(XElement root)
+        {
+            var errors = new List<ValidationError>();
+            ReportHeader header = ReportHeader.Read(root, errors);
+            string id = header.Id;
+            bool isCancel = ParseBoolAttribute(root, "isCancelReport");
+
+            AixmFeatureReader.ReadAerodrome(
+                root.Element(IwxxmNs + "aerodrome"),
+                errors,
+                out string designator,
+                out string? name,
+                out GeoCoordinate? position);
+
+            // validPeriod and cancelledReportValidPeriod are minOccurs="0" (taf.xsd): optional.
+            GmlTimeReader.ReadPeriod(root.Element(IwxxmNs + "validPeriod"), "validPeriod", null, id, errors, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
+            GmlTimeReader.ReadPeriod(root.Element(IwxxmNs + "cancelledReportValidPeriod"), "cancelledReportValidPeriod", null, id, errors, out DateTimeOffset? cancelFrom, out DateTimeOffset? cancelUntil);
+
+            XElement? baseProp = root.Element(IwxxmNs + "baseForecast");
+            string? baseNilReason = baseProp?.Attribute("nilReason")?.Value;
+            XElement? baseElem = baseProp?.Element(IwxxmNs + "MeteorologicalAerodromeForecast");
+            bool isNilForecast = baseElem == null && !string.IsNullOrWhiteSpace(baseNilReason);
+
+            AerodromeForecastGroupInfo? baseForecast = baseElem != null ? AerodromeConditionsReader.ReadForecastGroup(baseElem, errors) : null;
+
+            var changes = new List<AerodromeForecastGroupInfo>();
+            foreach (XElement changeProp in root.Elements(IwxxmNs + "changeForecast"))
+            {
+                XElement? changeElem = changeProp.Element(IwxxmNs + "MeteorologicalAerodromeForecast");
+                if (changeElem != null)
+                {
+                    changes.Add(AerodromeConditionsReader.ReadForecastGroup(changeElem, errors));
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                return Result<TafReport>.Failure(errors);
+            }
+
+            return TafReport.Create(
+                id,
+                header.IssueTime,
+                header.Metadata.Status,
+                header.Metadata.Usage,
+                designator,
+                name,
+                position,
+                validFrom,
+                validUntil,
+                isCancel,
+                cancelFrom,
+                cancelUntil,
+                isNilForecast,
+                baseNilReason,
+                header.IsTranslationFailed,
+                header.FailedTac,
+                baseForecast,
+                changes,
+                header.Metadata.Reason,
+                header.Metadata.Supplementary);
+        }
+    }
+}
