@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.ValueObjects
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Native geospatial Value Object representing a closed geographic polygon

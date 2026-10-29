@@ -2,14 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
 
-namespace Iwxxm.Net.Domain.Aggregates
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Immutable Value Object representing an airspace volume (horizontal polygon + vertical limits + motion)
     /// used in <c>SIGMET</c>, <c>AIRMET</c>, and <c>VolcanicAshAdvisory</c> conditions.
+    /// The speed of motion keeps the reported unit (<c>km/h</c> or <c>[kn_i]</c>).
     /// </summary>
     public sealed class EnRoutePhenomenonVolume
     {
@@ -19,7 +18,7 @@ namespace Iwxxm.Net.Domain.Aggregates
         public FlightLevel? UpperLimit { get; }
         public string? IntensityChange { get; }
         public double? DirectionOfMotionDegrees { get; }
-        public double? SpeedOfMotionKnots { get; }
+        public Speed? SpeedOfMotion { get; }
         public GeoCoordinate? TropicalCycloneCentre { get; }
 
         public EnRoutePhenomenonVolume(
@@ -29,7 +28,7 @@ namespace Iwxxm.Net.Domain.Aggregates
             FlightLevel? upperLimit,
             string? intensityChange = null,
             double? directionOfMotionDegrees = null,
-            double? speedOfMotionKnots = null,
+            Speed? speedOfMotion = null,
             GeoCoordinate? tropicalCycloneCentre = null)
         {
             Id = id ?? string.Empty;
@@ -39,7 +38,7 @@ namespace Iwxxm.Net.Domain.Aggregates
             intensityChange = string.IsNullOrWhiteSpace(intensityChange) ? null : intensityChange;
             IntensityChange = intensityChange;
             DirectionOfMotionDegrees = directionOfMotionDegrees;
-            SpeedOfMotionKnots = speedOfMotionKnots;
+            SpeedOfMotion = speedOfMotion;
             TropicalCycloneCentre = tropicalCycloneCentre;
         }
     }

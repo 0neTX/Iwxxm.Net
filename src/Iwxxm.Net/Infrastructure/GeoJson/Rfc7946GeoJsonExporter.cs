@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.ValueObjects;
+using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Infrastructure.GeoJson
 {
@@ -15,7 +14,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
     /// </summary>
     internal sealed class Rfc7946GeoJsonExporter : IGeoJsonExporter
     {
-        public string Export(IIwxxmReport report, GeoJsonExportOptions? options = null)
+        public string Export(IIwxxmReport report, GeoJsonExportOptions options)
         {
             if (report == null)
                 throw new ArgumentNullException(nameof(report));
@@ -137,7 +136,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 var props = CreateBaseProperties(sigwx, "JETSTREAM", bulletinId);
                 props.Add(("coreFlightLevel", js.CoreFlightLevel.ToString()));
                 props.Add(("coreFlightLevelHundredFeet", js.CoreFlightLevel.Value));
-                props.Add(("maxWindSpeedKnots", Math.Round(js.MaxWindSpeedKnots, 2)));
+                AddSpeed(props, "maxWindSpeed", js.MaxWindSpeed);
                 features.Add(GeoJsonFeatureEntry.CreateLineString(js.Id, js.AxisTrajectory, props, bbox));
 
                 for (int i = 0; i < js.CorePoints.Count; i++)
@@ -146,7 +145,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                     var cpProps = CreateBaseProperties(sigwx, "JETSTREAM_CORE_POINT", bulletinId);
                     cpProps.Add(("parentJetStreamId", js.Id));
                     cpProps.Add(("flightLevel", cp.FlightLevel.ToString()));
-                    cpProps.Add(("windSpeedKnots", Math.Round(cp.WindSpeedKnots, 2)));
+                    AddSpeed(cpProps, "windSpeed", cp.WindSpeed);
                     features.Add(GeoJsonFeatureEntry.CreatePoint($"{js.Id}#core-{i + 1}", cp.Location, cpProps, bbox));
                 }
             }
@@ -156,8 +155,10 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 var props = CreateBaseProperties(sigwx, "CLOUD", bulletinId);
                 props.Add(("cloudAmountUri", cloud.CloudAmount));
                 props.Add(("distributionCode", cloud.DistributionCode.ToString()));
+                props.Add(("distributionNumericCode", cloud.DistributionNumericCode));
                 props.Add(("cloudTypeUri", cloud.CloudType));
                 props.Add(("typeCode", cloud.TypeCode.ToString()));
+                props.Add(("typeNumericCode", cloud.TypeNumericCode));
                 props.Add(("baseFlightLevel", cloud.BaseFlightLevel?.ToString()));
                 props.Add(("topFlightLevel", cloud.TopFlightLevel.ToString()));
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(cloud.Id, cloud.Area, props, bbox));
@@ -168,6 +169,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 var props = CreateBaseProperties(sigwx, "TURBULENCE", bulletinId);
                 props.Add(("degreeUri", turb.RawDegreeReference));
                 props.Add(("degree", turb.Degree.ToString()));
+                props.Add(("degreeNumericCode", turb.DegreeNumericCode));
                 props.Add(("baseFlightLevel", turb.BaseFlightLevel?.ToString()));
                 props.Add(("topFlightLevel", turb.TopFlightLevel.ToString()));
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(turb.Id, turb.Area, props, bbox));
@@ -178,6 +180,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 var props = CreateBaseProperties(sigwx, "AIRFRAME_ICING", bulletinId);
                 props.Add(("degreeUri", icing.RawDegreeReference));
                 props.Add(("degree", icing.Degree.ToString()));
+                props.Add(("degreeNumericCode", icing.DegreeNumericCode));
                 props.Add(("baseFlightLevel", icing.BaseFlightLevel?.ToString()));
                 props.Add(("topFlightLevel", icing.TopFlightLevel.ToString()));
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(icing.Id, icing.Area, props, bbox));
@@ -252,8 +255,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             if (report.SurfaceWind != null)
             {
                 props.Add(("windDirectionDegrees", report.SurfaceWind.MeanDirectionDegrees));
-                props.Add(("windSpeedMetersPerSecond", report.SurfaceWind.MeanSpeedMetersPerSecond));
-                props.Add(("windGustMetersPerSecond", report.SurfaceWind.GustSpeedMetersPerSecond));
+                AddSpeed(props, "windSpeed", report.SurfaceWind.MeanSpeed);
+                AddSpeed(props, "windGust", report.SurfaceWind.GustSpeed);
             }
             if (report.PresentWeatherUris.Count > 0)
             {
@@ -345,7 +348,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("upperLimit", vol.UpperLimit?.ToString()));
                 props.Add(("intensityChange", vol.IntensityChange));
                 props.Add(("directionOfMotionDegrees", vol.DirectionOfMotionDegrees));
-                props.Add(("speedOfMotionKnots", vol.SpeedOfMotionKnots));
+                AddSpeed(props, "speedOfMotion", vol.SpeedOfMotion);
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(vol.Id, vol.Area, props, bbox));
             }
 
@@ -416,7 +419,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("name", vaa.Volcano.Name));
                 props.Add(("issuingVaacName", vaa.IssuingVaacName));
                 props.Add(("advisoryNumber", vaa.AdvisoryNumber));
-                props.Add(("sourceElevationMeters", vaa.SourceElevationMeters));
+                AddLength(props, "sourceElevation", vaa.SourceElevation);
                 features.Add(GeoJsonFeatureEntry.CreatePoint(vaa.Volcano.Id, vaa.Volcano.Position, props, bbox));
             }
 
@@ -428,7 +431,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("lowerLimit", cloud.LowerLimit?.ToString()));
                 props.Add(("upperLimit", cloud.UpperLimit?.ToString()));
                 props.Add(("directionOfMotionDegrees", cloud.DirectionOfMotionDegrees));
-                props.Add(("speedOfMotionKnots", cloud.SpeedOfMotionKnots));
+                AddSpeed(props, "speedOfMotion", cloud.SpeedOfMotion);
                 features.Add(GeoJsonFeatureEntry.CreatePolygon(cloud.Id, cloud.Area, props, bbox));
             }
 
@@ -458,7 +461,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("cycloneName", tca.CycloneName));
                 props.Add(("advisoryNumber", tca.AdvisoryNumber));
                 props.Add(("phenomenonTimeUtc", tca.Observation.PhenomenonTimeUtc?.ToString("O", CultureInfo.InvariantCulture)));
-                props.Add(("maxSurfaceWindSpeedMetersPerSecond", tca.Observation.MaxSurfaceWindSpeedMetersPerSecond));
+                AddSpeed(props, "maxSurfaceWindSpeed", tca.Observation.MaxSurfaceWindSpeed);
                 props.Add(("centralPressureHpa", tca.Observation.CentralPressureHpa));
                 features.Add(GeoJsonFeatureEntry.CreatePoint($"{tca.Id}#obs", tca.Observation.Position, props, bbox));
             }
@@ -471,7 +474,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 props.Add(("cycloneName", tca.CycloneName));
                 props.Add(("advisoryNumber", tca.AdvisoryNumber));
                 props.Add(("phenomenonTimeUtc", fcst.PhenomenonTimeUtc?.ToString("O", CultureInfo.InvariantCulture)));
-                props.Add(("maxSurfaceWindSpeedMetersPerSecond", fcst.MaxSurfaceWindSpeedMetersPerSecond));
+                AddSpeed(props, "maxSurfaceWindSpeed", fcst.MaxSurfaceWindSpeed);
                 features.Add(GeoJsonFeatureEntry.CreatePoint($"{tca.Id}#fcst-{i + 1}", fcst.Position, props, bbox));
             }
 
@@ -507,6 +510,26 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                     features.Add(GeoJsonFeatureEntry.CreatePolygon($"{region.Id}#poly-{i + 1}", region.Polygons[i], props, bbox));
                 }
             }
+        }
+
+        /// <summary>
+        /// Emits a speed as reported: <c>{name}</c> holds the numeric value and <c>{name}Uom</c> the UCUM unit
+        /// (<c>m/s</c>, <c>[kn_i]</c> or <c>km/h</c>). No unit conversion is applied.
+        /// </summary>
+        private static void AddSpeed(List<(string Key, object? Value)> props, string name, Speed? speed)
+        {
+            props.Add((name, speed?.Value));
+            props.Add((name + "Uom", speed?.UnitOfMeasure));
+        }
+
+        /// <summary>
+        /// Emits a length as reported: <c>{name}</c> holds the numeric value and <c>{name}Uom</c> the UCUM unit
+        /// (<c>m</c>, <c>[ft_i]</c>, ...). No unit conversion is applied.
+        /// </summary>
+        private static void AddLength(List<(string Key, object? Value)> props, string name, Length? length)
+        {
+            props.Add((name, length?.Value));
+            props.Add((name + "Uom", length?.UnitOfMeasure));
         }
 
         private static List<(string Key, object? Value)> CreateBaseProperties(

@@ -1,8 +1,7 @@
 using System;
 using System.Globalization;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.ValueObjects
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Value Object representing an aeronautical Flight Level (FL) in hundreds of feet.
@@ -10,7 +9,7 @@ namespace Iwxxm.Net.Domain.ValueObjects
     /// </summary>
     public readonly struct FlightLevel : IEquatable<FlightLevel>, IComparable<FlightLevel>
     {
-        private const double FeetPerMeter = 3.280839895;
+        private const double MetersPerFoot = 0.3048;
 
         public int Value { get; }
         public int AltitudeInFeet => Value * 100;
@@ -42,7 +41,7 @@ namespace Iwxxm.Net.Domain.ValueObjects
             else if (string.Equals(uom, "M", StringComparison.OrdinalIgnoreCase))
             {
                 // Convert meters (MSL/STD in WAFS SIGWX) to hundreds of feet (Flight Level)
-                flightLevelValue = (rawValue * FeetPerMeter) / 100.0;
+                flightLevelValue = (rawValue / MetersPerFoot) / 100.0;
             }
             else if (string.Equals(uom, "[ft_i]", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(uom, "ft", StringComparison.OrdinalIgnoreCase))

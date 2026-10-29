@@ -1,7 +1,6 @@
 using System;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.ValueObjects
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Value Object representing an Airframe Icing forecast volume in a WAFS SIGWX report
@@ -12,6 +11,12 @@ namespace Iwxxm.Net.Domain.ValueObjects
         public string Id { get; }
         public string RawDegreeReference { get; }
         public IcingDegreeCode Degree { get; }
+
+        /// <summary>
+        /// Official WMO BUFR 0 20 041 code parsed from <see cref="RawDegreeReference"/> (bare number or code URI),
+        /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
+        /// </summary>
+        public int? DegreeNumericCode => WmoCodeRegistry.TryGetNumericCode(RawDegreeReference, WmoCodeRegistry.IcingDegreeTableUri);
         public FlightLevel? BaseFlightLevel { get; }
         public FlightLevel TopFlightLevel { get; }
         public GeoPolygon Area { get; }

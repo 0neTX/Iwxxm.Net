@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
 
-namespace Iwxxm.Net.Domain.Aggregates
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Domain Aggregate Root representing an aeronautical Significant Weather (SIGWX) report

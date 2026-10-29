@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- SaxonCS-HE 13.x ships a single lib/net10.0 asset, so this optional package targets net10.0 only. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Iwxxm.Net.Validation.Saxon</RootNamespace>
+    <AssemblyName>Iwxxm.Net.Validation.Saxon</AssemblyName>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Iwxxm.Net.Validation.Saxon</PackageId>
+    <Title>Iwxxm.Net.Validation.Saxon — official WMO IWXXM 2025-2 Schematron for Iwxxm.Net</Title>
+    <Product>Iwxxm.Net.Validation.Saxon</Product>
+    <Description>Optional Iwxxm.Net add-on that runs the complete, unmodified official WMO IWXXM 2025-2 Schematron (iwxxm.sch, queryBinding xslt2, all 165 rules) with SaxonCS-HE (MPL-2.0) and the vendored SchXslt 1.10.1 compiler (MIT). Code-list lookups resolve to the official WMO RDF files embedded in Iwxxm.Net; no network or file-system access at runtime. Register with IwxxmParserBuilder.UseOfficialSchematron().</Description>
+    <PackageTags>IWXXM;IWXXM-2025-2;Iwxxm.Net;Schematron;SVRL;SaxonCS;XSLT2;WMO;ICAO;Aviation;Meteorology</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SaxonCS-HE" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <ProjectReference Include="..\Iwxxm.Net\Iwxxm.Net.csproj" />
+    <InternalsVisibleTo Include="Iwxxm.Net.Validation.Saxon.Tests" />
+  </ItemGroup>
+
+  <!--
+    =========================================================================
+    EMBEDDED RESOURCES
+    - Resources/Schematron/iwxxm.sch: byte-identical copy of the official WMO rule set
+      (wmo-im/iwxxm IWXXM/rule/iwxxm.sch, IWXXM 2025-2). Never edit this file.
+    - Resources/SchXslt: unmodified SchXslt 1.10.1 XSLT 2.0 compiler (MIT, see LICENSE).
+    The official WMO RDF code lists dereferenced by document() in iwxxm.sch (17 of 20) are NOT duplicated:
+    they are read from the Iwxxm.Net assembly (logical names Iwxxm.Net/Resources/Codelists/*.rdf).
+    =========================================================================
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Schematron\iwxxm.sch;Resources\SchXslt\2.0\**\*.xsl">
+      <LogicalName>Iwxxm.Net.Validation.Saxon/$([System.String]::Copy('%(RelativeDir)').Replace('\', '/'))%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <None Include="Resources\SchXslt\LICENSE" Pack="true" PackagePath="licenses\SchXslt\" />
+  </ItemGroup>
+
+</Project>
