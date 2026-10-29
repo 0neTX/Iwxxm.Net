@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-namespace Iwxxm.Net.Domain.Common
+namespace Iwxxm.Net
 {
     /// <summary>
     /// Immutable functional Result&lt;T&gt; monad implementation in vanilla C#

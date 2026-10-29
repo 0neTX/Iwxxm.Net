@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.ValueObjects
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Represents a maximum wind symbol or isotach core point along a Jet Stream axis
@@ -14,20 +13,21 @@ namespace Iwxxm.Net.Domain.ValueObjects
     {
         public GeoCoordinate Location { get; }
         public FlightLevel FlightLevel { get; }
-        public double WindSpeedKnots { get; }
+        /// <summary>Wind speed exactly as reported (<c>m/s</c> or <c>[kn_i]</c>).</summary>
+        public Speed WindSpeed { get; }
         public FlightLevel? LowerIsotachLimit { get; }
         public FlightLevel? UpperIsotachLimit { get; }
 
         public JetStreamCorePoint(
             GeoCoordinate location,
             FlightLevel flightLevel,
-            double windSpeedKnots,
+            Speed windSpeed,
             FlightLevel? lowerIsotachLimit = null,
             FlightLevel? upperIsotachLimit = null)
         {
             Location = location;
             FlightLevel = flightLevel;
-            WindSpeedKnots = windSpeedKnots;
+            WindSpeed = windSpeed;
             LowerIsotachLimit = lowerIsotachLimit;
             UpperIsotachLimit = upperIsotachLimit;
         }
@@ -42,20 +42,21 @@ namespace Iwxxm.Net.Domain.ValueObjects
         public string Id { get; }
         public IReadOnlyList<GeoCoordinate> AxisTrajectory { get; }
         public FlightLevel CoreFlightLevel { get; }
-        public double MaxWindSpeedKnots { get; }
+        /// <summary>Maximum wind speed exactly as reported (<c>m/s</c> or <c>[kn_i]</c>).</summary>
+        public Speed MaxWindSpeed { get; }
         public IReadOnlyList<JetStreamCorePoint> CorePoints { get; }
 
         private JetStream(
             string id,
             IReadOnlyList<GeoCoordinate> axisTrajectory,
             FlightLevel coreFlightLevel,
-            double maxWindSpeedKnots,
+            Speed maxWindSpeed,
             IReadOnlyList<JetStreamCorePoint> corePoints)
         {
             Id = id;
             AxisTrajectory = axisTrajectory;
             CoreFlightLevel = coreFlightLevel;
-            MaxWindSpeedKnots = maxWindSpeedKnots;
+            MaxWindSpeed = maxWindSpeed;
             CorePoints = corePoints;
         }
 
@@ -63,7 +64,7 @@ namespace Iwxxm.Net.Domain.ValueObjects
             string id,
             IEnumerable<GeoCoordinate> axisCoordinates,
             FlightLevel coreFlightLevel,
-            double maxWindSpeedKnots,
+            Speed maxWindSpeed,
             IEnumerable<JetStreamCorePoint>? corePoints = null)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -84,11 +85,11 @@ namespace Iwxxm.Net.Domain.ValueObjects
                     id);
             }
 
-            if (maxWindSpeedKnots < 80.0)
+            if (maxWindSpeed.ToKnots() < 80.0)
             {
                 return Result<JetStream>.Failure(
                     "DOMAIN-JETSTREAM-SPEED",
-                    $"The maximum wind speed of JetStream '{id}' ({maxWindSpeedKnots:F1} kt) must be >= 80 kt per ICAO Annex 3.",
+                    $"The maximum wind speed of JetStream '{id}' ({maxWindSpeed}, {maxWindSpeed.ToKnots():F1} kt) must be >= 80 kt per ICAO Annex 3.",
                     ErrorCategory.DomainMapping,
                     id);
             }
@@ -99,7 +100,7 @@ namespace Iwxxm.Net.Domain.ValueObjects
                 id,
                 new ReadOnlyCollection<GeoCoordinate>(trajectory),
                 coreFlightLevel,
-                maxWindSpeedKnots,
+                maxWindSpeed,
                 new ReadOnlyCollection<JetStreamCorePoint>(points)));
         }
 
@@ -109,7 +110,7 @@ namespace Iwxxm.Net.Domain.ValueObjects
             if (ReferenceEquals(this, other)) return true;
             return Id == other.Id &&
                    CoreFlightLevel == other.CoreFlightLevel &&
-                   Math.Abs(MaxWindSpeedKnots - other.MaxWindSpeedKnots) < 1e-4 &&
+                   MaxWindSpeed == other.MaxWindSpeed &&
                    AxisTrajectory.SequenceEqual(other.AxisTrajectory);
         }
 
@@ -121,7 +122,7 @@ namespace Iwxxm.Net.Domain.ValueObjects
             {
                 int hash = Id.GetHashCode();
                 hash = (hash * 397) ^ CoreFlightLevel.GetHashCode();
-                hash = (hash * 397) ^ MaxWindSpeedKnots.GetHashCode();
+                hash = (hash * 397) ^ MaxWindSpeed.GetHashCode();
                 return hash;
             }
         }

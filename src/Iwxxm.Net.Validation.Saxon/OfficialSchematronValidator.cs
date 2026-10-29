@@ -1,0 +1,127 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Xml;
+using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Validation.Saxon.Internal;
+using Saxon.Api;
+
+namespace Iwxxm.Net.Validation.Saxon
+{
+    /// <summary>
+    /// <see cref="ISchematronValidator"/> adapter that executes the complete, unmodified official WMO IWXXM 2025-2
+    /// Schematron (<c>iwxxm.sch</c>, <c>queryBinding="xslt2"</c>, 165 rule patterns) with SaxonCS-HE.
+    /// </summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item>The rule set is compiled once per process with the vendored SchXslt 1.10.1 compiler and cached as an
+    /// immutable, thread-safe Saxon executable; instances of this class are lightweight and thread-safe.</item>
+    /// <item>Runs air-gapped: <c>document()</c> code-list lookups resolve to the official WMO RDF files embedded in
+    /// <c>Iwxxm.Net</c>; every other URI is refused.</item>
+    /// <item>Input documents are parsed with DTD processing prohibited, no resolver and the character quotas of
+    /// <see cref="IwxxmParserOptions"/>.</item>
+    /// <item>SVRL findings are mapped to <see cref="ValidationError"/> with <see cref="ErrorCategory.BusinessRuleViolation"/>
+    /// and the official rule (pattern) identifier as <see cref="ValidationError.Code"/>.</item>
+    /// </list>
+    /// Uses Saxon-HE capabilities only (<c>new Processor(false)</c>): no Saxonica license key is requested or required.
+    /// </remarks>
+    public sealed class OfficialSchematronValidator : ISchematronValidator
+    {
+        /// <summary>Error code reported when the input cannot be parsed.</summary>
+        public const string MalformedInputCode = "XML-MALFORMED";
+
+        /// <summary>Error code reported when the official Schematron cannot be compiled.</summary>
+        public const string UnavailableCode = "SCHEMATRON-UNAVAILABLE";
+
+        /// <summary>Error code reported when the compiled Schematron fails while evaluating the document.</summary>
+        public const string ExecutionErrorCode = "SCHEMATRON-EXECUTION-ERROR";
+
+        private static readonly Uri InputBaseUri = new Uri("http://input.iwxxm-net.invalid/document.xml");
+
+        private readonly IwxxmParserOptions _options;
+
+        /// <summary>Creates a validator applying the character quotas of <paramref name="options"/>.</summary>
+        public OfficialSchematronValidator(IwxxmParserOptions? options = null)
+        {
+            _options = options ?? IwxxmParserOptions.Default;
+        }
+
+        /// <summary>
+        /// Compiles the official Schematron now (instead of on the first validation), e.g. during application start-up.
+        /// </summary>
+        /// <returns>The time spent compiling, or <see cref="TimeSpan.Zero"/> if it was already compiled.</returns>
+        public static TimeSpan Warmup()
+        {
+            bool alreadyCompiled = OfficialSchematronEngine.IsCompiled;
+            OfficialSchematronEngine engine = OfficialSchematronEngine.Shared;
+            return alreadyCompiled ? TimeSpan.Zero : engine.CompileTime;
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<ValidationError> Validate(Stream document)
+        {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
+
+            OfficialSchematronEngine engine;
+            try
+            {
+                engine = OfficialSchematronEngine.Shared;
+            }
+            catch (Exception ex)
+            {
+                return new[]
+                {
+                    new ValidationError(
+                        UnavailableCode,
+                        $"The official IWXXM Schematron could not be compiled: {ex.Message}",
+                        ErrorCategory.BusinessRuleViolation)
+                };
+            }
+
+            XdmNode input;
+            try
+            {
+                DocumentBuilder builder = engine.Processor.NewDocumentBuilder();
+                builder.BaseUri = InputBaseUri;
+                using (XmlReader reader = XmlReader.Create(document, OfficialSchematronEngine.HardenedReaderSettings(_options), InputBaseUri.AbsoluteUri))
+                {
+                    input = builder.Build(reader);
+                }
+            }
+            catch (Exception ex)
+            {
+                XmlException? xmlError = ex as XmlException ?? ex.InnerException as XmlException;
+                return new[]
+                {
+                    new ValidationError(
+                        MalformedInputCode,
+                        xmlError?.Message ?? ex.Message,
+                        ErrorCategory.MalformedInput,
+                        ValidationSeverity.Error,
+                        location: null,
+                        lineNumber: xmlError?.LineNumber,
+                        linePosition: xmlError?.LinePosition)
+                };
+            }
+
+            try
+            {
+                Xslt30Transformer transformer = engine.CreateTransformer();
+                var svrl = new XdmDestination();
+                transformer.ApplyTemplates(input, svrl);
+                return SvrlReportReader.Read(svrl.XdmNode);
+            }
+            catch (Exception ex)
+            {
+                return new[]
+                {
+                    new ValidationError(
+                        ExecutionErrorCode,
+                        $"Error executing the official IWXXM Schematron: {ex.Message}",
+                        ErrorCategory.BusinessRuleViolation)
+                };
+            }
+        }
+    }
+}

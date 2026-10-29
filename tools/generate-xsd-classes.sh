@@ -9,7 +9,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-XSD_DIR="${REPO_ROOT}/src/Iwxxm.Net/Resources/Xsd"
+# The transport classes are generated from the hand-written (non-standard) legacy subset; the official
+# WMO schemas under Resources/Xsd/Official are used only for validation and must never be edited.
+XSD_DIR="${REPO_ROOT}/src/Iwxxm.Net/Resources/Xsd/Legacy"
 OUTPUT_DIR="${REPO_ROOT}/src/Iwxxm.Net/Infrastructure/Generated"
 
 echo "Restoring local .NET tools from .config/dotnet-tools.json..."

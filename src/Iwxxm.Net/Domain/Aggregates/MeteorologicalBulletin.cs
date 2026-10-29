@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.Aggregates
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Domain Aggregate Root representing a WMO/SWIM Collective Bulletin (<c>collect:MeteorologicalBulletin</c>,

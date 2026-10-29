@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
+using Iwxxm.Net.Reports;
 using Iwxxm20252.Generated;
 
 namespace Iwxxm.Net.Infrastructure.Mapping
@@ -15,10 +12,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
     /// into pure Domain Entities and Value Objects, isolating the Domain from OGC GML 3.2.1
     /// primitives (<c>gml:posList</c>, <c>gml:CubicSpline</c>, <c>gml:PolygonPatch</c>, <c>gml:pos</c>).
     /// </summary>
-    internal sealed class SigwxMapper : ISigwxAclMapper<SigwxDocumentEnvelope>
+    internal sealed class SigwxMapper
     {
-        private const double KnotsPerMeterPerSecond = 1.9438444924406;
-
         public Result<SignificantWeatherReport> MapToDomain(SigwxDocumentEnvelope envelope)
         {
             if (envelope == null)
@@ -180,7 +175,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
 
             var corePoints = new List<JetStreamCorePoint>();
-            double maxWindSpeedKnots = 0.0;
+            Speed maxWindSpeed = default;
             FlightLevel maxWindFlightLevel = default;
             bool hasCoreLevel = false;
 
@@ -207,7 +202,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 if (flResult.IsFailure)
                     return Result<JetStream>.Failure(flResult.Errors);
 
-                double speedKt = ConvertSpeedToKnots(symbol.WindSpeed);
+                var speedResult = ReadRequiredSpeed(symbol.WindSpeed, $"{context}/WAFSJetStreamWindSymbol[@gml:id='{symbol.Id}']/windSpeed");
+                if (speedResult.IsFailure)
+                    return Result<JetStream>.Failure(speedResult.Errors);
+                Speed windSpeed = speedResult.Value;
 
                 FlightLevel? lowerIso = null;
                 if (symbol.IsotachLowerElevation != null && !symbol.IsotachLowerElevation.IsNil)
@@ -225,9 +223,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     upperIso = upRes.Value;
                 }
 
-                if (!hasCoreLevel || speedKt > maxWindSpeedKnots)
+                if (!hasCoreLevel || windSpeed.ToMetersPerSecond() > maxWindSpeed.ToMetersPerSecond())
                 {
-                    maxWindSpeedKnots = speedKt;
+                    maxWindSpeed = windSpeed;
                     maxWindFlightLevel = flResult.Value;
                     hasCoreLevel = true;
                 }
@@ -235,7 +233,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 corePoints.Add(new JetStreamCorePoint(
                     ptCoordResult.Value,
                     flResult.Value,
-                    speedKt,
+                    windSpeed,
                     lowerIso,
                     upperIso));
             }
@@ -253,7 +251,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 id: feature.Id,
                 axisCoordinates: axisCoordsResult.Value,
                 coreFlightLevel: maxWindFlightLevel,
-                maxWindSpeedKnots: maxWindSpeedKnots,
+                maxWindSpeed: maxWindSpeed,
                 corePoints: corePoints);
         }
 
@@ -728,17 +726,26 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
         }
 
-        private static double ConvertSpeedToKnots(MeasureType? speedMeasure)
+        /// <summary>
+        /// Reads a mandatory wind speed keeping its reported unit (<c>m/s</c>, <c>[kn_i]</c> or <c>km/h</c>).
+        /// A nil/missing value, a missing <c>@uom</c> or an unknown unit is a mapping error (never assumed).
+        /// </summary>
+        private static Result<Speed> ReadRequiredSpeed(MeasureType? speedMeasure, string location)
         {
             if (speedMeasure == null || speedMeasure.IsNil)
-                return 0.0;
-
-            if (string.Equals(speedMeasure.Uom, "m/s", StringComparison.OrdinalIgnoreCase))
             {
-                return speedMeasure.Value * KnotsPerMeterPerSecond;
+                return Result<Speed>.Failure(
+                    "ACL-MISSING-WIND-SPEED",
+                    $"Required wind speed at '{location}' is missing.",
+                    ErrorCategory.DomainMapping,
+                    location);
             }
 
-            return speedMeasure.Value;
+            var errors = new List<ValidationError>();
+            Speed? speed = UomMeasureReader.ReadSpeed(speedMeasure.RawValue, speedMeasure.Uom, location, errors);
+            return speed.HasValue && errors.Count == 0
+                ? Result<Speed>.Success(speed.Value)
+                : Result<Speed>.Failure(errors);
         }
 
         private static Result<JetStream> MapCompactJetStream(JetStreamType dto)
@@ -761,7 +768,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (flResult.IsFailure)
                 return Result<JetStream>.Failure(flResult.Errors);
 
-            double windSpeedKnots = ConvertSpeedToKnots(dto.WindSpeed);
+            var windSpeedResult = ReadRequiredSpeed(dto.WindSpeed, $"{context}/windSpeed");
+            if (windSpeedResult.IsFailure)
+                return Result<JetStream>.Failure(windSpeedResult.Errors);
+            Speed windSpeed = windSpeedResult.Value;
 
             var corePoints = new List<JetStreamCorePoint>();
             if (dto.CorePoints != null)
@@ -795,16 +805,25 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                         upperFl = upRes.Value;
                     }
 
+                    Speed coreSpeed = windSpeed;
+                    if (cpDto.WindSpeed != null)
+                    {
+                        var coreSpeedResult = ReadRequiredSpeed(cpDto.WindSpeed, $"{context}/corePoint/windSpeed");
+                        if (coreSpeedResult.IsFailure)
+                            return Result<JetStream>.Failure(coreSpeedResult.Errors);
+                        coreSpeed = coreSpeedResult.Value;
+                    }
+
                     corePoints.Add(new JetStreamCorePoint(
                         ptResult.Value,
                         cpFlResult.Value,
-                        cpDto.WindSpeed != null ? ConvertSpeedToKnots(cpDto.WindSpeed) : windSpeedKnots,
+                        coreSpeed,
                         lowerFl,
                         upperFl));
                 }
             }
 
-            return JetStream.Create(dto.Id, axisCoordsResult.Value, flResult.Value, windSpeedKnots, corePoints);
+            return JetStream.Create(dto.Id, axisCoordsResult.Value, flResult.Value, windSpeed, corePoints);
         }
 
         private static Result<Cloud> MapCompactCloud(CloudDistributionFeatureType dto)
