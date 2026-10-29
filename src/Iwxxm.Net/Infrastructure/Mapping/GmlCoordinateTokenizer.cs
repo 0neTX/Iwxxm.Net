@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
+using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Infrastructure.Mapping
 {

@@ -3,11 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net.Reports;
 using Xunit;
 
 namespace Iwxxm.Net.Tests
@@ -55,7 +51,7 @@ namespace Iwxxm.Net.Tests
             Assert.False(metar.IsAutomatedStation);
             Assert.NotNull(metar.SurfaceWind);
             Assert.Equal(240.0, metar.SurfaceWind!.MeanDirectionDegrees);
-            Assert.Equal(4.0, metar.SurfaceWind.MeanSpeedMetersPerSecond);
+            Assert.Equal(new Speed(4.0, SpeedUnit.MetersPerSecond), metar.SurfaceWind.MeanSpeed);
             Assert.Equal(600.0, metar.PrevailingVisibilityMeters);
             Assert.Contains("http://codes.wmo.int/306/4678/DZ", metar.PresentWeatherUris);
             Assert.Contains("http://codes.wmo.int/306/4678/FG", metar.PresentWeatherUris);
@@ -231,7 +227,7 @@ namespace Iwxxm.Net.Tests
             // Assert
             Assert.True(result.IsFailure);
             Assert.Contains(result.Errors, e =>
-                e.Category == ErrorCategory.SchematronBusinessRule &&
+                e.Category == ErrorCategory.BusinessRuleViolation &&
                 e.Code == "IWXXM.RdfCodeListRegistry-1");
         }
 
@@ -251,7 +247,7 @@ namespace Iwxxm.Net.Tests
         {
             // Arrange: Configure strict 256-byte limit and pass a larger XML payload
             var strictOptions = new IwxxmParserOptions(maxDocumentBytes: 256);
-            var dispatcher = IwxxmParser.CreateDispatcher(strictOptions);
+            var dispatcher = new IwxxmParserBuilder().WithOptions(strictOptions).Build();
 
             using (var fileStream = File.OpenRead("Samples/wmo-examples/metar-A3-1.xml"))
             {
@@ -261,7 +257,7 @@ namespace Iwxxm.Net.Tests
                 // Assert
                 Assert.True(result.IsFailure);
                 Assert.Contains(result.Errors, e =>
-                    e.Category == ErrorCategory.XmlWellFormedness &&
+                    e.Category == ErrorCategory.MalformedInput &&
                     e.Code == "XML-SIZE-LIMIT");
             }
         }
@@ -271,7 +267,7 @@ namespace Iwxxm.Net.Tests
         {
             // Arrange: Allow stream bytes but restrict XmlReader MaxCharactersInDocument to 128 chars
             var strictOptions = new IwxxmParserOptions(maxDocumentBytes: 1024 * 1024, maxCharactersInDocument: 128);
-            var dispatcher = IwxxmParser.CreateDispatcher(strictOptions);
+            var dispatcher = new IwxxmParserBuilder().WithOptions(strictOptions).Build();
 
             using (var fileStream = File.OpenRead("Samples/wmo-examples/metar-A3-1.xml"))
             {
@@ -281,7 +277,7 @@ namespace Iwxxm.Net.Tests
                 // Assert
                 Assert.True(result.IsFailure);
                 Assert.Contains(result.Errors, e =>
-                    e.Category == ErrorCategory.XmlWellFormedness &&
+                    e.Category == ErrorCategory.MalformedInput &&
                     e.Code == "XML-MALFORMED");
             }
         }

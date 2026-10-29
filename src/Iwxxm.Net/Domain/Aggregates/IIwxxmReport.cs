@@ -1,6 +1,6 @@
 using System;
 
-namespace Iwxxm.Net.Domain.Aggregates
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Enumeration of all aeronautical meteorological report types supported by the ICAO/WMO IWXXM 2025-2 suite

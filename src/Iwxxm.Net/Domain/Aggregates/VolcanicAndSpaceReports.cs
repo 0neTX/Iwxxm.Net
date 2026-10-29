@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
 
-namespace Iwxxm.Net.Domain.Aggregates
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Immutable Value Object representing a quantitative volcanic ash concentration cloud contour
@@ -245,7 +243,7 @@ namespace Iwxxm.Net.Domain.Aggregates
         public string IssuingVaacName { get; }
         public Volcano? Volcano { get; }
         public string? StateOrRegion { get; }
-        public double? SourceElevationMeters { get; }
+        public Length? SourceElevation { get; }
         public string? AdvisoryNumber { get; }
         public string? InformationSource { get; }
         public string? EruptionDetails { get; }
@@ -264,7 +262,7 @@ namespace Iwxxm.Net.Domain.Aggregates
             string issuingVaacName,
             Volcano? volcano,
             string? stateOrRegion,
-            double? sourceElevationMeters,
+            Length? sourceElevation,
             string? advisoryNumber,
             string? informationSource,
             string? eruptionDetails,
@@ -282,7 +280,7 @@ namespace Iwxxm.Net.Domain.Aggregates
             IssuingVaacName = issuingVaacName;
             Volcano = volcano;
             StateOrRegion = stateOrRegion;
-            SourceElevationMeters = sourceElevationMeters;
+            SourceElevation = sourceElevation;
             AdvisoryNumber = advisoryNumber;
             InformationSource = informationSource;
             EruptionDetails = eruptionDetails;
@@ -302,7 +300,7 @@ namespace Iwxxm.Net.Domain.Aggregates
             string issuingVaacName,
             Volcano? volcano = null,
             string? stateOrRegion = null,
-            double? sourceElevationMeters = null,
+            Length? sourceElevation = null,
             string? advisoryNumber = null,
             string? informationSource = null,
             string? eruptionDetails = null,
@@ -329,7 +327,7 @@ namespace Iwxxm.Net.Domain.Aggregates
                 issuingVaacName ?? string.Empty,
                 volcano,
                 stateOrRegion,
-                sourceElevationMeters,
+                sourceElevation,
                 advisoryNumber,
                 informationSource,
                 eruptionDetails,
@@ -349,18 +347,18 @@ namespace Iwxxm.Net.Domain.Aggregates
     {
         public DateTimeOffset? PhenomenonTimeUtc { get; }
         public GeoCoordinate Position { get; }
-        public double? MaxSurfaceWindSpeedMetersPerSecond { get; }
+        public Speed? MaxSurfaceWindSpeed { get; }
         public double? CentralPressureHpa { get; }
 
         public TropicalCycloneTrackPoint(
             DateTimeOffset? phenomenonTimeUtc,
             GeoCoordinate position,
-            double? maxSurfaceWindSpeedMetersPerSecond,
+            Speed? maxSurfaceWindSpeed,
             double? centralPressureHpa = null)
         {
             PhenomenonTimeUtc = phenomenonTimeUtc;
             Position = position;
-            MaxSurfaceWindSpeedMetersPerSecond = maxSurfaceWindSpeedMetersPerSecond;
+            MaxSurfaceWindSpeed = maxSurfaceWindSpeed;
             CentralPressureHpa = centralPressureHpa;
         }
     }

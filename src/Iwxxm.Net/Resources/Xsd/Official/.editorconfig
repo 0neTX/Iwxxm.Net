@@ -1,0 +1,8 @@
+# Official upstream artifacts are copied byte-for-byte; editors must not reformat them.
+[*]
+trim_trailing_whitespace = false
+insert_final_newline = false
+charset = unset
+end_of_line = unset
+indent_style = unset
+indent_size = unset

@@ -1,30 +1,30 @@
 using System;
 using System.IO;
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
+using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Application.UseCases
 {
     /// <summary>
     /// Application Use Case that orchestrates the end-to-end validation and polymorphic dispatching
     /// pipeline for the full ICAO/WMO IWXXM 2025-2 suite and SWIM <c>collect:MeteorologicalBulletin</c> envelopes:
-    /// 1) Bounded Buffer Stream -> 2) Validate XSD -> 3) Validate Schematron XSLT (with offline RDF codelists) -> 4) Dispatch &amp; Map to Domain.
+    /// 1) Bounded buffer -> 2) Schema validation -> 3) Business-rule validation -> 4) Dispatch &amp; map to Domain.
+    /// Depends exclusively on Domain types and outbound ports.
     /// </summary>
     internal sealed class DispatchIwxxmReportUseCase : IIwxxmReportDispatcher
     {
-        private readonly IXmlSchemaValidator _xsdValidator;
+        private readonly ISchemaValidator _schemaValidator;
         private readonly ISchematronValidator _schematronValidator;
-        private readonly IIwxxmSuiteDocumentMapper _documentMapper;
+        private readonly IIwxxmDocumentMapper _documentMapper;
         private readonly IwxxmParserOptions _options;
 
         public DispatchIwxxmReportUseCase(
-            IXmlSchemaValidator xsdValidator,
+            ISchemaValidator schemaValidator,
             ISchematronValidator schematronValidator,
-            IIwxxmSuiteDocumentMapper documentMapper,
+            IIwxxmDocumentMapper documentMapper,
             IwxxmParserOptions? options = null)
         {
-            _xsdValidator = xsdValidator ?? throw new ArgumentNullException(nameof(xsdValidator));
+            _schemaValidator = schemaValidator ?? throw new ArgumentNullException(nameof(schemaValidator));
             _schematronValidator = schematronValidator ?? throw new ArgumentNullException(nameof(schematronValidator));
             _documentMapper = documentMapper ?? throw new ArgumentNullException(nameof(documentMapper));
             _options = options ?? IwxxmParserOptions.Default;
@@ -35,77 +35,38 @@ namespace Iwxxm.Net.Application.UseCases
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
 
-            if (!xmlStream.CanRead)
+            Result<byte[]> buffered = BoundedDocumentBuffer.Read(xmlStream, _options, emptyCode: "STREAM-EMPTY", unreadableCode: "STREAM-UNREADABLE");
+            if (buffered.IsFailure)
             {
-                return Result<IIwxxmReport>.Failure(
-                    "STREAM-UNREADABLE",
-                    "The input XML stream is not readable.",
-                    ErrorCategory.XmlWellFormedness);
+                return Result<IIwxxmReport>.Failure(buffered.Errors);
             }
 
-            if (xmlStream.CanSeek && (xmlStream.Length - xmlStream.Position) > _options.MaxDocumentBytes)
+            byte[] payload = buffered.Value;
+
+            // Step 1: Structural validation against the official IWXXM 2025-2 / COLLECT schema closure
+            using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                return Result<IIwxxmReport>.Failure(
-                    "XML-SIZE-LIMIT",
-                    $"The input XML stream length ({xmlStream.Length - xmlStream.Position} bytes) exceeds the maximum allowed limit of {_options.MaxDocumentBytes} bytes.",
-                    ErrorCategory.XmlWellFormedness);
+                var schemaErrors = _schemaValidator.Validate(view);
+                if (schemaErrors.Count > 0)
+                {
+                    return Result<IIwxxmReport>.Failure(schemaErrors);
+                }
             }
 
-            using (var buffer = new MemoryStream())
+            // Step 2: Business-rule and code-list validation
+            using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                try
+                var ruleErrors = _schematronValidator.Validate(view);
+                if (ruleErrors.Count > 0)
                 {
-                    var chunk = new byte[8192];
-                    long totalBytesRead = 0;
-                    int bytesRead;
-                    while ((bytesRead = xmlStream.Read(chunk, 0, chunk.Length)) > 0)
-                    {
-                        totalBytesRead += bytesRead;
-                        if (totalBytesRead > _options.MaxDocumentBytes)
-                        {
-                            return Result<IIwxxmReport>.Failure(
-                                "XML-SIZE-LIMIT",
-                                $"The input XML stream exceeds the maximum allowed limit of {_options.MaxDocumentBytes} bytes.",
-                                ErrorCategory.XmlWellFormedness);
-                        }
-                        buffer.Write(chunk, 0, bytesRead);
-                    }
+                    return Result<IIwxxmReport>.Failure(ruleErrors);
                 }
-                catch (Exception ex)
-                {
-                    return Result<IIwxxmReport>.Failure(
-                        "STREAM-READ-ERROR",
-                        $"Failed to read the input XML stream: {ex.Message}",
-                        ErrorCategory.XmlWellFormedness);
-                }
+            }
 
-                if (buffer.Length == 0)
-                {
-                    return Result<IIwxxmReport>.Failure(
-                        "STREAM-EMPTY",
-                        "The input XML stream is empty (0 bytes).",
-                        ErrorCategory.XmlWellFormedness);
-                }
-
-                // Step 1: Structural validation against the full IWXXM 2025-2, AIXM 5.1.1, METCE, Collect, and GML 3.2.1 XSDs
-                buffer.Position = 0;
-                var xsdErrors = _xsdValidator.Validate(buffer);
-                if (xsdErrors.Count > 0)
-                {
-                    return Result<IIwxxmReport>.Failure(xsdErrors);
-                }
-
-                // Step 2: Business rule & offline RDF/SKOS code-list validation via precompiled ISO Schematron XSLT
-                buffer.Position = 0;
-                var schematronErrors = _schematronValidator.Validate(buffer);
-                if (schematronErrors.Count > 0)
-                {
-                    return Result<IIwxxmReport>.Failure(schematronErrors);
-                }
-
-                // Step 3: Polymorphic root element dispatch and Anti-Corruption Layer (ACL) Domain mapping
-                buffer.Position = 0;
-                return _documentMapper.MapValidatedStream(buffer);
+            // Step 3: Polymorphic root element dispatch and Anti-Corruption Layer (ACL) Domain mapping
+            using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
+            {
+                return _documentMapper.Map(view);
             }
         }
 

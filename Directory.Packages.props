@@ -8,13 +8,18 @@
 
   <ItemGroup>
     <!-- Build-time only SourceLink package (PrivateAssets=all ensures zero runtime dependency) -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
+
+    <!-- Optional Iwxxm.Net.Validation.Saxon package: XSLT 3.0 engine (MPL-2.0, net10.0 only) -->
+    <PackageVersion Include="SaxonCS-HE" Version="13.1.0" />
 
     <!-- Test project dependencies -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageVersion Include="xunit" Version="2.8.1" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.1" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <!-- IL-level architecture rules (test-only; never referenced by a packable project) -->
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
 
     <!-- Benchmark suite dependencies -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />

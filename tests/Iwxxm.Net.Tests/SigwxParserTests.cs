@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net.Reports;
 using Xunit;
 
 namespace Iwxxm.Net.Tests
@@ -45,7 +43,8 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(5, jetStream.CorePoints.Count);
             // Max wind speed is 61.8 m/s (~120.13 kt) at 15240 m (FL500)
             Assert.Equal(new FlightLevel(500), jetStream.CoreFlightLevel);
-            Assert.True(jetStream.MaxWindSpeedKnots > 120.0);
+            Assert.Equal(new Speed(61.8, SpeedUnit.MetersPerSecond), jetStream.MaxWindSpeed); // kept as reported
+            Assert.True(jetStream.MaxWindSpeed.ToKnots() > 120.0);
 
             // 2. Verify Cloud mapped from MeteorologicalFeature (ElevatedVolume + PolygonPatch + CubicSpline)
             Assert.Single(report.Clouds);
@@ -55,6 +54,8 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(CloudDistributionCode.Occasional, cloud.DistributionCode);
             Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-20-012/9", cloud.CloudType);
             Assert.Equal(CloudTypeCode.Cumulonimbus, cloud.TypeCode);
+            Assert.Equal(10, cloud.DistributionNumericCode);
+            Assert.Equal(9, cloud.TypeNumericCode);
             Assert.Null(cloud.BaseFlightLevel); // lowerElevation has xsi:nil="true" nilReason=".../inapplicable"
             Assert.Equal(new FlightLevel(410), cloud.TopFlightLevel); // 12496.8 m = 41000 ft = FL410
             Assert.Equal(9, cloud.Area.ExteriorRing.Count);
@@ -78,7 +79,10 @@ namespace Iwxxm.Net.Tests
             var turbulence = report.Turbulences[0];
             Assert.Equal("uuid.aaaf9f38-dc4c-410d-b056-c130a049bde9", turbulence.Id);
             Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-11-030/10", turbulence.RawDegreeReference);
-            Assert.Equal(TurbulenceDegreeCode.ModerateClearAir, turbulence.Degree);
+            // Official BUFR 0-11-030 code 10 = "Moderate, cloud/clear air not specified"
+            // (the previous expectation, ModerateClearAir, encoded a wrong mapping).
+            Assert.Equal(TurbulenceDegreeCode.Moderate, turbulence.Degree);
+            Assert.Equal(10, turbulence.DegreeNumericCode);
             Assert.Equal(new FlightLevel(340), turbulence.BaseFlightLevel); // 10363.2 m = 34000 ft = FL340
             Assert.Equal(new FlightLevel(400), turbulence.TopFlightLevel);  // 12192.0 m = 40000 ft = FL400
             Assert.Equal(17, turbulence.Area.ExteriorRing.Count);
@@ -88,7 +92,10 @@ namespace Iwxxm.Net.Tests
             var icing = report.AirframeIcings[0];
             Assert.Equal("uuid.48f96fb3-6534-4593-b760-9c65d0b9fa96", icing.Id);
             Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-20-041/3", icing.RawDegreeReference);
-            Assert.Equal(IcingDegreeCode.Moderate, icing.Degree);
+            // Official BUFR 0-20-041 code 3 = "Light icing in precipitation"
+            // (the previous expectation, Moderate, encoded a wrong mapping).
+            Assert.Equal(IcingDegreeCode.LightInPrecipitation, icing.Degree);
+            Assert.Equal(3, icing.DegreeNumericCode);
             Assert.Equal(new FlightLevel(100), icing.BaseFlightLevel);
             Assert.Equal(new FlightLevel(240), icing.TopFlightLevel);
             Assert.Equal(21, icing.Area.ExteriorRing.Count);
@@ -152,7 +159,7 @@ namespace Iwxxm.Net.Tests
             // Assert
             Assert.True(result.IsFailure);
             Assert.Contains(result.Errors, e =>
-                e.Category == ErrorCategory.SchematronBusinessRule &&
+                e.Category == ErrorCategory.BusinessRuleViolation &&
                 e.Code == "WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-1");
         }
 
@@ -171,7 +178,7 @@ namespace Iwxxm.Net.Tests
             // Assert
             Assert.True(result.IsFailure);
             Assert.Contains(result.Errors, e =>
-                e.Category == ErrorCategory.SchematronBusinessRule &&
+                e.Category == ErrorCategory.BusinessRuleViolation &&
                 e.Code == "WAFSSignificantWeatherForecast.DegreeOfTurbulence");
         }
 
@@ -190,12 +197,12 @@ namespace Iwxxm.Net.Tests
             // Assert
             Assert.True(result.IsFailure);
             Assert.Contains(result.Errors, e =>
-                e.Category == ErrorCategory.SchematronBusinessRule &&
+                e.Category == ErrorCategory.BusinessRuleViolation &&
                 e.Code == "IWXXM-SIGWX-002");
         }
 
         [Fact]
-        public void Parse_MissingRequiredXsdElement_FailsInXsdSchemaValidation()
+        public void Parse_MissingRequiredXsdElement_FailsWithSchemaViolation()
         {
             // Arrange: Remove required <iwxxm:issueTime> element from WAFS-Example.xml
             string validXml = File.ReadAllText(OfficialWmoWafsExamplePath);
@@ -206,7 +213,7 @@ namespace Iwxxm.Net.Tests
 
             // Assert
             Assert.True(result.IsFailure);
-            Assert.All(result.Errors, e => Assert.Equal(ErrorCategory.XsdSchemaValidation, e.Category));
+            Assert.All(result.Errors, e => Assert.Equal(ErrorCategory.SchemaViolation, e.Category));
         }
 
         [Fact]
@@ -253,7 +260,7 @@ namespace Iwxxm.Net.Tests
 
             // Assert: Must fail cleanly at the XSD validation stage without unhandled exceptions
             Assert.True(result.IsFailure);
-            Assert.Contains(result.Errors, e => e.Category == ErrorCategory.XsdSchemaValidation);
+            Assert.Contains(result.Errors, e => e.Category == ErrorCategory.SchemaViolation);
         }
     }
 }

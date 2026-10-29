@@ -1,7 +1,6 @@
 using System;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.ValueObjects
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Value Object representing volcanic activity reported in a SIGWX forecast chart.

@@ -4,7 +4,13 @@
 [![Target Frameworks](https://img.shields.io/badge/targets-netstandard2.0%20%7C%20netstandard2.1-purple)](https://learn.microsoft.com/en-us/dotnet/standard/net-standard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**`Iwxxm.Net`** is a zero-dependency **.NET Standard 2.0 & .NET Standard 2.1** multi-targeted library architected with **Domain-Driven Design (DDD)** and **Clean Architecture** for parsing, dual-validating (**XSD + ISO Schematron XSLT + Offline WMO RDF/SKOS Code-List Registries**), mapping, and exporting (**Native RFC 7946 GeoJSON**) the complete **ICAO / WMO IWXXM 2025-2** aeronautical meteorological report suite and **SWIM / AMHS Collective Bulletins** (`collect:MeteorologicalBulletin`).
+**`Iwxxm.Net`** is a zero-dependency **.NET Standard 2.0 & .NET Standard 2.1** multi-targeted library architected with **Domain-Driven Design (DDD)** and **Hexagonal (Ports & Adapters) Architecture** for parsing, dual-validating (**XSD + ISO Schematron XSLT + Offline WMO RDF/SKOS Code-List Registries**), mapping, and exporting (**Native RFC 7946 GeoJSON**) the complete **ICAO / WMO IWXXM 2025-2** aeronautical meteorological report suite and **SWIM / AMHS Collective Bulletins** (`collect:MeteorologicalBulletin`).
+
+> **Validation scope at a glance**
+> - **XSD**: every standard document is validated against the **unmodified official WMO IWXXM 2025-2 schemas** (`IWXXM/*.xsd` from [wmo-im/iwxxm](https://github.com/wmo-im/iwxxm)) together with the official imported schemas (OGC GML 3.2.1, OGC O&M 2.0, ISO 19139, AIXM 5.1.1, WMO METCE 1.2, OPM 1.2, COLLECT 1.2, W3C XLink/XML), embedded byte-for-byte.
+> - **Business rules (Schematron)**: **partial**. The official `iwxxm.sch` requires XSLT 2.0, which `XslCompiledTransform` cannot run, so the library ships its own XSLT 1.0 subset: **11 of the 165 official rule IDs** are implemented (some only for a subset of their official contexts), plus code-list membership checks of every `codes.wmo.int` `xlink:href` against the **20 official WMO RDF code lists** and a few library-specific checks. A document accepted by the default configuration may still violate official rules that are not implemented.
+> - **Complete official rules (optional)**: the separate package **`Iwxxm.Net.Validation.Saxon`** (`net10.0`, SaxonCS-HE) runs the **unmodified official `iwxxm.sch` (all 165 rule patterns)** through `IwxxmParserBuilder.UseOfficialSchematron()`; see [4.11](#411-official-wmo-schematron-optional-iwxxmnetvalidationsaxon).
+> - **`iwxxm:SIGWXReport`** is a **NON-STANDARD** compact root specific to this library (it is not declared by any official schema); it is validated against a separate, hand-written legacy schema subset.
 
 ---
 
@@ -23,12 +29,13 @@
    - [4.7 Native RFC 7946 GeoJSON Export (`IwxxmGeoJsonExporter` & `ParseFileToGeoJson`)](#47-native-rfc-7946-geojson-export-iwxxmgeojsonexporter--parsefiletogeojson)
    - [4.8 Dual Validation & Structured Error Diagnostics (`Result<T>` & `ValidationError`)](#48-dual-validation--structured-error-diagnostics-resultt--validationerror)
    - [4.9 Security Hardening & XML DoS Protection (`IwxxmParserOptions`)](#49-security-hardening--xml-dos-protection-iwxxmparseroptions)
-   - [4.10 Dependency Injection (`Microsoft.Extensions.DependencyInjection`)](#410-dependency-injection-microsoftextensionsdependencyinjection)
+   - [4.10 Composition Root & Dependency Injection (`IwxxmParserBuilder`)](#410-composition-root--dependency-injection-iwxxmparserbuilder)
+   - [4.11 Official WMO Schematron (optional `Iwxxm.Net.Validation.Saxon`)](#411-official-wmo-schematron-optional-iwxxmnetvalidationsaxon)
 5. [Domain Value Objects & Spatial Primitives](#domain-value-objects--spatial-primitives)
-6. [Clean Architecture Overview](#clean-architecture-overview)
+6. [Namespaces & Hexagonal Architecture](#namespaces--hexagonal-architecture)
 7. [Local Docker CI/CD Pipeline & Benchmarks](#local-docker-cicd-pipeline--benchmarks)
 8. [Design-Time XSD Class Generation](#design-time-xsd-class-generation)
-9. [License](#license)
+9. [License & Third-Party Notices](#license--third-party-notices)
 
 ---
 
@@ -36,7 +43,7 @@
 
 | Category | Root XML Element(s) | `IwxxmReportType` | Domain Aggregate Root |
 | :--- | :--- | :--- | :--- |
-| **WAFS Significant Weather** | `iwxxm:WAFSSignificantWeatherForecast`, `iwxxm:SIGWXReport` | `SignificantWeather` | `SignificantWeatherReport` |
+| **WAFS Significant Weather** | `iwxxm:WAFSSignificantWeatherForecast`, `iwxxm:SIGWXReport` (non-standard extension) | `SignificantWeather` | `SignificantWeatherReport` |
 | **Aerodrome Routine Observation** | `iwxxm:METAR` | `Metar` | `AerodromeWeatherReport` |
 | **Aerodrome Special Observation** | `iwxxm:SPECI` | `Speci` | `AerodromeWeatherReport` |
 | **Terminal Aerodrome Forecast** | `iwxxm:TAF` | `Taf` | `TafReport` |
@@ -55,15 +62,16 @@
 
 ## Key Features
 
-- **Zero Third-Party Runtime Dependencies**: Built 100% on the native .NET Base Class Library (`System.Xml`, `XmlSchemaSet`, `XslCompiledTransform`, `XmlSerializer`, `XDocument`). No external GIS, JSON, validation, or mediator packages required at runtime.
-- **Multi-Targeted `.NET Standard 2.0` & `.NET Standard 2.1`**: Ships dedicated `lib/netstandard2.0/Iwxxm.Net.dll` (for **.NET Framework 4.6.1–4.8**) and `lib/netstandard2.1/Iwxxm.Net.dll` (for **.NET Core 3.0+ and .NET 5 / 6 / 7 / 8 / 9+**, leveraging native `ReadOnlySpan<char>` APIs) inside a single NuGet package.
-- **Embedded Air-Gapped Schemas, Rules & WMO RDF Registries**: Bundles the XSD schemas (`iwxxm-2025-2.xsd`, `iwxxm-sigwx.xsd`, `collect.xsd`, `aixm.xsd`, `metce.xsd`, `gml.xsd`, `xlink.xsd`), precompiled ISO Schematron business rules (`iwxxm-2025-2-sigwx.xslt`), and the offline WMO No. 306 / 49-2 SKOS/RDF code-list registry (`codes.wmo.int-49-2.rdf`) as `<EmbeddedResource>` streams resolved strictly in-memory via `EmbeddedXmlUrlResolver` with zero disk or network I/O.
+- **Zero Third-Party Runtime Dependencies**: Built 100% on the native .NET Base Class Library (`System.Xml`, `XmlSchemaSet`, `XslCompiledTransform`, `XDocument`). No external GIS, JSON, validation, or mediator packages required at runtime.
+- **Multi-Targeted `.NET Standard 2.0` & `.NET Standard 2.1`**: Ships dedicated `lib/netstandard2.0/Iwxxm.Net.dll` (for **.NET Framework 4.6.1–4.8**) and `lib/netstandard2.1/Iwxxm.Net.dll` (for **.NET Core 3.0+ and .NET 5 / 6 / 7 / 8 / 9 / 10+**, leveraging native `ReadOnlySpan<char>` APIs) inside a single NuGet package.
+- **Embedded Air-Gapped Official Schemas, Rules & WMO RDF Code Lists**: Bundles byte-identical copies of the official WMO IWXXM 2025-2 XSD schemas and of every external schema reachable from `iwxxm.xsd` / `iwxxm-collect.xsd` (`Resources/Xsd/Official/`, path-preserving, 80 files), the library's XSLT 1.0 business-rule subset (`iwxxm-2025-2-sigwx.xslt`), and the 20 official WMO RDF/SKOS code lists (`IWXXM/rule/*.rdf`) as `<EmbeddedResource>` streams. `EmbeddedXmlUrlResolver` maps the official `schemaLocation` URLs (`http://schemas.wmo.int/...`, `http://schemas.opengis.net/...`, `http://www.aixm.aero/schema/...`, `http://www.w3.org/...`) and relative includes onto those resources; any other URI fails, and no disk or network I/O is ever performed. Upstream ReadMe/release-note files are shipped in the package under `schema-notices/`.
 - **Dual Validation Pipeline**:
-  1. **Structural Validation**: `XmlReaderSettings` against a lazily compiled, thread-safe `XmlSchemaSet` with XXE/DTD protection (`DtdProcessing.Prohibit`).
-  2. **Business Rule & Offline RDF Code-List Validation**: Executes precompiled Schematron XSLT rules via `XslCompiledTransform` (including offline `document('../Codelists/codes.wmo.int-49-2.rdf')` lookups and WAFS BUFR code-table checks) and extracts SVRL (`<svrl:failed-assert>`) findings.
+  1. **Structural Validation (official XSD)**: the root element QName selects the schema set: the official IWXXM 2025-2 / COLLECT set for every standard root (unknown roots are rejected through `XmlSchemaSet.GlobalElements`, not message text), or the non-standard legacy set for `iwxxm:SIGWXReport`. Both sets are compiled lazily once per process (thread-safe) with XXE/DTD protection (`DtdProcessing.Prohibit`); the official set compiles in roughly 0.15-0.5 s on first use.
+  2. **Business Rule & Official RDF Code-List Validation (partial)**: Executes the XSLT 1.0 rule subset via `XslCompiledTransform` (11 of 165 official rule IDs, official BUFR code-table membership for WAFS SIGWX, and membership of every `codes.wmo.int` URI in the matching official code list, with the official `owl:versionInfo` filter for IWXXM 2025-2) and extracts SVRL (`<svrl:failed-assert>`) findings.
+- **Units of Measure Preserved**: Speeds and lengths whose unit is not fixed by the official rules (surface wind and gusts, tropical-cyclone maximum wind, jet-stream wind, speed of motion, cloud base, volcanic source elevation) are exposed as `Speed` / `Length` value objects carrying the reported value and unit (`m/s`, `[kn_i]`, `km/h`, `m`, `[ft_i]`, ...), with exact conversion methods. Single-unit quantities (`Cel`, `hPa`, `deg`, visibility/RVR in `m`, ash density in `mg/m3`) keep unit-specific property names and the mapper rejects any other unit. A missing or unknown `@uom` is a `DomainMapping` error; no unit is ever assumed.
 - **Native Spatial & WMO Code Value Objects**: Translates GML 3.2.1 geometries (`gml:Curve`, `gml:CubicSpline`, `gml:LineStringSegment`, `gml:Polygon`, `gml:PolygonPatch` with interior holes `gml:interior`, `gml:CircleByCenterPoint`, `gml:Point`, `gml:posList`, `gml:pos`) and AIXM 5.1.1 `AirspaceVolume` bounds into immutable Domain Value Objects (`GeoCoordinate`, `GeoPolygon`, `FlightLevel`) using a zero-array-allocation coordinate scanner (`GmlCoordinateTokenizer`).
 - **Native RFC 7946 GeoJSON Export**: Converts any `IIwxxmReport` (or `collect:MeteorologicalBulletin`) directly into an RFC 7946 `FeatureCollection` with `[longitude, latitude]` coordinate tuples, polygon interior hole rings, and computed `bbox` bounds—with zero third-party JSON or GIS dependencies.
-- **Functional `Result<T>` Pattern**: Explicit, allocation-friendly error handling categorized by pipeline stage (`XmlWellFormedness`, `XsdSchemaValidation`, `SchematronBusinessRule`, `Deserialization`, `DomainMapping`).
+- **Functional `Result<T>` Pattern**: Explicit, allocation-friendly error handling categorized by technology-agnostic pipeline stage (`MalformedInput`, `SchemaViolation`, `BusinessRuleViolation`, `Deserialization`, `DomainMapping`); the stable machine-readable contract is `ValidationError.Code`.
 
 ---
 
@@ -87,6 +95,17 @@ Install the package:
 dotnet add package Iwxxm.Net --prerelease
 ```
 
+Optionally, to validate against the complete official WMO Schematron (`net10.0` applications only):
+
+```bash
+dotnet add package Iwxxm.Net.Validation.Saxon --prerelease
+```
+
+| Package | Targets | Runtime dependencies |
+| :--- | :--- | :--- |
+| `Iwxxm.Net` | `netstandard2.0`, `netstandard2.1` | none |
+| `Iwxxm.Net.Validation.Saxon` | `net10.0` | `Iwxxm.Net`, `SaxonCS-HE` 13.1.0 (MPL-2.0, which brings its own transitive dependencies) |
+
 ---
 
 ## Comprehensive Usage Examples
@@ -97,9 +116,8 @@ When consuming heterogeneous SWIM, AMHS, or WMO WIS2 feeds where the incoming XM
 
 ```csharp
 using System;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 Result<IIwxxmReport> result = IwxxmParser.ParseFile("incoming-swim-message.xml");
 
@@ -168,9 +186,8 @@ switch (result.Value)
 
 ```csharp
 using System;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 Result<AerodromeWeatherReport> metarResult =
     IwxxmParser.ParseFileAs<AerodromeWeatherReport>("Samples/wmo-examples/metar-A3-1.xml");
@@ -192,8 +209,10 @@ if (metarResult.IsSuccess)
 
     if (metar.SurfaceWind != null)
     {
-        Console.WriteLine($"Surface Wind    : {metar.SurfaceWind.MeanDirectionDegrees}° at {metar.SurfaceWind.MeanSpeedMetersPerSecond} m/s " +
-                          $"(Gust: {metar.SurfaceWind.GustSpeedMetersPerSecond} m/s, Variable: {metar.SurfaceWind.IsVariableDirection})");
+        // Speeds keep the reported unit (m/s or [kn_i]); convert explicitly when a fixed unit is needed
+        Console.WriteLine($"Surface Wind    : {metar.SurfaceWind.MeanDirectionDegrees}° at {metar.SurfaceWind.MeanSpeed} " +
+                          $"({metar.SurfaceWind.MeanSpeed?.ToMetersPerSecond():F1} m/s, Gust: {metar.SurfaceWind.GustSpeed?.ToKnots():F0} kt, " +
+                          $"Variable: {metar.SurfaceWind.IsVariableDirection})");
     }
 
     foreach (RunwayVisualRangeInfo rvr in metar.RunwayVisualRanges)
@@ -208,7 +227,8 @@ if (metarResult.IsSuccess)
 
     foreach (AerodromeCloudLayerInfo layer in metar.CloudLayers)
     {
-        Console.WriteLine($"Cloud Layer     : Amount={layer.AmountUri}, Base={layer.BaseFeet} ft, Type={layer.CloudTypeUri}");
+        // Base keeps the reported unit (m or [ft_i]), e.g. "1000 [ft_i]"
+        Console.WriteLine($"Cloud Layer     : Amount={layer.AmountUri}, Base={layer.Base} ({layer.Base?.ToFeet():F0} ft), Type={layer.CloudTypeUri}");
     }
 
     foreach (AerodromeForecastGroupInfo trend in metar.TrendForecasts)
@@ -222,9 +242,8 @@ if (metarResult.IsSuccess)
 
 ```csharp
 using System;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 Result<TafReport> tafResult =
     IwxxmParser.ParseFileAs<TafReport>("Samples/wmo-examples/taf-A5-1.xml");
@@ -239,7 +258,7 @@ if (tafResult.IsSuccess)
     if (taf.BaseForecast != null)
     {
         Console.WriteLine($"Base Visibility : {taf.BaseForecast.PrevailingVisibilityMeters} m");
-        Console.WriteLine($"Base Wind       : {taf.BaseForecast.SurfaceWind?.MeanDirectionDegrees}° / {taf.BaseForecast.SurfaceWind?.MeanSpeedMetersPerSecond} m/s");
+        Console.WriteLine($"Base Wind       : {taf.BaseForecast.SurfaceWind?.MeanDirectionDegrees}° / {taf.BaseForecast.SurfaceWind?.MeanSpeed}");
     }
 
     foreach (AerodromeForecastGroupInfo change in taf.ChangeForecasts)
@@ -258,9 +277,8 @@ if (tafResult.IsSuccess)
 
 ```csharp
 using System;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 Result<SigmetReport> sigmetResult =
     IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-VA-EGGX.xml");
@@ -286,7 +304,7 @@ if (sigmetResult.IsSuccess)
         Console.WriteLine($"Evolving Volume {volume.Id}:");
         Console.WriteLine($"  Vertical Extent : {volume.LowerLimit?.ToString() ?? "SFC"} to {volume.UpperLimit}");
         Console.WriteLine($"  Intensity Change: {volume.IntensityChange}");
-        Console.WriteLine($"  Motion          : {volume.DirectionOfMotionDegrees}° at {volume.SpeedOfMotionKnots} kt");
+        Console.WriteLine($"  Motion          : {volume.DirectionOfMotionDegrees}° at {volume.SpeedOfMotion} ({volume.SpeedOfMotion?.ToKnots():F0} kt)");
         Console.WriteLine($"  Polygon Vertices: {volume.Area?.ExteriorRing.Count ?? 0}");
     }
 
@@ -305,10 +323,8 @@ You can parse WAFS SIGWX charts via either `IwxxmSigwxParser.ParseFile` or `Iwxx
 
 ```csharp
 using System;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Domain.ValueObjects;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 Result<SignificantWeatherReport> result =
     IwxxmSigwxParser.ParseFile("Samples/wmo-examples/WAFS-Example.xml");
@@ -324,7 +340,7 @@ if (result.IsSuccess)
     // 1. Jet Streams (CubicSpline / LineString trajectories + wind symbol core points)
     foreach (JetStream js in sigwx.JetStreams)
     {
-        Console.WriteLine($"JetStream {js.Id}: Max {js.MaxWindSpeedKnots:F1} kt at {js.CoreFlightLevel} ({js.AxisTrajectory.Count} axis points, {js.CorePoints.Count} core symbols)");
+        Console.WriteLine($"JetStream {js.Id}: Max {js.MaxWindSpeed} ({js.MaxWindSpeed.ToKnots():F1} kt) at {js.CoreFlightLevel} ({js.AxisTrajectory.Count} axis points, {js.CorePoints.Count} core symbols)");
     }
 
     // 2. Clouds (WMO BUFR 0-20-008 Distribution & 0-20-012 Cloud Type)
@@ -369,9 +385,8 @@ IWXXM 2025-2 introduces `QuantitativeVolcanicAshConcentrationInformation` (`QVAC
 
 ```csharp
 using System;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 Result<QvaciReport> qvaciResult =
     IwxxmParser.ParseFileAs<QvaciReport>("Samples/wmo-examples/qvaci-Example.xml");
@@ -413,9 +428,8 @@ SWIM and AMHS networks frequently bundle multiple `METAR`, `SPECI`, or `TAF` rep
 
 ```csharp
 using System;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 Result<MeteorologicalBulletin> bulletinResult =
     IwxxmParser.ParseBulletinFile("Samples/wmo-examples/metar-NIL-collect.xml");
@@ -445,12 +459,11 @@ if (bulletinResult.IsSuccess)
 - Preserves **interior hole rings** (`GeoPolygon.InteriorRings`) as secondary linear rings in GeoJSON `Polygon` coordinates (`[exteriorRing, hole1, ...]`).
 - Computes the global **`bbox`** (`[minLon, minLat, maxLon, maxLat]`) across all features.
 - Synthesizes a `TC_TRACK` `LineString` connecting observed and forecast tropical cyclone positions in `TropicalCycloneAdvisoryReport`.
+- Emits measures **as reported, without unit conversion**: each speed/length property is written as a value plus a sibling `...Uom` property holding the UCUM unit (e.g. `"windSpeed": 25, "windSpeedUom": "[kn_i]"`, `"speedOfMotion"` / `"speedOfMotionUom"`, `"maxSurfaceWindSpeed"` / `"maxSurfaceWindSpeedUom"`, `"sourceElevation"` / `"sourceElevationUom"`, `"maxWindSpeed"` / `"maxWindSpeedUom"`). WMO BUFR codes are emitted as both the enum name and the official numeric code (`degreeNumericCode`, `distributionNumericCode`, `typeNumericCode`).
 
 ```csharp
 using System;
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
 
 // Option A: One-step XML -> Dual Validation -> Domain Aggregate -> RFC 7946 GeoJSON
 Result<string> geoJsonResult = IwxxmParser.ParseFileToGeoJson(
@@ -500,7 +513,8 @@ if (reportResult.IsSuccess)
         "issueTimeUtc": "2023-05-29T18:00:00.0000000+00:00",
         "coreFlightLevel": "FL500",
         "coreFlightLevelHundredFeet": 500,
-        "maxWindSpeedKnots": 120.13
+        "maxWindSpeed": 61.8,
+        "maxWindSpeedUom": "m/s"
       }
     }
   ]
@@ -515,9 +529,8 @@ Every parsing operation returns an immutable `Result<T>` without throwing except
 
 ```csharp
 using System;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 Result<IIwxxmReport> result = IwxxmParser.Parse(untrustedXmlPayload);
 
@@ -527,16 +540,16 @@ if (result.IsFailure)
     {
         switch (error.Category)
         {
-            case ErrorCategory.XmlWellFormedness:
+            case ErrorCategory.MalformedInput:
                 Console.Error.WriteLine($"[XML Syntax / Size Limit] {error.Code} at Line {error.LineNumber}: {error.Message}");
                 break;
 
-            case ErrorCategory.XsdSchemaValidation:
+            case ErrorCategory.SchemaViolation:
                 Console.Error.WriteLine($"[XSD Structural Violation] {error.Code} (Line {error.LineNumber}, Pos {error.LinePosition}): {error.Message}");
                 break;
 
-            case ErrorCategory.SchematronBusinessRule:
-                // Includes WMO IWXXM Schematron assertions & offline codes.wmo.int-49-2.rdf lookups
+            case ErrorCategory.BusinessRuleViolation:
+                // Built-in rule subset + official RDF code-list lookups, or every official rule with UseOfficialSchematron()
                 Console.Error.WriteLine($"[WMO Schematron / RDF Rule] {error.Code} at XPath '{error.Location}': {error.Message}");
                 break;
 
@@ -556,44 +569,86 @@ For internet-facing SWIM/AMHS gateways, `IwxxmParserOptions` enforces strict mem
 
 ```csharp
 using System.IO;
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Aggregates;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
 
 var strictOptions = new IwxxmParserOptions(
     maxDocumentBytes: 2 * 1024 * 1024,        // 2 MB maximum stream size
     maxCharactersInDocument: 2 * 1024 * 1024, // 2M character cap in XmlReader
     maxCharactersFromEntities: 512);
 
-IIwxxmReportDispatcher dispatcher = IwxxmParser.CreateDispatcher(strictOptions);
+IwxxmParser parser = new IwxxmParserBuilder()
+    .WithOptions(strictOptions)
+    .Build();
 
 using Stream incomingStream = GetNetworkStream();
-Result<IIwxxmReport> result = dispatcher.Process(incomingStream);
-// Streams exceeding maxDocumentBytes fail immediately with code "XML-SIZE-LIMIT-EXCEEDED"
+Result<IIwxxmReport> result = parser.Process(incomingStream);
+// Streams exceeding maxDocumentBytes fail immediately with code "XML-SIZE-LIMIT" (ErrorCategory.MalformedInput)
 ```
 
 ---
 
-### 4.10 Dependency Injection (`Microsoft.Extensions.DependencyInjection`)
+### 4.10 Composition Root & Dependency Injection (`IwxxmParserBuilder`)
 
-All processors, dispatchers, and GeoJSON exporters are stateless and thread-safe, making them ideal for singleton registration in ASP.NET Core or Worker Service applications:
+`IwxxmParserBuilder` is the composition root: it wires the driven adapters to the use cases and returns immutable, thread-safe facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`). Every adapter can be replaced through the public outbound ports in `Iwxxm.Net.Extensibility`, and business-rule validation can be disabled. The static `IwxxmParser.Parse*` / `IwxxmSigwxParser.Parse*` / `IwxxmGeoJsonExporter.ToGeoJson` members remain as thin wrappers over a default instance (`IwxxmParser.Default`, ...).
 
 ```csharp
-using Iwxxm.Net.Application.Ports;
-using Iwxxm.Net.Domain.Common;
-using Iwxxm.Net.Presentation;
+using Iwxxm.Net;
+using Iwxxm.Net.Extensibility;
 using Microsoft.Extensions.DependencyInjection;
 
-services.AddSingleton<IIwxxmReportDispatcher>(_ =>
-    IwxxmParser.CreateDispatcher(IwxxmParserOptions.Default));
+var builder = new IwxxmParserBuilder()
+    .WithOptions(IwxxmParserOptions.Default)
+    .UseSchematronValidator(new MyRuleEngine())   // ISchematronValidator adapter
+    // .WithoutSchematron()                       // or: XSD validation only
+    // .UseSchemaValidator(...) / .UseDocumentMapper(...) / .UseSigwxDocumentMapper(...) / .UseGeoJsonExporter(...)
+    ;
 
-services.AddSingleton<IIwxxmSigwxProcessor>(_ =>
-    IwxxmSigwxParser.CreateProcessor(IwxxmParserOptions.Default));
+services.AddSingleton(builder.Build());               // IwxxmParser (implements IIwxxmReportDispatcher)
+services.AddSingleton(builder.BuildSigwxParser());    // IwxxmSigwxParser (implements IIwxxmSigwxProcessor)
+services.AddSingleton(builder.BuildGeoJsonExporter()); // IwxxmGeoJsonExporter (implements IGeoJsonExportService)
 
-services.AddSingleton<IGeoJsonExporter>(_ =>
-    IwxxmGeoJsonExporter.CreateExporter());
+// Inject the inbound ports where only the use case is needed:
+services.AddSingleton<IIwxxmReportDispatcher>(sp => sp.GetRequiredService<IwxxmParser>());
 ```
+
+| Port | Kind | Namespace | Default adapter |
+| :--- | :--- | :--- | :--- |
+| `IIwxxmReportDispatcher` | inbound (use case) | `Iwxxm.Net` | full-suite validation + mapping pipeline |
+| `IIwxxmSigwxProcessor` | inbound (use case) | `Iwxxm.Net` | SIGWX validation + mapping pipeline |
+| `IGeoJsonExportService` | inbound (use case) | `Iwxxm.Net` | RFC 7946 export |
+| `ISchemaValidator` | outbound | `Iwxxm.Net.Extensibility` | embedded official WMO XSDs |
+| `ISchematronValidator` | outbound | `Iwxxm.Net.Extensibility` | built-in XSLT 1.0 rule subset (or `UseOfficialSchematron()`) |
+| `IIwxxmDocumentMapper` | outbound | `Iwxxm.Net.Extensibility` | built-in Anti-Corruption Layer mapper |
+| `ISigwxDocumentMapper` | outbound | `Iwxxm.Net.Extensibility` | built-in SIGWX mapper |
+| `IGeoJsonExporter` | outbound | `Iwxxm.Net.Extensibility` | built-in RFC 7946 writer |
+
+Outbound validators receive a seekable, read-only, size-bounded stream positioned at the start of the document and return `IReadOnlyList<ValidationError>`; any finding stops the pipeline.
+
+---
+
+### 4.11 Official WMO Schematron (optional `Iwxxm.Net.Validation.Saxon`)
+
+The official `iwxxm.sch` uses `queryBinding="xslt2"`, which the .NET BCL cannot execute. The optional package **`Iwxxm.Net.Validation.Saxon`** runs it with **SaxonCS-HE** (Saxonica's Home Edition for .NET):
+
+- The **byte-identical official `iwxxm.sch`** (165 rule patterns, no rewriting) is compiled once per process to XSLT with the vendored **SchXslt 1.10.1** compiler (MIT) and cached as an immutable, thread-safe Saxon executable (first compilation takes roughly a second).
+- **Air-gapped**: the official `document('codes.wmo.int-*.rdf')` code-list lookups resolve to the official WMO RDF files embedded in `Iwxxm.Net`; every other URI (network, file system) is refused.
+- SVRL `failed-assert` / `successful-report` findings become `ValidationError`s with `ErrorCategory.BusinessRuleViolation`, the **official rule (pattern) id** as `Code` (e.g. `METAR_SPECI.MeteorologicalAerodromeObservation-5`), the official message, the SVRL XPath `Location`, and `Severity` from `@role`/`@flag` (the official rules declare none, so all are `Error`).
+- All 29 official WMO examples pass. Note that the official rules themselves are not exhaustive: for example, an ordinary TAF whose `iwxxm:baseForecast` element is entirely absent is not reported by `TAF.TAF-5` (its test compares an empty attribute sequence).
+- Requires a `net10.0` application. No Saxonica license key is needed: the package only requests Saxon-HE capabilities (`new Processor(false)`), verified in CI by the package tests.
+
+```csharp
+using Iwxxm.Net;
+
+IwxxmParser parser = new IwxxmParserBuilder()
+    .UseOfficialSchematron()   // extension method from Iwxxm.Net.Validation.Saxon
+    .Build();
+
+Result<IIwxxmReport> result = parser.ProcessFile("metar.xml");
+// e.g. qnh reported in "mbar" -> Code "METAR_SPECI.MeteorologicalAerodromeObservation-5"
+```
+
+`OfficialSchematronValidator.Warmup()` compiles the rule set eagerly (for example during application start-up).
 
 ---
 
@@ -601,40 +656,62 @@ services.AddSingleton<IGeoJsonExporter>(_ =>
 
 | Value Object | Namespace | Description |
 | :--- | :--- | :--- |
-| **`GeoCoordinate`** | `Iwxxm.Net.Domain.ValueObjects` | Immutable `readonly struct` enforcing WGS84 geodetic bounds (`Lat` $\in [-90, 90]$, `Lon` $\in [-180, 180]$). |
-| **`GeoPolygon`** | `Iwxxm.Net.Domain.ValueObjects` | Immutable polygon enforcing $\ge 3$ distinct vertices, automatic ring closure, and optional `InteriorRings` (`IReadOnlyList<IReadOnlyList<GeoCoordinate>>`) for hollow contours. |
-| **`FlightLevel`** | `Iwxxm.Net.Domain.ValueObjects` | Immutable vertical altitude (`readonly struct`) with automatic unit conversion from `FL` (hundreds of feet), `M` / `m` (ICAO standard conversion $1\text{ ft} = 0.3048\text{ m}$), and `[ft_i]` / `FT`. |
-| **`WmoCodeRegistry`** | `Iwxxm.Net.Domain.ValueObjects` | Resolves WMO BUFR code-table URIs (`0-20-008`, `0-20-012`, `0-11-030`, `0-20-041`) and TAC abbreviations into `CloudDistributionCode`, `CloudTypeCode`, `TurbulenceDegreeCode`, and `IcingDegreeCode`. |
+| **`GeoCoordinate`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` enforcing WGS84 geodetic bounds (`Lat` $\in [-90, 90]$, `Lon` $\in [-180, 180]$). |
+| **`GeoPolygon`** | `Iwxxm.Net.Reports` | Immutable polygon enforcing $\ge 3$ distinct vertices, automatic ring closure, and optional `InteriorRings` (`IReadOnlyList<IReadOnlyList<GeoCoordinate>>`) for hollow contours. |
+| **`FlightLevel`** | `Iwxxm.Net.Reports` | Immutable vertical altitude (`readonly struct`) with automatic unit conversion from `FL` (hundreds of feet), `M` / `m` (ICAO standard conversion $1\text{ ft} = 0.3048\text{ m}$), and `[ft_i]` / `FT`. |
+| **`Speed`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` holding a reported speed value and its `SpeedUnit` (`MetersPerSecond`, `Knots`, `KilometersPerHour`); exact conversions `ToMetersPerSecond()`, `ToKnots()`, `ToKilometersPerHour()` (1 kt = 1852/3600 m/s). Equality is exact on value and unit. |
+| **`Length`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` holding a reported length and its `LengthUnit` (`Meters`, `Feet`, `Kilometers`, `NauticalMiles`, `StatuteMiles`); exact conversions `ToMeters()`, `ToFeet()`, ... (1 ft = 0.3048 m). |
+| **`WmoCodeRegistry`** | `Iwxxm.Net.Reports` | Resolves WMO BUFR code-table URIs (`0-20-008`, `0-20-012`, `0-11-030`, `0-20-041`), bare codes and TAC abbreviations into `CloudDistributionCode`, `CloudTypeCode`, `TurbulenceDegreeCode`, and `IcingDegreeCode`. Every official code maps to a member whose numeric value equals the official code and whose name reflects the official meaning (verified against the official RDF tables); `Cloud`, `Turbulence` and `AirframeIcing` also expose the raw value and the parsed official numeric code (`DistributionNumericCode`, `TypeNumericCode`, `DegreeNumericCode`). |
 
 ---
 
-## Clean Architecture Overview
+## Namespaces & Hexagonal Architecture
 
-The library strictly enforces **Clean Architecture** and **Domain-Driven Design (DDD)**, verified by reflection-based architectural unit tests (`CleanArchitectureComplianceTests`):
+### Public namespaces (consumer view)
+
+Consumers never need a layer name in a `using` directive. The public API is grouped by role:
+
+| Namespace | Contents |
+| :--- | :--- |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, inbound ports (`IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor`, `IGeoJsonExportService`), and the `UseOfficialSchematron()` extension of the optional Saxon package |
+| `Iwxxm.Net.Reports` | Domain model: report aggregates (`IIwxxmReport`, `AerodromeWeatherReport`, `TafReport`, `SigmetReport`, ..., `MeteorologicalBulletin`) and value objects (`GeoCoordinate`, `GeoPolygon`, `FlightLevel`, `Speed`, `Length`, WMO codes, ...) |
+| `Iwxxm.Net.Extensibility` | Outbound ports for custom adapters (`ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter`) |
+| `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
+
+Everything else (`Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*`, `Iwxxm20252.Generated`) is `internal`.
+
+### Layers (source view)
+
+Folders express the hexagonal layers; IL-level tests (`HexagonalArchitectureTests`, NetArchTest/Mono.Cecil) enforce the dependency rules on the compiled assembly:
 
 ```text
 src/Iwxxm.Net/
-├── Domain/                     # Pure C# Domain Model (Zero XML / Infrastructure dependencies)
-│   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity, IwxxmParserOptions
-│   ├── ValueObjects/           # GeoCoordinate, GeoPolygon (with InteriorRings), FlightLevel, WmoCodes, SIGWX features
-│   └── Aggregates/             # IIwxxmReport, SignificantWeatherReport, AerodromeWeatherReport, TafReport,
-│                               # SigmetReport, AirmetReport, VonaReport, QvaciReport, VolcanicAshAdvisoryReport,
-│                               # TropicalCycloneAdvisoryReport, SpaceWeatherAdvisoryReport, MeteorologicalBulletin
-├── Application/                # Application Layer (Depends ONLY on Domain)
-│   ├── Ports/                  # IIwxxmReportDispatcher, IIwxxmSigwxProcessor, IGeoJsonExporter, InternalValidationPorts
-│   └── UseCases/               # DispatchIwxxmReportUseCase, ProcessSigwxReportUseCase<T>
-├── Infrastructure/             # Internal Adapters (System.Xml, XSD, XSLT, Offline RDF, ACL Mapping, RFC 7946 GeoJSON)
-│   ├── Generated/              # XSD-generated classes (namespace Iwxxm20252.Generated)
+├── Domain/                     # Depends on nothing (no System.Xml, System.IO, Application or Infrastructure)
+│   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity        (ns Iwxxm.Net)
+│   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, FlightLevel, Speed, Length, WmoCodes, ... (ns Iwxxm.Net.Reports)
+│   └── Aggregates/             # IIwxxmReport and every report aggregate                               (ns Iwxxm.Net.Reports)
+├── Application/                # Depends only on Domain (no System.Xml)
+│   ├── Options/                # IwxxmParserOptions, GeoJsonExportOptions                              (ns Iwxxm.Net)
+│   ├── Ports/In/               # Inbound ports (use-case interfaces)                                   (ns Iwxxm.Net)
+│   ├── Ports/Out/              # Outbound ports (driven adapters)                                      (ns Iwxxm.Net.Extensibility)
+│   └── UseCases/               # DispatchIwxxmReportUseCase, ProcessSigwxReportUseCase, ExportGeoJsonUseCase (internal)
+├── Infrastructure/             # Driven adapters, all internal
+│   ├── Generated/              # XSD transport model (internal, namespace Iwxxm20252.Generated)
 │   ├── Resources/              # EmbeddedResourceLoader & EmbeddedXmlUrlResolver (air-gapped XSD/XSLT/RDF)
-│   ├── Validation/             # XsdValidator & XsltSchematronValidator (SVRL + offline RDF document() lookup)
-│   ├── Serialization/          # XmlSerializerSigwxDeserializer
-│   ├── Mapping/                # IwxxmSuiteMapper, SigwxMapper & GmlCoordinateTokenizer (Anti-Corruption Layer)
-│   └── GeoJson/                # Rfc7946GeoJsonExporter (Zero-dependency RFC 7946 FeatureCollection writer)
-└── Presentation/               # Public Facades & Composition Roots
-    ├── IwxxmParser.cs          # Full IWXXM 2025-2 Suite & SWIM Collective Bulletin Parser
-    ├── IwxxmSigwxParser.cs     # Specialized WAFS SIGWX Parser
-    └── IwxxmGeoJsonExporter.cs # Native RFC 7946 GeoJSON Exporter Facade
+│   ├── Validation/             # XsdValidator, XsltSchematronValidator, DisabledSchematronValidator
+│   ├── Serialization/          # SigwxXmlDeserializer + AttributeDrivenXmlReader (reflection reader for the internal model)
+│   ├── Mapping/                # IwxxmSuiteMapper, SigwxDocumentMapper, SigwxMapper, UomMeasureReader, GmlCoordinateTokenizer
+│   └── GeoJson/                # Rfc7946GeoJsonExporter
+├── Composition/                # IwxxmParserBuilder: the only place that references Infrastructure  (ns Iwxxm.Net)
+└── Presentation/               # Facades over inbound ports only                                       (ns Iwxxm.Net)
+    ├── IwxxmParser.cs
+    ├── IwxxmSigwxParser.cs
+    └── IwxxmGeoJsonExporter.cs
+
+src/Iwxxm.Net.Validation.Saxon/ # Optional driven adapter package (net10.0): ISchematronValidator over SaxonCS-HE
 ```
+
+Rules checked by `HexagonalArchitectureTests`: Domain depends on nothing outside the Domain; Application depends only on Domain; Presentation depends only on inbound ports (never on Infrastructure, use cases or outbound ports); Infrastructure is reached only through the composition root and never calls facades; `Iwxxm20252.Generated` and Infrastructure types are not public; public types live only in the documented namespaces; every root-namespace type is assigned to a layer; and `Iwxxm.Net` has zero third-party runtime dependencies. The static convenience members of the facades obtain their default instance from the composition root.
 
 ---
 
@@ -642,7 +719,7 @@ src/Iwxxm.Net/
 
 ### Running the Full CI/CD Pipeline Locally via Docker
 
-You can execute all CI/CD stages (`restore` -> `architecture-audit` -> `build` -> `test` with code coverage -> `pack` `.nupkg` & `.snupkg`) locally inside an isolated `.NET 8.0 SDK` container:
+You can execute all CI/CD stages (`restore` -> `build` -> `test` with code coverage, including the IL-level architecture tests and the official Schematron tests -> `pack` both `.nupkg` & `.snupkg` packages, with a guard that `Iwxxm.Net` declares no dependency) locally inside an isolated `.NET 10 SDK` container (Docker or Podman, e.g. `podman build --target test -t iwxxm-net-test .`):
 
 ```bash
 # Run the full pipeline and export compiled NuGet packages + coverage to ./artifacts
@@ -676,6 +753,10 @@ dotnet tool restore
 
 ---
 
-## License
+## License & Third-Party Notices
 
 Licensed under the [MIT License](LICENSE).
+
+- The embedded official WMO IWXXM schemas, Schematron rules and code lists, and the imported OGC/ISO/EUROCONTROL/W3C schemas are redistributed unmodified; their upstream ReadMe/release notes ship under `schema-notices/` in the `Iwxxm.Net` package.
+- `Iwxxm.Net.Validation.Saxon` vendors **SchXslt 1.10.1** (Copyright (c) 2018-2021 David Maus, MIT License), shipped under `licenses/SchXslt/` in the package.
+- `Iwxxm.Net.Validation.Saxon` depends on **SaxonCS-HE 13.1.0** (Saxonica Ltd.). Its bundled `LICENSE.txt` states that SaxonCS-HE is distributed as an "executable form" of the open-source SaxonJ-HE product under the **Mozilla Public License 2.0** (file-level copyleft that applies to Saxon's own files, not to code that merely uses it). No Saxonica license key is required for the Home Edition features used here.

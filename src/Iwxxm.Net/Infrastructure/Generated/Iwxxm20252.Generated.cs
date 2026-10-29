@@ -17,7 +17,7 @@ using System.Xml.Serialization;
 
 namespace Iwxxm20252.Generated
 {
-    public static class XmlNamespaces
+    internal static class XmlNamespaces
     {
         public const string Iwxxm = "http://icao.int/iwxxm/2025-2";
         public const string Gml = "http://www.opengis.net/gml/3.2";
@@ -47,7 +47,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("CodeWithAuthorityType", Namespace = XmlNamespaces.Gml)]
-    public partial class CodeWithAuthorityType
+    internal partial class CodeWithAuthorityType
     {
         [XmlText]
         public string Value { get; set; } = string.Empty;
@@ -59,7 +59,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("AbstractGMLType", Namespace = XmlNamespaces.Gml)]
-    public abstract partial class AbstractGMLType
+    internal abstract partial class AbstractGMLType
     {
         [XmlElement("identifier", Namespace = XmlNamespaces.Gml)]
         public CodeWithAuthorityType? Identifier { get; set; }
@@ -71,7 +71,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("ReferenceType", Namespace = XmlNamespaces.Gml)]
-    public partial class ReferenceType
+    internal partial class ReferenceType
     {
         [XmlAttribute("href", Namespace = XmlNamespaces.Xlink, Form = XmlSchemaForm.Qualified, DataType = "anyURI")]
         public string? Href { get; set; }
@@ -86,7 +86,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("MeasureType", Namespace = XmlNamespaces.Gml)]
-    public partial class MeasureType
+    internal partial class MeasureType
     {
         [XmlText]
         public string RawValue { get; set; } = string.Empty;
@@ -110,7 +110,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("StringWithNilReasonType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class StringWithNilReasonType
+    internal partial class StringWithNilReasonType
     {
         [XmlText]
         public string Value { get; set; } = string.Empty;
@@ -122,7 +122,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("DirectPositionType", Namespace = XmlNamespaces.Gml)]
-    public partial class DirectPositionType
+    internal partial class DirectPositionType
     {
         [XmlText]
         public string Value { get; set; } = string.Empty;
@@ -143,7 +143,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("DirectPositionListType", Namespace = XmlNamespaces.Gml)]
-    public partial class DirectPositionListType
+    internal partial class DirectPositionListType
     {
         [XmlText]
         public string Value { get; set; } = string.Empty;
@@ -171,7 +171,7 @@ namespace Iwxxm20252.Generated
     [DebuggerStepThrough]
     [XmlType("PointType", Namespace = XmlNamespaces.Gml)]
     [XmlRoot("Point", Namespace = XmlNamespaces.Gml, IsNullable = false)]
-    public partial class PointType : AbstractGMLType
+    internal partial class PointType : AbstractGMLType
     {
         [XmlElement("pos", Namespace = XmlNamespaces.Gml)]
         public DirectPositionType? Pos { get; set; }
@@ -192,7 +192,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("LineStringSegmentType", Namespace = XmlNamespaces.Gml)]
-    public partial class LineStringSegmentType
+    internal partial class LineStringSegmentType
     {
         [XmlElement("posList", Namespace = XmlNamespaces.Gml)]
         public DirectPositionListType? PosList { get; set; }
@@ -201,7 +201,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("CubicSplineType", Namespace = XmlNamespaces.Gml)]
-    public partial class CubicSplineType
+    internal partial class CubicSplineType
     {
         [XmlElement("posList", Namespace = XmlNamespaces.Gml)]
         public DirectPositionListType? PosList { get; set; }
@@ -216,7 +216,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("CurveSegmentArrayPropertyType", Namespace = XmlNamespaces.Gml)]
-    public partial class CurveSegmentArrayPropertyType
+    internal partial class CurveSegmentArrayPropertyType
     {
         [XmlElement("LineStringSegment", Namespace = XmlNamespaces.Gml)]
         public List<LineStringSegmentType> LineStringSegments { get; set; } = new List<LineStringSegmentType>();
@@ -229,7 +229,7 @@ namespace Iwxxm20252.Generated
     [DebuggerStepThrough]
     [XmlType("CurveType", Namespace = XmlNamespaces.Gml)]
     [XmlRoot("Curve", Namespace = XmlNamespaces.Gml, IsNullable = false)]
-    public partial class CurveType : AbstractGMLType
+    internal partial class CurveType : AbstractGMLType
     {
         [XmlElement("segments", Namespace = XmlNamespaces.Gml)]
         public CurveSegmentArrayPropertyType? Segments { get; set; }
@@ -250,7 +250,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("GmlCurvePropertyType", Namespace = XmlNamespaces.Gml)]
-    public partial class GmlCurvePropertyType
+    internal partial class GmlCurvePropertyType
     {
         [XmlElement("Curve", Namespace = XmlNamespaces.Gml)]
         public CurveType? Curve { get; set; }
@@ -259,7 +259,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("LinearRingType", Namespace = XmlNamespaces.Gml)]
-    public partial class LinearRingType
+    internal partial class LinearRingType
     {
         [XmlElement("posList", Namespace = XmlNamespaces.Gml)]
         public DirectPositionListType? PosList { get; set; }
@@ -268,7 +268,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("RingType", Namespace = XmlNamespaces.Gml)]
-    public partial class RingType
+    internal partial class RingType
     {
         [XmlElement("curveMember", Namespace = XmlNamespaces.Gml)]
         public List<GmlCurvePropertyType> CurveMembers { get; set; } = new List<GmlCurvePropertyType>();
@@ -277,7 +277,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("AbstractRingPropertyType", Namespace = XmlNamespaces.Gml)]
-    public partial class AbstractRingPropertyType
+    internal partial class AbstractRingPropertyType
     {
         [XmlElement("LinearRing", Namespace = XmlNamespaces.Gml)]
         public LinearRingType? LinearRing { get; set; }
@@ -289,7 +289,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("PolygonPatchType", Namespace = XmlNamespaces.Gml)]
-    public partial class PolygonPatchType
+    internal partial class PolygonPatchType
     {
         [XmlElement("exterior", Namespace = XmlNamespaces.Gml)]
         public AbstractRingPropertyType? Exterior { get; set; }
@@ -298,7 +298,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("SurfacePatchArrayPropertyType", Namespace = XmlNamespaces.Gml)]
-    public partial class SurfacePatchArrayPropertyType
+    internal partial class SurfacePatchArrayPropertyType
     {
         [XmlElement("PolygonPatch", Namespace = XmlNamespaces.Gml)]
         public List<PolygonPatchType> PolygonPatches { get; set; } = new List<PolygonPatchType>();
@@ -308,7 +308,7 @@ namespace Iwxxm20252.Generated
     [DebuggerStepThrough]
     [XmlType("PolygonType", Namespace = XmlNamespaces.Gml)]
     [XmlRoot("Polygon", Namespace = XmlNamespaces.Gml, IsNullable = false)]
-    public partial class PolygonType : AbstractGMLType
+    internal partial class PolygonType : AbstractGMLType
     {
         [XmlElement("exterior", Namespace = XmlNamespaces.Gml)]
         public AbstractRingPropertyType? Exterior { get; set; }
@@ -329,7 +329,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("TimeInstantType", Namespace = XmlNamespaces.Gml)]
-    public partial class TimeInstantType : AbstractGMLType
+    internal partial class TimeInstantType : AbstractGMLType
     {
         [XmlElement("timePosition", Namespace = XmlNamespaces.Gml, DataType = "dateTime")]
         public DateTime TimePosition { get; set; }
@@ -338,7 +338,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("TimePeriodType", Namespace = XmlNamespaces.Gml)]
-    public partial class TimePeriodType : AbstractGMLType
+    internal partial class TimePeriodType : AbstractGMLType
     {
         [XmlElement("beginPosition", Namespace = XmlNamespaces.Gml, DataType = "dateTime")]
         public DateTime BeginPosition { get; set; }
@@ -350,7 +350,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("TimeInstantPropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class TimeInstantPropertyType
+    internal partial class TimeInstantPropertyType
     {
         [XmlElement("TimeInstant", Namespace = XmlNamespaces.Gml)]
         public TimeInstantType? TimeInstant { get; set; }
@@ -362,7 +362,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("TimePeriodPropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class TimePeriodPropertyType
+    internal partial class TimePeriodPropertyType
     {
         [XmlElement("TimePeriod", Namespace = XmlNamespaces.Gml)]
         public TimePeriodType? TimePeriod { get; set; }
@@ -378,7 +378,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("ElevatedEnvelopeType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class ElevatedEnvelopeType
+    internal partial class ElevatedEnvelopeType
     {
         [XmlElement("lowerCorner", Namespace = XmlNamespaces.Gml)]
         public DirectPositionType? LowerCorner { get; set; }
@@ -402,7 +402,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("ElevatedEnvelopePropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class ElevatedEnvelopePropertyType
+    internal partial class ElevatedEnvelopePropertyType
     {
         [XmlElement("ElevatedEnvelope", Namespace = XmlNamespaces.Iwxxm)]
         public ElevatedEnvelopeType? ElevatedEnvelope { get; set; }
@@ -411,7 +411,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("ElevatedPointType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class ElevatedPointType : PointType
+    internal partial class ElevatedPointType : PointType
     {
         [XmlElement("elevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
         public MeasureType? Elevation { get; set; }
@@ -423,7 +423,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("ElevatedPointPropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class ElevatedPointPropertyType
+    internal partial class ElevatedPointPropertyType
     {
         [XmlElement("ElevatedPoint", Namespace = XmlNamespaces.Iwxxm)]
         public ElevatedPointType? ElevatedPoint { get; set; }
@@ -432,7 +432,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("ElevatedLevelType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class ElevatedLevelType : AbstractGMLType
+    internal partial class ElevatedLevelType : AbstractGMLType
     {
         [XmlElement("elevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
         public MeasureType? Elevation { get; set; }
@@ -444,7 +444,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("ElevatedVolumeType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class ElevatedVolumeType : AbstractGMLType
+    internal partial class ElevatedVolumeType : AbstractGMLType
     {
         [XmlElement("patches", Namespace = XmlNamespaces.Gml)]
         public SurfacePatchArrayPropertyType? Patches { get; set; }
@@ -477,7 +477,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("WAFSJetStreamWindSymbolType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class WAFSJetStreamWindSymbolType : AbstractGMLType
+    internal partial class WAFSJetStreamWindSymbolType : AbstractGMLType
     {
         [XmlElement("location", Namespace = XmlNamespaces.Iwxxm)]
         public ElevatedPointPropertyType? Location { get; set; }
@@ -501,7 +501,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("WAFSVolcanoType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class WAFSVolcanoType : AbstractGMLType
+    internal partial class WAFSVolcanoType : AbstractGMLType
     {
         [XmlElement("name", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
         public StringWithNilReasonType? Name { get; set; }
@@ -525,7 +525,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("TropicalCycloneType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class TropicalCycloneType : AbstractGMLType
+    internal partial class TropicalCycloneType : AbstractGMLType
     {
         [XmlElement("name", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
         public StringWithNilReasonType? Name { get; set; }
@@ -534,7 +534,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("RadiationIncidentType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class RadiationIncidentType : AbstractGMLType
+    internal partial class RadiationIncidentType : AbstractGMLType
     {
         [XmlElement("siteName", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
         public StringWithNilReasonType? SiteName { get; set; }
@@ -546,7 +546,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("PhenomenonGeometryPropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class PhenomenonGeometryPropertyType
+    internal partial class PhenomenonGeometryPropertyType
     {
         [XmlElement("Curve", Namespace = XmlNamespaces.Gml)]
         public CurveType? Curve { get; set; }
@@ -570,7 +570,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("PhenomenonPropertyRoleType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class PhenomenonPropertyRoleType
+    internal partial class PhenomenonPropertyRoleType
     {
         [XmlElement("WAFSJetStreamWindSymbol", Namespace = XmlNamespaces.Iwxxm)]
         public WAFSJetStreamWindSymbolType? JetStreamWindSymbol { get; set; }
@@ -606,7 +606,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("OriginatingCentrePropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class OriginatingCentrePropertyType
+    internal partial class OriginatingCentrePropertyType
     {
         [XmlElement("WorldAreaForecastCentre", Namespace = XmlNamespaces.Iwxxm)]
         public string? WorldAreaForecastCentre { get; set; }
@@ -615,7 +615,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("MeteorologicalFeatureType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class MeteorologicalFeatureType : AbstractGMLType
+    internal partial class MeteorologicalFeatureType : AbstractGMLType
     {
         [XmlElement("issueTime", Namespace = XmlNamespaces.Iwxxm)]
         public TimeInstantPropertyType? IssueTime { get; set; }
@@ -645,7 +645,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("MeteorologicalFeaturePropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class MeteorologicalFeaturePropertyType
+    internal partial class MeteorologicalFeaturePropertyType
     {
         [XmlElement("MeteorologicalFeature", Namespace = XmlNamespaces.Iwxxm)]
         public MeteorologicalFeatureType? MeteorologicalFeature { get; set; }
@@ -658,7 +658,7 @@ namespace Iwxxm20252.Generated
     [DebuggerStepThrough]
     [XmlType("WAFSSignificantWeatherForecastType", Namespace = XmlNamespaces.Iwxxm)]
     [XmlRoot("WAFSSignificantWeatherForecast", Namespace = XmlNamespaces.Iwxxm, IsNullable = false)]
-    public partial class WAFSSignificantWeatherForecastType : AbstractGMLType
+    internal partial class WAFSSignificantWeatherForecastType : AbstractGMLType
     {
         [XmlElement("boundingPeriod", Namespace = XmlNamespaces.Iwxxm)]
         public TimePeriodPropertyType? BoundingPeriod { get; set; }
@@ -706,7 +706,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("CurvePropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class CurvePropertyType
+    internal partial class CurvePropertyType
     {
         [XmlElement("Curve", Namespace = XmlNamespaces.Gml)]
         public CurveType? Curve { get; set; }
@@ -715,7 +715,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("PolygonPropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class PolygonPropertyType
+    internal partial class PolygonPropertyType
     {
         [XmlElement("Polygon", Namespace = XmlNamespaces.Gml)]
         public PolygonType? Polygon { get; set; }
@@ -724,7 +724,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("PointPropertyType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class PointPropertyType
+    internal partial class PointPropertyType
     {
         [XmlElement("Point", Namespace = XmlNamespaces.Gml)]
         public PointType? Point { get; set; }
@@ -733,7 +733,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("JetStreamCorePointType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class JetStreamCorePointType
+    internal partial class JetStreamCorePointType
     {
         [XmlElement("location", Namespace = XmlNamespaces.Iwxxm)]
         public PointPropertyType? Location { get; set; }
@@ -754,7 +754,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("JetStreamType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class JetStreamType : AbstractGMLType
+    internal partial class JetStreamType : AbstractGMLType
     {
         [XmlElement("axis", Namespace = XmlNamespaces.Iwxxm)]
         public CurvePropertyType? Axis { get; set; }
@@ -772,7 +772,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("CloudDistributionFeatureType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class CloudDistributionFeatureType : AbstractGMLType
+    internal partial class CloudDistributionFeatureType : AbstractGMLType
     {
         [XmlElement("cloudAmount", Namespace = XmlNamespaces.Iwxxm)]
         public string CloudAmount { get; set; } = string.Empty;
@@ -793,7 +793,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("TropopausePointType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class TropopausePointType
+    internal partial class TropopausePointType
     {
         [XmlElement("location", Namespace = XmlNamespaces.Iwxxm)]
         public PointPropertyType? Location { get; set; }
@@ -805,7 +805,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("TropopauseType", Namespace = XmlNamespaces.Iwxxm)]
-    public partial class TropopauseType : AbstractGMLType
+    internal partial class TropopauseType : AbstractGMLType
     {
         [XmlElement("levelType", Namespace = XmlNamespaces.Iwxxm)]
         public string? LevelType { get; set; }
@@ -818,7 +818,7 @@ namespace Iwxxm20252.Generated
     [DebuggerStepThrough]
     [XmlType("SIGWXReportType", Namespace = XmlNamespaces.Iwxxm)]
     [XmlRoot("SIGWXReport", Namespace = XmlNamespaces.Iwxxm, IsNullable = false)]
-    public partial class SIGWXReportType : AbstractGMLType
+    internal partial class SIGWXReportType : AbstractGMLType
     {
         [XmlElement("issueTime", Namespace = XmlNamespaces.Iwxxm)]
         public TimeInstantPropertyType? IssueTime { get; set; }

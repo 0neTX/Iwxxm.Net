@@ -1,8 +1,7 @@
 using System;
 using System.Globalization;
-using Iwxxm.Net.Domain.Common;
 
-namespace Iwxxm.Net.Domain.ValueObjects
+namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Native geospatial Value Object representing a WGS84 (EPSG:4326) geographic coordinate.
