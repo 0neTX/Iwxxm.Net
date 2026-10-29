@@ -28,7 +28,34 @@ A partir de las respuestas de diseño del usuario, se establecen los siguientes 
 
 ---
 
-## 2. Mapa Arquitectónico Objetivo (Hexagonal / Ports & Adapters)
+## 2. Calibración Pragmática: Especificación IWXXM 2025-2 frente a Principios de Diseño
+
+Un aspecto arquitectónico fundamental es comprender la relación entre la versión del estándar externo (OACI/OMM IWXXM 2025-2) y la necesidad de evolucionar el software:
+
+### 2.1 ¿Por qué una especificación "congelada" sigue requiriendo cambios en `IwxxmSuiteMapper`?
+La especificación oficial 2025-2 está fijada por la OACI, pero **su implementación en software no es estática**:
+1. **Fidelidad y completitud**: Ciertos elementos del estándar 2025-2 actualmente se descartan o mapean de forma simplificada (ej. geometrías `gml:CircleByCenterPoint` para radios de seguridad en avisos de ciclones tropicales o referencias cruzadas `xlink:href="#id"`). Corregir y completar estas capacidades en 2025-2 exige modificar los mappers sin que cambie la versión de la OACI.
+2. **Cobertura incremental de campos opcionales**: Los centros emisores de distintos países (WAFC Londres, Washington, centros nacionales) emiten combinaciones no exploradas de campos opcionales (`nillable`, extensiones) que requieren ampliaciones de soporte.
+3. **Optimización de memoria y concurrencia**: Ajustar asignaciones de memoria o parsing en streams de alto rendimiento implica refactorizar el código de extracción de reportes específicos.
+
+### 2.2 Calibración de OCP (Open/Closed Principle) vs YAGNI
+Dado que IWXXM 2025-2 define un **catálogo cerrado y finito** de 13 tipos de reportes más el sobre SWIM `collect`:
+- **Evitar la sobreingeniería (YAGNI)**: Sería un error diseñar un complejo framework dinámico de inyección de dependencias o plugins reflectivos externos para "admitir reportes desconocidos", puesto que no surgirán nuevos tipos de reportes dentro de la versión 2025-2.
+- **OCP Pragmático**: El desacoplamiento en exporters y dispatchers debe resolverse de forma limpia y directa mediante tipado estático (patrón **Visitor** en el dominio o un registro directo), sin incurrir en abstracciones innecesarias.
+
+### 2.3 SRP como garantía de Contención de Daños (*Blast Radius*)
+El valor de modularizar `IwxxmSuiteMapper` reside en el principio de responsabilidad única (SRP) y en la **seguridad del software aeronáutico**:
+- Si se corrige o mejora la decodificación de cenizas volcánicas (`Qvaci`), no se debe tocar, arriesgar ni recompilar el fichero donde reside la lógica crítica de vientos de aterrizaje de aeródromo (`Metar`).
+- La modularidad aísla el radio de impacto de regresiones, facilita tests unitarios finos y evita conflictos de fusión en Git entre colaboradores.
+
+### 2.4 Perspectiva Multiversión en Redes SWIM / AMHS
+En el mundo real aeronáutico, **las versiones de IWXXM coexisten durante años**. En centros de control aéreo conviven mensajes en IWXXM 2021-2, 2023-1 y 2025-2:
+- La Arquitectura Hexagonal y DDD garantizan que el **Dominio Canónico** (`Metar`, `Taf`, `Sigmet`) sea perenne e independiente del XML.
+- Al separar `IwxxmSuiteMapper` en mappers específicos, dar soporte en el futuro a una versión alternativa de IWXXM (o la venidera 2026-x) consiste únicamente en añadir adaptadores en `Infrastructure`, sin alterar el núcleo de la aplicación.
+
+---
+
+## 3. Mapa Arquitectónico Objetivo (Hexagonal / Ports & Adapters)
 
 ```mermaid
 graph TD
@@ -106,9 +133,9 @@ graph TD
 
 ---
 
-## 3. Catálogo Exhaustivo de Deuda Técnica (Clasificado)
+## 4. Catálogo Exhaustivo de Deuda Técnica (Clasificado)
 
-### 3.1 Deuda en Diseño Guiado por el Dominio (DDD)
+### 4.1 Deuda en Diseño Guiado por el Dominio (DDD)
 
 | Código | Gravedad | Componente | Descripción del Problema | Razón y Solución Arquitectónica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -121,7 +148,7 @@ graph TD
 
 ---
 
-### 3.2 Deuda en Clean Code y Principios SOLID
+### 4.2 Deuda en Clean Code y Principios SOLID
 
 | Código | Gravedad | Componente | Descripción del Problema | Razón y Solución Arquitectónica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -132,7 +159,7 @@ graph TD
 
 ---
 
-### 3.3 Deuda en Arquitectura Hexagonal y Puertos
+### 4.3 Deuda en Arquitectura Hexagonal y Puertos
 
 | Código | Gravedad | Componente | Descripción del Problema | Razón y Solución Arquitectónica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -141,7 +168,7 @@ graph TD
 
 ---
 
-## 4. Matriz de Mapeo del Lenguaje Ubicuo (Nomenclatura Propuesta)
+## 5. Matriz de Mapeo del Lenguaje Ubicuo (Nomenclatura Propuesta)
 
 | Modelo Actual | Tipo DDD | Nombre Propuesto (Acrónimo) | Justificación Operativa |
 | :--- | :--- | :--- | :--- |
@@ -164,7 +191,7 @@ graph TD
 
 ---
 
-## 5. Plan Maestro de Refactorización (Fases Futuras)
+## 6. Plan Maestro de Refactorización (Fases Futuras)
 
 > [!IMPORTANT]
 > Ninguna de estas fases se ejecutará hasta que concluya formalmente el análisis y la aprobación de este documento.
@@ -182,7 +209,7 @@ graph TD
 
 3. **Fase 3: Descomposición de God Classes (Mappers y Exporters)**:
    - Crear mappers individuales por familia de reporte dentro de `Infrastructure/Mapping/Reports/`.
-   - Implementar el patrón Visitor (`IIwxxmReportVisitor<TResult>`) en `IIwxxmReport` para desacoplar el exportador GeoJSON.
+   - Implementar el patrón Visitor (`IIwxxmReportVisitor<TResult>`) en `IIwxxmReport` para desacoplar el exportador GeoJSON de forma directa y pragmática (sin frameworks de plugins innecesarios).
    - Descomponer `Rfc7946GeoJsonExporter` en feature extractors específicos por agregado.
 
 4. **Fase 4: Blindaje de Fachada y Pruebas de Integración**:
