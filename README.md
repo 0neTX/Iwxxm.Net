@@ -70,7 +70,7 @@
   2. **Business Rule & Official RDF Code-List Validation (partial)**: Executes the XSLT 1.0 rule subset via `XslCompiledTransform` (11 of 165 official rule IDs, official BUFR code-table membership for WAFS SIGWX, and membership of every `codes.wmo.int` URI in the matching official code list, with the official `owl:versionInfo` filter for IWXXM 2025-2) and extracts SVRL (`<svrl:failed-assert>`) findings.
 - **Units of Measure Preserved**: Speeds and lengths whose unit is not fixed by the official rules (surface wind and gusts, tropical-cyclone maximum wind, jet-stream wind, speed of motion, cloud base, volcanic source elevation) are exposed as `Speed` / `Length` value objects carrying the reported value and unit (`m/s`, `[kn_i]`, `km/h`, `m`, `[ft_i]`, ...), with exact conversion methods. Single-unit quantities (`Cel`, `hPa`, `deg`, visibility/RVR in `m`, ash density in `mg/m3`) keep unit-specific property names and the mapper rejects any other unit. A missing or unknown `@uom` is a `DomainMapping` error; no unit is ever assumed.
 - **Native Spatial & WMO Code Value Objects**: Translates GML 3.2.1 geometries (`gml:Curve`, `gml:CubicSpline`, `gml:LineStringSegment`, `gml:Polygon`, `gml:PolygonPatch` with interior holes `gml:interior`, `gml:CircleByCenterPoint`, `gml:Point`, `gml:posList`, `gml:pos`) and AIXM 5.1.1 `AirspaceVolume` bounds into immutable Domain Value Objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`) using a zero-array-allocation coordinate scanner (`GmlCoordinateTokenizer`).
-- **Native RFC 7946 GeoJSON Export**: Converts any `IIwxxmReport` (or `collect:MeteorologicalBulletin`) directly into an RFC 7946 `FeatureCollection` with `[longitude, latitude]` coordinate tuples, polygon interior hole rings, and computed `bbox` bounds—with zero third-party JSON or GIS dependencies.
+- **Native RFC 7946 GeoJSON Export**: Converts any `IwxxmReport` (or `collect:MeteorologicalBulletin`) directly into an RFC 7946 `FeatureCollection` with `[longitude, latitude]` coordinate tuples, polygon interior hole rings, and computed `bbox` bounds—with zero third-party JSON or GIS dependencies.
 - **Functional `Result<T>` Pattern**: Explicit, allocation-friendly error handling categorized by technology-agnostic pipeline stage (`MalformedInput`, `SchemaViolation`, `BusinessRuleViolation`, `Deserialization`, `DomainMapping`); the stable machine-readable contract is `ValidationError.Code`.
 
 ---
@@ -119,7 +119,7 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<IIwxxmReport> result = IwxxmParser.ParseFile("incoming-swim-message.xml");
+Result<IwxxmReport> result = IwxxmParser.ParseFile("incoming-swim-message.xml");
 
 if (result.IsFailure)
 {
@@ -445,7 +445,7 @@ Console.WriteLine($"SWXC {swx.IssuingSwxcName} #{swx.AdvisoryNumber}: Effects=[{
 
 ### 4.6 SWIM / AMHS Collective Bulletins (`collect:MeteorologicalBulletin`)
 
-SWIM and AMHS networks frequently bundle multiple `METAR`, `SPECI`, or `TAF` reports inside a `<collect:MeteorologicalBulletin>` envelope. `MeteorologicalBulletin` exposes both `Reports` (all valid reports) and `ReportResults` (individual `Result<IIwxxmReport>` outcomes per `<collect:meteorologicalInformation>` entry):
+SWIM and AMHS networks frequently bundle multiple `METAR`, `SPECI`, or `TAF` reports inside a `<collect:MeteorologicalBulletin>` envelope. `MeteorologicalBulletin` exposes both `Reports` (all valid reports) and `ReportResults` (individual `Result<IwxxmReport>` outcomes per `<collect:meteorologicalInformation>` entry):
 
 ```csharp
 using System;
@@ -461,7 +461,7 @@ if (bulletinResult.IsSuccess)
     Console.WriteLine($"Bulletin ID : {bulletin.BulletinIdentifier}");
     Console.WriteLine($"Valid Count : {bulletin.Reports.Count} / {bulletin.ReportResults.Count}");
 
-    foreach (IIwxxmReport childReport in bulletin.Reports)
+    foreach (IwxxmReport childReport in bulletin.Reports)
     {
         if (childReport is AerodromeWeatherReport metar)
         {
@@ -475,7 +475,7 @@ if (bulletinResult.IsSuccess)
 
 ### 4.7 Native RFC 7946 GeoJSON Export (`IwxxmGeoJsonExporter` & `ParseFileToGeoJson`)
 
-`Iwxxm.Net` includes a zero-dependency **RFC 7946 GeoJSON Exporter** that converts any `IIwxxmReport` (or `MeteorologicalBulletin`) into a standards-compliant GeoJSON `FeatureCollection`:
+`Iwxxm.Net` includes a zero-dependency **RFC 7946 GeoJSON Exporter** that converts any `IwxxmReport` (or `MeteorologicalBulletin`) into a standards-compliant GeoJSON `FeatureCollection`:
 - Automatically swaps GML `[latitude, longitude]` coordinates into **RFC 7946 Section 3.1.1 `[longitude, latitude]`** order.
 - Preserves **interior hole rings** (`GeoPolygon.InteriorRings`) as secondary linear rings in GeoJSON `Polygon` coordinates (`[exteriorRing, hole1, ...]`).
 - Computes the global **`bbox`** (`[minLon, minLat, maxLon, maxLat]`) across all features.
@@ -496,7 +496,7 @@ if (geoJsonResult.IsSuccess)
     Console.WriteLine(geoJsonResult.Value);
 }
 
-// Option B: Export an already-parsed IIwxxmReport domain object
+// Option B: Export an already-parsed IwxxmReport domain object
 var reportResult = IwxxmParser.ParseFile("Samples/wmo-examples/WAFS-Example.xml");
 if (reportResult.IsSuccess)
 {
@@ -574,7 +574,7 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<IIwxxmReport> result = IwxxmParser.Parse(untrustedXmlPayload);
+Result<IwxxmReport> result = IwxxmParser.Parse(untrustedXmlPayload);
 
 if (result.IsFailure)
 {
@@ -624,7 +624,7 @@ IwxxmParser parser = new IwxxmParserBuilder()
     .Build();
 
 using Stream incomingStream = GetNetworkStream();
-Result<IIwxxmReport> result = parser.Process(incomingStream);
+Result<IwxxmReport> result = parser.Process(incomingStream);
 // Streams exceeding maxDocumentBytes fail immediately with code "XML-SIZE-LIMIT" (ErrorCategory.MalformedInput)
 ```
 
@@ -686,7 +686,7 @@ IwxxmParser parser = new IwxxmParserBuilder()
     .UseOfficialSchematron()   // extension method from Iwxxm.Net.Validation.Saxon
     .Build();
 
-Result<IIwxxmReport> result = parser.ProcessFile("metar.xml");
+Result<IwxxmReport> result = parser.ProcessFile("metar.xml");
 // e.g. qnh reported in "mbar" -> Code "METAR_SPECI.MeteorologicalAerodromeObservation-5"
 ```
 
@@ -718,7 +718,7 @@ Consumers never need a layer name in a `using` directive. The public API is grou
 | Namespace | Contents |
 | :--- | :--- |
 | `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, inbound ports (`IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor`, `IGeoJsonExportService`), and the `UseOfficialSchematron()` extension of the optional Saxon package |
-| `Iwxxm.Net.Reports` | Domain model: report aggregates (`IIwxxmReport`, `IIwxxmReportVisitor<TResult>`, `AerodromeWeatherReport`, `TafReport`, `SigmetReport`, ..., `MeteorologicalBulletin`) and value objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`, `FlightLevel`, `Speed`, `Length`, WMO codes, ...) |
+| `Iwxxm.Net.Reports` | Domain model: report aggregates (`IwxxmReport`, `IIwxxmReportVisitor<TResult>`, `AerodromeWeatherReport`, `TafReport`, `SigmetReport`, ..., `MeteorologicalBulletin`) and value objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`, `FlightLevel`, `Speed`, `Length`, WMO codes, ...) |
 | `Iwxxm.Net.Extensibility` | Outbound ports for custom adapters (`ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter`) |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
 
@@ -733,7 +733,7 @@ src/Iwxxm.Net/
 ├── Domain/                     # Depends on nothing (no System.Xml, System.IO, Application or Infrastructure)
 │   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity        (ns Iwxxm.Net)
 │   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, VerticalLimit, FlightLevel, Speed, Length, WmoCodes, ... (ns Iwxxm.Net.Reports)
-│   └── Aggregates/             # IIwxxmReport, IIwxxmReportVisitor<TResult> and every report aggregate (ns Iwxxm.Net.Reports)
+│   └── Aggregates/             # IwxxmReport, IIwxxmReportVisitor<TResult> and every report aggregate (ns Iwxxm.Net.Reports)
 ├── Application/                # Depends only on Domain (no System.Xml)
 │   ├── Options/                # IwxxmParserOptions, GeoJsonExportOptions                              (ns Iwxxm.Net)
 │   ├── Ports/In/               # Inbound ports (use-case interfaces)                                   (ns Iwxxm.Net)

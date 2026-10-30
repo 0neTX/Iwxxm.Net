@@ -2,7 +2,7 @@ namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Visitor over the closed catalog of IWXXM 2025-2 Domain Aggregate Roots (GoF Visitor, double dispatch through
-    /// <see cref="IIwxxmReport.Accept{TResult}"/>).
+    /// <see cref="IwxxmReport.Accept{TResult}"/>).
     /// </summary>
     /// <typeparam name="TResult">Type of the value produced for each visited report.</typeparam>
     /// <remarks>

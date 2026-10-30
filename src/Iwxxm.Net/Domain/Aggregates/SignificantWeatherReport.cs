@@ -10,16 +10,16 @@ namespace Iwxxm.Net.Reports
     /// under the ICAO/WMO IWXXM 2025-2 standard (covering both WAFSSignificantWeatherForecast and SIGWXReport).
     /// Enforces spatial, vertical, and temporal domain invariants across all 9 WAFS SIGWX phenomena.
     /// </summary>
-    public sealed class SignificantWeatherReport : IIwxxmReport
+    public sealed class SignificantWeatherReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.SignificantWeather;
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.SignificantWeather;
         public string IssuingCentre { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
-        public DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
+        public override DateTimeOffset IssueTimeUtc { get; }
         public DateTimeOffset ValidFromUtc { get; }
         public DateTimeOffset ValidUntilUtc { get; }
 
@@ -28,11 +28,11 @@ namespace Iwxxm.Net.Reports
 
         /// <summary>Upper limit of the bounding volume as reported (value, unit, vertical reference or nil reason).</summary>
         public VerticalLimit UpperLimit { get; }
-        public bool IsTranslationFailed => false;
-        public string? TranslationFailedTac => null;
+        public override bool IsTranslationFailed => false;
+        public override string? TranslationFailedTac => null;
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         public IReadOnlyList<JetStream> JetStreams { get; }

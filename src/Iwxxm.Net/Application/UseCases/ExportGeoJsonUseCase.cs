@@ -17,7 +17,7 @@ namespace Iwxxm.Net.Application.UseCases
             _exporter = exporter ?? throw new ArgumentNullException(nameof(exporter));
         }
 
-        public string Export(IIwxxmReport report, GeoJsonExportOptions? options = null)
+        public string Export(IwxxmReport report, GeoJsonExportOptions? options = null)
         {
             if (report == null)
                 throw new ArgumentNullException(nameof(report));

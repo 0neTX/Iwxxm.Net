@@ -185,7 +185,7 @@ namespace Iwxxm.Net.Tests
                 _json = json;
             }
 
-            public string Export(IIwxxmReport report, GeoJsonExportOptions options) => _json;
+            public string Export(IwxxmReport report, GeoJsonExportOptions options) => _json;
         }
 
         private sealed class FailingDocumentMapper : IIwxxmDocumentMapper
@@ -197,7 +197,7 @@ namespace Iwxxm.Net.Tests
                 _error = error;
             }
 
-            public Result<IIwxxmReport> Map(Stream validatedDocument) => Result<IIwxxmReport>.Failure(_error);
+            public Result<IwxxmReport> Map(Stream validatedDocument) => Result<IwxxmReport>.Failure(_error);
         }
     }
 }

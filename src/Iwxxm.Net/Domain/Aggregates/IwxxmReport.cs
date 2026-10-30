@@ -25,63 +25,76 @@ namespace Iwxxm.Net.Reports
     }
 
     /// <summary>
-    /// Polymorphic Domain Aggregate Root contract for all ICAO/WMO IWXXM 2025-2 reports
+    /// Polymorphic Domain Aggregate Root base for all ICAO/WMO IWXXM 2025-2 reports
     /// and SWIM <c>collect:MeteorologicalBulletin</c> envelopes.
     /// </summary>
-    public interface IIwxxmReport
+    /// <remarks>
+    /// The hierarchy is closed: the constructor is not accessible outside this assembly, so the only subtypes are the
+    /// sealed report aggregates of the IWXXM 2025-2 catalog, each with exactly one
+    /// <see cref="IIwxxmReportVisitor{TResult}"/> overload. A new report type is a library change, never an external
+    /// extension, which keeps visitors exhaustive.
+    /// </remarks>
+    public abstract class IwxxmReport
     {
+        /// <summary>
+        /// Initializes a new report. Only the report aggregates of this assembly can derive from this type.
+        /// </summary>
+        private protected IwxxmReport()
+        {
+        }
+
         /// <summary>
         /// Gets the unique <c>gml:id</c> identifier of the report.
         /// </summary>
-        string Id { get; }
+        public abstract string Id { get; }
 
         /// <summary>
         /// Gets the specific IWXXM 2025-2 report classification.
         /// </summary>
-        IwxxmReportType ReportType { get; }
+        public abstract IwxxmReportType ReportType { get; }
 
         /// <summary>
         /// Gets the UTC timestamp when the report was issued.
         /// </summary>
-        DateTimeOffset IssueTimeUtc { get; }
+        public abstract DateTimeOffset IssueTimeUtc { get; }
 
         /// <summary>
         /// Gets the report status (<c>reportStatus</c>: <c>NORMAL</c>, <c>AMENDMENT</c>, <c>CORRECTION</c>).
         /// The attribute is required by the official schema; a missing or unknown value is a mapping error, never a default.
         /// </summary>
-        ReportStatus ReportStatus { get; }
+        public abstract ReportStatus ReportStatus { get; }
 
         /// <summary>
         /// Gets the permissible usage (<c>permissibleUsage</c>: <c>OPERATIONAL</c> or <c>NON-OPERATIONAL</c>).
         /// The attribute is required by the official schema; a report without it is never presented as operational.
         /// </summary>
-        PermissibleUsage PermissibleUsage { get; }
+        public abstract PermissibleUsage PermissibleUsage { get; }
 
         /// <summary>
         /// Gets the optional reason for non-operational data (<c>permissibleUsageReason</c>: <c>TEST</c> or <c>EXERCISE</c>),
         /// or <c>null</c> when not reported.
         /// </summary>
-        PermissibleUsageReason? PermissibleUsageReason { get; }
+        public abstract PermissibleUsageReason? PermissibleUsageReason { get; }
 
         /// <summary>
         /// Gets the optional human-readable <c>permissibleUsageSupplementary</c> text, or <c>null</c> when not reported.
         /// </summary>
-        string? PermissibleUsageSupplementary { get; }
+        public abstract string? PermissibleUsageSupplementary { get; }
 
         /// <summary>
         /// Gets a value indicating whether TAC-to-XML translation failed (<c>translationFailedTAC</c> present).
         /// </summary>
-        bool IsTranslationFailed { get; }
+        public abstract bool IsTranslationFailed { get; }
 
         /// <summary>
         /// Gets the raw Traditional Alphanumeric Code (TAC) text when <see cref="IsTranslationFailed"/> is <c>true</c>.
         /// </summary>
-        string? TranslationFailedTac { get; }
+        public abstract string? TranslationFailedTac { get; }
 
         /// <summary>
         /// Dispatches to the <see cref="IIwxxmReportVisitor{TResult}"/> overload of this concrete report type.
         /// </summary>
         /// <exception cref="ArgumentNullException"><paramref name="visitor"/> is <c>null</c>.</exception>
-        TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor);
+        public abstract TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor);
     }
 }

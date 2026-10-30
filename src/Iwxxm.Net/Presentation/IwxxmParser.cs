@@ -57,7 +57,7 @@ namespace Iwxxm.Net
         // =====================================================================
 
         /// <inheritdoc />
-        public Result<IIwxxmReport> Process(Stream xmlStream)
+        public Result<IwxxmReport> Process(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
@@ -75,26 +75,26 @@ namespace Iwxxm.Net
         }
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c> from an XML string.</summary>
-        public Result<IIwxxmReport> Process(string xmlContent) =>
+        public Result<IwxxmReport> Process(string xmlContent) =>
             WithUtf8Stream(xmlContent, Process);
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c> XML file from disk.</summary>
-        public Result<IIwxxmReport> ProcessFile(string filePath) =>
+        public Result<IwxxmReport> ProcessFile(string filePath) =>
             WithFileStream(filePath, "IWXXM file", Process);
 
         /// <summary>Validates and parses an XML stream expecting the aggregate type <typeparamref name="TReport"/>.</summary>
         public Result<TReport> ProcessAs<TReport>(Stream xmlStream)
-            where TReport : class, IIwxxmReport =>
+            where TReport : IwxxmReport =>
             CastReportResult<TReport>(Process(xmlStream));
 
         /// <summary>Validates and parses an XML string expecting the aggregate type <typeparamref name="TReport"/>.</summary>
         public Result<TReport> ProcessAs<TReport>(string xmlContent)
-            where TReport : class, IIwxxmReport =>
+            where TReport : IwxxmReport =>
             CastReportResult<TReport>(Process(xmlContent));
 
         /// <summary>Validates and parses an XML file expecting the aggregate type <typeparamref name="TReport"/>.</summary>
         public Result<TReport> ProcessFileAs<TReport>(string filePath)
-            where TReport : class, IIwxxmReport =>
+            where TReport : IwxxmReport =>
             CastReportResult<TReport>(ProcessFile(filePath));
 
         /// <summary>Validates and unwraps a SWIM / AMHS <c>collect:MeteorologicalBulletin</c> from an XML string.</summary>
@@ -122,25 +122,25 @@ namespace Iwxxm.Net
         // =====================================================================
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or bulletin from a stream using <see cref="Default"/>.</summary>
-        public static Result<IIwxxmReport> Parse(Stream xmlStream) => Default.Process(xmlStream);
+        public static Result<IwxxmReport> Parse(Stream xmlStream) => Default.Process(xmlStream);
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or bulletin from an XML string using <see cref="Default"/>.</summary>
-        public static Result<IIwxxmReport> Parse(string xmlContent) => Default.Process(xmlContent);
+        public static Result<IwxxmReport> Parse(string xmlContent) => Default.Process(xmlContent);
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or bulletin XML file using <see cref="Default"/>.</summary>
-        public static Result<IIwxxmReport> ParseFile(string filePath) => Default.ProcessFile(filePath);
+        public static Result<IwxxmReport> ParseFile(string filePath) => Default.ProcessFile(filePath);
 
         /// <summary>Parses a stream expecting <typeparamref name="TReport"/> using <see cref="Default"/>.</summary>
         public static Result<TReport> ParseAs<TReport>(Stream xmlStream)
-            where TReport : class, IIwxxmReport => Default.ProcessAs<TReport>(xmlStream);
+            where TReport : IwxxmReport => Default.ProcessAs<TReport>(xmlStream);
 
         /// <summary>Parses an XML string expecting <typeparamref name="TReport"/> using <see cref="Default"/>.</summary>
         public static Result<TReport> ParseAs<TReport>(string xmlContent)
-            where TReport : class, IIwxxmReport => Default.ProcessAs<TReport>(xmlContent);
+            where TReport : IwxxmReport => Default.ProcessAs<TReport>(xmlContent);
 
         /// <summary>Parses an XML file expecting <typeparamref name="TReport"/> using <see cref="Default"/>.</summary>
         public static Result<TReport> ParseFileAs<TReport>(string filePath)
-            where TReport : class, IIwxxmReport => Default.ProcessFileAs<TReport>(filePath);
+            where TReport : IwxxmReport => Default.ProcessFileAs<TReport>(filePath);
 
         /// <summary>Unwraps a <c>collect:MeteorologicalBulletin</c> stream using <see cref="Default"/>.</summary>
         public static Result<MeteorologicalBulletin> ParseBulletin(Stream xmlStream) => Default.ProcessBulletin(xmlStream);
@@ -167,7 +167,7 @@ namespace Iwxxm.Net
         // Helpers
         // =====================================================================
 
-        private Result<string> ToGeoJsonResult(Result<IIwxxmReport> result, GeoJsonExportOptions? options)
+        private Result<string> ToGeoJsonResult(Result<IwxxmReport> result, GeoJsonExportOptions? options)
         {
             if (result.IsFailure)
                 return Result<string>.Failure(result.Errors);
@@ -247,8 +247,8 @@ namespace Iwxxm.Net
         private static Result<T> FileFailure<T>(string code, string message, string filePath) =>
             Result<T>.Failure(new ValidationError(code, message, ErrorCategory.MalformedInput, ValidationSeverity.Error, filePath));
 
-        private static Result<TReport> CastReportResult<TReport>(Result<IIwxxmReport> result)
-            where TReport : class, IIwxxmReport
+        private static Result<TReport> CastReportResult<TReport>(Result<IwxxmReport> result)
+            where TReport : IwxxmReport
         {
             if (result.IsFailure)
                 return Result<TReport>.Failure(result.Errors);

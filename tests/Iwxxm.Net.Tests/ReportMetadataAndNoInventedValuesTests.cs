@@ -51,15 +51,15 @@ namespace Iwxxm.Net.Tests
                 ? root.Elements(Collect + "meteorologicalInformation").Select(m => m.Elements().First()).ToList()
                 : new List<XElement> { root };
 
-            List<IIwxxmReport> reports = result.Value is MeteorologicalBulletin bulletin
+            List<IwxxmReport> reports = result.Value is MeteorologicalBulletin bulletin
                 ? bulletin.Reports.ToList()
-                : new List<IIwxxmReport> { result.Value };
+                : new List<IwxxmReport> { result.Value };
 
             Assert.Equal(reportElements.Count, reports.Count);
             for (int i = 0; i < reports.Count; i++)
             {
                 XElement element = reportElements[i];
-                IIwxxmReport report = reports[i];
+                IwxxmReport report = reports[i];
 
                 Assert.Equal(ExpectedStatus(element.Attribute("reportStatus")!.Value), report.ReportStatus);
                 Assert.Equal(ExpectedUsage(element.Attribute("permissibleUsage")!.Value), report.PermissibleUsage);
@@ -94,7 +94,7 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             XElement root = XDocument.Load(path).Root!;
 
-            foreach (IIwxxmReport report in result.Value is MeteorologicalBulletin b ? b.Reports : new[] { result.Value })
+            foreach (IwxxmReport report in result.Value is MeteorologicalBulletin b ? b.Reports : new[] { result.Value })
             {
                 XElement element = root.Name == Collect + "MeteorologicalBulletin"
                     ? root.Descendants().First(e => (string?)e.Attribute(Gml + "id") == report.Id)
@@ -131,7 +131,7 @@ namespace Iwxxm.Net.Tests
             var result = IwxxmParser.ParseFile(amended!);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            IIwxxmReport report = result.Value is MeteorologicalBulletin b ? b.Reports[0] : result.Value;
+            IwxxmReport report = result.Value is MeteorologicalBulletin b ? b.Reports[0] : result.Value;
             Assert.Equal(ReportStatus.Amendment, report.ReportStatus);
         }
 
@@ -332,7 +332,7 @@ namespace Iwxxm.Net.Tests
             var bulletin = IwxxmParser.ParseBulletinFile("Samples/wmo-examples/metar-NIL-collect.xml");
             Assert.True(bulletin.IsSuccess, string.Join(" | ", bulletin.Errors));
 
-            IIwxxmReport child = Assert.Single(bulletin.Value.Reports);
+            IwxxmReport child = Assert.Single(bulletin.Value.Reports);
             Assert.Equal(child.IssueTimeUtc, bulletin.Value.IssueTimeUtc);
             Assert.NotEqual(DateTimeOffset.MinValue, bulletin.Value.IssueTimeUtc);
             Assert.Equal(child.ReportStatus, bulletin.Value.ReportStatus);
@@ -342,13 +342,13 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Bulletin_WithANonOperationalReport_IsNonOperational()
         {
-            IIwxxmReport operational = Metar("op", ReportStatus.Normal, PermissibleUsage.Operational, null, new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero));
-            IIwxxmReport exercise = Metar("ex", ReportStatus.Correction, PermissibleUsage.NonOperational, PermissibleUsageReason.Exercise, new DateTimeOffset(2026, 1, 1, 9, 0, 0, TimeSpan.Zero));
+            IwxxmReport operational = Metar("op", ReportStatus.Normal, PermissibleUsage.Operational, null, new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero));
+            IwxxmReport exercise = Metar("ex", ReportStatus.Correction, PermissibleUsage.NonOperational, PermissibleUsageReason.Exercise, new DateTimeOffset(2026, 1, 1, 9, 0, 0, TimeSpan.Zero));
 
             var bulletin = MeteorologicalBulletin.Create("b1", "A_TEST", new[]
             {
-                Result<IIwxxmReport>.Success(operational),
-                Result<IIwxxmReport>.Success(exercise)
+                Result<IwxxmReport>.Success(operational),
+                Result<IwxxmReport>.Success(exercise)
             });
 
             Assert.True(bulletin.IsSuccess, string.Join(" | ", bulletin.Errors));
@@ -361,7 +361,7 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Bulletin_WithoutAnyReport_CannotBeCreated()
         {
-            var bulletin = MeteorologicalBulletin.Create("b1", "A_TEST", Array.Empty<Result<IIwxxmReport>>());
+            var bulletin = MeteorologicalBulletin.Create("b1", "A_TEST", Array.Empty<Result<IwxxmReport>>());
 
             Assert.True(bulletin.IsFailure);
             Assert.Equal("DOMAIN-BULLETIN-EMPTY", bulletin.Errors[0].Code);
@@ -388,7 +388,7 @@ namespace Iwxxm.Net.Tests
             return result.Value;
         }
 
-        private static Result<IIwxxmReport> MapDirectly(string xml)
+        private static Result<IwxxmReport> MapDirectly(string xml)
         {
             using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml)))
             {
@@ -463,7 +463,7 @@ namespace Iwxxm.Net.Tests
             if (!type.IsValueType && !visited.Add(value))
                 return;
 
-            if (type.Namespace != typeof(IIwxxmReport).Namespace && !(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Result<>)))
+            if (type.Namespace != typeof(IwxxmReport).Namespace && !(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Result<>)))
                 return;
 
             foreach (PropertyInfo property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))

@@ -184,7 +184,7 @@ namespace Iwxxm.Net.Tests
 
         private sealed class ThrowingGeoJsonExporter : IGeoJsonExporter
         {
-            public string Export(IIwxxmReport report, GeoJsonExportOptions options) =>
+            public string Export(IwxxmReport report, GeoJsonExportOptions options) =>
                 throw new InvalidOperationException("Simulated exporter failure.");
         }
 
@@ -201,7 +201,7 @@ namespace Iwxxm.Net.Tests
 
         private sealed class ThrowingMapper : IIwxxmDocumentMapper, ISigwxDocumentMapper
         {
-            Result<IIwxxmReport> IIwxxmDocumentMapper.Map(Stream validatedDocument) =>
+            Result<IwxxmReport> IIwxxmDocumentMapper.Map(Stream validatedDocument) =>
                 throw new InvalidOperationException("Simulated mapper failure.");
 
             Result<SignificantWeatherReport> ISigwxDocumentMapper.Map(Stream validatedDocument) =>

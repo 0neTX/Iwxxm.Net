@@ -112,32 +112,32 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing an Aerodrome Routine (<c>METAR</c>) or Special (<c>SPECI</c>)
     /// Meteorological Report under ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class AerodromeWeatherReport : IIwxxmReport
+    public sealed class AerodromeWeatherReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType { get; }
-        public DateTimeOffset IssueTimeUtc { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType { get; }
+        public override DateTimeOffset IssueTimeUtc { get; }
 
         /// <summary>
         /// Observation time (<c>observationTime</c>, mandatory in <c>metarSpeci.xsd</c>); <c>null</c> when the document
         /// gives it only by an <c>xlink:href</c> reference, which this version does not resolve. Never defaulted to the issue time.
         /// </summary>
         public DateTimeOffset? ObservationTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public bool IsAutomatedStation { get; }
         public string AerodromeDesignator { get; }
         public string? AerodromeName { get; }
         public GeoCoordinate? AerodromePosition { get; }
         public bool IsNilObservation { get; }
         public string? ObservationNilReason { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         public bool CloudAndVisibilityOk { get; }
@@ -295,15 +295,15 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing a Terminal Aerodrome Forecast (<c>TAF</c>)
     /// under ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class TafReport : IIwxxmReport
+    public sealed class TafReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.Taf;
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.Taf;
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public string AerodromeDesignator { get; }
         public string? AerodromeName { get; }
         public GeoCoordinate? AerodromePosition { get; }
@@ -314,11 +314,11 @@ namespace Iwxxm.Net.Reports
         public DateTimeOffset? CancelledReportValidUntilUtc { get; }
         public bool IsNilForecast { get; }
         public string? BaseForecastNilReason { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         public AerodromeForecastGroupInfo? BaseForecast { get; }

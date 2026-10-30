@@ -12,7 +12,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
     internal static class GeoJsonProperties
     {
         public static List<(string Key, object? Value)> CreateBase(
-            IIwxxmReport report,
+            IwxxmReport report,
             string featureType,
             string? bulletinId)
         {

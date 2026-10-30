@@ -14,7 +14,7 @@ namespace Iwxxm.Net.Reports
     /// <remarks>
     /// <para>A COLLECT bulletin carries no issue time, status or permissible usage of its own
     /// (<c>collect:MeteorologicalBulletin</c> only holds <c>bulletinIdentifier</c> and <c>meteorologicalInformation</c>).
-    /// The <see cref="IIwxxmReport"/> metadata of the envelope is therefore <b>derived from the contained reports</b>,
+    /// The <see cref="IwxxmReport"/> metadata of the envelope is therefore <b>derived from the contained reports</b>,
     /// never invented, and a bulletin without any successfully mapped report cannot be created:</para>
     /// <list type="bullet">
     /// <item><see cref="IssueTimeUtc"/>: the earliest issue time of the contained reports.</item>
@@ -25,33 +25,33 @@ namespace Iwxxm.Net.Reports
     /// <item><see cref="PermissibleUsageSupplementary"/>: always <c>null</c> (free text is not aggregated).</item>
     /// </list>
     /// </remarks>
-    public sealed class MeteorologicalBulletin : IIwxxmReport
+    public sealed class MeteorologicalBulletin : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.MeteorologicalBulletin;
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.MeteorologicalBulletin;
         public string BulletinIdentifier { get; }
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary => null;
-        public bool IsTranslationFailed => false;
-        public string? TranslationFailedTac => null;
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary => null;
+        public override bool IsTranslationFailed => false;
+        public override string? TranslationFailedTac => null;
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         /// <summary>
         /// Gets all successfully parsed IWXXM 2025-2 reports contained inside this collective bulletin.
         /// </summary>
-        public IReadOnlyList<IIwxxmReport> Reports { get; }
+        public IReadOnlyList<IwxxmReport> Reports { get; }
 
         /// <summary>
-        /// Gets the individual <see cref="Result{IIwxxmReport}"/> outcomes for every <c>collect:meteorologicalInformation</c>
+        /// Gets the individual <see cref="Result{IwxxmReport}"/> outcomes for every <c>collect:meteorologicalInformation</c>
         /// entry in the bulletin, enabling partial-success processing on AMHS/SWIM feeds.
         /// </summary>
-        public IReadOnlyList<Result<IIwxxmReport>> ReportResults { get; }
+        public IReadOnlyList<Result<IwxxmReport>> ReportResults { get; }
 
         private MeteorologicalBulletin(
             string id,
@@ -60,8 +60,8 @@ namespace Iwxxm.Net.Reports
             ReportStatus reportStatus,
             PermissibleUsage permissibleUsage,
             PermissibleUsageReason? permissibleUsageReason,
-            IReadOnlyList<IIwxxmReport> reports,
-            IReadOnlyList<Result<IIwxxmReport>> reportResults)
+            IReadOnlyList<IwxxmReport> reports,
+            IReadOnlyList<Result<IwxxmReport>> reportResults)
         {
             Id = id;
             BulletinIdentifier = bulletinIdentifier;
@@ -76,7 +76,7 @@ namespace Iwxxm.Net.Reports
         public static Result<MeteorologicalBulletin> Create(
             string id,
             string bulletinIdentifier,
-            IEnumerable<Result<IIwxxmReport>> reportResults)
+            IEnumerable<Result<IwxxmReport>> reportResults)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -95,7 +95,7 @@ namespace Iwxxm.Net.Reports
                     id);
             }
 
-            var resultsList = reportResults?.ToList() ?? new List<Result<IIwxxmReport>>(0);
+            var resultsList = reportResults?.ToList() ?? new List<Result<IwxxmReport>>(0);
             var validReports = resultsList
                 .Where(r => r.IsSuccess)
                 .Select(r => r.Value)
@@ -127,8 +127,8 @@ namespace Iwxxm.Net.Reports
                 status,
                 usage,
                 reason,
-                new ReadOnlyCollection<IIwxxmReport>(validReports),
-                new ReadOnlyCollection<Result<IIwxxmReport>>(resultsList)));
+                new ReadOnlyCollection<IwxxmReport>(validReports),
+                new ReadOnlyCollection<Result<IwxxmReport>>(resultsList)));
         }
     }
 }

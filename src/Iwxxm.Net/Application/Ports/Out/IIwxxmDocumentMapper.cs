@@ -5,12 +5,12 @@ namespace Iwxxm.Net.Extensibility
 {
     /// <summary>
     /// Outbound (driven) port that maps a validated IWXXM 2025-2 / COLLECT document onto its
-    /// Domain Aggregate Root (<see cref="IIwxxmReport"/>), dispatching on the root element.
+    /// Domain Aggregate Root (<see cref="IwxxmReport"/>), dispatching on the root element.
     /// </summary>
     public interface IIwxxmDocumentMapper
     {
         /// <summary>Maps the validated document into a Domain Aggregate Root.</summary>
         /// <param name="validatedDocument">Seekable stream positioned at the start of a document that passed validation.</param>
-        Result<IIwxxmReport> Map(Stream validatedDocument);
+        Result<IwxxmReport> Map(Stream validatedDocument);
     }
 }

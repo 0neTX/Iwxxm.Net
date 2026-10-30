@@ -4,7 +4,7 @@ using Iwxxm.Net.Reports;
 namespace Iwxxm.Net
 {
     /// <summary>
-    /// Public facade for exporting any parsed <see cref="IIwxxmReport"/> Domain Aggregate Root into an RFC 7946
+    /// Public facade for exporting any parsed <see cref="IwxxmReport"/> Domain Aggregate Root into an RFC 7946
     /// GeoJSON <c>FeatureCollection</c> string (<c>[longitude, latitude]</c> axis order) suitable for web mapping
     /// engines (OpenLayers, Mapbox GL, Leaflet, QGIS).
     /// </summary>
@@ -29,7 +29,7 @@ namespace Iwxxm.Net
         public static IwxxmGeoJsonExporter Default => DefaultInstance.Value;
 
         /// <inheritdoc />
-        public string Export(IIwxxmReport report, GeoJsonExportOptions? options = null)
+        public string Export(IwxxmReport report, GeoJsonExportOptions? options = null)
         {
             if (report == null)
                 throw new ArgumentNullException(nameof(report));
@@ -38,7 +38,7 @@ namespace Iwxxm.Net
         }
 
         /// <summary>Serializes <paramref name="report"/> to an RFC 7946 GeoJSON <c>FeatureCollection</c> using <see cref="Default"/>.</summary>
-        public static string ToGeoJson(IIwxxmReport report, GeoJsonExportOptions? options = null) =>
+        public static string ToGeoJson(IwxxmReport report, GeoJsonExportOptions? options = null) =>
             Default.Export(report, options);
     }
 }

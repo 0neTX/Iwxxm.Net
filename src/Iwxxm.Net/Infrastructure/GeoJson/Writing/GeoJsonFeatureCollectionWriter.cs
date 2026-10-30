@@ -12,7 +12,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
     /// </summary>
     internal static class GeoJsonFeatureCollectionWriter
     {
-        public static string Write(IIwxxmReport report, IReadOnlyList<GeoJsonFeature> features, GeoJsonExportOptions options)
+        public static string Write(IwxxmReport report, IReadOnlyList<GeoJsonFeature> features, GeoJsonExportOptions options)
         {
             var sb = new StringBuilder(Math.Max(512, features.Count * 256));
             var writer = new Rfc8259JsonWriter(sb, options.Indented);
@@ -46,7 +46,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             return sb.ToString();
         }
 
-        private static void WriteMetadata(Rfc8259JsonWriter writer, IIwxxmReport report)
+        private static void WriteMetadata(Rfc8259JsonWriter writer, IwxxmReport report)
         {
             writer.WritePropertyName("metadata");
             writer.BeginObject();

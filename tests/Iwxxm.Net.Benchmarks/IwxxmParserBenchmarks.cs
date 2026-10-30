@@ -59,7 +59,7 @@ namespace Iwxxm.Net.Benchmarks
         }
 
         [Benchmark(Description = "QVACI Volcanic Ash Full Suite Validation + Hollow Polygon Mapping")]
-        public Result<IIwxxmReport> ParseQvaciReport()
+        public Result<IwxxmReport> ParseQvaciReport()
         {
             using (var stream = new MemoryStream(_qvaciPayload, writable: false))
             {
