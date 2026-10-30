@@ -247,7 +247,8 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Sigmet_MetresAmslAndSurfaceLimits_AreNotConvertedToFlightLevels()
         {
-            string xml = File.ReadAllText("Samples/wmo-examples/sigmet-A6-1a-TS.xml").Replace(
+            // Normalize line endings so the multi-line replacement also matches CRLF checkouts.
+            string xml = File.ReadAllText("Samples/wmo-examples/sigmet-A6-1a-TS.xml").Replace("\r\n", "\n").Replace(
                 "<aixm:upperLimit uom=\"FL\">390</aixm:upperLimit>\n                                    <aixm:upperLimitReference>STD</aixm:upperLimitReference>",
                 "<aixm:upperLimit uom=\"M\">15000</aixm:upperLimit>\n                                    <aixm:upperLimitReference>MSL</aixm:upperLimitReference>" +
                 "<aixm:lowerLimit uom=\"FT\">GND</aixm:lowerLimit><aixm:lowerLimitReference>SFC</aixm:lowerLimitReference>");
