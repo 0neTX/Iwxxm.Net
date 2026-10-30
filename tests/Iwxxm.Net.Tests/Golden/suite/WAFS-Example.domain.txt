@@ -1,0 +1,859 @@
+Sigwx {
+  AirframeIcings = [
+    AirframeIcing {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = -41.623153
+            Lon = -158.734129
+          }
+          GeoCoordinate {
+            Lat = -42.921036
+            Lon = -158.310418
+          }
+          GeoCoordinate {
+            Lat = -43.614695
+            Lon = -156.56584
+          }
+          GeoCoordinate {
+            Lat = -44.448049
+            Lon = -154.972043
+          }
+          GeoCoordinate {
+            Lat = -45.933174
+            Lon = -154.748367
+          }
+          GeoCoordinate {
+            Lat = -46.733087
+            Lon = -153.171172
+          }
+          GeoCoordinate {
+            Lat = -46.985416
+            Lon = -151.1643
+          }
+          GeoCoordinate {
+            Lat = -46.884731
+            Lon = -149.037755
+          }
+          GeoCoordinate {
+            Lat = -47.995659
+            Lon = -147.690252
+          }
+          GeoCoordinate {
+            Lat = -48.19933
+            Lon = -145.711761
+          }
+          GeoCoordinate {
+            Lat = -46.904387
+            Lon = -145.018761
+          }
+          GeoCoordinate {
+            Lat = -45.627836
+            Lon = -145.977674
+          }
+          GeoCoordinate {
+            Lat = -44.393574
+            Lon = -146.977162
+          }
+          GeoCoordinate {
+            Lat = -42.959553
+            Lon = -147.449231
+          }
+          GeoCoordinate {
+            Lat = -41.878655
+            Lon = -148.831074
+          }
+          GeoCoordinate {
+            Lat = -41.959083
+            Lon = -150.789464
+          }
+          GeoCoordinate {
+            Lat = -41.053172
+            Lon = -152.365167
+          }
+          GeoCoordinate {
+            Lat = -40.289571
+            Lon = -154.037198
+          }
+          GeoCoordinate {
+            Lat = -40.159991
+            Lon = -155.942752
+          }
+          GeoCoordinate {
+            Lat = -40.378993
+            Lon = -157.783406
+          }
+          GeoCoordinate {
+            Lat = -41.623153
+            Lon = -158.734129
+          }
+        ]
+        InteriorRings = []
+      }
+      Base = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 100
+      }
+      Degree = IcingDegreeCode.LightInPrecipitation
+      DegreeNumericCode = 3
+      Id = "uuid.48f96fb3-6534-4593-b760-9c65d0b9fa96"
+      RawDegreeReference = "http://codes.wmo.int/bufr4/codeflag/0-20-041/3"
+      Top = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 240
+      }
+    }
+  ]
+  Clouds = [
+    Cloud {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 26.7
+            Lon = -84.7
+          }
+          GeoCoordinate {
+            Lat = 24.2
+            Lon = -84.2
+          }
+          GeoCoordinate {
+            Lat = 19
+            Lon = -79.6
+          }
+          GeoCoordinate {
+            Lat = 19.6
+            Lon = -74.9
+          }
+          GeoCoordinate {
+            Lat = 23
+            Lon = -72.2
+          }
+          GeoCoordinate {
+            Lat = 28.2
+            Lon = -72.2
+          }
+          GeoCoordinate {
+            Lat = 31.7
+            Lon = -77.9
+          }
+          GeoCoordinate {
+            Lat = 28.6
+            Lon = -85.1
+          }
+          GeoCoordinate {
+            Lat = 26.7
+            Lon = -84.7
+          }
+        ]
+        InteriorRings = []
+      }
+      Base = VerticalLimit {
+        IsGround = false
+        IsNil = true
+        IsUnlimited = false
+        NilReason = "http://codes.wmo.int/iwxxm/nil/inapplicable"
+        Reference = null
+        ReferenceCode = null
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = null
+        UnitOfMeasure = null
+        Value = null
+      }
+      CloudAmount = "http://codes.wmo.int/bufr4/codeflag/0-20-008/10"
+      CloudType = "http://codes.wmo.int/bufr4/codeflag/0-20-012/9"
+      DistributionCode = CloudDistributionCode.Occasional
+      DistributionNumericCode = 10
+      Id = "uuid.6f770e58-488b-4d89-b828-4c952b7d6a65"
+      Top = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.Meters
+        UnitOfMeasure = "M"
+        Value = 12496.8
+      }
+      TypeCode = CloudTypeCode.Cumulonimbus
+      TypeNumericCode = 9
+    }
+  ]
+  Id = "uuid.ce3b61b9-d360-4da1-83b9-67e668406869"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2001-01-30T21:00:00.0000000+00:00
+  IssuingCentre = "London"
+  JetStreams = [
+    JetStream {
+      AxisTrajectory = [
+        GeoCoordinate {
+          Lat = 35.4
+          Lon = -104.7
+        }
+        GeoCoordinate {
+          Lat = 36.1
+          Lon = -101.6
+        }
+        GeoCoordinate {
+          Lat = 36.6
+          Lon = -99.6
+        }
+        GeoCoordinate {
+          Lat = 36.9
+          Lon = -97.7
+        }
+        GeoCoordinate {
+          Lat = 37.4
+          Lon = -94.9
+        }
+        GeoCoordinate {
+          Lat = 38.3
+          Lon = -92.3
+        }
+        GeoCoordinate {
+          Lat = 39.2
+          Lon = -90.3
+        }
+        GeoCoordinate {
+          Lat = 40.7
+          Lon = -88.1
+        }
+        GeoCoordinate {
+          Lat = 41.5
+          Lon = -86.3
+        }
+        GeoCoordinate {
+          Lat = 42
+          Lon = -82.7
+        }
+        GeoCoordinate {
+          Lat = 41.9
+          Lon = -78.9
+        }
+      ]
+      CoreLevel = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.Meters
+        UnitOfMeasure = "M"
+        Value = 15240
+      }
+      CorePoints = [
+        JetStreamCorePoint {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 10668
+          }
+          Location = GeoCoordinate {
+            Lat = 36.1
+            Lon = -101.6
+          }
+          LowerIsotachLimit = null
+          UpperIsotachLimit = null
+          WindSpeed = Speed {
+            Unit = SpeedUnit.MetersPerSecond
+            UnitOfMeasure = "m/s"
+            Value = 51.5
+          }
+        }
+        JetStreamCorePoint {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 15240
+          }
+          Location = GeoCoordinate {
+            Lat = 36.9
+            Lon = -97.7
+          }
+          LowerIsotachLimit = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 13716
+          }
+          UpperIsotachLimit = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 15240
+          }
+          WindSpeed = Speed {
+            Unit = SpeedUnit.MetersPerSecond
+            UnitOfMeasure = "m/s"
+            Value = 61.8
+          }
+        }
+        JetStreamCorePoint {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 15240
+          }
+          Location = GeoCoordinate {
+            Lat = 38.3
+            Lon = -92.3
+          }
+          LowerIsotachLimit = null
+          UpperIsotachLimit = null
+          WindSpeed = Speed {
+            Unit = SpeedUnit.MetersPerSecond
+            UnitOfMeasure = "m/s"
+            Value = 51.5
+          }
+        }
+        JetStreamCorePoint {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 15240
+          }
+          Location = GeoCoordinate {
+            Lat = 40.7
+            Lon = -88.1
+          }
+          LowerIsotachLimit = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14326
+          }
+          UpperIsotachLimit = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 16154
+          }
+          WindSpeed = Speed {
+            Unit = SpeedUnit.MetersPerSecond
+            UnitOfMeasure = "m/s"
+            Value = 61.8
+          }
+        }
+        JetStreamCorePoint {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 9144
+          }
+          Location = GeoCoordinate {
+            Lat = 42
+            Lon = -82.7
+          }
+          LowerIsotachLimit = null
+          UpperIsotachLimit = null
+          WindSpeed = Speed {
+            Unit = SpeedUnit.MetersPerSecond
+            UnitOfMeasure = "m/s"
+            Value = 51.5
+          }
+        }
+      ]
+      Id = "uuid.8c3d3467-e398-4627-ab23-f9e57c2215b5"
+      MaxWindSpeed = Speed {
+        Unit = SpeedUnit.MetersPerSecond
+        UnitOfMeasure = "m/s"
+        Value = 61.8
+      }
+    }
+  ]
+  LowerLimit = VerticalLimit {
+    IsGround = false
+    IsNil = false
+    IsUnlimited = false
+    NilReason = null
+    Reference = VerticalReference.Std
+    ReferenceCode = "STD"
+    SpecialValue = VerticalSpecialValue.None
+    SpecialValueCode = null
+    Unit = VerticalUnit.FlightLevel
+    UnitOfMeasure = "FL"
+    Value = 100
+  }
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  RadiationIncidents = [
+    RadiationIncident {
+      Id = "uuid.821e1c84-9688-4585-861f-153770ed4a90"
+      IncidentTimeUtc = null
+      Position = GeoCoordinate {
+        Lat = 53.2
+        Lon = -24.1
+      }
+      SiteName = null
+    }
+  ]
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.SignificantWeather
+  Sandstorms = [
+    Sandstorm {
+      Id = "uuid.53fd5553-39d1-4f79-8439-d695d22e8590"
+      Position = GeoCoordinate {
+        Lat = 25
+        Lon = -78
+      }
+    }
+  ]
+  TranslationFailedTac = null
+  TropicalCyclones = [
+    TropicalCyclone {
+      Id = "uuid.024d97bd-0dae-4a8e-8b94-3bac68c961e9"
+      Name = "FRED"
+      Position = GeoCoordinate {
+        Lat = 25
+        Lon = -78
+      }
+    }
+  ]
+  Tropopauses = [
+    Tropopause {
+      ContourPolygon = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 26.7
+            Lon = -84.7
+          }
+          GeoCoordinate {
+            Lat = 24.2
+            Lon = -84.2
+          }
+          GeoCoordinate {
+            Lat = 19
+            Lon = -79.6
+          }
+          GeoCoordinate {
+            Lat = 19.6
+            Lon = -74.9
+          }
+          GeoCoordinate {
+            Lat = 23
+            Lon = -72.2
+          }
+          GeoCoordinate {
+            Lat = 28.2
+            Lon = -72.2
+          }
+          GeoCoordinate {
+            Lat = 31.7
+            Lon = -77.9
+          }
+          GeoCoordinate {
+            Lat = 28.6
+            Lon = -85.1
+          }
+          GeoCoordinate {
+            Lat = 26.7
+            Lon = -84.7
+          }
+        ]
+        InteriorRings = []
+      }
+      Id = "uuid.4cefc622-5784-49db-9d3d-7463c7a05dc6"
+      LevelType = null
+      SpotHeights = [
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 26.7
+            Lon = -84.7
+          }
+        }
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 24.2
+            Lon = -84.2
+          }
+        }
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 19
+            Lon = -79.6
+          }
+        }
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 19.6
+            Lon = -74.9
+          }
+        }
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 23
+            Lon = -72.2
+          }
+        }
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 28.2
+            Lon = -72.2
+          }
+        }
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 31.7
+            Lon = -77.9
+          }
+        }
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 28.6
+            Lon = -85.1
+          }
+        }
+        TropopauseSpotHeight {
+          Level = VerticalLimit {
+            IsGround = false
+            IsNil = false
+            IsUnlimited = false
+            NilReason = null
+            Reference = VerticalReference.Msl
+            ReferenceCode = "MSL"
+            SpecialValue = VerticalSpecialValue.None
+            SpecialValueCode = null
+            Unit = VerticalUnit.Meters
+            UnitOfMeasure = "M"
+            Value = 14020
+          }
+          Location = GeoCoordinate {
+            Lat = 26.7
+            Lon = -84.7
+          }
+        }
+      ]
+    }
+  ]
+  Turbulences = [
+    Turbulence {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 44.5
+            Lon = -96.8
+          }
+          GeoCoordinate {
+            Lat = 44.6
+            Lon = -94.2
+          }
+          GeoCoordinate {
+            Lat = 46
+            Lon = -89.1
+          }
+          GeoCoordinate {
+            Lat = 44.8
+            Lon = -75.8
+          }
+          GeoCoordinate {
+            Lat = 45.2
+            Lon = -63.5
+          }
+          GeoCoordinate {
+            Lat = 44.6
+            Lon = -57.2
+          }
+          GeoCoordinate {
+            Lat = 44.4
+            Lon = -50
+          }
+          GeoCoordinate {
+            Lat = 44.8
+            Lon = -34.3
+          }
+          GeoCoordinate {
+            Lat = 46.8
+            Lon = -32.8
+          }
+          GeoCoordinate {
+            Lat = 51.5
+            Lon = -38.9
+          }
+          GeoCoordinate {
+            Lat = 52.2
+            Lon = -47.1
+          }
+          GeoCoordinate {
+            Lat = 52.6
+            Lon = -59.4
+          }
+          GeoCoordinate {
+            Lat = 54.6
+            Lon = -69
+          }
+          GeoCoordinate {
+            Lat = 55.3
+            Lon = -84.3
+          }
+          GeoCoordinate {
+            Lat = 52.2
+            Lon = -91.6
+          }
+          GeoCoordinate {
+            Lat = 47
+            Lon = -97.7
+          }
+          GeoCoordinate {
+            Lat = 44.5
+            Lon = -96.8
+          }
+        ]
+        InteriorRings = []
+      }
+      Base = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.Meters
+        UnitOfMeasure = "M"
+        Value = 10363.2
+      }
+      Degree = TurbulenceDegreeCode.Moderate
+      DegreeNumericCode = 10
+      Id = "uuid.aaaf9f38-dc4c-410d-b056-c130a049bde9"
+      RawDegreeReference = "http://codes.wmo.int/bufr4/codeflag/0-11-030/10"
+      Top = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.Meters
+        UnitOfMeasure = "M"
+        Value = 12192
+      }
+    }
+  ]
+  UpperLimit = VerticalLimit {
+    IsGround = false
+    IsNil = false
+    IsUnlimited = false
+    NilReason = null
+    Reference = VerticalReference.Std
+    ReferenceCode = "STD"
+    SpecialValue = VerticalSpecialValue.None
+    SpecialValueCode = null
+    Unit = VerticalUnit.FlightLevel
+    UnitOfMeasure = "FL"
+    Value = 600
+  }
+  ValidFromUtc = 2001-01-31T00:00:00.0000000+00:00
+  ValidUntilUtc = 2001-02-01T18:00:00.0000000+00:00
+  Volcanoes = [
+    Volcano {
+      EruptionTimeUtc = null
+      Id = "uuid.bb8c4828-5d6e-41fb-ac96-130a8c3a7cf2"
+      Name = "ETNA"
+      Position = GeoCoordinate {
+        Lat = 37.7
+        Lon = 15
+      }
+      WmoNumber = null
+    }
+  ]
+}

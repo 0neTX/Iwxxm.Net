@@ -3,19 +3,21 @@ using System;
 namespace Iwxxm.Net.Reports
 {
     /// <summary>
-    /// Value Object representing volcanic activity reported in a SIGWX forecast chart.
+    /// Value Object representing a volcano (SIGWX, SIGMET, VONA, QVACI and Volcanic Ash Advisory).
+    /// <see cref="Name"/> is <c>null</c> when the document reports it as nil (<c>iwxxm:Volcano/iwxxm:name</c> is
+    /// <c>nillable="true"</c> in <c>metFeature.xsd</c>); a name is never invented.
     /// </summary>
     public sealed class Volcano : IEquatable<Volcano>
     {
         public string Id { get; }
-        public string Name { get; }
+        public string? Name { get; }
         public string? WmoNumber { get; }
         public GeoCoordinate Position { get; }
         public DateTimeOffset? EruptionTimeUtc { get; }
 
         private Volcano(
             string id,
-            string name,
+            string? name,
             string? wmoNumber,
             GeoCoordinate position,
             DateTimeOffset? eruptionTimeUtc)
@@ -29,7 +31,7 @@ namespace Iwxxm.Net.Reports
 
         public static Result<Volcano> Create(
             string id,
-            string name,
+            string? name,
             string? wmoNumber,
             GeoCoordinate position,
             DateTimeOffset? eruptionTimeUtc = null)
@@ -42,17 +44,18 @@ namespace Iwxxm.Net.Reports
                     ErrorCategory.DomainMapping);
             }
 
-            if (string.IsNullOrWhiteSpace(name))
+            if (eruptionTimeUtc.HasValue && eruptionTimeUtc.Value.Offset != TimeSpan.Zero)
             {
                 return Result<Volcano>.Failure(
-                    "DOMAIN-VOLCANO-NAME",
-                    $"The name of volcano '{id}' cannot be empty.",
+                    DomainErrorCodes.TimeNotUtc,
+                    $"The eruption time of volcano '{id}' must be expressed in UTC (offset +00:00).",
                     ErrorCategory.DomainMapping,
                     id);
             }
 
+            string? normalizedName = string.IsNullOrWhiteSpace(name) ? null : name!.Trim();
             return Result<Volcano>.Success(
-                new Volcano(id, name.Trim(), wmoNumber, position, eruptionTimeUtc));
+                new Volcano(id, normalizedName, wmoNumber, position, eruptionTimeUtc));
         }
 
         public bool Equals(Volcano? other)
@@ -73,10 +76,14 @@ namespace Iwxxm.Net.Reports
             unchecked
             {
                 int hash = Id.GetHashCode();
-                hash = (hash * 397) ^ Name.GetHashCode();
+                hash = (hash * 397) ^ (Name == null ? 0 : Name.GetHashCode());
                 hash = (hash * 397) ^ Position.GetHashCode();
                 return hash;
             }
         }
+
+        public static bool operator ==(Volcano? left, Volcano? right) => Equals(left, right);
+
+        public static bool operator !=(Volcano? left, Volcano? right) => !Equals(left, right);
     }
 }

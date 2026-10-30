@@ -30,7 +30,7 @@ namespace Iwxxm.Net.Application.UseCases
             _options = options ?? IwxxmParserOptions.Default;
         }
 
-        public Result<IIwxxmReport> Process(Stream xmlStream)
+        public Result<IwxxmDocument> Process(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
@@ -38,7 +38,7 @@ namespace Iwxxm.Net.Application.UseCases
             Result<byte[]> buffered = BoundedDocumentBuffer.Read(xmlStream, _options, emptyCode: "STREAM-EMPTY", unreadableCode: "STREAM-UNREADABLE");
             if (buffered.IsFailure)
             {
-                return Result<IIwxxmReport>.Failure(buffered.Errors);
+                return Result<IwxxmDocument>.Failure(buffered.Errors);
             }
 
             byte[] payload = buffered.Value;
@@ -46,33 +46,33 @@ namespace Iwxxm.Net.Application.UseCases
             // Step 1: Structural validation against the official IWXXM 2025-2 / COLLECT schema closure
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                var schemaErrors = _schemaValidator.Validate(view);
+                var schemaErrors = PipelineGuard.Validate(() => _schemaValidator.Validate(view), PipelineGuard.SchemaValidatorErrorCode, ErrorCategory.SchemaViolation, "schema validator");
                 if (schemaErrors.Count > 0)
                 {
-                    return Result<IIwxxmReport>.Failure(schemaErrors);
+                    return Result<IwxxmDocument>.Failure(schemaErrors);
                 }
             }
 
             // Step 2: Business-rule and code-list validation
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                var ruleErrors = _schematronValidator.Validate(view);
+                var ruleErrors = PipelineGuard.Validate(() => _schematronValidator.Validate(view), PipelineGuard.RuleValidatorErrorCode, ErrorCategory.BusinessRuleViolation, "business-rule validator");
                 if (ruleErrors.Count > 0)
                 {
-                    return Result<IIwxxmReport>.Failure(ruleErrors);
+                    return Result<IwxxmDocument>.Failure(ruleErrors);
                 }
             }
 
             // Step 3: Polymorphic root element dispatch and Anti-Corruption Layer (ACL) Domain mapping
             using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
             {
-                return _documentMapper.Map(view);
+                return PipelineGuard.Map(() => _documentMapper.Map(view));
             }
         }
 
         public Result<MeteorologicalBulletin> ProcessBulletin(Stream xmlStream)
         {
-            Result<IIwxxmReport> dispatchResult = Process(xmlStream);
+            Result<IwxxmDocument> dispatchResult = Process(xmlStream);
             if (dispatchResult.IsFailure)
             {
                 return Result<MeteorologicalBulletin>.Failure(dispatchResult.Errors);

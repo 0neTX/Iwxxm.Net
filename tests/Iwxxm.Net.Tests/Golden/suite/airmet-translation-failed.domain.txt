@@ -1,0 +1,21 @@
+Airmet {
+  AtsUnitDesignator = "YUDD"
+  AtsUnitName = "YUDD FIC"
+  EvolvingConditions = []
+  FirDesignator = null
+  FirName = null
+  Id = "uuid.a587cca7-b8e1-4633-b3a5-7a0e5f6e50c9"
+  IsTranslationFailed = true
+  IssueTimeUtc = 2014-05-10T15:00:00.0000000+00:00
+  MwoDesignator = null
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Phenomenon = null
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.Airmet
+  SequenceNumber = null
+  TranslationFailedTac = "YUDD AIRMET 1 VALID 151520/151800 YUSO-     YUDD SHANLON FIR INVALID TS     OBS N OF S50 TOP ABV FL100 STNR WKN"
+  ValidFromUtc = 2014-05-15T15:20:00.0000000+00:00
+  ValidUntilUtc = 2014-05-15T18:00:00.0000000+00:00
+}

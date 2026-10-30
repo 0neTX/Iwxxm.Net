@@ -50,7 +50,7 @@ namespace Iwxxm.Net.Benchmarks
         }
 
         [Benchmark(Description = "WAFS SIGWX 2025-2 Full Dual Validation + ACL Mapping")]
-        public Result<SignificantWeatherReport> ParseWafsSigwxForecast()
+        public Result<Sigwx> ParseWafsSigwxForecast()
         {
             using (var stream = new MemoryStream(_wafsSigwxPayload, writable: false))
             {
@@ -59,7 +59,7 @@ namespace Iwxxm.Net.Benchmarks
         }
 
         [Benchmark(Description = "QVACI Volcanic Ash Full Suite Validation + Hollow Polygon Mapping")]
-        public Result<IIwxxmReport> ParseQvaciReport()
+        public Result<IwxxmDocument> ParseQvaciReport()
         {
             using (var stream = new MemoryStream(_qvaciPayload, writable: false))
             {

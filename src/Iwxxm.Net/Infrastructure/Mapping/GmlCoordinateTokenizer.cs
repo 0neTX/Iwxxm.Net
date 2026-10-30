@@ -6,11 +6,19 @@ using Iwxxm.Net.Reports;
 namespace Iwxxm.Net.Infrastructure.Mapping
 {
     /// <summary>
-    /// High-performance, zero-array-allocation scanner for OGC GML 3.2.1 <c>gml:posList</c> and <c>gml:pos</c>
-    /// whitespace-separated coordinate sequences (<c>lat1 lon1 lat2 lon2 ...</c>).
-    /// Eliminates intermediate <c>string.Split</c> array and substring allocations on the Gen0 managed heap
-    /// while maintaining 100% compatibility with <c>.NET Standard 2.0</c>.
+    /// Single-pass scanner for OGC GML 3.2.1 <c>gml:posList</c> and <c>gml:pos</c> whitespace-separated coordinate
+    /// sequences (<c>lat1 lon1 lat2 lon2 ...</c>).
     /// </summary>
+    /// <remarks>
+    /// <para>Allocation profile (it is not allocation-free): no <c>string.Split</c> array is created and plain decimal
+    /// tokens (<c>[+-]?\d+(\.\d+)?</c>) are parsed in place without a substring. The result list is allocated, and a token
+    /// that needs the fallback parser (exponent notation, more than 15 integer digits) costs one substring on
+    /// <c>netstandard2.0</c>; on <c>netstandard2.1</c> the fallback parses a span in place.</para>
+    /// <para>Precision: the fast path computes <c>integer + fraction * 10^-n</c>, which is not correctly rounded and can
+    /// differ from <see cref="double.Parse(string, IFormatProvider)"/> by one unit in the last place; coordinates are
+    /// quantized to 1e-7 degrees by <see cref="GeoCoordinate"/> afterwards. Whitespace is recognised with
+    /// <see cref="char.IsWhiteSpace(char)"/>, which accepts more characters than XML whitespace.</para>
+    /// </remarks>
     internal static class GmlCoordinateTokenizer
     {
         private static readonly double[] NegativePowersOfTen =
@@ -22,7 +30,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
         /// <summary>
         /// Parses a whitespace-delimited GML coordinate list into a list of <see cref="GeoCoordinate"/> instances
-        /// without allocating intermediate <c>string[]</c> arrays.
+        /// without allocating an intermediate <c>string[]</c> array.
         /// </summary>
         public static Result<IReadOnlyList<GeoCoordinate>> ParsePosList(
             string? posListText,
@@ -131,6 +139,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
         /// <summary>
         /// Parses a single <c>gml:pos</c> string (<c>lat lon</c>) into a <see cref="GeoCoordinate"/> without array allocation.
+        /// Only the first two numbers are read; trailing tokens are ignored.
         /// </summary>
         public static Result<GeoCoordinate> ParseSinglePoint(string? posText, string? contextLocation)
         {
@@ -173,8 +182,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
         /// <summary>
         /// Reads the next whitespace-delimited IEEE-754 double from <paramref name="text"/> starting at <paramref name="index"/>.
-        /// Uses zero-allocation character arithmetic for standard decimal numbers (<c>[+-]?\d+(\.\d+)?</c>)
-        /// and falls back to <see cref="double.TryParse(string, NumberStyles, IFormatProvider, out double)"/> only for scientific notation.
+        /// Uses in-place character arithmetic for plain decimal numbers (<c>[+-]?\d+(\.\d+)?</c>, up to 15 integer digits)
+        /// and falls back to invariant <c>double.TryParse</c> for any other token (exponent notation, longer integer parts),
+        /// which allocates a substring on <c>netstandard2.0</c> only.
         /// </summary>
         internal static bool TryReadNextDouble(string text, ref int index, int length, out double value)
         {

@@ -9,6 +9,8 @@ namespace Iwxxm.Net.Reports
     /// Native geospatial Value Object representing a closed geographic polygon
     /// (mapped from gml:Polygon, gml:LinearRing, or gml:Ring / gml:PolygonPatch).
     /// Enforces a minimum of 4 vertices with a closed exterior ring.
+    /// Equality is structural: the exterior ring and every interior ring are compared vertex by vertex, in order
+    /// (vertices use the exact, quantized equality of <see cref="GeoCoordinate"/>), and all of them take part in the hash code.
     /// </summary>
     public sealed class GeoPolygon : IEquatable<GeoPolygon>
     {
@@ -92,8 +94,16 @@ namespace Iwxxm.Net.Reports
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return ExteriorRing.SequenceEqual(other.ExteriorRing) &&
-                   InteriorRings.Count == other.InteriorRings.Count;
+            if (!ExteriorRing.SequenceEqual(other.ExteriorRing) || InteriorRings.Count != other.InteriorRings.Count)
+                return false;
+
+            for (int i = 0; i < InteriorRings.Count; i++)
+            {
+                if (!InteriorRings[i].SequenceEqual(other.InteriorRings[i]))
+                    return false;
+            }
+
+            return true;
         }
 
         public override bool Equals(object? obj) => obj is GeoPolygon other && Equals(other);
@@ -107,8 +117,22 @@ namespace Iwxxm.Net.Reports
                 {
                     hash = (hash * 31) + pt.GetHashCode();
                 }
+
+                foreach (var ring in InteriorRings)
+                {
+                    hash = (hash * 31) + ring.Count;
+                    foreach (var pt in ring)
+                    {
+                        hash = (hash * 31) + pt.GetHashCode();
+                    }
+                }
+
                 return hash;
             }
         }
+
+        public static bool operator ==(GeoPolygon? left, GeoPolygon? right) => Equals(left, right);
+
+        public static bool operator !=(GeoPolygon? left, GeoPolygon? right) => !Equals(left, right);
     }
 }

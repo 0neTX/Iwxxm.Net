@@ -17,12 +17,12 @@ namespace Iwxxm.Net.Application.UseCases
             _exporter = exporter ?? throw new ArgumentNullException(nameof(exporter));
         }
 
-        public string Export(IIwxxmReport report, GeoJsonExportOptions? options = null)
+        public string Export(IwxxmDocument document, GeoJsonExportOptions? options = null)
         {
-            if (report == null)
-                throw new ArgumentNullException(nameof(report));
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
 
-            return _exporter.Export(report, options ?? GeoJsonExportOptions.Default);
+            return _exporter.Export(document, options ?? GeoJsonExportOptions.Default);
         }
     }
 }

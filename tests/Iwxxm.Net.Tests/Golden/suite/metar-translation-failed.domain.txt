@@ -1,0 +1,28 @@
+Metar {
+  AerodromeDesignator = "YUDO"
+  AerodromeName = "DONLON/INTERNATIONAL"
+  AerodromePosition = null
+  AirTemperatureCelsius = null
+  CloudAndVisibilityOk = false
+  CloudLayers = []
+  DewpointTemperatureCelsius = null
+  Id = "uuid.4324ada0-ddfc-4206-9689-3aa8b58649fd"
+  IsAutomatedStation = false
+  IsNilObservation = false
+  IsTranslationFailed = true
+  IssueTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+  ObservationNilReason = null
+  ObservationTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  PresentWeather = []
+  PrevailingVisibilityMeters = null
+  QnhHpa = null
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.Metar
+  RunwayVisualRanges = []
+  SurfaceWind = null
+  TranslationFailedTac = "METAR YUDO 221630Z INVALID"
+  TrendForecasts = []
+}

@@ -1,0 +1,53 @@
+Vona {
+  AshCloudElevation = VerticalLimit {
+    IsGround = false
+    IsNil = false
+    IsUnlimited = false
+    NilReason = null
+    Reference = VerticalReference.Msl
+    ReferenceCode = "MSL"
+    SpecialValue = VerticalSpecialValue.None
+    SpecialValueCode = null
+    Unit = VerticalUnit.Meters
+    UnitOfMeasure = "M"
+    Value = 15000
+  }
+  Contacts = "DUTY VOLCANOLOGIEST, TEL +123-456-789 EMAIL, DUTY.VOLCANOLOGIEST[AT]VOLCANO.COM, WWW.VOLCANO.COM"
+  CurrentColourCode = CodeListValue<AviationColourCode> {
+    Code = AviationColourCode.Yellow
+    IsKnown = true
+    Notation = "YELLOW"
+  }
+  Id = "uuid.bf9c0a92-c909-4efc-8558-472d8aad209f"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2024-02-16T01:30:00.0000000+00:00
+  NextNotice = "WILL BE ISSUED BY 20240223/0130Z"
+  NoticeNumber = "2021/4"
+  OriginatingCentre = "KVERT"
+  OriginatingCentreDesignator = "UHPP"
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  PreviousColourCode = CodeListValue<AviationColourCode> {
+    Code = AviationColourCode.Orange
+    IsKnown = true
+    Notation = "ORANGE"
+  }
+  Remarks = "SATELLITE, SEISMIC AND INFRASOUND DATA SHOW NO EVIDENCE OF FURTHER ERUPTIVE ACT. FUTURE EXPLOSIONS AT KARYMSKY ARE LIKELY. THEY OCCUR WO WRNG AND TYPICALLY PRODUCE SMALL VA CLD THAT DISSIPATE QUICKLY; HOWEVER, LARGER ASH ARE POSS."
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.VolcanoObservatoryNotice
+  StateOrRegion = "RUSSIA"
+  TranslationFailedTac = null
+  Volcanoes = [
+    Volcano {
+      EruptionTimeUtc = null
+      Id = "uuid.a2885938-cbd0-4953-bd07-c813ce918b1d"
+      Name = "KARYMSKY"
+      Position = GeoCoordinate {
+        Lat = 54.03
+        Lon = 159.27
+      }
+      WmoNumber = "300130"
+    }
+  ]
+}

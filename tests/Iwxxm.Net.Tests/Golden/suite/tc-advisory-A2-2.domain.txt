@@ -1,0 +1,83 @@
+Tca {
+  AdvisoryNumber = "2004/13"
+  CycloneName = "GLORIA"
+  Forecasts = [
+    TropicalCycloneTrackPoint {
+      CentralPressureHpa = null
+      MaxSurfaceWindSpeed = Speed {
+        Unit = SpeedUnit.MetersPerSecond
+        UnitOfMeasure = "m/s"
+        Value = 22
+      }
+      PhenomenonTimeUtc = 2004-09-25T22:00:00.0000000+00:00
+      Position = GeoCoordinate {
+        Lat = 27.8
+        Lon = -73.83333
+      }
+    }
+    TropicalCycloneTrackPoint {
+      CentralPressureHpa = null
+      MaxSurfaceWindSpeed = Speed {
+        Unit = SpeedUnit.MetersPerSecond
+        UnitOfMeasure = "m/s"
+        Value = 22
+      }
+      PhenomenonTimeUtc = 2004-09-26T04:00:00.0000000+00:00
+      Position = GeoCoordinate {
+        Lat = 28.5
+        Lon = -74.5
+      }
+    }
+    TropicalCycloneTrackPoint {
+      CentralPressureHpa = null
+      MaxSurfaceWindSpeed = Speed {
+        Unit = SpeedUnit.MetersPerSecond
+        UnitOfMeasure = "m/s"
+        Value = 21
+      }
+      PhenomenonTimeUtc = 2004-09-26T10:00:00.0000000+00:00
+      Position = GeoCoordinate {
+        Lat = 28.86667
+        Lon = -75
+      }
+    }
+    TropicalCycloneTrackPoint {
+      CentralPressureHpa = null
+      MaxSurfaceWindSpeed = Speed {
+        Unit = SpeedUnit.MetersPerSecond
+        UnitOfMeasure = "m/s"
+        Value = 20
+      }
+      PhenomenonTimeUtc = 2004-09-26T16:00:00.0000000+00:00
+      Position = GeoCoordinate {
+        Lat = 29.2
+        Lon = -75.5
+      }
+    }
+  ]
+  Id = "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2004-09-25T19:00:00.0000000+00:00
+  IssuingTcacDesignator = "YUFO"
+  NextAdvisoryTimeUtc = 2004-09-25T20:00:00.0000000+00:00
+  Observation = TropicalCycloneTrackPoint {
+    CentralPressureHpa = 965
+    MaxSurfaceWindSpeed = Speed {
+      Unit = SpeedUnit.MetersPerSecond
+      UnitOfMeasure = "m/s"
+      Value = 22
+    }
+    PhenomenonTimeUtc = 2004-09-25T18:00:00.0000000+00:00
+    Position = GeoCoordinate {
+      Lat = 27.1
+      Lon = -73.1
+    }
+  }
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Remarks = null
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.TropicalCycloneAdvisory
+  TranslationFailedTac = null
+}

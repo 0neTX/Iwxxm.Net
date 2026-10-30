@@ -1,0 +1,125 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [-75.5, 27.1, -73.1, 29.2],
+  "metadata": {
+    "id": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4",
+    "reportType": "TropicalCycloneAdvisory",
+    "issueTimeUtc": "2004-09-25T19:00:00.0000000+00:00",
+    "reportStatus": "NORMAL",
+    "permissibleUsage": "OPERATIONAL"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4#obs",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-73.1, 27.1]
+      },
+      "properties": {
+        "featureType": "TC_OBSERVATION",
+        "reportId": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4",
+        "reportType": "TropicalCycloneAdvisory",
+        "issueTimeUtc": "2004-09-25T19:00:00.0000000+00:00",
+        "cycloneName": "GLORIA",
+        "advisoryNumber": "2004/13",
+        "phenomenonTimeUtc": "2004-09-25T18:00:00.0000000+00:00",
+        "maxSurfaceWindSpeed": 22,
+        "maxSurfaceWindSpeedUom": "m/s",
+        "centralPressureHpa": 965
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4#fcst-1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-73.83333, 27.8]
+      },
+      "properties": {
+        "featureType": "TC_FORECAST",
+        "reportId": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4",
+        "reportType": "TropicalCycloneAdvisory",
+        "issueTimeUtc": "2004-09-25T19:00:00.0000000+00:00",
+        "cycloneName": "GLORIA",
+        "advisoryNumber": "2004/13",
+        "phenomenonTimeUtc": "2004-09-25T22:00:00.0000000+00:00",
+        "maxSurfaceWindSpeed": 22,
+        "maxSurfaceWindSpeedUom": "m/s"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4#fcst-2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.5, 28.5]
+      },
+      "properties": {
+        "featureType": "TC_FORECAST",
+        "reportId": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4",
+        "reportType": "TropicalCycloneAdvisory",
+        "issueTimeUtc": "2004-09-25T19:00:00.0000000+00:00",
+        "cycloneName": "GLORIA",
+        "advisoryNumber": "2004/13",
+        "phenomenonTimeUtc": "2004-09-26T04:00:00.0000000+00:00",
+        "maxSurfaceWindSpeed": 22,
+        "maxSurfaceWindSpeedUom": "m/s"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4#fcst-3",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-75, 28.86667]
+      },
+      "properties": {
+        "featureType": "TC_FORECAST",
+        "reportId": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4",
+        "reportType": "TropicalCycloneAdvisory",
+        "issueTimeUtc": "2004-09-25T19:00:00.0000000+00:00",
+        "cycloneName": "GLORIA",
+        "advisoryNumber": "2004/13",
+        "phenomenonTimeUtc": "2004-09-26T10:00:00.0000000+00:00",
+        "maxSurfaceWindSpeed": 21,
+        "maxSurfaceWindSpeedUom": "m/s"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4#fcst-4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-75.5, 29.2]
+      },
+      "properties": {
+        "featureType": "TC_FORECAST",
+        "reportId": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4",
+        "reportType": "TropicalCycloneAdvisory",
+        "issueTimeUtc": "2004-09-25T19:00:00.0000000+00:00",
+        "cycloneName": "GLORIA",
+        "advisoryNumber": "2004/13",
+        "phenomenonTimeUtc": "2004-09-26T16:00:00.0000000+00:00",
+        "maxSurfaceWindSpeed": 20,
+        "maxSurfaceWindSpeedUom": "m/s"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4#track",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[-73.1, 27.1], [-73.83333, 27.8], [-74.5, 28.5], [-75, 28.86667], [-75.5, 29.2]]
+      },
+      "properties": {
+        "featureType": "TC_TRACK",
+        "reportId": "uuid.217b27d6-fbc0-499b-b58e-4ee062c86cd4",
+        "reportType": "TropicalCycloneAdvisory",
+        "issueTimeUtc": "2004-09-25T19:00:00.0000000+00:00",
+        "cycloneName": "GLORIA",
+        "advisoryNumber": "2004/13"
+      }
+    }
+  ]
+}

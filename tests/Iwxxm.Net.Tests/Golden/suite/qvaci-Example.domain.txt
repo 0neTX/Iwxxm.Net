@@ -1,0 +1,595 @@
+Qvaci {
+  AshConcentrationClouds = [
+    VolcanicAshConcentrationCloud {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = -6.102
+            Lon = 105.422
+          }
+          GeoCoordinate {
+            Lat = -6.308
+            Lon = 105.514
+          }
+          GeoCoordinate {
+            Lat = -6.367
+            Lon = 105.518
+          }
+          GeoCoordinate {
+            Lat = -6.4
+            Lon = 105.533
+          }
+          GeoCoordinate {
+            Lat = -6.411
+            Lon = 105.537
+          }
+          GeoCoordinate {
+            Lat = -6.412
+            Lon = 105.543
+          }
+          GeoCoordinate {
+            Lat = -6.409
+            Lon = 105.568
+          }
+          GeoCoordinate {
+            Lat = -6.408
+            Lon = 105.579
+          }
+          GeoCoordinate {
+            Lat = -6.404
+            Lon = 105.583
+          }
+          GeoCoordinate {
+            Lat = -6.396
+            Lon = 105.584
+          }
+          GeoCoordinate {
+            Lat = -6.321
+            Lon = 105.574
+          }
+          GeoCoordinate {
+            Lat = -6.312
+            Lon = 105.568
+          }
+          GeoCoordinate {
+            Lat = -6.102
+            Lon = 105.422
+          }
+        ]
+        InteriorRings = []
+      }
+      AshDensityMgPerM3 = 10
+      Id = "uuid.04c7ee5a-d98d-468d-88e1-68ee978cfb37"
+      LowerLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 300
+      }
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 400
+      }
+    }
+    VolcanicAshConcentrationCloud {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = -6.1
+            Lon = 105.422
+          }
+          GeoCoordinate {
+            Lat = -6.479
+            Lon = 105.508
+          }
+          GeoCoordinate {
+            Lat = -6.587
+            Lon = 105.569
+          }
+          GeoCoordinate {
+            Lat = -6.647
+            Lon = 105.627
+          }
+          GeoCoordinate {
+            Lat = -6.657
+            Lon = 105.712
+          }
+          GeoCoordinate {
+            Lat = -6.623
+            Lon = 105.749
+          }
+          GeoCoordinate {
+            Lat = -6.595
+            Lon = 105.774
+          }
+          GeoCoordinate {
+            Lat = -6.557
+            Lon = 105.777
+          }
+          GeoCoordinate {
+            Lat = -6.526
+            Lon = 105.759
+          }
+          GeoCoordinate {
+            Lat = -6.443
+            Lon = 105.658
+          }
+          GeoCoordinate {
+            Lat = -6.428
+            Lon = 105.643
+          }
+          GeoCoordinate {
+            Lat = -6.406
+            Lon = 105.639
+          }
+          GeoCoordinate {
+            Lat = -6.307
+            Lon = 105.607
+          }
+          GeoCoordinate {
+            Lat = -6.1
+            Lon = 105.422
+          }
+        ]
+        InteriorRings = []
+      }
+      AshDensityMgPerM3 = 5
+      Id = "uuid.9c54f440-823f-480c-9e24-c6c1e9c0274e"
+      LowerLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 250
+      }
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 400
+      }
+    }
+    VolcanicAshConcentrationCloud {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = -6.698
+            Lon = 105.753
+          }
+          GeoCoordinate {
+            Lat = -6.743
+            Lon = 105.718
+          }
+          GeoCoordinate {
+            Lat = -6.828
+            Lon = 105.741
+          }
+          GeoCoordinate {
+            Lat = -6.844
+            Lon = 105.805
+          }
+          GeoCoordinate {
+            Lat = -6.849
+            Lon = 105.854
+          }
+          GeoCoordinate {
+            Lat = -6.786
+            Lon = 105.905
+          }
+          GeoCoordinate {
+            Lat = -6.728
+            Lon = 105.891
+          }
+          GeoCoordinate {
+            Lat = -6.71
+            Lon = 105.845
+          }
+          GeoCoordinate {
+            Lat = -6.698
+            Lon = 105.753
+          }
+        ]
+        InteriorRings = []
+      }
+      AshDensityMgPerM3 = 5
+      Id = "uuid.c577b58b-3030-4a98-8e90-b457e27df414"
+      LowerLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 200
+      }
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 350
+      }
+    }
+    VolcanicAshConcentrationCloud {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = -6.098
+            Lon = 105.421
+          }
+          GeoCoordinate {
+            Lat = -6.333
+            Lon = 105.425
+          }
+          GeoCoordinate {
+            Lat = -6.458
+            Lon = 105.437
+          }
+          GeoCoordinate {
+            Lat = -6.621
+            Lon = 105.461
+          }
+          GeoCoordinate {
+            Lat = -6.707
+            Lon = 105.492
+          }
+          GeoCoordinate {
+            Lat = -6.811
+            Lon = 105.546
+          }
+          GeoCoordinate {
+            Lat = -6.913
+            Lon = 105.603
+          }
+          GeoCoordinate {
+            Lat = -6.985
+            Lon = 105.645
+          }
+          GeoCoordinate {
+            Lat = -7.019
+            Lon = 105.695
+          }
+          GeoCoordinate {
+            Lat = -7.033
+            Lon = 105.752
+          }
+          GeoCoordinate {
+            Lat = -7.022
+            Lon = 105.795
+          }
+          GeoCoordinate {
+            Lat = -6.904
+            Lon = 105.871
+          }
+          GeoCoordinate {
+            Lat = -6.666
+            Lon = 106.05
+          }
+          GeoCoordinate {
+            Lat = -6.606
+            Lon = 106.075
+          }
+          GeoCoordinate {
+            Lat = -6.54
+            Lon = 106.099
+          }
+          GeoCoordinate {
+            Lat = -6.472
+            Lon = 106.115
+          }
+          GeoCoordinate {
+            Lat = -6.426
+            Lon = 106.116
+          }
+          GeoCoordinate {
+            Lat = -6.386
+            Lon = 106.108
+          }
+          GeoCoordinate {
+            Lat = -6.357
+            Lon = 106.085
+          }
+          GeoCoordinate {
+            Lat = -6.333
+            Lon = 106.036
+          }
+          GeoCoordinate {
+            Lat = -6.329
+            Lon = 105.987
+          }
+          GeoCoordinate {
+            Lat = -6.347
+            Lon = 105.931
+          }
+          GeoCoordinate {
+            Lat = -6.375
+            Lon = 105.878
+          }
+          GeoCoordinate {
+            Lat = -6.397
+            Lon = 105.836
+          }
+          GeoCoordinate {
+            Lat = -6.403
+            Lon = 105.764
+          }
+          GeoCoordinate {
+            Lat = -6.384
+            Lon = 105.718
+          }
+          GeoCoordinate {
+            Lat = -6.37
+            Lon = 105.691
+          }
+          GeoCoordinate {
+            Lat = -6.098
+            Lon = 105.421
+          }
+        ]
+        InteriorRings = []
+      }
+      AshDensityMgPerM3 = 2
+      Id = "uuid.8de68047-c8ac-43bd-9275-bae76cf7f558"
+      LowerLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 150
+      }
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 400
+      }
+    }
+    VolcanicAshConcentrationCloud {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = -6.097
+            Lon = 105.42
+          }
+          GeoCoordinate {
+            Lat = -6.474
+            Lon = 105.349
+          }
+          GeoCoordinate {
+            Lat = -6.701
+            Lon = 105.333
+          }
+          GeoCoordinate {
+            Lat = -6.993
+            Lon = 105.32
+          }
+          GeoCoordinate {
+            Lat = -7.124
+            Lon = 105.373
+          }
+          GeoCoordinate {
+            Lat = -7.21
+            Lon = 105.438
+          }
+          GeoCoordinate {
+            Lat = -7.209
+            Lon = 105.655
+          }
+          GeoCoordinate {
+            Lat = -7.161
+            Lon = 105.775
+          }
+          GeoCoordinate {
+            Lat = -7.034
+            Lon = 106.013
+          }
+          GeoCoordinate {
+            Lat = -6.793
+            Lon = 106.324
+          }
+          GeoCoordinate {
+            Lat = -6.568
+            Lon = 106.559
+          }
+          GeoCoordinate {
+            Lat = -6.467
+            Lon = 106.602
+          }
+          GeoCoordinate {
+            Lat = -6.356
+            Lon = 106.607
+          }
+          GeoCoordinate {
+            Lat = -6.297
+            Lon = 106.604
+          }
+          GeoCoordinate {
+            Lat = -6.247
+            Lon = 106.555
+          }
+          GeoCoordinate {
+            Lat = -6.221
+            Lon = 106.446
+          }
+          GeoCoordinate {
+            Lat = -6.223
+            Lon = 106.311
+          }
+          GeoCoordinate {
+            Lat = -6.224
+            Lon = 106.13
+          }
+          GeoCoordinate {
+            Lat = -6.23
+            Lon = 105.986
+          }
+          GeoCoordinate {
+            Lat = -6.236
+            Lon = 105.853
+          }
+          GeoCoordinate {
+            Lat = -6.222
+            Lon = 105.749
+          }
+          GeoCoordinate {
+            Lat = -6.187
+            Lon = 105.632
+          }
+          GeoCoordinate {
+            Lat = -6.15
+            Lon = 105.525
+          }
+          GeoCoordinate {
+            Lat = -6.097
+            Lon = 105.42
+          }
+        ]
+        InteriorRings = [
+          [
+            GeoCoordinate {
+              Lat = -6.5
+              Lon = 106.424
+            }
+            GeoCoordinate {
+              Lat = -6.461
+              Lon = 106.458
+            }
+            GeoCoordinate {
+              Lat = -6.404
+              Lon = 106.436
+            }
+            GeoCoordinate {
+              Lat = -6.41
+              Lon = 106.35
+            }
+            GeoCoordinate {
+              Lat = -6.435
+              Lon = 106.288
+            }
+            GeoCoordinate {
+              Lat = -6.509
+              Lon = 106.272
+            }
+            GeoCoordinate {
+              Lat = -6.536
+              Lon = 106.311
+            }
+            GeoCoordinate {
+              Lat = -6.541
+              Lon = 106.364
+            }
+            GeoCoordinate {
+              Lat = -6.5
+              Lon = 106.424
+            }
+          ]
+        ]
+      }
+      AshDensityMgPerM3 = 0.2
+      Id = "uuid.2a225503-e2aa-4e4d-a21e-dc2a8267cb9c"
+      LowerLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 150
+      }
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 450
+      }
+    }
+  ]
+  DispersionModelInitialisationTimeUtc = 2021-12-16T23:00:00.0000000+00:00
+  Id = "uuid.bf9c0a92-c909-4efc-8558-472d8aad209f"
+  IsTranslationFailed = false
+  IssueTimeUtc = 2021-12-16T23:47:00.0000000+00:00
+  OriginatingCentre = "DARWIN"
+  OriginatingCentreDesignator = "ADRM"
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Remarks = "LATEST REP FM KVERT (0120Z) INDICATES ERUPTION HAS CEASED. TWO DISPERSING VA CLD ARE EVIDENT ON SATELLITE IMAGERY"
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.QuantitativeVolcanicAshConcentration
+  TranslationFailedTac = null
+  Volcanoes = [
+    Volcano {
+      EruptionTimeUtc = null
+      Id = "uuid.48ec622f-338c-4653-8df4-2646afd2a703"
+      Name = "KRAKATAU"
+      Position = GeoCoordinate {
+        Lat = -6.102
+        Lon = 105.423
+      }
+      WmoNumber = "262000"
+    }
+  ]
+}

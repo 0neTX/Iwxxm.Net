@@ -4,9 +4,15 @@ using System.Globalization;
 namespace Iwxxm.Net.Reports
 {
     /// <summary>
-    /// Value Object representing an aeronautical Flight Level (FL) in hundreds of feet.
-    /// Supports direct FL values as well as standard ICAO/WMO conversion from meters ("M", "m") and feet ("[ft_i]", "ft").
+    /// Value Object representing an aeronautical Flight Level (FL): a pressure altitude, referenced to the standard
+    /// atmosphere (STD), in hundreds of feet.
     /// </summary>
+    /// <remarks>
+    /// Report vertical limits are modelled by <see cref="VerticalLimit"/>, which keeps the reported unit and vertical
+    /// reference; <see cref="VerticalLimit.AsFlightLevel"/> derives a <see cref="FlightLevel"/> only for STD limits.
+    /// <see cref="Create"/> converts metres and feet assuming the value already is a pressure altitude: never use it for
+    /// heights or altitudes referenced to SFC or MSL.
+    /// </remarks>
     public readonly struct FlightLevel : IEquatable<FlightLevel>, IComparable<FlightLevel>
     {
         private const double MetersPerFoot = 0.3048;

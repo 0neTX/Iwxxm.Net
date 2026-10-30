@@ -19,6 +19,13 @@ namespace Iwxxm.Net
     /// and thread-safe; register one as a singleton.</para>
     /// <para>The static <c>Parse*</c> members are convenience wrappers over <see cref="Default"/>, an instance built with
     /// the default adapters and <see cref="IwxxmParserOptions.Default"/>.</para>
+    /// <para><b>Error contract.</b> Every member returning <see cref="Result{T}"/> reports I/O and adapter failures as
+    /// typed errors and never throws for them: <c>FILE-NOT-FOUND</c> (missing file or directory), <c>ACCESS-DENIED</c>
+    /// (permission denied, or the path is a directory), <c>FILE-READ-ERROR</c> (sharing violation, path too long, malformed
+    /// path, other I/O errors), <c>SCHEMA-VALIDATOR-ERROR</c>, <c>RULE-VALIDATOR-ERROR</c>, <c>MAPPER-ERROR</c> and
+    /// <c>GEOJSON-EXPORT-ERROR</c> (an adapter threw or returned nothing). Only argument validation throws:
+    /// <see cref="ArgumentNullException"/> for a <c>null</c> stream and <see cref="ArgumentException"/> for a <c>null</c>,
+    /// empty or whitespace file path.</para>
     /// </remarks>
     public sealed class IwxxmParser : IIwxxmReportDispatcher
     {
@@ -50,7 +57,7 @@ namespace Iwxxm.Net
         // =====================================================================
 
         /// <inheritdoc />
-        public Result<IIwxxmReport> Process(Stream xmlStream)
+        public Result<IwxxmDocument> Process(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
@@ -68,27 +75,27 @@ namespace Iwxxm.Net
         }
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c> from an XML string.</summary>
-        public Result<IIwxxmReport> Process(string xmlContent) =>
+        public Result<IwxxmDocument> Process(string xmlContent) =>
             WithUtf8Stream(xmlContent, Process);
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c> XML file from disk.</summary>
-        public Result<IIwxxmReport> ProcessFile(string filePath) =>
+        public Result<IwxxmDocument> ProcessFile(string filePath) =>
             WithFileStream(filePath, "IWXXM file", Process);
 
-        /// <summary>Validates and parses an XML stream expecting the aggregate type <typeparamref name="TReport"/>.</summary>
-        public Result<TReport> ProcessAs<TReport>(Stream xmlStream)
-            where TReport : class, IIwxxmReport =>
-            CastReportResult<TReport>(Process(xmlStream));
+        /// <summary>Validates and parses an XML stream expecting the aggregate type <typeparamref name="TDocument"/>.</summary>
+        public Result<TDocument> ProcessAs<TDocument>(Stream xmlStream)
+            where TDocument : IwxxmDocument =>
+            CastReportResult<TDocument>(Process(xmlStream));
 
-        /// <summary>Validates and parses an XML string expecting the aggregate type <typeparamref name="TReport"/>.</summary>
-        public Result<TReport> ProcessAs<TReport>(string xmlContent)
-            where TReport : class, IIwxxmReport =>
-            CastReportResult<TReport>(Process(xmlContent));
+        /// <summary>Validates and parses an XML string expecting the aggregate type <typeparamref name="TDocument"/>.</summary>
+        public Result<TDocument> ProcessAs<TDocument>(string xmlContent)
+            where TDocument : IwxxmDocument =>
+            CastReportResult<TDocument>(Process(xmlContent));
 
-        /// <summary>Validates and parses an XML file expecting the aggregate type <typeparamref name="TReport"/>.</summary>
-        public Result<TReport> ProcessFileAs<TReport>(string filePath)
-            where TReport : class, IIwxxmReport =>
-            CastReportResult<TReport>(ProcessFile(filePath));
+        /// <summary>Validates and parses an XML file expecting the aggregate type <typeparamref name="TDocument"/>.</summary>
+        public Result<TDocument> ProcessFileAs<TDocument>(string filePath)
+            where TDocument : IwxxmDocument =>
+            CastReportResult<TDocument>(ProcessFile(filePath));
 
         /// <summary>Validates and unwraps a SWIM / AMHS <c>collect:MeteorologicalBulletin</c> from an XML string.</summary>
         public Result<MeteorologicalBulletin> ProcessBulletin(string xmlContent) =>
@@ -115,25 +122,25 @@ namespace Iwxxm.Net
         // =====================================================================
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or bulletin from a stream using <see cref="Default"/>.</summary>
-        public static Result<IIwxxmReport> Parse(Stream xmlStream) => Default.Process(xmlStream);
+        public static Result<IwxxmDocument> Parse(Stream xmlStream) => Default.Process(xmlStream);
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or bulletin from an XML string using <see cref="Default"/>.</summary>
-        public static Result<IIwxxmReport> Parse(string xmlContent) => Default.Process(xmlContent);
+        public static Result<IwxxmDocument> Parse(string xmlContent) => Default.Process(xmlContent);
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or bulletin XML file using <see cref="Default"/>.</summary>
-        public static Result<IIwxxmReport> ParseFile(string filePath) => Default.ProcessFile(filePath);
+        public static Result<IwxxmDocument> ParseFile(string filePath) => Default.ProcessFile(filePath);
 
-        /// <summary>Parses a stream expecting <typeparamref name="TReport"/> using <see cref="Default"/>.</summary>
-        public static Result<TReport> ParseAs<TReport>(Stream xmlStream)
-            where TReport : class, IIwxxmReport => Default.ProcessAs<TReport>(xmlStream);
+        /// <summary>Parses a stream expecting <typeparamref name="TDocument"/> using <see cref="Default"/>.</summary>
+        public static Result<TDocument> ParseAs<TDocument>(Stream xmlStream)
+            where TDocument : IwxxmDocument => Default.ProcessAs<TDocument>(xmlStream);
 
-        /// <summary>Parses an XML string expecting <typeparamref name="TReport"/> using <see cref="Default"/>.</summary>
-        public static Result<TReport> ParseAs<TReport>(string xmlContent)
-            where TReport : class, IIwxxmReport => Default.ProcessAs<TReport>(xmlContent);
+        /// <summary>Parses an XML string expecting <typeparamref name="TDocument"/> using <see cref="Default"/>.</summary>
+        public static Result<TDocument> ParseAs<TDocument>(string xmlContent)
+            where TDocument : IwxxmDocument => Default.ProcessAs<TDocument>(xmlContent);
 
-        /// <summary>Parses an XML file expecting <typeparamref name="TReport"/> using <see cref="Default"/>.</summary>
-        public static Result<TReport> ParseFileAs<TReport>(string filePath)
-            where TReport : class, IIwxxmReport => Default.ProcessFileAs<TReport>(filePath);
+        /// <summary>Parses an XML file expecting <typeparamref name="TDocument"/> using <see cref="Default"/>.</summary>
+        public static Result<TDocument> ParseFileAs<TDocument>(string filePath)
+            where TDocument : IwxxmDocument => Default.ProcessFileAs<TDocument>(filePath);
 
         /// <summary>Unwraps a <c>collect:MeteorologicalBulletin</c> stream using <see cref="Default"/>.</summary>
         public static Result<MeteorologicalBulletin> ParseBulletin(Stream xmlStream) => Default.ProcessBulletin(xmlStream);
@@ -160,10 +167,34 @@ namespace Iwxxm.Net
         // Helpers
         // =====================================================================
 
-        private Result<string> ToGeoJsonResult(Result<IIwxxmReport> result, GeoJsonExportOptions? options) =>
-            result.IsSuccess
-                ? Result<string>.Success(_geoJsonExporter.Export(result.Value, options))
-                : Result<string>.Failure(result.Errors);
+        private Result<string> ToGeoJsonResult(Result<IwxxmDocument> result, GeoJsonExportOptions? options)
+        {
+            if (result.IsFailure)
+                return Result<string>.Failure(result.Errors);
+
+            try
+            {
+                string json = _geoJsonExporter.Export(result.Value, options);
+                if (json == null)
+                {
+                    return Result<string>.Failure(
+                        "GEOJSON-EXPORT-ERROR",
+                        "The GeoJSON exporter returned no document.",
+                        ErrorCategory.DomainMapping,
+                        result.Value.Id);
+                }
+
+                return Result<string>.Success(json);
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
+            {
+                return Result<string>.Failure(
+                    "GEOJSON-EXPORT-ERROR",
+                    $"The GeoJSON export failed: {ex.Message}",
+                    ErrorCategory.DomainMapping,
+                    result.Value.Id);
+            }
+        }
 
         internal static Result<T> WithUtf8Stream<T>(string xmlContent, Func<Stream, Result<T>> process)
         {
@@ -187,35 +218,50 @@ namespace Iwxxm.Net
             if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentException("File path cannot be null or whitespace.", nameof(filePath));
 
-            if (!File.Exists(filePath))
+            FileStream fileStream;
+            try
             {
-                return Result<T>.Failure(
-                    "FILE-NOT-FOUND",
-                    $"The specified {description} does not exist: '{filePath}'.",
-                    ErrorCategory.MalformedInput);
+                fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            }
+            catch (Exception ex) when (ex is FileNotFoundException || ex is DirectoryNotFoundException)
+            {
+                return FileFailure<T>("FILE-NOT-FOUND", $"The specified {description} does not exist: '{filePath}'.", filePath);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return FileFailure<T>("ACCESS-DENIED", $"Access to the specified {description} '{filePath}' is denied: {ex.Message}", filePath);
+            }
+            catch (Exception ex) when (ex is IOException || ex is NotSupportedException || ex is ArgumentException || ex is System.Security.SecurityException)
+            {
+                // IOException covers PathTooLongException and sharing violations; ArgumentException / NotSupportedException
+                // cover malformed paths (the null / whitespace check above is the only argument validation that throws).
+                return FileFailure<T>("FILE-READ-ERROR", $"The specified {description} '{filePath}' cannot be opened: {ex.Message}", filePath);
             }
 
-            using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (fileStream)
             {
                 return process(fileStream);
             }
         }
 
-        private static Result<TReport> CastReportResult<TReport>(Result<IIwxxmReport> result)
-            where TReport : class, IIwxxmReport
+        private static Result<T> FileFailure<T>(string code, string message, string filePath) =>
+            Result<T>.Failure(new ValidationError(code, message, ErrorCategory.MalformedInput, ValidationSeverity.Error, filePath));
+
+        private static Result<TDocument> CastReportResult<TDocument>(Result<IwxxmDocument> result)
+            where TDocument : IwxxmDocument
         {
             if (result.IsFailure)
-                return Result<TReport>.Failure(result.Errors);
+                return Result<TDocument>.Failure(result.Errors);
 
-            if (!(result.Value is TReport typed))
+            if (!(result.Value is TDocument typed))
             {
-                return Result<TReport>.Failure(
+                return Result<TDocument>.Failure(
                     "IWXXM-UNEXPECTED-REPORT-TYPE",
-                    $"Expected report aggregate of type '{typeof(TReport).Name}', but parsed '{result.Value.GetType().Name}' (ReportType: {result.Value.ReportType}).",
+                    $"Expected report aggregate of type '{typeof(TDocument).Name}', but parsed '{result.Value.GetType().Name}' (ReportType: {result.Value.ReportType}).",
                     ErrorCategory.DomainMapping);
             }
 
-            return Result<TReport>.Success(typed);
+            return Result<TDocument>.Success(typed);
         }
     }
 }

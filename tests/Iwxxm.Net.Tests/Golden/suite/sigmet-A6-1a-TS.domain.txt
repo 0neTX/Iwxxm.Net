@@ -1,0 +1,81 @@
+Sigmet {
+  AtsUnitDesignator = "YUDD"
+  AtsUnitName = "YUDD FIC"
+  CancelledReportSequenceNumber = null
+  EruptingVolcano = null
+  EvolvingConditions = [
+    EnRoutePhenomenonVolume {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 54
+            Lon = -12
+          }
+          GeoCoordinate {
+            Lat = 50
+            Lon = -12
+          }
+          GeoCoordinate {
+            Lat = 50
+            Lon = -8
+          }
+          GeoCoordinate {
+            Lat = 54
+            Lon = -8
+          }
+          GeoCoordinate {
+            Lat = 54
+            Lon = -12
+          }
+        ]
+        InteriorRings = []
+      }
+      DirectionOfMotionDegrees = 90
+      Id = "uuid.10f68782-703d-43a6-a4e5-af27469edc6e"
+      IntensityChange = "WEAKEN"
+      LowerLimit = null
+      SpeedOfMotion = Speed {
+        Unit = SpeedUnit.Knots
+        UnitOfMeasure = "[kn_i]"
+        Value = 20
+      }
+      TropicalCycloneCentre = null
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 390
+      }
+    }
+  ]
+  FirDesignator = "YUDD"
+  FirName = "SHANLON FIR/UIR"
+  ForecastPositions = []
+  Id = "uuid.8debfaca-7116-4b32-9378-b472ca64e823"
+  IsCancelReport = false
+  IsTranslationFailed = false
+  IssueTimeUtc = 2012-08-10T12:00:00.0000000+00:00
+  MwoDesignator = "YUSO"
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Phenomenon = CodeListValue<SigmetPhenomenon> {
+    Code = SigmetPhenomenon.ObscuredThunderstorm
+    IsKnown = true
+    Notation = "OBSC_TS"
+  }
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.Sigmet
+  SequenceNumber = "2"
+  TranslationFailedTac = null
+  TropicalCycloneName = null
+  ValidFromUtc = 2012-08-10T12:00:00.0000000+00:00
+  ValidUntilUtc = 2012-08-10T16:00:00.0000000+00:00
+}

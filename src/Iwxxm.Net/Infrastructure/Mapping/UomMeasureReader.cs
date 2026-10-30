@@ -72,7 +72,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         }
 
         // ---------------------------------------------------------------------
-        // XElement (LINQ to XML) overloads used by IwxxmSuiteMapper
+        // XElement (LINQ to XML) overloads used by the report mappers (Mapping/Reports)
         // ---------------------------------------------------------------------
 
         public static Speed? ReadSpeed(XElement? measureElem, string context, List<ValidationError> errors) =>
@@ -91,7 +91,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 : ReadFixedUnit(measureElem.Value, measureElem.Attribute("uom")?.Value, requiredUom, Describe(measureElem, context), errors);
 
         // ---------------------------------------------------------------------
-        // Raw string overloads (also used for XmlSerializer DTOs in SigwxMapper)
+        // Raw string overloads (also used for the SIGWX transport DTOs in Mapping/Wafs)
         // ---------------------------------------------------------------------
 
         public static Speed? ReadSpeed(string? rawValue, string? uom, string location, List<ValidationError> errors)

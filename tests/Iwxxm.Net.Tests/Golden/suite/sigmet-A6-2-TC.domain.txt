@@ -1,0 +1,70 @@
+Sigmet {
+  AtsUnitDesignator = "YUCC"
+  AtsUnitName = "YUCC FIC"
+  CancelledReportSequenceNumber = null
+  EruptingVolcano = null
+  EvolvingConditions = [
+    EnRoutePhenomenonVolume {
+      Area = null
+      DirectionOfMotionDegrees = null
+      Id = "uuid.c0a23437-9eb7-4e6b-82f2-6fbd5757440c"
+      IntensityChange = null
+      LowerLimit = null
+      SpeedOfMotion = null
+      TropicalCycloneCentre = GeoCoordinate {
+        Lat = 27.1
+        Lon = -73.1
+      }
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 500
+      }
+    }
+  ]
+  FirDesignator = "YUCC"
+  FirName = "AMSWELL FIR"
+  ForecastPositions = [
+    EnRoutePhenomenonVolume {
+      Area = null
+      DirectionOfMotionDegrees = null
+      Id = "uuid.338354de-7634-4fca-ac75-3675cb592284"
+      IntensityChange = null
+      LowerLimit = null
+      SpeedOfMotion = null
+      TropicalCycloneCentre = GeoCoordinate {
+        Lat = 27.6667
+        Lon = -73.75
+      }
+      UpperLimit = null
+    }
+  ]
+  Id = "uuid.f12194be-0d82-49ad-ad97-41e46f724dec"
+  IsCancelReport = false
+  IsTranslationFailed = false
+  IssueTimeUtc = 2012-08-25T16:00:00.0000000+00:00
+  MwoDesignator = "YUDO"
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Phenomenon = CodeListValue<SigmetPhenomenon> {
+    Code = SigmetPhenomenon.TropicalCyclone
+    IsKnown = true
+    Notation = "TC"
+  }
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.TropicalCycloneSigmet
+  SequenceNumber = "3"
+  TranslationFailedTac = null
+  TropicalCycloneName = "Gloria"
+  ValidFromUtc = 2012-08-25T16:00:00.0000000+00:00
+  ValidUntilUtc = 2012-08-25T22:00:00.0000000+00:00
+}

@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [-12.34, 12.34, -12.34, 12.34],
+  "metadata": {
+    "id": "uuid.510df5de-fefb-4406-bafd-faab35333ec0",
+    "reportType": "Metar",
+    "issueTimeUtc": "2012-08-22T16:30:00.0000000+00:00",
+    "reportStatus": "NORMAL",
+    "permissibleUsage": "OPERATIONAL"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "uuid.510df5de-fefb-4406-bafd-faab35333ec0",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-12.34, 12.34]
+      },
+      "properties": {
+        "featureType": "METAR_OBSERVATION",
+        "reportId": "uuid.510df5de-fefb-4406-bafd-faab35333ec0",
+        "reportType": "Metar",
+        "issueTimeUtc": "2012-08-22T16:30:00.0000000+00:00",
+        "aerodromeDesignator": "YUDO",
+        "aerodromeName": "DONLON/INTERNATIONAL",
+        "observationTimeUtc": "2012-08-22T16:30:00.0000000+00:00",
+        "isAutomatedStation": false,
+        "isNilObservation": false,
+        "cloudAndVisibilityOk": false,
+        "airTemperatureCelsius": 17,
+        "dewpointTemperatureCelsius": 16,
+        "qnhHpa": 1018,
+        "prevailingVisibilityMeters": 600,
+        "windDirectionDegrees": 240,
+        "windSpeed": 4,
+        "windSpeedUom": "m/s",
+        "presentWeatherUris": ["http://codes.wmo.int/306/4678/DZ", "http://codes.wmo.int/306/4678/FG"]
+      }
+    }
+  ]
+}

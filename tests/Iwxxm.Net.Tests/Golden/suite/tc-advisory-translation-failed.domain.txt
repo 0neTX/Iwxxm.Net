@@ -1,0 +1,18 @@
+Tca {
+  AdvisoryNumber = null
+  CycloneName = null
+  Forecasts = []
+  Id = "uuid.4a954e38-b132-4d3c-aaba-90dbd056d497"
+  IsTranslationFailed = true
+  IssueTimeUtc = 2004-09-25T16:00:00.0000000+00:00
+  IssuingTcacDesignator = "YUFO"
+  NextAdvisoryTimeUtc = null
+  Observation = null
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Remarks = null
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.TropicalCycloneAdvisory
+  TranslationFailedTac = "TC ADVISORY          DTG:                        20040925/1600Z     TCAC:                       YUFO     TC:                         GLORIA     INVALID INVALID INVALID"
+}

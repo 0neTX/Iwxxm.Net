@@ -9,7 +9,8 @@ namespace Iwxxm.Net.Reports
     public sealed class AirframeIcing : IEquatable<AirframeIcing>
     {
         public string Id { get; }
-        public string RawDegreeReference { get; }
+        /// <summary>Raw degree reference (code URI or value) as reported; <c>null</c> when absent or nil (never invented).</summary>
+        public string? RawDegreeReference { get; }
         public IcingDegreeCode Degree { get; }
 
         /// <summary>
@@ -17,31 +18,33 @@ namespace Iwxxm.Net.Reports
         /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
         /// </summary>
         public int? DegreeNumericCode => WmoCodeRegistry.TryGetNumericCode(RawDegreeReference, WmoCodeRegistry.IcingDegreeTableUri);
-        public FlightLevel? BaseFlightLevel { get; }
-        public FlightLevel TopFlightLevel { get; }
+        /// <summary>Lower limit as reported (value, unit, vertical reference or nil reason); <c>null</c> when not reported.</summary>
+        public VerticalLimit? Base { get; }
+        /// <summary>Upper limit as reported (value, unit, vertical reference or nil reason).</summary>
+        public VerticalLimit Top { get; }
         public GeoPolygon Area { get; }
 
         private AirframeIcing(
             string id,
-            string rawDegreeReference,
+            string? rawDegreeReference,
             IcingDegreeCode degree,
-            FlightLevel? baseFlightLevel,
-            FlightLevel topFlightLevel,
+            VerticalLimit? baseLimit,
+            VerticalLimit topLimit,
             GeoPolygon area)
         {
             Id = id;
             RawDegreeReference = rawDegreeReference;
             Degree = degree;
-            BaseFlightLevel = baseFlightLevel;
-            TopFlightLevel = topFlightLevel;
+            Base = baseLimit;
+            Top = topLimit;
             Area = area;
         }
 
         public static Result<AirframeIcing> Create(
             string id,
-            string rawDegreeReference,
-            FlightLevel? baseFlightLevel,
-            FlightLevel topFlightLevel,
+            string? rawDegreeReference,
+            VerticalLimit? baseLimit,
+            VerticalLimit topLimit,
             GeoPolygon area)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -50,15 +53,6 @@ namespace Iwxxm.Net.Reports
                     "DOMAIN-ICING-ID",
                     "The AirframeIcing feature gml:id identifier is required.",
                     ErrorCategory.DomainMapping);
-            }
-
-            if (string.IsNullOrWhiteSpace(rawDegreeReference))
-            {
-                return Result<AirframeIcing>.Failure(
-                    "DOMAIN-ICING-DEGREE",
-                    $"DegreeOfIcing in '{id}' is required.",
-                    ErrorCategory.DomainMapping,
-                    id);
             }
 
             if (area == null)
@@ -70,11 +64,11 @@ namespace Iwxxm.Net.Reports
                     id);
             }
 
-            if (baseFlightLevel.HasValue && topFlightLevel <= baseFlightLevel.Value)
+            if (baseLimit.HasValue && topLimit.TryCompareTo(baseLimit.Value, out int order) && order <= 0)
             {
                 return Result<AirframeIcing>.Failure(
                     "DOMAIN-ICING-VERTICAL-EXTENT",
-                    $"Airframe icing upper flight level for '{id}' ({topFlightLevel}) must be strictly greater than its lower level ({baseFlightLevel.Value}).",
+                    $"Airframe icing upper limit for '{id}' ({topLimit}) must be strictly greater than its lower level ({baseLimit.Value}).",
                     ErrorCategory.DomainMapping,
                     id);
             }
@@ -83,10 +77,10 @@ namespace Iwxxm.Net.Reports
 
             return Result<AirframeIcing>.Success(new AirframeIcing(
                 id,
-                rawDegreeReference.Trim(),
+                string.IsNullOrWhiteSpace(rawDegreeReference) ? null : rawDegreeReference!.Trim(),
                 degree,
-                baseFlightLevel,
-                topFlightLevel,
+                baseLimit,
+                topLimit,
                 area));
         }
 
@@ -97,8 +91,8 @@ namespace Iwxxm.Net.Reports
             return Id == other.Id &&
                    RawDegreeReference == other.RawDegreeReference &&
                    Degree == other.Degree &&
-                   Nullable.Equals(BaseFlightLevel, other.BaseFlightLevel) &&
-                   TopFlightLevel == other.TopFlightLevel &&
+                   Nullable.Equals(Base, other.Base) &&
+                   Top == other.Top &&
                    Area.Equals(other.Area);
         }
 
@@ -109,10 +103,14 @@ namespace Iwxxm.Net.Reports
             unchecked
             {
                 int hash = Id.GetHashCode();
-                hash = (hash * 397) ^ RawDegreeReference.GetHashCode();
-                hash = (hash * 397) ^ TopFlightLevel.GetHashCode();
+                hash = (hash * 397) ^ (RawDegreeReference == null ? 0 : RawDegreeReference.GetHashCode());
+                hash = (hash * 397) ^ Top.GetHashCode();
                 return hash;
             }
         }
+
+        public static bool operator ==(AirframeIcing? left, AirframeIcing? right) => Equals(left, right);
+
+        public static bool operator !=(AirframeIcing? left, AirframeIcing? right) => !Equals(left, right);
     }
 }

@@ -1,0 +1,125 @@
+Sigmet {
+  AtsUnitDesignator = "EGGX"
+  AtsUnitName = "SHANWICK OCEANIC AREA CONTROL CENTRE"
+  CancelledReportSequenceNumber = null
+  EruptingVolcano = Volcano {
+    EruptionTimeUtc = null
+    Id = "uuid.99646618-9ec7-47c0-8b50-daba5b6b1da9"
+    Name = "MT HEKLA"
+    Position = GeoCoordinate {
+      Lat = 63.98
+      Lon = -19.67
+    }
+    WmoNumber = null
+  }
+  EvolvingConditions = [
+    EnRoutePhenomenonVolume {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 60
+            Lon = -11.83
+          }
+          GeoCoordinate {
+            Lat = 60
+            Lon = -16
+          }
+          GeoCoordinate {
+            Lat = 59
+            Lon = -13
+          }
+          GeoCoordinate {
+            Lat = 60
+            Lon = -11.83
+          }
+        ]
+        InteriorRings = []
+      }
+      DirectionOfMotionDegrees = null
+      Id = "uuid.b3f301d8-e8b4-4d24-91b1-78f52672edcb"
+      IntensityChange = "NO_CHANGE"
+      LowerLimit = VerticalLimit {
+        IsGround = true
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Sfc
+        ReferenceCode = "SFC"
+        SpecialValue = VerticalSpecialValue.Ground
+        SpecialValueCode = "GND"
+        Unit = null
+        UnitOfMeasure = null
+        Value = null
+      }
+      SpeedOfMotion = null
+      TropicalCycloneCentre = null
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 550
+      }
+    }
+  ]
+  FirDesignator = "EGGX"
+  FirName = "SHANWICK OCEANIC FIR"
+  ForecastPositions = [
+    EnRoutePhenomenonVolume {
+      Area = GeoPolygon {
+        ExteriorRing = [
+          GeoCoordinate {
+            Lat = 60
+            Lon = -12
+          }
+          GeoCoordinate {
+            Lat = 58
+            Lon = -14
+          }
+          GeoCoordinate {
+            Lat = 60
+            Lon = -15.58
+          }
+          GeoCoordinate {
+            Lat = 60
+            Lon = -12
+          }
+        ]
+        InteriorRings = []
+      }
+      DirectionOfMotionDegrees = null
+      Id = "uuid.fefac6d8-d236-4008-ad4d-cc8b229b7c50"
+      IntensityChange = null
+      LowerLimit = null
+      SpeedOfMotion = null
+      TropicalCycloneCentre = null
+      UpperLimit = null
+    }
+  ]
+  Id = "uuid.64c3912b-b09a-494a-8731-321f28b759e4"
+  IsCancelReport = false
+  IsTranslationFailed = false
+  IssueTimeUtc = 2018-07-25T16:00:00.0000000+00:00
+  MwoDesignator = "EGRR"
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Phenomenon = CodeListValue<SigmetPhenomenon> {
+    Code = SigmetPhenomenon.VolcanicAsh
+    IsKnown = true
+    Notation = "VA"
+  }
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.VolcanicAshSigmet
+  SequenceNumber = "4"
+  TranslationFailedTac = null
+  TropicalCycloneName = null
+  ValidFromUtc = 2018-07-25T16:00:00.0000000+00:00
+  ValidUntilUtc = 2018-07-25T22:00:00.0000000+00:00
+}

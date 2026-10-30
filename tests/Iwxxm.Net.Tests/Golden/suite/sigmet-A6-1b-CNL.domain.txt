@@ -1,0 +1,26 @@
+Sigmet {
+  AtsUnitDesignator = "YUDD"
+  AtsUnitName = "YUDD FIC"
+  CancelledReportSequenceNumber = "2"
+  EruptingVolcano = null
+  EvolvingConditions = []
+  FirDesignator = "YUDD"
+  FirName = "SHANLON FIR/UIR"
+  ForecastPositions = []
+  Id = "uuid.6fe37ba5-7ad5-471a-ac44-48ddefb2c23f"
+  IsCancelReport = true
+  IsTranslationFailed = false
+  IssueTimeUtc = 2012-08-10T13:45:00.0000000+00:00
+  MwoDesignator = "YUSO"
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  Phenomenon = null
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.Sigmet
+  SequenceNumber = "3"
+  TranslationFailedTac = null
+  TropicalCycloneName = null
+  ValidFromUtc = 2012-08-10T13:45:00.0000000+00:00
+  ValidUntilUtc = 2012-08-10T16:00:00.0000000+00:00
+}

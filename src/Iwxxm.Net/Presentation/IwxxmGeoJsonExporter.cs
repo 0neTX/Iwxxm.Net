@@ -4,7 +4,7 @@ using Iwxxm.Net.Reports;
 namespace Iwxxm.Net
 {
     /// <summary>
-    /// Public facade for exporting any parsed <see cref="IIwxxmReport"/> Domain Aggregate Root into an RFC 7946
+    /// Public facade for exporting any parsed <see cref="IwxxmDocument"/> Domain Aggregate Root into an RFC 7946
     /// GeoJSON <c>FeatureCollection</c> string (<c>[longitude, latitude]</c> axis order) suitable for web mapping
     /// engines (OpenLayers, Mapbox GL, Leaflet, QGIS).
     /// </summary>
@@ -29,16 +29,16 @@ namespace Iwxxm.Net
         public static IwxxmGeoJsonExporter Default => DefaultInstance.Value;
 
         /// <inheritdoc />
-        public string Export(IIwxxmReport report, GeoJsonExportOptions? options = null)
+        public string Export(IwxxmDocument document, GeoJsonExportOptions? options = null)
         {
-            if (report == null)
-                throw new ArgumentNullException(nameof(report));
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
 
-            return _service.Export(report, options);
+            return _service.Export(document, options);
         }
 
-        /// <summary>Serializes <paramref name="report"/> to an RFC 7946 GeoJSON <c>FeatureCollection</c> using <see cref="Default"/>.</summary>
-        public static string ToGeoJson(IIwxxmReport report, GeoJsonExportOptions? options = null) =>
-            Default.Export(report, options);
+        /// <summary>Serializes <paramref name="document"/> to an RFC 7946 GeoJSON <c>FeatureCollection</c> using <see cref="Default"/>.</summary>
+        public static string ToGeoJson(IwxxmDocument document, GeoJsonExportOptions? options = null) =>
+            Default.Export(document, options);
     }
 }

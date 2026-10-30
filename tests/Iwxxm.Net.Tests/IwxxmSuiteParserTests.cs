@@ -38,10 +38,10 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void ParseFileAs_MetarA31_MapsAerodromeWeatherReport()
+        public void ParseFileAs_MetarA31_MapsMetar()
         {
             // Act
-            var result = IwxxmParser.ParseFileAs<AerodromeWeatherReport>("Samples/wmo-examples/metar-A3-1.xml");
+            var result = IwxxmParser.ParseFileAs<Metar>("Samples/wmo-examples/metar-A3-1.xml");
 
             // Assert
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
@@ -53,8 +53,8 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(240.0, metar.SurfaceWind!.MeanDirectionDegrees);
             Assert.Equal(new Speed(4.0, SpeedUnit.MetersPerSecond), metar.SurfaceWind.MeanSpeed);
             Assert.Equal(600.0, metar.PrevailingVisibilityMeters);
-            Assert.Contains("http://codes.wmo.int/306/4678/DZ", metar.PresentWeatherUris);
-            Assert.Contains("http://codes.wmo.int/306/4678/FG", metar.PresentWeatherUris);
+            Assert.Contains(new AerodromeWeather("DZ", isKnown: true), metar.PresentWeather);
+            Assert.Contains(new AerodromeWeather("FG", isKnown: true), metar.PresentWeather);
             Assert.Single(metar.RunwayVisualRanges);
             Assert.Equal(17.0, metar.AirTemperatureCelsius);
             Assert.Equal(16.0, metar.DewpointTemperatureCelsius);
@@ -63,10 +63,10 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void ParseFileAs_SpeciA32_MapsSpeciAerodromeWeatherReport()
+        public void ParseFileAs_SpeciA32_MapsSpeci()
         {
             // Act
-            var result = IwxxmParser.ParseFileAs<AerodromeWeatherReport>("Samples/wmo-examples/speci-A3-2.xml");
+            var result = IwxxmParser.ParseFileAs<Speci>("Samples/wmo-examples/speci-A3-2.xml");
 
             // Assert
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
@@ -80,7 +80,7 @@ namespace Iwxxm.Net.Tests
         public void ParseFileAs_TafA51_MapsTafReportAndForecastGroups()
         {
             // Act
-            var result = IwxxmParser.ParseFileAs<TafReport>("Samples/wmo-examples/taf-A5-1.xml");
+            var result = IwxxmParser.ParseFileAs<Taf>("Samples/wmo-examples/taf-A5-1.xml");
 
             // Assert
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
@@ -97,16 +97,16 @@ namespace Iwxxm.Net.Tests
         public void ParseFileAs_SigmetExamples_MapStandardVolcanicAndTropicalCycloneVariants()
         {
             // 1. Standard SIGMET (Thunderstorm)
-            var tsSigmet = IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-A6-1a-TS.xml");
+            var tsSigmet = IwxxmParser.ParseFileAs<Sigmet>("Samples/wmo-examples/sigmet-A6-1a-TS.xml");
             Assert.True(tsSigmet.IsSuccess, string.Join(" | ", tsSigmet.Errors));
             Assert.Equal(IwxxmReportType.Sigmet, tsSigmet.Value.ReportType);
             Assert.Equal("YUDD", tsSigmet.Value.AtsUnitDesignator);
             Assert.Equal("YUDD", tsSigmet.Value.FirDesignator);
-            Assert.Equal("http://codes.wmo.int/49-2/SigWxPhenomena/OBSC_TS", tsSigmet.Value.PhenomenonUri);
+            Assert.Equal(new CodeListValue<SigmetPhenomenon>(SigmetPhenomenon.ObscuredThunderstorm, "OBSC_TS"), tsSigmet.Value.Phenomenon);
             Assert.NotEmpty(tsSigmet.Value.EvolvingConditions);
 
             // 2. Volcanic Ash SIGMET
-            var vaSigmet = IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-VA-EGGX.xml");
+            var vaSigmet = IwxxmParser.ParseFileAs<Sigmet>("Samples/wmo-examples/sigmet-VA-EGGX.xml");
             Assert.True(vaSigmet.IsSuccess, string.Join(" | ", vaSigmet.Errors));
             Assert.Equal(IwxxmReportType.VolcanicAshSigmet, vaSigmet.Value.ReportType);
             Assert.NotNull(vaSigmet.Value.EruptingVolcano);
@@ -114,7 +114,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(new GeoCoordinate(63.98, -19.67), vaSigmet.Value.EruptingVolcano.Position);
 
             // 3. Tropical Cyclone SIGMET
-            var tcSigmet = IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-A6-2-TC.xml");
+            var tcSigmet = IwxxmParser.ParseFileAs<Sigmet>("Samples/wmo-examples/sigmet-A6-2-TC.xml");
             Assert.True(tcSigmet.IsSuccess, string.Join(" | ", tcSigmet.Errors));
             Assert.Equal(IwxxmReportType.TropicalCycloneSigmet, tcSigmet.Value.ReportType);
             Assert.Equal("Gloria", tcSigmet.Value.TropicalCycloneName);
@@ -124,14 +124,14 @@ namespace Iwxxm.Net.Tests
         public void ParseFileAs_AirmetExample_MapsAirmetReport()
         {
             // Act
-            var result = IwxxmParser.ParseFileAs<AirmetReport>("Samples/wmo-examples/airmet-A6-1a-TS.xml");
+            var result = IwxxmParser.ParseFileAs<Airmet>("Samples/wmo-examples/airmet-A6-1a-TS.xml");
 
             // Assert
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var airmet = result.Value;
             Assert.Equal(IwxxmReportType.Airmet, airmet.ReportType);
             Assert.Equal("YUDD", airmet.AtsUnitDesignator);
-            Assert.Equal("http://codes.wmo.int/49-2/AirWxPhenomena/ISOL_TS", airmet.PhenomenonUri);
+            Assert.Equal(new CodeListValue<AirmetPhenomenon>(AirmetPhenomenon.IsolatedThunderstorms, "ISOL_TS"), airmet.Phenomenon);
             Assert.Single(airmet.EvolvingConditions);
         }
 
@@ -139,7 +139,7 @@ namespace Iwxxm.Net.Tests
         public void ParseFileAs_VonaExample_MapsVolcanoObservatoryNotice()
         {
             // Act
-            var result = IwxxmParser.ParseFileAs<VonaReport>("Samples/wmo-examples/vona-A7-1.xml");
+            var result = IwxxmParser.ParseFileAs<Vona>("Samples/wmo-examples/vona-A7-1.xml");
 
             // Assert
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
@@ -148,8 +148,9 @@ namespace Iwxxm.Net.Tests
             Assert.Single(vona.Volcanoes);
             Assert.Equal("KARYMSKY", vona.Volcanoes[0].Name);
             Assert.Equal("300130", vona.Volcanoes[0].WmoNumber);
-            Assert.Equal("http://codes.wmo.int/iwxxm/AviationColourCode/YELLOW", vona.CurrentColourCodeUri);
-            Assert.Equal("http://codes.wmo.int/iwxxm/AviationColourCode/ORANGE", vona.PreviousColourCodeUri);
+            Assert.Equal(AviationColourCode.Yellow, vona.CurrentColourCode!.Code);
+            Assert.Equal("YELLOW", vona.CurrentColourCode.Notation);
+            Assert.Equal(AviationColourCode.Orange, vona.PreviousColourCode!.Code);
             Assert.NotNull(vona.AshCloudElevation);
         }
 
@@ -157,7 +158,7 @@ namespace Iwxxm.Net.Tests
         public void ParseFileAs_QvaciExample_MapsQuantitativeAshConcentrationWithInteriorPolygonHole()
         {
             // Act
-            var result = IwxxmParser.ParseFileAs<QvaciReport>("Samples/wmo-examples/qvaci-Example.xml");
+            var result = IwxxmParser.ParseFileAs<Qvaci>("Samples/wmo-examples/qvaci-Example.xml");
 
             // Assert
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
@@ -174,7 +175,7 @@ namespace Iwxxm.Net.Tests
         public void ParseFileAs_VaacTcacAndSpaceWxExamples_MapAdvisoryReports()
         {
             // 1. Volcanic Ash Advisory (VAAC)
-            var vaac = IwxxmParser.ParseFileAs<VolcanicAshAdvisoryReport>("Samples/wmo-examples/va-advisory-A7-2.xml");
+            var vaac = IwxxmParser.ParseFileAs<Vaa>("Samples/wmo-examples/va-advisory-A7-2.xml");
             Assert.True(vaac.IsSuccess, string.Join(" | ", vaac.Errors));
             Assert.Equal(IwxxmReportType.VolcanicAshAdvisory, vaac.Value.ReportType);
             Assert.Equal("TOKYO", vaac.Value.IssuingVaacName);
@@ -182,14 +183,14 @@ namespace Iwxxm.Net.Tests
             Assert.Equal("KARYMSKY 1000-13", vaac.Value.Volcano!.Name);
 
             // 2. Tropical Cyclone Advisory (TCAC)
-            var tcac = IwxxmParser.ParseFileAs<TropicalCycloneAdvisoryReport>("Samples/wmo-examples/tc-advisory-A2-2.xml");
+            var tcac = IwxxmParser.ParseFileAs<Tca>("Samples/wmo-examples/tc-advisory-A2-2.xml");
             Assert.True(tcac.IsSuccess, string.Join(" | ", tcac.Errors));
             Assert.Equal(IwxxmReportType.TropicalCycloneAdvisory, tcac.Value.ReportType);
             Assert.Equal("GLORIA", tcac.Value.CycloneName);
             Assert.NotEmpty(tcac.Value.Forecasts);
 
             // 3. Space Weather Advisory (SWXC)
-            var spaceWx = IwxxmParser.ParseFileAs<SpaceWeatherAdvisoryReport>("Samples/wmo-examples/spacewx-A7-3.xml");
+            var spaceWx = IwxxmParser.ParseFileAs<SpaceWx>("Samples/wmo-examples/spacewx-A7-3.xml");
             Assert.True(spaceWx.IsSuccess, string.Join(" | ", spaceWx.Errors));
             Assert.Equal(IwxxmReportType.SpaceWeatherAdvisory, spaceWx.Value.ReportType);
             Assert.Equal("DONLON", spaceWx.Value.IssuingSwxcName);
@@ -234,8 +235,8 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void ParseFileAs_MismatchedReportType_ReturnsUnexpectedReportTypeError()
         {
-            // Act: Attempt to parse a METAR XML file as a TafReport
-            var result = IwxxmParser.ParseFileAs<TafReport>("Samples/wmo-examples/metar-A3-1.xml");
+            // Act: Attempt to parse a METAR XML file as a Taf
+            var result = IwxxmParser.ParseFileAs<Taf>("Samples/wmo-examples/metar-A3-1.xml");
 
             // Assert
             Assert.True(result.IsFailure);

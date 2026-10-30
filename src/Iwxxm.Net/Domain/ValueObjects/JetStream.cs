@@ -6,34 +6,6 @@ using System.Linq;
 namespace Iwxxm.Net.Reports
 {
     /// <summary>
-    /// Represents a maximum wind symbol or isotach core point along a Jet Stream axis
-    /// (e.g., iwxxm:WAFSJetStreamWindSymbol or iwxxm:corePoint).
-    /// </summary>
-    public sealed class JetStreamCorePoint
-    {
-        public GeoCoordinate Location { get; }
-        public FlightLevel FlightLevel { get; }
-        /// <summary>Wind speed exactly as reported (<c>m/s</c> or <c>[kn_i]</c>).</summary>
-        public Speed WindSpeed { get; }
-        public FlightLevel? LowerIsotachLimit { get; }
-        public FlightLevel? UpperIsotachLimit { get; }
-
-        public JetStreamCorePoint(
-            GeoCoordinate location,
-            FlightLevel flightLevel,
-            Speed windSpeed,
-            FlightLevel? lowerIsotachLimit = null,
-            FlightLevel? upperIsotachLimit = null)
-        {
-            Location = location;
-            FlightLevel = flightLevel;
-            WindSpeed = windSpeed;
-            LowerIsotachLimit = lowerIsotachLimit;
-            UpperIsotachLimit = upperIsotachLimit;
-        }
-    }
-
-    /// <summary>
     /// Value Object representing a Jet Stream phenomenon in a SIGWX report.
     /// Its trajectory is mapped from a gml:Curve (CubicSpline or LineStringSegment).
     /// </summary>
@@ -41,7 +13,9 @@ namespace Iwxxm.Net.Reports
     {
         public string Id { get; }
         public IReadOnlyList<GeoCoordinate> AxisTrajectory { get; }
-        public FlightLevel CoreFlightLevel { get; }
+        /// <summary>Level of the maximum wind as reported (value, unit and vertical reference); use
+        /// <see cref="VerticalLimit.AsFlightLevel"/> for the flight-level view of STD levels.</summary>
+        public VerticalLimit CoreLevel { get; }
         /// <summary>Maximum wind speed exactly as reported (<c>m/s</c> or <c>[kn_i]</c>).</summary>
         public Speed MaxWindSpeed { get; }
         public IReadOnlyList<JetStreamCorePoint> CorePoints { get; }
@@ -49,13 +23,13 @@ namespace Iwxxm.Net.Reports
         private JetStream(
             string id,
             IReadOnlyList<GeoCoordinate> axisTrajectory,
-            FlightLevel coreFlightLevel,
+            VerticalLimit coreLevel,
             Speed maxWindSpeed,
             IReadOnlyList<JetStreamCorePoint> corePoints)
         {
             Id = id;
             AxisTrajectory = axisTrajectory;
-            CoreFlightLevel = coreFlightLevel;
+            CoreLevel = coreLevel;
             MaxWindSpeed = maxWindSpeed;
             CorePoints = corePoints;
         }
@@ -63,7 +37,7 @@ namespace Iwxxm.Net.Reports
         public static Result<JetStream> Create(
             string id,
             IEnumerable<GeoCoordinate> axisCoordinates,
-            FlightLevel coreFlightLevel,
+            VerticalLimit coreLevel,
             Speed maxWindSpeed,
             IEnumerable<JetStreamCorePoint>? corePoints = null)
         {
@@ -99,7 +73,7 @@ namespace Iwxxm.Net.Reports
             return Result<JetStream>.Success(new JetStream(
                 id,
                 new ReadOnlyCollection<GeoCoordinate>(trajectory),
-                coreFlightLevel,
+                coreLevel,
                 maxWindSpeed,
                 new ReadOnlyCollection<JetStreamCorePoint>(points)));
         }
@@ -109,9 +83,10 @@ namespace Iwxxm.Net.Reports
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
             return Id == other.Id &&
-                   CoreFlightLevel == other.CoreFlightLevel &&
+                   CoreLevel == other.CoreLevel &&
                    MaxWindSpeed == other.MaxWindSpeed &&
-                   AxisTrajectory.SequenceEqual(other.AxisTrajectory);
+                   AxisTrajectory.SequenceEqual(other.AxisTrajectory) &&
+                   ValueEquality.SequenceEqual(CorePoints, other.CorePoints);
         }
 
         public override bool Equals(object? obj) => obj is JetStream other && Equals(other);
@@ -121,10 +96,14 @@ namespace Iwxxm.Net.Reports
             unchecked
             {
                 int hash = Id.GetHashCode();
-                hash = (hash * 397) ^ CoreFlightLevel.GetHashCode();
+                hash = (hash * 397) ^ CoreLevel.GetHashCode();
                 hash = (hash * 397) ^ MaxWindSpeed.GetHashCode();
                 return hash;
             }
         }
+
+        public static bool operator ==(JetStream? left, JetStream? right) => Equals(left, right);
+
+        public static bool operator !=(JetStream? left, JetStream? right) => !Equals(left, right);
     }
 }

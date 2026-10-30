@@ -1,0 +1,112 @@
+Metar {
+  AerodromeDesignator = "YUDO"
+  AerodromeName = "DONLON/INTERNATIONAL"
+  AerodromePosition = GeoCoordinate {
+    Lat = 12.34
+    Lon = -12.34
+  }
+  AirTemperatureCelsius = 17
+  CloudAndVisibilityOk = false
+  CloudLayers = [
+    AerodromeCloudLayer {
+      Amount = CodeListValue<AerodromeCloudAmount> {
+        Code = AerodromeCloudAmount.Scattered
+        IsKnown = true
+        Notation = "SCT"
+      }
+      Base = Length {
+        Unit = LengthUnit.Feet
+        UnitOfMeasure = "[ft_i]"
+        Value = 1000
+      }
+      CloudType = null
+    }
+    AerodromeCloudLayer {
+      Amount = CodeListValue<AerodromeCloudAmount> {
+        Code = AerodromeCloudAmount.Overcast
+        IsKnown = true
+        Notation = "OVC"
+      }
+      Base = Length {
+        Unit = LengthUnit.Feet
+        UnitOfMeasure = "[ft_i]"
+        Value = 2000
+      }
+      CloudType = null
+    }
+  ]
+  DewpointTemperatureCelsius = 16
+  Id = "uuid.510df5de-fefb-4406-bafd-faab35333ec0"
+  IsAutomatedStation = false
+  IsNilObservation = false
+  IsTranslationFailed = false
+  IssueTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+  ObservationNilReason = null
+  ObservationTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+  PermissibleUsage = PermissibleUsage.Operational
+  PermissibleUsageReason = null
+  PermissibleUsageSupplementary = null
+  PresentWeather = [
+    AerodromeWeather {
+      IsKnown = true
+      Notation = "DZ"
+    }
+    AerodromeWeather {
+      IsKnown = true
+      Notation = "FG"
+    }
+  ]
+  PrevailingVisibilityMeters = 600
+  QnhHpa = 1018
+  ReportStatus = ReportStatus.Normal
+  ReportType = IwxxmReportType.Metar
+  RunwayVisualRanges = [
+    RunwayVisualRange {
+      MeanRvrMeters = 1000
+      PastTendency = "UPWARD"
+      RunwayDesignator = "12"
+    }
+  ]
+  SurfaceWind = SurfaceWind {
+    GustSpeed = null
+    IsVariableDirection = false
+    MeanDirectionDegrees = 240
+    MeanSpeed = Speed {
+      Unit = SpeedUnit.MetersPerSecond
+      UnitOfMeasure = "m/s"
+      Value = 4
+    }
+  }
+  TranslationFailedTac = null
+  TrendForecasts = [
+    AerodromeForecastGroup {
+      ChangeIndicator = "BECOMING"
+      CloudAndVisibilityOk = false
+      CloudLayers = []
+      Id = "uuid.46584004-93bf-4638-a8be-86a61bc85e0f"
+      PrevailingVisibilityMeters = 800
+      PrevailingVisibilityOperator = null
+      SurfaceWind = null
+      ValidFromUtc = 2012-08-22T16:30:00.0000000+00:00
+      ValidUntilUtc = 2012-08-22T17:00:00.0000000+00:00
+      Weather = [
+        AerodromeWeather {
+          IsKnown = true
+          Notation = "FG"
+        }
+      ]
+    }
+    AerodromeForecastGroup {
+      ChangeIndicator = "BECOMING"
+      CloudAndVisibilityOk = false
+      CloudLayers = []
+      Id = "uuid.be66f283-6aae-4a84-bc84-3831c9b2e7ef"
+      PrevailingVisibilityMeters = 10000
+      PrevailingVisibilityOperator = "ABOVE"
+      SurfaceWind = null
+      ValidFromUtc = 2012-08-22T18:00:00.0000000+00:00
+      ValidUntilUtc = null
+      Weather = []
+    }
+  ]
+}

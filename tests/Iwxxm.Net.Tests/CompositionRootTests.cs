@@ -21,7 +21,7 @@ namespace Iwxxm.Net.Tests
         {
             IwxxmParser parser = new IwxxmParserBuilder().Build();
 
-            Result<AerodromeWeatherReport> result = parser.ProcessFileAs<AerodromeWeatherReport>(MetarPath);
+            Result<Metar> result = parser.ProcessFileAs<Metar>(MetarPath);
 
             Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
         }
@@ -185,7 +185,7 @@ namespace Iwxxm.Net.Tests
                 _json = json;
             }
 
-            public string Export(IIwxxmReport report, GeoJsonExportOptions options) => _json;
+            public string Export(IwxxmDocument document, GeoJsonExportOptions options) => _json;
         }
 
         private sealed class FailingDocumentMapper : IIwxxmDocumentMapper
@@ -197,7 +197,7 @@ namespace Iwxxm.Net.Tests
                 _error = error;
             }
 
-            public Result<IIwxxmReport> Map(Stream validatedDocument) => Result<IIwxxmReport>.Failure(_error);
+            public Result<IwxxmDocument> Map(Stream validatedDocument) => Result<IwxxmDocument>.Failure(_error);
         }
     }
 }

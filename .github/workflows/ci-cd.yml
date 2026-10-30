@@ -34,6 +34,7 @@ jobs:
         with:
           fetch-depth: 0
 
+      # .NET 10 SDK: builds netstandard2.0/2.1 (Iwxxm.Net) and net10.0 (Iwxxm.Net.Validation.Saxon, tests)
       - name: Setup .NET SDK from global.json
         uses: actions/setup-dotnet@v4
         with:
@@ -54,7 +55,7 @@ jobs:
           -p:FileVersion=${{ env.FILE_VERSION }}
           -p:ContinuousIntegrationBuild=true
 
-      - name: Run unit & integration tests with code coverage
+      - name: Run unit & integration tests with code coverage (Iwxxm.Net)
         run: >
           dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj
           --configuration Release
@@ -62,16 +63,37 @@ jobs:
           --verbosity normal
           --collect:"XPlat Code Coverage"
 
-      - name: Pack NuGet package (.nupkg & .snupkg)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Run official Schematron tests (Iwxxm.Net.Validation.Saxon)
         run: >
-          dotnet pack src/Iwxxm.Net/Iwxxm.Net.csproj
+          dotnet test tests/Iwxxm.Net.Validation.Saxon.Tests/Iwxxm.Net.Validation.Saxon.Tests.csproj
           --configuration Release
           --no-build
-          --output ./artifacts
-          -p:Version=${{ env.PACKAGE_VERSION }}
-          -p:FileVersion=${{ env.FILE_VERSION }}
-          -p:ContinuousIntegrationBuild=true
+          --verbosity normal
+          --collect:"XPlat Code Coverage"
+
+      - name: Pack NuGet packages (.nupkg & .snupkg)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          for project in src/Iwxxm.Net/Iwxxm.Net.csproj src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj; do
+            dotnet pack "$project" \
+              --configuration Release \
+              --no-build \
+              --output ./artifacts \
+              -p:Version=${{ env.PACKAGE_VERSION }} \
+              -p:FileVersion=${{ env.FILE_VERSION }} \
+              -p:ContinuousIntegrationBuild=true
+          done
+
+      - name: Verify the core package declares zero runtime dependencies
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          nuspec=$(unzip -p "./artifacts/Iwxxm.Net.${{ env.PACKAGE_VERSION }}.nupkg" Iwxxm.Net.nuspec)
+          if grep -q "<dependency " <<< "$nuspec"; then
+            echo "::error::Iwxxm.Net must not declare runtime dependencies"
+            exit 1
+          fi
 
       - name: Upload NuGet package artifacts
         if: matrix.os == 'ubuntu-latest'
@@ -96,7 +118,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Download NuGet artifacts
         uses: actions/download-artifact@v4

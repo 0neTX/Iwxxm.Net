@@ -21,7 +21,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             _deserializer = new SigwxXmlDeserializer(options);
         }
 
-        public Result<SignificantWeatherReport> Map(Stream validatedDocument)
+        public Result<Sigwx> Map(Stream validatedDocument)
         {
             if (validatedDocument == null)
                 throw new ArgumentNullException(nameof(validatedDocument));
@@ -29,7 +29,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             var transport = _deserializer.Deserialize(validatedDocument);
             return transport.IsSuccess
                 ? _mapper.MapToDomain(transport.Value)
-                : Result<SignificantWeatherReport>.Failure(transport.Errors);
+                : Result<Sigwx>.Failure(transport.Errors);
         }
     }
 }

@@ -67,23 +67,13 @@
     <None Include="Resources\Xsd\Official\**\*.txt" Pack="true" PackagePath="schema-notices\%(RecursiveDir)" />
   </ItemGroup>
 
-  <!-- 
+  <!--
     =========================================================================
-    DESIGN-TIME XSD CLASS GENERATION TARGET
+    TRANSPORT MODEL (Infrastructure/Generated/Iwxxm20252.Generated.cs)
     =========================================================================
-    Uses the local .NET tool manifest (.config/dotnet-tools.json) defining
-    'dotnet-xscgen' (XmlSchemaClassGenerator-console).
-
-    Restore local tools:
-      dotnet tool restore
-
-    On-demand MSBuild execution:
-      dotnet build -p:RegenerateXsdClasses=true
+    The internal SIGWX transport classes are hand-maintained; no build target
+    regenerates them. tools/generate-xsd-classes.sh writes an optional xscgen
+    reference scaffold to artifacts/xscgen-reference/ for manual comparison.
   -->
-  <Target Name="GenerateXsdClasses" BeforeTargets="CoreCompile" Condition="'$(RegenerateXsdClasses)' == 'true'">
-    <Message Importance="high" Text="Restoring local .NET tools and autogenerating C# classes from IWXXM 2025-2, AIXM 5.1.1, METCE, Collect, and GML 3.2 XSD schemas..." />
-    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
-    <Exec Command="dotnet tool run xscgen -n &quot;http://icao.int/iwxxm/2025-2=Iwxxm20252.Generated&quot; -n &quot;http://www.opengis.net/gml/3.2=Iwxxm20252.Generated&quot; -n &quot;http://www.aixm.aero/schema/5.1.1=Iwxxm20252.Generated&quot; -n &quot;http://def.wmo.int/metce/2013=Iwxxm20252.Generated&quot; -n &quot;http://def.wmo.int/collect/2014=Iwxxm20252.Generated&quot; -n &quot;http://www.w3.org/1999/xlink=Iwxxm20252.Generated&quot; -o &quot;$(MSBuildProjectDirectory)/Infrastructure/Generated&quot; --singleFile --internal --nullable &quot;$(MSBuildProjectDirectory)/Resources/Xsd/Legacy/xlink.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/Legacy/gml.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/Legacy/aixm.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/Legacy/metce.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/Legacy/iwxxm-sigwx.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/Legacy/iwxxm-2025-2.xsd&quot; &quot;$(MSBuildProjectDirectory)/Resources/Xsd/Legacy/collect.xsd&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
-  </Target>
 
 </Project>

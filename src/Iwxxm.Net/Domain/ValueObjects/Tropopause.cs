@@ -6,50 +6,20 @@ using System.Linq;
 namespace Iwxxm.Net.Reports
 {
     /// <summary>
-    /// Discrete Tropopause height measurement point (Spot Height, High, Low, or Contour vertex).
-    /// </summary>
-    public sealed class TropopauseSpotHeight : IEquatable<TropopauseSpotHeight>
-    {
-        public GeoCoordinate Location { get; }
-        public FlightLevel FlightLevel { get; }
-
-        public TropopauseSpotHeight(GeoCoordinate location, FlightLevel flightLevel)
-        {
-            Location = location;
-            FlightLevel = flightLevel;
-        }
-
-        public bool Equals(TropopauseSpotHeight? other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return Location == other.Location && FlightLevel == other.FlightLevel;
-        }
-
-        public override bool Equals(object? obj) => obj is TropopauseSpotHeight other && Equals(other);
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (Location.GetHashCode() * 397) ^ FlightLevel.GetHashCode();
-            }
-        }
-    }
-
-    /// <summary>
     /// Value Object representing Tropopause height observations or contours in a SIGWX report.
     /// </summary>
     public sealed class Tropopause : IEquatable<Tropopause>
     {
         public string Id { get; }
-        public string LevelType { get; }
+        /// <summary>Level type reported by the compact format (e.g. <c>SPOT</c>); <c>null</c> when the source does not
+        /// report one (WAFSSignificantWeatherForecast). Never invented.</summary>
+        public string? LevelType { get; }
         public IReadOnlyList<TropopauseSpotHeight> SpotHeights { get; }
         public GeoPolygon? ContourPolygon { get; }
 
         private Tropopause(
             string id,
-            string levelType,
+            string? levelType,
             IReadOnlyList<TropopauseSpotHeight> spotHeights,
             GeoPolygon? contourPolygon)
         {
@@ -83,7 +53,7 @@ namespace Iwxxm.Net.Reports
                     id);
             }
 
-            string normalizedType = string.IsNullOrWhiteSpace(levelType) ? "SPOT" : levelType!;
+            string? normalizedType = string.IsNullOrWhiteSpace(levelType) ? null : levelType!.Trim();
             return Result<Tropopause>.Success(
                 new Tropopause(id, normalizedType, new ReadOnlyCollection<TropopauseSpotHeight>(list), contourPolygon));
         }
@@ -104,8 +74,12 @@ namespace Iwxxm.Net.Reports
         {
             unchecked
             {
-                return (Id.GetHashCode() * 397) ^ LevelType.GetHashCode();
+                return (Id.GetHashCode() * 397) ^ (LevelType == null ? 0 : LevelType.GetHashCode());
             }
         }
+
+        public static bool operator ==(Tropopause? left, Tropopause? right) => Equals(left, right);
+
+        public static bool operator !=(Tropopause? left, Tropopause? right) => !Equals(left, right);
     }
 }

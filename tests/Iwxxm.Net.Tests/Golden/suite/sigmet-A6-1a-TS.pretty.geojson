@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [-12, 50, -8, 54],
+  "metadata": {
+    "id": "uuid.8debfaca-7116-4b32-9378-b472ca64e823",
+    "reportType": "Sigmet",
+    "issueTimeUtc": "2012-08-10T12:00:00.0000000+00:00",
+    "reportStatus": "NORMAL",
+    "permissibleUsage": "OPERATIONAL"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "uuid.10f68782-703d-43a6-a4e5-af27469edc6e",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[-12, 54], [-12, 50], [-8, 50], [-8, 54], [-12, 54]]
+        ]
+      },
+      "properties": {
+        "featureType": "SIGMET_EVOLVING_VOLUME",
+        "reportId": "uuid.8debfaca-7116-4b32-9378-b472ca64e823",
+        "reportType": "Sigmet",
+        "issueTimeUtc": "2012-08-10T12:00:00.0000000+00:00",
+        "firDesignator": "YUDD",
+        "sequenceNumber": "2",
+        "phenomenonUri": "http://codes.wmo.int/49-2/SigWxPhenomena/OBSC_TS",
+        "upperLimit": 390,
+        "upperLimitUom": "FL",
+        "upperLimitReference": "STD",
+        "upperLimitFlightLevel": "FL390",
+        "intensityChange": "WEAKEN",
+        "directionOfMotionDegrees": 90,
+        "speedOfMotion": 20,
+        "speedOfMotionUom": "[kn_i]"
+      }
+    }
+  ]
+}
