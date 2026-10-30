@@ -34,7 +34,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             _options = options ?? IwxxmParserOptions.Default;
         }
 
-        public Result<IIwxxmReport> Map(Stream xmlStream)
+        public Result<IwxxmReport> Map(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
@@ -58,7 +58,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
             catch (XmlException ex)
             {
-                return Result<IIwxxmReport>.Failure(
+                return Result<IwxxmReport>.Failure(
                     "XML-MALFORMED",
                     ex.Message,
                     ErrorCategory.MalformedInput);
@@ -67,7 +67,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             XElement? root = doc.Root;
             if (root == null)
             {
-                return Result<IIwxxmReport>.Failure(
+                return Result<IwxxmReport>.Failure(
                     "XML-EMPTY-ROOT",
                     "The XML document does not contain a root element.",
                     ErrorCategory.MalformedInput);
@@ -83,7 +83,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             return MapElementToReport(root);
         }
 
-        private Result<IIwxxmReport> MapElementToReport(XElement root)
+        private Result<IwxxmReport> MapElementToReport(XElement root)
         {
             if (root.Name == CollectNs + "MeteorologicalBulletin")
             {
@@ -92,7 +92,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             if (root.Name.Namespace != IwxxmNs)
             {
-                return Result<IIwxxmReport>.Failure(
+                return Result<IwxxmReport>.Failure(
                     "XML-UNSUPPORTED-NAMESPACE",
                     $"Unsupported root namespace '{root.Name.NamespaceName}' on element '{root.Name.LocalName}'.",
                     ErrorCategory.Deserialization);
@@ -103,19 +103,19 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 return MapEmbeddedSigwx(root);
             }
 
-            if (IwxxmReportMapperRegistry.TryGetMapper(root.Name, out Func<XElement, Result<IIwxxmReport>> mapper))
+            if (IwxxmReportMapperRegistry.TryGetMapper(root.Name, out Func<XElement, Result<IwxxmReport>> mapper))
             {
                 return mapper(root);
             }
 
-            return Result<IIwxxmReport>.Failure(
+            return Result<IwxxmReport>.Failure(
                 "XML-UNSUPPORTED-REPORT",
                 $"Unsupported IWXXM 2025-2 root element '{root.Name.LocalName}'.",
                 ErrorCategory.Deserialization);
         }
 
         /// <summary>Maps a SIGWX report embedded in a bulletin through the SIGWX outbound port.</summary>
-        private Result<IIwxxmReport> MapEmbeddedSigwx(XElement root)
+        private Result<IwxxmReport> MapEmbeddedSigwx(XElement root)
         {
             using (var ms = new MemoryStream())
             {

@@ -14,12 +14,12 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// </summary>
     internal static class BulletinMapper
     {
-        public static Result<MeteorologicalBulletin> Map(XElement bulletinElem, Func<XElement, Result<IIwxxmReport>> mapReport)
+        public static Result<MeteorologicalBulletin> Map(XElement bulletinElem, Func<XElement, Result<IwxxmReport>> mapReport)
         {
             string id = GetGmlId(bulletinElem);
             string bulletinIdentifier = bulletinElem.Element(CollectNs + "bulletinIdentifier")?.Value ?? string.Empty;
 
-            var childResults = new List<Result<IIwxxmReport>>();
+            var childResults = new List<Result<IwxxmReport>>();
             var errors = new List<ValidationError>();
 
             foreach (XElement metInfo in bulletinElem.Elements(CollectNs + "meteorologicalInformation"))
@@ -28,7 +28,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 if (reportElem == null)
                     continue;
 
-                Result<IIwxxmReport> childResult = mapReport(reportElem);
+                Result<IwxxmReport> childResult = mapReport(reportElem);
                 childResults.Add(childResult);
                 if (childResult.IsFailure)
                 {

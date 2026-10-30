@@ -17,7 +17,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
     /// </remarks>
     internal sealed class Rfc7946GeoJsonExporter : IGeoJsonExporter
     {
-        public string Export(IIwxxmReport report, GeoJsonExportOptions options)
+        public string Export(IwxxmReport report, GeoJsonExportOptions options)
         {
             if (report == null)
                 throw new ArgumentNullException(nameof(report));

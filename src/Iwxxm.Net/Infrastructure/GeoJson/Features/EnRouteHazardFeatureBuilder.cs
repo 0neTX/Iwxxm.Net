@@ -45,7 +45,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
         }
 
         private static void AddVolumeFeatures(
-            IIwxxmReport report,
+            IwxxmReport report,
             string featureType,
             string? firDesignator,
             string? sequenceNumber,

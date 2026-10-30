@@ -53,7 +53,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
         {
             var childCollector = new GeoJsonFeatureCollector(bulletin.BulletinIdentifier);
             var features = new List<GeoJsonFeature>();
-            foreach (IIwxxmReport child in bulletin.Reports)
+            foreach (IwxxmReport child in bulletin.Reports)
             {
                 features.AddRange(child.Accept(childCollector));
             }

@@ -7,7 +7,7 @@ MeteorologicalBulletin {
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
   ReportResults = [
-    Result<IIwxxmReport> {
+    Result<IwxxmReport> {
       Errors = []
       IsFailure = false
       IsSuccess = true

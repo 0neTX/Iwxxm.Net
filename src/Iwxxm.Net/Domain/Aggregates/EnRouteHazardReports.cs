@@ -49,15 +49,15 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing an en-route Significant Meteorological Information report
     /// (<c>SIGMET</c>, <c>VolcanicAshSIGMET</c>, or <c>TropicalCycloneSIGMET</c>) under ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class SigmetReport : IIwxxmReport
+    public sealed class SigmetReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType { get; }
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType { get; }
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public string AtsUnitDesignator { get; }
         public string? AtsUnitName { get; }
         public string? MwoDesignator { get; }
@@ -73,11 +73,11 @@ namespace Iwxxm.Net.Reports
         public string? PhenomenonUri { get; }
         public bool IsCancelReport { get; }
         public string? CancelledReportSequenceNumber { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         public Volcano? EruptingVolcano { get; }
@@ -214,15 +214,15 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing an Airmen's Meteorological Information (<c>AIRMET</c>) report
     /// under ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class AirmetReport : IIwxxmReport
+    public sealed class AirmetReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.Airmet;
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.Airmet;
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public string AtsUnitDesignator { get; }
         public string? AtsUnitName { get; }
         public string? MwoDesignator { get; }
@@ -235,11 +235,11 @@ namespace Iwxxm.Net.Reports
         /// <summary>End of <c>validPeriod</c> (mandatory in <c>airmet.xsd</c>); <c>null</c> only when given by an unresolved <c>xlink:href</c>.</summary>
         public DateTimeOffset? ValidUntilUtc { get; }
         public string? PhenomenonUri { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         public IReadOnlyList<EnRoutePhenomenonVolume> EvolvingConditions { get; }

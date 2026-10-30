@@ -16,8 +16,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// </remarks>
     internal static class IwxxmReportMapperRegistry
     {
-        private static readonly Dictionary<XName, Func<XElement, Result<IIwxxmReport>>> Mappers =
-            new Dictionary<XName, Func<XElement, Result<IIwxxmReport>>>
+        private static readonly Dictionary<XName, Func<XElement, Result<IwxxmReport>>> Mappers =
+            new Dictionary<XName, Func<XElement, Result<IwxxmReport>>>
             {
                 [IwxxmNs + "METAR"] = root => Upcast(MetarSpeciMapper.Map(root, IwxxmReportType.Metar)),
                 [IwxxmNs + "SPECI"] = root => Upcast(MetarSpeciMapper.Map(root, IwxxmReportType.Speci)),
@@ -34,16 +34,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             };
 
         /// <summary>Finds the mapper registered for the root element name.</summary>
-        public static bool TryGetMapper(XName rootName, out Func<XElement, Result<IIwxxmReport>> mapper) =>
+        public static bool TryGetMapper(XName rootName, out Func<XElement, Result<IwxxmReport>> mapper) =>
             Mappers.TryGetValue(rootName, out mapper!);
 
-        /// <summary>Converts a typed mapping result into the polymorphic <see cref="IIwxxmReport"/> result.</summary>
-        public static Result<IIwxxmReport> Upcast<TReport>(Result<TReport> typedResult)
-            where TReport : class, IIwxxmReport
+        /// <summary>Converts a typed mapping result into the polymorphic <see cref="IwxxmReport"/> result.</summary>
+        public static Result<IwxxmReport> Upcast<TReport>(Result<TReport> typedResult)
+            where TReport : IwxxmReport
         {
             return typedResult.IsSuccess
-                ? Result<IIwxxmReport>.Success(typedResult.Value)
-                : Result<IIwxxmReport>.Failure(typedResult.Errors);
+                ? Result<IwxxmReport>.Success(typedResult.Value)
+                : Result<IwxxmReport>.Failure(typedResult.Errors);
         }
     }
 }

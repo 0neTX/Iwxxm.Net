@@ -7,7 +7,7 @@ using Xunit;
 namespace Iwxxm.Net.Tests
 {
     /// <summary>
-    /// Contract tests for <see cref="IIwxxmReportVisitor{TResult}"/> and <see cref="IIwxxmReport.Accept{TResult}"/>:
+    /// Contract tests for <see cref="IIwxxmReportVisitor{TResult}"/> and <see cref="IwxxmReport.Accept{TResult}"/>:
     /// every concrete report dispatches to the overload of its own type.
     /// </summary>
     public sealed class ReportVisitorTests
@@ -15,8 +15,8 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Visitor_DeclaresOneVisitOverloadPerConcreteReportType()
         {
-            var reportTypes = typeof(IIwxxmReport).Assembly.GetTypes()
-                .Where(t => t.IsClass && !t.IsAbstract && typeof(IIwxxmReport).IsAssignableFrom(t))
+            var reportTypes = typeof(IwxxmReport).Assembly.GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract && typeof(IwxxmReport).IsAssignableFrom(t))
                 .OrderBy(t => t.Name, StringComparer.Ordinal)
                 .ToList();
 

@@ -52,7 +52,7 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
         {
             IwxxmParser parser = new IwxxmParserBuilder().UseOfficialSchematron().Build();
 
-            Result<IIwxxmReport> result = parser.ProcessFile(Path.Combine(ExamplesDirectory, fileName));
+            Result<IwxxmReport> result = parser.ProcessFile(Path.Combine(ExamplesDirectory, fileName));
 
             Assert.True(result.IsSuccess, $"{fileName}: " + string.Join(" | ", result.Errors));
         }
@@ -74,7 +74,7 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
             string invalid = ReplaceOnce(xml, "<iwxxm:qnh uom=\"hPa\">", "<iwxxm:qnh uom=\"mbar\">");
             IwxxmParser parser = new IwxxmParserBuilder().UseOfficialSchematron().Build();
 
-            Result<IIwxxmReport> result = parser.Process(invalid);
+            Result<IwxxmReport> result = parser.Process(invalid);
 
             Assert.True(result.IsFailure);
             ValidationError error = Assert.Single(result.Errors);
@@ -91,7 +91,7 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
             // Demonstrates the coverage gap the optional package closes (the default XSLT 1.0 subset has 11 of 165 rules).
             string invalid = ReplaceOnce(ReadExample("metar-A3-1.xml"), "<iwxxm:qnh uom=\"hPa\">", "<iwxxm:qnh uom=\"mbar\">");
 
-            Result<IIwxxmReport> result = new IwxxmParserBuilder().Build().Process(invalid);
+            Result<IwxxmReport> result = new IwxxmParserBuilder().Build().Process(invalid);
 
             Assert.DoesNotContain(result.Errors, e => e.Code == "METAR_SPECI.MeteorologicalAerodromeObservation-5");
         }
@@ -272,7 +272,7 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
                 .UseOfficialSchematron()
                 .Build();
 
-            Result<IIwxxmReport> result = parser.ProcessFile(Path.Combine(ExamplesDirectory, "metar-A3-1.xml"));
+            Result<IwxxmReport> result = parser.ProcessFile(Path.Combine(ExamplesDirectory, "metar-A3-1.xml"));
 
             Assert.Contains(result.Errors, e => e.Code == OfficialSchematronValidator.MalformedInputCode);
         }

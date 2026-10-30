@@ -38,15 +38,15 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing a Volcano Observatory Notice for Aviation (<c>VONA</c>)
     /// under ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class VonaReport : IIwxxmReport
+    public sealed class VonaReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.VolcanoObservatoryNotice;
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.VolcanoObservatoryNotice;
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public string OriginatingCentre { get; }
         public string? OriginatingCentreDesignator { get; }
         public string? StateOrRegion { get; }
@@ -56,11 +56,11 @@ namespace Iwxxm.Net.Reports
         public string? Contacts { get; }
         public string? Remarks { get; }
         public string? NextNotice { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         public IReadOnlyList<Volcano> Volcanoes { get; }
@@ -168,24 +168,24 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing Quantitative Volcanic Ash Concentration Information (<c>QVACI</c>),
     /// introduced in ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class QvaciReport : IIwxxmReport
+    public sealed class QvaciReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.QuantitativeVolcanicAshConcentration;
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.QuantitativeVolcanicAshConcentration;
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public string OriginatingCentre { get; }
         public string? OriginatingCentreDesignator { get; }
         public DateTimeOffset? DispersionModelInitialisationTimeUtc { get; }
         public string? Remarks { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         public IReadOnlyList<Volcano> Volcanoes { get; }
@@ -272,15 +272,15 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing a Volcanic Ash Advisory (<c>VolcanicAshAdvisory</c>)
     /// under ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class VolcanicAshAdvisoryReport : IIwxxmReport
+    public sealed class VolcanicAshAdvisoryReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.VolcanicAshAdvisory;
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.VolcanicAshAdvisory;
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public string IssuingVaacName { get; }
         public Volcano? Volcano { get; }
         public string? StateOrRegion { get; }
@@ -290,11 +290,11 @@ namespace Iwxxm.Net.Reports
         public string? EruptionDetails { get; }
         public string? Remarks { get; }
         public DateTimeOffset? NextAdvisoryTimeUtc { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         public IReadOnlyList<EnRoutePhenomenonVolume> ObservedAshClouds { get; }
@@ -428,15 +428,15 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing a Tropical Cyclone Advisory (<c>TropicalCycloneAdvisory</c>)
     /// under ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class TropicalCycloneAdvisoryReport : IIwxxmReport
+    public sealed class TropicalCycloneAdvisoryReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.TropicalCycloneAdvisory;
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.TropicalCycloneAdvisory;
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public string IssuingTcacDesignator { get; }
         public string? CycloneName { get; }
         public string? AdvisoryNumber { get; }
@@ -444,11 +444,11 @@ namespace Iwxxm.Net.Reports
         public IReadOnlyList<TropicalCycloneTrackPoint> Forecasts { get; }
         public string? Remarks { get; }
         public DateTimeOffset? NextAdvisoryTimeUtc { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         private TropicalCycloneAdvisoryReport(
@@ -570,15 +570,15 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing a Space Weather Advisory (<c>SpaceWeatherAdvisory</c>)
     /// under ICAO/WMO IWXXM 2025-2.
     /// </summary>
-    public sealed class SpaceWeatherAdvisoryReport : IIwxxmReport
+    public sealed class SpaceWeatherAdvisoryReport : IwxxmReport
     {
-        public string Id { get; }
-        public IwxxmReportType ReportType => IwxxmReportType.SpaceWeatherAdvisory;
-        public DateTimeOffset IssueTimeUtc { get; }
-        public ReportStatus ReportStatus { get; }
-        public PermissibleUsage PermissibleUsage { get; }
-        public PermissibleUsageReason? PermissibleUsageReason { get; }
-        public string? PermissibleUsageSupplementary { get; }
+        public override string Id { get; }
+        public override IwxxmReportType ReportType => IwxxmReportType.SpaceWeatherAdvisory;
+        public override DateTimeOffset IssueTimeUtc { get; }
+        public override ReportStatus ReportStatus { get; }
+        public override PermissibleUsage PermissibleUsage { get; }
+        public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        public override string? PermissibleUsageSupplementary { get; }
         public string IssuingSwxcName { get; }
         public string? AdvisoryNumber { get; }
         public IReadOnlyList<string> ReplacedAdvisoryNumbers { get; }
@@ -586,11 +586,11 @@ namespace Iwxxm.Net.Reports
         public IReadOnlyList<SpaceWeatherAnalysisRegion> Analyses { get; }
         public string? Remarks { get; }
         public DateTimeOffset? NextAdvisoryTimeUtc { get; }
-        public bool IsTranslationFailed { get; }
-        public string? TranslationFailedTac { get; }
+        public override bool IsTranslationFailed { get; }
+        public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
-        public TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         private SpaceWeatherAdvisoryReport(
