@@ -128,5 +128,9 @@ namespace Iwxxm.Net.Reports
                 return hash;
             }
         }
+
+        public static bool operator ==(Cloud? left, Cloud? right) => Equals(left, right);
+
+        public static bool operator !=(Cloud? left, Cloud? right) => !Equals(left, right);
     }
 }

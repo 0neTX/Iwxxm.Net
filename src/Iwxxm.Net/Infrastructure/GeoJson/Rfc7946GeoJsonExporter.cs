@@ -7,7 +7,7 @@ using Iwxxm.Net.Reports;
 namespace Iwxxm.Net.Infrastructure.GeoJson
 {
     /// <summary>
-    /// Zero-dependency RFC 7946 GeoJSON exporter for all ICAO/WMO IWXXM 2025-2 Domain Aggregate Roots.
+    /// Zero-dependency RFC 7946 GeoJSON exporter for every mapped document (IWXXM 2025-2 reports and COLLECT bulletins).
     /// Translates Domain spatial primitives (<see cref="GeoCoordinate"/>, <see cref="GeoPolygon"/> with interior holes,
     /// <see cref="VerticalLimit"/>) into RFC 7946 <c>FeatureCollection</c> JSON with <c>[longitude, latitude]</c> axis order.
     /// </summary>
@@ -17,13 +17,13 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
     /// </remarks>
     internal sealed class Rfc7946GeoJsonExporter : IGeoJsonExporter
     {
-        public string Export(IwxxmReport report, GeoJsonExportOptions options)
+        public string Export(IwxxmDocument document, GeoJsonExportOptions options)
         {
-            if (report == null)
-                throw new ArgumentNullException(nameof(report));
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
 
-            IReadOnlyList<GeoJsonFeature> features = report.Accept(new GeoJsonFeatureCollector());
-            return GeoJsonFeatureCollectionWriter.Write(report, features, options ?? GeoJsonExportOptions.Default);
+            IReadOnlyList<GeoJsonFeature> features = document.Accept(new GeoJsonFeatureCollector());
+            return GeoJsonFeatureCollectionWriter.Write(document, features, options ?? GeoJsonExportOptions.Default);
         }
     }
 }

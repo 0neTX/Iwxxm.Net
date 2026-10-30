@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Infrastructure.Mapping.Xml;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
@@ -8,10 +9,10 @@ using static Iwxxm.Net.Infrastructure.Mapping.Xml.XmlValueReader;
 
 namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 {
-    /// <summary>Maps <c>iwxxm:AIRMET</c> (<c>airmet.xsd</c>) onto <see cref="AirmetReport"/>.</summary>
+    /// <summary>Maps <c>iwxxm:AIRMET</c> (<c>airmet.xsd</c>) onto <see cref="Airmet"/>.</summary>
     internal static class AirmetMapper
     {
-        public static Result<AirmetReport> Map(XElement root)
+        public static Result<Airmet> Map(XElement root)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -25,7 +26,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             // validPeriod is mandatory (airmet.xsd): absent -> mapping error; xlink:href only -> null (unresolved).
             GmlTimeReader.ReadPeriod(root.Element(IwxxmNs + "validPeriod"), "validPeriod", MappingErrors.ValidPeriodMissingCode, id, errors, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
-            string? phenomenonUri = GetHref(root.Element(IwxxmNs + "phenomenon"));
+            CodeListValue<AirmetPhenomenon>? phenomenon = CodeListTables.AirmetPhenomena.Translate(GetHref(root.Element(IwxxmNs + "phenomenon")));
 
             var evolvingConditions = new List<EnRoutePhenomenonVolume>();
             XElement? evolvingCol = root
@@ -35,10 +36,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             if (errors.Count > 0)
             {
-                return Result<AirmetReport>.Failure(errors);
+                return Result<Airmet>.Failure(errors);
             }
 
-            return AirmetReport.Create(
+            return Airmet.Create(
                 id,
                 header.IssueTime,
                 header.Metadata.Status,
@@ -51,7 +52,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 seqNumber,
                 validFrom,
                 validUntil,
-                phenomenonUri,
+                phenomenon,
                 header.IsTranslationFailed,
                 header.FailedTac,
                 evolvingConditions,

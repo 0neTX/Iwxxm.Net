@@ -1,4 +1,4 @@
-SignificantWeatherReport {
+Sigwx {
   AirframeIcings = [
     AirframeIcing {
       Area = GeoPolygon {

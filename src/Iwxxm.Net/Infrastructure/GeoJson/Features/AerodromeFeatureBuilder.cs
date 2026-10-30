@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.GeoJson.GeoJsonProperties;
 
@@ -8,7 +10,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
     internal static class AerodromeFeatureBuilder
     {
         public static void AddAerodromeObservationFeature(
-            AerodromeWeatherReport report,
+            AerodromeObservation report,
             string? bulletinId,
             List<GeoJsonFeature> features)
         {
@@ -29,9 +31,10 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 AddSpeed(props, "windSpeed", report.SurfaceWind.MeanSpeed);
                 AddSpeed(props, "windGust", report.SurfaceWind.GustSpeed);
             }
-            if (report.PresentWeatherUris.Count > 0)
+            if (report.PresentWeather.Count > 0)
             {
-                props.Add(("presentWeatherUris", report.PresentWeatherUris));
+                // Linked-Data output: the original code-list references are rebuilt from the Domain codes.
+                props.Add(("presentWeatherUris", report.PresentWeather.Select(AerodromeWeatherCodeList.ToReference).ToList()));
             }
 
             features.Add(report.AerodromePosition.HasValue
@@ -40,7 +43,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
         }
 
         public static void AddTafFeature(
-            TafReport taf,
+            Taf taf,
             string? bulletinId,
             List<GeoJsonFeature> features)
         {

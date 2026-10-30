@@ -91,7 +91,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 : ReadFixedUnit(measureElem.Value, measureElem.Attribute("uom")?.Value, requiredUom, Describe(measureElem, context), errors);
 
         // ---------------------------------------------------------------------
-        // Raw string overloads (also used for the SIGWX transport DTOs in Mapping/Sigwx)
+        // Raw string overloads (also used for the SIGWX transport DTOs in Mapping/Wafs)
         // ---------------------------------------------------------------------
 
         public static Speed? ReadSpeed(string? rawValue, string? uom, string location, List<ValidationError> errors)

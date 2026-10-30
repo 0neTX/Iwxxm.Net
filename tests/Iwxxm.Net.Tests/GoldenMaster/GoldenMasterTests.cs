@@ -66,7 +66,7 @@ namespace Iwxxm.Net.Tests.GoldenMaster
             AssertReportMatchesGoldens("sigwx", sampleName, result.Value);
         }
 
-        private static void AssertReportMatchesGoldens(string family, string sampleName, IwxxmReport report)
+        private static void AssertReportMatchesGoldens(string family, string sampleName, IwxxmDocument report)
         {
             string stem = Path.GetFileNameWithoutExtension(sampleName);
 

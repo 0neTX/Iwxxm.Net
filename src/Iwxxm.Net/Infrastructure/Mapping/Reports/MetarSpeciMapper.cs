@@ -8,10 +8,43 @@ using static Iwxxm.Net.Infrastructure.Mapping.Xml.XmlValueReader;
 
 namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 {
-    /// <summary>Maps <c>iwxxm:METAR</c> and <c>iwxxm:SPECI</c> (<c>metarSpeci.xsd</c>) onto <see cref="AerodromeWeatherReport"/>.</summary>
+    /// <summary>
+    /// Maps <c>iwxxm:METAR</c> and <c>iwxxm:SPECI</c> (<c>metarSpeci.xsd</c>, one shared XML type) onto <see cref="Metar"/>
+    /// or <see cref="Speci"/>: the mapping is written once and the concrete aggregate is chosen by the factory passed in.
+    /// </summary>
     internal static class MetarSpeciMapper
     {
-        public static Result<AerodromeWeatherReport> Map(XElement root, IwxxmReportType reportType)
+        /// <summary>Signature shared by <see cref="Metar.Create"/> and <see cref="Speci.Create"/>.</summary>
+        internal delegate Result<TObservation> ObservationFactory<TObservation>(
+            string id,
+            DateTimeOffset issueTimeUtc,
+            DateTimeOffset? observationTimeUtc,
+            ReportStatus reportStatus,
+            PermissibleUsage permissibleUsage,
+            bool isAutomatedStation,
+            string aerodromeDesignator,
+            string? aerodromeName,
+            GeoCoordinate? aerodromePosition,
+            bool isNilObservation,
+            string? observationNilReason,
+            bool isTranslationFailed,
+            string? translationFailedTac,
+            bool cloudAndVisibilityOk,
+            double? airTemperatureCelsius,
+            double? dewpointTemperatureCelsius,
+            double? qnhHpa,
+            SurfaceWind? surfaceWind,
+            double? prevailingVisibilityMeters,
+            IEnumerable<RunwayVisualRange>? runwayVisualRanges,
+            IEnumerable<AerodromeWeather>? presentWeather,
+            IEnumerable<AerodromeCloudLayer>? cloudLayers,
+            IEnumerable<AerodromeForecastGroup>? trendForecasts,
+            PermissibleUsageReason? permissibleUsageReason,
+            string? permissibleUsageSupplementary)
+            where TObservation : AerodromeObservation;
+
+        public static Result<TObservation> Map<TObservation>(XElement root, ObservationFactory<TObservation> create)
+            where TObservation : AerodromeObservation
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -40,11 +73,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             double? airTemp = null;
             double? dewpoint = null;
             double? qnh = null;
-            SurfaceWindInfo? surfaceWind = null;
+            SurfaceWind? surfaceWind = null;
             double? visibility = null;
-            var rvrs = new List<RunwayVisualRangeInfo>();
-            var presentWeather = new List<string>();
-            var cloudLayers = new List<AerodromeCloudLayerInfo>();
+            var rvrs = new List<RunwayVisualRange>();
+            var presentWeather = new List<AerodromeWeather>();
+            var cloudLayers = new List<AerodromeCloudLayer>();
 
             if (obsElem != null)
             {
@@ -62,11 +95,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                     errors);
 
                 ReadRunwayVisualRanges(obsElem, rvrs, id, errors);
-                presentWeather = CollectHrefs(obsElem.Elements(IwxxmNs + "presentWeather"));
+                presentWeather = AerodromeConditionsReader.ReadWeather(obsElem.Elements(IwxxmNs + "presentWeather"));
                 AerodromeConditionsReader.ReadCloudLayers(obsElem.Element(IwxxmNs + "cloud"), cloudLayers, id, errors);
             }
 
-            var trends = new List<AerodromeForecastGroupInfo>();
+            var trends = new List<AerodromeForecastGroup>();
             foreach (XElement trendProp in root.Elements(IwxxmNs + "trendForecast"))
             {
                 XElement? trendElem = trendProp.Element(IwxxmNs + "MeteorologicalAerodromeTrendForecast");
@@ -78,12 +111,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             if (errors.Count > 0)
             {
-                return Result<AerodromeWeatherReport>.Failure(errors);
+                return Result<TObservation>.Failure(errors);
             }
 
-            return AerodromeWeatherReport.Create(
+            return create(
                 id,
-                reportType,
                 header.IssueTime,
                 obsTime,
                 header.Metadata.Status,
@@ -110,7 +142,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 header.Metadata.Supplementary);
         }
 
-        private static void ReadRunwayVisualRanges(XElement obsElem, List<RunwayVisualRangeInfo> target, string id, List<ValidationError> errors)
+        private static void ReadRunwayVisualRanges(XElement obsElem, List<RunwayVisualRange> target, string id, List<ValidationError> errors)
         {
             foreach (XElement rvrProp in obsElem.Elements(IwxxmNs + "rvr"))
             {
@@ -126,7 +158,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                     ?.Element(AixmNs + "designator"));
                 double? meanRvr = UomMeasureReader.ReadFixedUnit(rvrElem.Element(IwxxmNs + "meanRVR"), UcumUnits.Meter, id, errors);
                 string? tendency = rvrElem.Attribute("pastTendency")?.Value;
-                target.Add(new RunwayVisualRangeInfo(rwyDesig, meanRvr, tendency));
+                target.Add(new RunwayVisualRange(rwyDesig, meanRvr, tendency));
             }
         }
     }

@@ -14,7 +14,7 @@ Thank you for contributing to the **Iwxxm** .NET library! This document outlines
 
 ## Local Development Setup
 
-1. **Restore local .NET tools** (installs `dotnet-xscgen` from [`.config/dotnet-tools.json`](.config/dotnet-tools.json)):
+1. **Restore local .NET tools** (installs `dotnet-xscgen` from [`.config/dotnet-tools.json`](.config/dotnet-tools.json), used only by the optional reference scaffold described below):
    ```bash
    dotnet tool restore
    ```
@@ -37,17 +37,15 @@ Thank you for contributing to the **Iwxxm** .NET library! This document outlines
 
 ---
 
-## Regenerating XSD Classes
+## SIGWX Transport Model (hand-maintained)
 
-The internal transport classes in `Iwxxm20252.Generated` are generated from the hand-written, NON-STANDARD legacy schema subset under `src/Iwxxm.Net/Resources/Xsd/Legacy/`. Regenerate them whenever those files change:
+The internal transport classes in `Iwxxm20252.Generated` (`src/Iwxxm.Net/Infrastructure/Generated/Iwxxm20252.Generated.cs`) follow the hand-written, NON-STANDARD legacy schema subset under `src/Iwxxm.Net/Resources/Xsd/Legacy/`, but they are **maintained by hand**: they contain code that no generator reproduces, and no build target regenerates them. When the legacy schemas change, edit the file by hand. To compare against a fresh generator scaffold, run:
 
 ```bash
 ./tools/generate-xsd-classes.sh
 ```
-Or via MSBuild:
-```bash
-dotnet build src/Iwxxm.Net/Iwxxm.Net.csproj -p:RegenerateXsdClasses=true
-```
+
+It writes the raw `xscgen` output to `artifacts/xscgen-reference/` (git-ignored) and never touches the hand-maintained file. The file name and namespace are historical; Roslyn still treats `*.Generated.cs` files as generated code, so analyzers skip it.
 
 The official WMO IWXXM 2025-2 schemas and their imports (`src/Iwxxm.Net/Resources/Xsd/Official/`) and the official RDF code lists (`src/Iwxxm.Net/Resources/Codelists/`) are byte-identical copies of [wmo-im/iwxxm](https://github.com/wmo-im/iwxxm) (`IWXXM/`, `externalSchema/`, `IWXXM/rule/*.rdf`). Never edit them; to upgrade, copy the new upstream files unchanged, keeping their relative paths, and include only the files reachable from `iwxxm.xsd` / `iwxxm-collect.xsd`.
 
@@ -80,9 +78,9 @@ Further rules:
 
 IWXXM 2025-2 defines a closed catalog of report types, so extension points are static (no reflection or plug-ins). Each report family is isolated in its own files so that a change to one family cannot regress another:
 
-1. **Domain**: add the aggregate in `Domain/Aggregates` (namespace `Iwxxm.Net.Reports`) as a `sealed` class deriving from `IwxxmReport` (the hierarchy is closed: its constructor is `private protected`, so only this assembly can add report types), override the abstract members, implement `Accept<TResult>` as `visitor.Visit(this)`, and add a `Visit` overload to `IIwxxmReportVisitor<TResult>`. Every visitor (including `GeoJsonFeatureCollector`) then fails to compile until it handles the new type.
+1. **Domain**: add the aggregate in `Domain/Aggregates` (namespace `Iwxxm.Net.Reports`) as a `sealed` class deriving from `IwxxmReport` (the hierarchy under the closed root `IwxxmDocument` is closed: every abstract type has a `private protected` constructor, so only this assembly can add document types; `MeteorologicalBulletin` is the only non-report branch), override the abstract members, implement `Accept<TResult>` as `visitor.Visit(this)`, and add a `Visit` overload to `IIwxxmDocumentVisitor<TResult>`. Use the operational name of the report (`Metar`, `Taf`, `Sigmet`, ...; no `Report` suffix) and put its value objects in `Domain/ValueObjects` with structural equality (`IEquatable<T>`, `==`/`!=`). Code-list references are translated in `Infrastructure/Mapping/CodeLists` into `CodeListValue<TCode>` (table checked against the embedded official RDF by `CodeListTranslationTests`), never stored as URIs. Every visitor (including `GeoJsonFeatureCollector`) then fails to compile until it handles the new type.
 2. **Mapping (LINQ to XML)**: add `Infrastructure/Mapping/Reports/<Family>Mapper.cs` with a static `Map(XElement root)` that starts with `ReportHeader.Read(root, errors)` and reuses the shared readers in `Infrastructure/Mapping/Xml` (`GmlTimeReader`, `GmlGeometryReader`, `AixmFeatureReader`, `XmlValueReader`, `MappingErrors`, `UcumUnits`) and `UomMeasureReader` / `VerticalLimitReader`. Register the root element QName in `IwxxmReportMapperRegistry`; `IwxxmSuiteMapper` stays a thin composite (document loading, SIGWX and bulletin dispatch).
-3. **SIGWX phenomena**: add or change the extractor of the phenomenon family in `Infrastructure/Mapping/Sigwx` and, for WAFS features, its phenomenon suffix in the `WafsForecastMapper` table.
+3. **SIGWX phenomena**: add or change the extractor of the phenomenon family in `Infrastructure/Mapping/Wafs` and, for WAFS features, its phenomenon suffix in the `WafsForecastMapper` table.
 4. **GeoJSON**: add `Infrastructure/GeoJson/Features/<Family>FeatureBuilder.cs` (build properties with `GeoJsonProperties`, return `GeoJsonFeature` instances) and call it from the new `Visit` overload of `GeoJsonFeatureCollector`. The JSON writers in `Infrastructure/GeoJson/Writing` are shared and should not need changes.
 5. Add an official example to `tests/Iwxxm.Net.Tests/Samples/wmo-examples` (byte-identical) and generate its golden files (below).
 

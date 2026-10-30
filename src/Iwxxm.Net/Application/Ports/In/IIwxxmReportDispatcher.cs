@@ -13,8 +13,8 @@ namespace Iwxxm.Net
         /// Validates and parses a stream containing any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c>.
         /// </summary>
         /// <param name="xmlStream">Readable stream containing the IWXXM 2025-2 or Collect document.</param>
-        /// <returns>A <see cref="Result{IwxxmReport}"/> containing the mapped Domain Aggregate Root or structured validation errors.</returns>
-        Result<IwxxmReport> Process(Stream xmlStream);
+        /// <returns>A <see cref="Result{IwxxmDocument}"/> containing the mapped Domain Aggregate Root or structured validation errors.</returns>
+        Result<IwxxmDocument> Process(Stream xmlStream);
 
         /// <summary>
         /// Validates and unwraps a SWIM <c>collect:MeteorologicalBulletin</c> stream into a <see cref="MeteorologicalBulletin"/> aggregate.

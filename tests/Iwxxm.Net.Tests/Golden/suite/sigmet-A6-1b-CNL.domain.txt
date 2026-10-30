@@ -1,4 +1,4 @@
-SigmetReport {
+Sigmet {
   AtsUnitDesignator = "YUDD"
   AtsUnitName = "YUDD FIC"
   CancelledReportSequenceNumber = "2"
@@ -15,7 +15,7 @@ SigmetReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PhenomenonUri = null
+  Phenomenon = null
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Sigmet
   SequenceNumber = "3"

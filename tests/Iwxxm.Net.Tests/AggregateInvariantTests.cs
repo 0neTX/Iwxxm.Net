@@ -21,40 +21,40 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Sigmet_InvertedOrEmptyValidPeriod_IsRejected()
         {
-            AssertError(Sigmet(validFrom: T1, validUntil: T0), "DOMAIN-SIGMET-VALID-PERIOD");
-            AssertError(Sigmet(validFrom: T0, validUntil: T0), "DOMAIN-SIGMET-VALID-PERIOD");
-            Assert.True(Sigmet(validFrom: T0, validUntil: T1).IsSuccess);
-            Assert.True(Sigmet(validFrom: null, validUntil: null).IsSuccess); // period given by unresolved reference
+            AssertError(CreateSigmet(validFrom: T1, validUntil: T0), "DOMAIN-SIGMET-VALID-PERIOD");
+            AssertError(CreateSigmet(validFrom: T0, validUntil: T0), "DOMAIN-SIGMET-VALID-PERIOD");
+            Assert.True(CreateSigmet(validFrom: T0, validUntil: T1).IsSuccess);
+            Assert.True(CreateSigmet(validFrom: null, validUntil: null).IsSuccess); // period given by unresolved reference
         }
 
         [Fact]
         public void Airmet_InvertedValidPeriod_IsRejected()
         {
-            AssertError(Airmet(atsUnit: "YUDD", validFrom: T1, validUntil: T0), "DOMAIN-AIRMET-VALID-PERIOD");
-            Assert.True(Airmet(atsUnit: "YUDD", validFrom: T0, validUntil: T1).IsSuccess);
+            AssertError(CreateAirmet(atsUnit: "YUDD", validFrom: T1, validUntil: T0), "DOMAIN-AIRMET-VALID-PERIOD");
+            Assert.True(CreateAirmet(atsUnit: "YUDD", validFrom: T0, validUntil: T1).IsSuccess);
         }
 
         [Fact]
         public void Airmet_EmptyAtsUnit_IsRejectedLikeSigmet()
         {
-            AssertError(Airmet(atsUnit: " ", validFrom: T0, validUntil: T1), "DOMAIN-AIRMET-ATS-UNIT");
-            AssertError(Sigmet(validFrom: T0, validUntil: T1, atsUnit: ""), "DOMAIN-SIGMET-ATS-UNIT");
+            AssertError(CreateAirmet(atsUnit: " ", validFrom: T0, validUntil: T1), "DOMAIN-AIRMET-ATS-UNIT");
+            AssertError(CreateSigmet(validFrom: T0, validUntil: T1, atsUnit: ""), "DOMAIN-SIGMET-ATS-UNIT");
         }
 
         [Fact]
         public void Taf_InvertedValidAndCancelledPeriods_AreRejected()
         {
-            AssertError(TafReport.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, validFromUtc: T1, validUntilUtc: T0), "DOMAIN-TAF-VALID-PERIOD");
-            AssertError(TafReport.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, isCancelReport: true, cancelledReportValidFromUtc: T1, cancelledReportValidUntilUtc: T0), "DOMAIN-TAF-CANCELLED-VALID-PERIOD");
+            AssertError(Taf.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, validFromUtc: T1, validUntilUtc: T0), "DOMAIN-TAF-VALID-PERIOD");
+            AssertError(Taf.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, isCancelReport: true, cancelledReportValidFromUtc: T1, cancelledReportValidUntilUtc: T0), "DOMAIN-TAF-CANCELLED-VALID-PERIOD");
         }
 
         [Fact]
         public void ForecastGroup_InvertedPeriod_IsRejected()
         {
-            var group = new AerodromeForecastGroupInfo("g1", "BECOMING", false, T1, T0, null, null, null);
+            var group = new AerodromeForecastGroup("g1", "BECOMING", false, T1, T0, null, null, null);
 
-            AssertError(TafReport.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, baseForecast: group), "DOMAIN-FORECAST-GROUP-PERIOD");
-            AssertError(Metar(trend: group), "DOMAIN-FORECAST-GROUP-PERIOD");
+            AssertError(Taf.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, baseForecast: group), "DOMAIN-FORECAST-GROUP-PERIOD");
+            AssertError(CreateMetar(trend: group), "DOMAIN-FORECAST-GROUP-PERIOD");
         }
 
         // ---------------------------------------------------------------------
@@ -66,22 +66,22 @@ namespace Iwxxm.Net.Tests
         {
             DateTimeOffset local = new DateTimeOffset(2026, 3, 1, 14, 0, 0, TimeSpan.FromHours(2));
 
-            AssertError(Metar(issueTime: local), "DOMAIN-TIME-NOT-UTC");
-            AssertError(Metar(observationTime: local), "DOMAIN-TIME-NOT-UTC");
-            AssertError(Sigmet(validFrom: local, validUntil: T1), "DOMAIN-TIME-NOT-UTC");
-            AssertError(TafReport.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, validFromUtc: T0, validUntilUtc: local.AddDays(1)), "DOMAIN-TIME-NOT-UTC");
-            AssertError(VonaReport.Create("v1", local, ReportStatus.Normal, PermissibleUsage.Operational, "KVERT"), "DOMAIN-TIME-NOT-UTC");
-            AssertError(QvaciReport.Create("q1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "Darwin", dispersionModelInitialisationTimeUtc: local), "DOMAIN-TIME-NOT-UTC");
-            AssertError(VolcanicAshAdvisoryReport.Create("a1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "TOKYO", nextAdvisoryTimeUtc: local), "DOMAIN-TIME-NOT-UTC");
-            AssertError(TropicalCycloneAdvisoryReport.Create("c1", local, ReportStatus.Normal, PermissibleUsage.Operational, "YUFO"), "DOMAIN-TIME-NOT-UTC");
-            AssertError(SpaceWeatherAdvisoryReport.Create("s1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "DONLON", nextAdvisoryTimeUtc: local), "DOMAIN-TIME-NOT-UTC");
+            AssertError(CreateMetar(issueTime: local), "DOMAIN-TIME-NOT-UTC");
+            AssertError(CreateMetar(observationTime: local), "DOMAIN-TIME-NOT-UTC");
+            AssertError(CreateSigmet(validFrom: local, validUntil: T1), "DOMAIN-TIME-NOT-UTC");
+            AssertError(Taf.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, validFromUtc: T0, validUntilUtc: local.AddDays(1)), "DOMAIN-TIME-NOT-UTC");
+            AssertError(Vona.Create("v1", local, ReportStatus.Normal, PermissibleUsage.Operational, "KVERT"), "DOMAIN-TIME-NOT-UTC");
+            AssertError(Qvaci.Create("q1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "Darwin", dispersionModelInitialisationTimeUtc: local), "DOMAIN-TIME-NOT-UTC");
+            AssertError(Vaa.Create("a1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "TOKYO", nextAdvisoryTimeUtc: local), "DOMAIN-TIME-NOT-UTC");
+            AssertError(Tca.Create("c1", local, ReportStatus.Normal, PermissibleUsage.Operational, "YUFO"), "DOMAIN-TIME-NOT-UTC");
+            AssertError(SpaceWx.Create("s1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "DONLON", nextAdvisoryTimeUtc: local), "DOMAIN-TIME-NOT-UTC");
         }
 
         [Fact]
         public void DefaultIssueTime_IsRejectedAsMissing()
         {
-            AssertError(Metar(issueTime: default(DateTimeOffset)), "DOMAIN-ISSUE-TIME-MISSING");
-            AssertError(VonaReport.Create("v1", DateTimeOffset.MinValue, ReportStatus.Normal, PermissibleUsage.Operational, "KVERT"), "DOMAIN-ISSUE-TIME-MISSING");
+            AssertError(CreateMetar(issueTime: default(DateTimeOffset)), "DOMAIN-ISSUE-TIME-MISSING");
+            AssertError(Vona.Create("v1", DateTimeOffset.MinValue, ReportStatus.Normal, PermissibleUsage.Operational, "KVERT"), "DOMAIN-ISSUE-TIME-MISSING");
         }
 
         // ---------------------------------------------------------------------
@@ -93,25 +93,25 @@ namespace Iwxxm.Net.Tests
         [InlineData(360.5)]
         public void WindDirectionOutside0To360_IsRejected(double direction)
         {
-            var wind = new SurfaceWindInfo(false, direction, new Speed(5, SpeedUnit.Knots));
+            var wind = new SurfaceWind(false, direction, new Speed(5, SpeedUnit.Knots));
 
-            AssertError(Metar(wind: wind), "DOMAIN-DIRECTION-OUT-OF-RANGE");
+            AssertError(CreateMetar(wind: wind), "DOMAIN-DIRECTION-OUT-OF-RANGE");
         }
 
         [Fact]
         public void WindDirectionAtBounds_IsAccepted()
         {
-            Assert.True(Metar(wind: new SurfaceWindInfo(false, 0, new Speed(5, SpeedUnit.Knots))).IsSuccess);
-            Assert.True(Metar(wind: new SurfaceWindInfo(false, 360, new Speed(5, SpeedUnit.Knots))).IsSuccess);
+            Assert.True(CreateMetar(wind: new SurfaceWind(false, 0, new Speed(5, SpeedUnit.Knots))).IsSuccess);
+            Assert.True(CreateMetar(wind: new SurfaceWind(false, 360, new Speed(5, SpeedUnit.Knots))).IsSuccess);
         }
 
         [Fact]
         public void NegativeSpeedsVisibilityAndRvr_AreRejected()
         {
-            AssertError(Metar(wind: new SurfaceWindInfo(false, 90, new Speed(-1, SpeedUnit.MetersPerSecond))), "DOMAIN-NEGATIVE-SPEED");
-            AssertError(Metar(wind: new SurfaceWindInfo(false, 90, new Speed(5, SpeedUnit.Knots), new Speed(-3, SpeedUnit.Knots))), "DOMAIN-NEGATIVE-SPEED");
-            AssertError(Metar(visibility: -50), "DOMAIN-NEGATIVE-VISIBILITY");
-            AssertError(Metar(rvr: new RunwayVisualRangeInfo("27", -10)), "DOMAIN-NEGATIVE-RVR");
+            AssertError(CreateMetar(wind: new SurfaceWind(false, 90, new Speed(-1, SpeedUnit.MetersPerSecond))), "DOMAIN-NEGATIVE-SPEED");
+            AssertError(CreateMetar(wind: new SurfaceWind(false, 90, new Speed(5, SpeedUnit.Knots), new Speed(-3, SpeedUnit.Knots))), "DOMAIN-NEGATIVE-SPEED");
+            AssertError(CreateMetar(visibility: -50), "DOMAIN-NEGATIVE-VISIBILITY");
+            AssertError(CreateMetar(rvr: new RunwayVisualRange("27", -10)), "DOMAIN-NEGATIVE-RVR");
         }
 
         [Fact]
@@ -120,8 +120,8 @@ namespace Iwxxm.Net.Tests
             var badDirection = new EnRoutePhenomenonVolume("c1", null, null, null, null, 400, null);
             var badSpeed = new EnRoutePhenomenonVolume("c2", null, null, null, null, 90, new Speed(-5, SpeedUnit.Knots));
 
-            AssertError(Sigmet(validFrom: T0, validUntil: T1, volume: badDirection), "DOMAIN-DIRECTION-OUT-OF-RANGE");
-            AssertError(Sigmet(validFrom: T0, validUntil: T1, volume: badSpeed), "DOMAIN-NEGATIVE-SPEED");
+            AssertError(CreateSigmet(validFrom: T0, validUntil: T1, volume: badDirection), "DOMAIN-DIRECTION-OUT-OF-RANGE");
+            AssertError(CreateSigmet(validFrom: T0, validUntil: T1, volume: badSpeed), "DOMAIN-NEGATIVE-SPEED");
         }
 
         [Fact]
@@ -129,13 +129,13 @@ namespace Iwxxm.Net.Tests
         {
             var point = new TropicalCycloneTrackPoint(T0, new GeoCoordinate(10, 10), new Speed(-1, SpeedUnit.Knots));
 
-            AssertError(TropicalCycloneAdvisoryReport.Create("c1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUFO", observation: point), "DOMAIN-NEGATIVE-SPEED");
+            AssertError(Tca.Create("c1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUFO", observation: point), "DOMAIN-NEGATIVE-SPEED");
         }
 
         [Fact]
         public void Factories_ReportEveryViolation_NotOnlyTheFirst()
         {
-            var result = SigmetReport.Create(
+            var result = Sigmet.Create(
                 "", IwxxmReportType.Sigmet, T0, ReportStatus.Normal, PermissibleUsage.Operational,
                 "", null, null, null, null, null, T1, T0);
 
@@ -152,17 +152,16 @@ namespace Iwxxm.Net.Tests
             Assert.Contains(result.Errors, e => e.Code == code);
         }
 
-        private static Result<AerodromeWeatherReport> Metar(
+        private static Result<Metar> CreateMetar(
             DateTimeOffset? issueTime = null,
             DateTimeOffset? observationTime = null,
-            SurfaceWindInfo? wind = null,
+            SurfaceWind? wind = null,
             double? visibility = null,
-            RunwayVisualRangeInfo? rvr = null,
-            AerodromeForecastGroupInfo? trend = null)
+            RunwayVisualRange? rvr = null,
+            AerodromeForecastGroup? trend = null)
         {
-            return AerodromeWeatherReport.Create(
+            return Metar.Create(
                 "m1",
-                IwxxmReportType.Metar,
                 issueTime ?? T0,
                 observationTime ?? T0,
                 ReportStatus.Normal,
@@ -177,17 +176,17 @@ namespace Iwxxm.Net.Tests
                 trendForecasts: trend == null ? null : new[] { trend });
         }
 
-        private static Result<SigmetReport> Sigmet(DateTimeOffset? validFrom, DateTimeOffset? validUntil, string atsUnit = "YUDD", EnRoutePhenomenonVolume? volume = null)
+        private static Result<Sigmet> CreateSigmet(DateTimeOffset? validFrom, DateTimeOffset? validUntil, string atsUnit = "YUDD", EnRoutePhenomenonVolume? volume = null)
         {
-            return SigmetReport.Create(
+            return Sigmet.Create(
                 "s1", IwxxmReportType.Sigmet, T0, ReportStatus.Normal, PermissibleUsage.Operational,
                 atsUnit, null, null, null, null, "1", validFrom, validUntil,
                 evolvingConditions: volume == null ? null : new List<EnRoutePhenomenonVolume> { volume });
         }
 
-        private static Result<AirmetReport> Airmet(string atsUnit, DateTimeOffset? validFrom, DateTimeOffset? validUntil)
+        private static Result<Airmet> CreateAirmet(string atsUnit, DateTimeOffset? validFrom, DateTimeOffset? validUntil)
         {
-            return AirmetReport.Create(
+            return Airmet.Create(
                 "a1", T0, ReportStatus.Normal, PermissibleUsage.Operational,
                 atsUnit, null, null, null, null, "1", validFrom, validUntil);
         }

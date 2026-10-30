@@ -1,4 +1,4 @@
-TropicalCycloneAdvisoryReport {
+Tca {
   AdvisoryNumber = "2004/13"
   CycloneName = "GLORIA"
   Forecasts = [

@@ -92,7 +92,7 @@ namespace Iwxxm.Net.Tests
             string directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))).FullName;
             try
             {
-                Assert.True(IwxxmParser.ParseFileAs<AerodromeWeatherReport>(directory).IsFailure);
+                Assert.True(IwxxmParser.ParseFileAs<AerodromeObservation>(directory).IsFailure);
                 Assert.True(IwxxmParser.ParseBulletinFile(directory).IsFailure);
                 Assert.True(IwxxmParser.ParseFileToGeoJson(directory).IsFailure);
                 Assert.True(IwxxmSigwxParser.ParseFile(directory).IsFailure);
@@ -184,7 +184,7 @@ namespace Iwxxm.Net.Tests
 
         private sealed class ThrowingGeoJsonExporter : IGeoJsonExporter
         {
-            public string Export(IwxxmReport report, GeoJsonExportOptions options) =>
+            public string Export(IwxxmDocument document, GeoJsonExportOptions options) =>
                 throw new InvalidOperationException("Simulated exporter failure.");
         }
 
@@ -201,10 +201,10 @@ namespace Iwxxm.Net.Tests
 
         private sealed class ThrowingMapper : IIwxxmDocumentMapper, ISigwxDocumentMapper
         {
-            Result<IwxxmReport> IIwxxmDocumentMapper.Map(Stream validatedDocument) =>
+            Result<IwxxmDocument> IIwxxmDocumentMapper.Map(Stream validatedDocument) =>
                 throw new InvalidOperationException("Simulated mapper failure.");
 
-            Result<SignificantWeatherReport> ISigwxDocumentMapper.Map(Stream validatedDocument) =>
+            Result<Sigwx> ISigwxDocumentMapper.Map(Stream validatedDocument) =>
                 throw new InvalidOperationException("Simulated mapper failure.");
         }
     }

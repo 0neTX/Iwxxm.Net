@@ -1,4 +1,4 @@
-AerodromeWeatherReport {
+Metar {
   AerodromeDesignator = "YUDO"
   AerodromeName = "DONLON/INTERNATIONAL"
   AerodromePosition = null
@@ -16,7 +16,7 @@ AerodromeWeatherReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PresentWeatherUris = []
+  PresentWeather = []
   PrevailingVisibilityMeters = null
   QnhHpa = null
   ReportStatus = ReportStatus.Normal

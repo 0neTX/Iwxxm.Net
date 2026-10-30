@@ -1,4 +1,4 @@
-TafReport {
+Taf {
   AerodromeDesignator = "YUDO"
   AerodromeName = "DONLON/INTERNATIONAL"
   AerodromePosition = null

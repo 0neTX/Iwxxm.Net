@@ -4,6 +4,7 @@ using System.Xml;
 using System.Xml.Linq;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.Mapping.Reports;
+using Iwxxm.Net.Infrastructure.Mapping.Xml;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
 
@@ -34,7 +35,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             _options = options ?? IwxxmParserOptions.Default;
         }
 
-        public Result<IwxxmReport> Map(Stream xmlStream)
+        public Result<IwxxmDocument> Map(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
@@ -58,7 +59,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
             catch (XmlException ex)
             {
-                return Result<IwxxmReport>.Failure(
+                return Result<IwxxmDocument>.Failure(
                     "XML-MALFORMED",
                     ex.Message,
                     ErrorCategory.MalformedInput);
@@ -67,7 +68,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             XElement? root = doc.Root;
             if (root == null)
             {
-                return Result<IwxxmReport>.Failure(
+                return Result<IwxxmDocument>.Failure(
                     "XML-EMPTY-ROOT",
                     "The XML document does not contain a root element.",
                     ErrorCategory.MalformedInput);
@@ -77,17 +78,30 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (IsSigwxRoot(root.Name))
             {
                 xmlStream.Position = 0;
-                return IwxxmReportMapperRegistry.Upcast(_sigwxMapper.Map(xmlStream));
+                return IwxxmReportMapperRegistry.ToDocument(_sigwxMapper.Map(xmlStream));
             }
 
-            return MapElementToReport(root);
+            if (root.Name == BulletinName)
+            {
+                return IwxxmReportMapperRegistry.ToDocument(BulletinMapper.Map(root, MapElementToReport));
+            }
+
+            return IwxxmReportMapperRegistry.ToDocument(MapElementToReport(root));
         }
 
+        /// <summary>
+        /// Maps a report root element (a document root or a <c>collect:meteorologicalInformation</c> child). A bulletin is an
+        /// envelope, not a report, so a <c>collect:MeteorologicalBulletin</c> nested in another bulletin is rejected.
+        /// </summary>
         private Result<IwxxmReport> MapElementToReport(XElement root)
         {
-            if (root.Name == CollectNs + "MeteorologicalBulletin")
+            if (root.Name == BulletinName)
             {
-                return IwxxmReportMapperRegistry.Upcast(BulletinMapper.Map(root, MapElementToReport));
+                return Result<IwxxmReport>.Failure(
+                    "COLLECT-NESTED-BULLETIN",
+                    "A collect:MeteorologicalBulletin cannot contain another collect:MeteorologicalBulletin; its entries must be IWXXM reports.",
+                    ErrorCategory.Deserialization,
+                    XmlValueReader.GetGmlId(root));
             }
 
             if (root.Name.Namespace != IwxxmNs)
@@ -124,6 +138,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 return IwxxmReportMapperRegistry.Upcast(_sigwxMapper.Map(ms));
             }
         }
+
+        private static readonly XName BulletinName = CollectNs + "MeteorologicalBulletin";
 
         private static bool IsSigwxRoot(XName name) =>
             name == IwxxmNs + "WAFSSignificantWeatherForecast" || name == IwxxmNs + "SIGWXReport";

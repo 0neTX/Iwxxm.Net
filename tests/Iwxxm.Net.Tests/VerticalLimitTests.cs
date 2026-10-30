@@ -235,7 +235,7 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Sigmet_OfficialExample_KeepsFlightLevelAndStdReference()
         {
-            var sigmet = IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-multi-location-VA.xml");
+            var sigmet = IwxxmParser.ParseFileAs<Sigmet>("Samples/wmo-examples/sigmet-multi-location-VA.xml");
             Assert.True(sigmet.IsSuccess, string.Join(" | ", sigmet.Errors));
 
             EnRoutePhenomenonVolume volume = sigmet.Value.EvolvingConditions[0];
@@ -253,7 +253,7 @@ namespace Iwxxm.Net.Tests
                 "<aixm:lowerLimit uom=\"FT\">GND</aixm:lowerLimit><aixm:lowerLimitReference>SFC</aixm:lowerLimitReference>");
             Assert.Contains("uom=\"M\">15000", xml);
 
-            var result = new IwxxmParserBuilder().WithoutSchematron().Build().ProcessAs<SigmetReport>(xml);
+            var result = new IwxxmParserBuilder().WithoutSchematron().Build().ProcessAs<Sigmet>(xml);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             EnRoutePhenomenonVolume volume = result.Value.EvolvingConditions[0];
@@ -268,7 +268,7 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Qvaci_OfficialExample_KeepsElevatedVolumeLimits()
         {
-            var qvaci = IwxxmParser.ParseFileAs<QvaciReport>("Samples/wmo-examples/qvaci-Example.xml");
+            var qvaci = IwxxmParser.ParseFileAs<Qvaci>("Samples/wmo-examples/qvaci-Example.xml");
             Assert.True(qvaci.IsSuccess, string.Join(" | ", qvaci.Errors));
 
             VolcanicAshConcentrationCloud first = qvaci.Value.AshConcentrationClouds[0];
@@ -280,7 +280,7 @@ namespace Iwxxm.Net.Tests
         public void Vona_OfficialExample_AshCloudAt15000MetresAmsl_IsNotFl492()
         {
             // vona-A7-1.xml: <iwxxm:elevation uom="M">15000</iwxxm:elevation><iwxxm:verticalReference>MSL</...>
-            var vona = IwxxmParser.ParseFileAs<VonaReport>("Samples/wmo-examples/vona-A7-1.xml");
+            var vona = IwxxmParser.ParseFileAs<Vona>("Samples/wmo-examples/vona-A7-1.xml");
             Assert.True(vona.IsSuccess, string.Join(" | ", vona.Errors));
 
             VerticalLimit ash = vona.Value.AshCloudElevation!.Value;
@@ -295,7 +295,7 @@ namespace Iwxxm.Net.Tests
         {
             var result = IwxxmSigwxParser.ParseFile("Samples/wmo-examples/WAFS-Example.xml");
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            SignificantWeatherReport report = result.Value;
+            Sigwx report = result.Value;
 
             Assert.Equal(new FlightLevel(100), report.LowerLimit.AsFlightLevel());
             Assert.Equal(new FlightLevel(600), report.UpperLimit.AsFlightLevel());

@@ -8,10 +8,10 @@ using static Iwxxm.Net.Infrastructure.Mapping.Xml.XmlValueReader;
 
 namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 {
-    /// <summary>Maps <c>iwxxm:TAF</c> (<c>taf.xsd</c>) onto <see cref="TafReport"/>.</summary>
+    /// <summary>Maps <c>iwxxm:TAF</c> (<c>taf.xsd</c>) onto <see cref="Taf"/>.</summary>
     internal static class TafMapper
     {
-        public static Result<TafReport> Map(XElement root)
+        public static Result<Taf> Map(XElement root)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -34,9 +34,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             XElement? baseElem = baseProp?.Element(IwxxmNs + "MeteorologicalAerodromeForecast");
             bool isNilForecast = baseElem == null && !string.IsNullOrWhiteSpace(baseNilReason);
 
-            AerodromeForecastGroupInfo? baseForecast = baseElem != null ? AerodromeConditionsReader.ReadForecastGroup(baseElem, errors) : null;
+            AerodromeForecastGroup? baseForecast = baseElem != null ? AerodromeConditionsReader.ReadForecastGroup(baseElem, errors) : null;
 
-            var changes = new List<AerodromeForecastGroupInfo>();
+            var changes = new List<AerodromeForecastGroup>();
             foreach (XElement changeProp in root.Elements(IwxxmNs + "changeForecast"))
             {
                 XElement? changeElem = changeProp.Element(IwxxmNs + "MeteorologicalAerodromeForecast");
@@ -48,10 +48,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             if (errors.Count > 0)
             {
-                return Result<TafReport>.Failure(errors);
+                return Result<Taf>.Failure(errors);
             }
 
-            return TafReport.Create(
+            return Taf.Create(
                 id,
                 header.IssueTime,
                 header.Metadata.Status,

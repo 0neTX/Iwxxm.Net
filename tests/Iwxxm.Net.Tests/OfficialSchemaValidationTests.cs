@@ -106,10 +106,10 @@ namespace Iwxxm.Net.Tests
                 "<iwxxm:presentWeather xlink:href=\"http://codes.wmo.int/306/4678/DZ\"/>",
                 "<iwxxm:presentWeather xlink:href=\"http://codes.wmo.int/306/4678/-SHRA\"/>");
 
-            var result = IwxxmParser.ParseAs<AerodromeWeatherReport>(xml);
+            var result = IwxxmParser.ParseAs<AerodromeObservation>(xml);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            Assert.Contains("http://codes.wmo.int/306/4678/-SHRA", result.Value.PresentWeatherUris);
+            Assert.Contains(new AerodromeWeather("-SHRA", isKnown: true), result.Value.PresentWeather);
         }
 
         [Fact]
@@ -145,7 +145,7 @@ namespace Iwxxm.Net.Tests
                 "<iwxxm:airTemperature uom=\"Cel\">17.0</iwxxm:airTemperature>",
                 "<iwxxm:airTemperature uom=\"Cel\" xsi:nil=\"true\" nilReason=\"http://codes.wmo.int/common/nil/missing\"/>");
 
-            var result = IwxxmParser.ParseAs<AerodromeWeatherReport>(xml);
+            var result = IwxxmParser.ParseAs<AerodromeObservation>(xml);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Assert.Null(result.Value.AirTemperatureCelsius);

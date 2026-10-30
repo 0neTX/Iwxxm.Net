@@ -1,17 +1,15 @@
 MeteorologicalBulletin {
   BulletinIdentifier = "A_LCYU31YUDO160000_C_YUDO_20120816000000.xml"
   Id = "uuid.507b41d4-2656-4f93-a1d7-2d01bd8e4c50"
-  IsTranslationFailed = false
   IssueTimeUtc = 2012-08-16T00:00:00.0000000+00:00
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
-  PermissibleUsageSupplementary = null
   ReportResults = [
     Result<IwxxmReport> {
       Errors = []
       IsFailure = false
       IsSuccess = true
-      Value = TafReport {
+      Value = Taf {
         AerodromeDesignator = "YUDO"
         AerodromeName = "DONLON/INTERNATIONAL"
         AerodromePosition = null
@@ -39,7 +37,7 @@ MeteorologicalBulletin {
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.MeteorologicalBulletin
   Reports = [
-    TafReport {
+    Taf {
       AerodromeDesignator = "YUDO"
       AerodromeName = "DONLON/INTERNATIONAL"
       AerodromePosition = null
@@ -63,5 +61,4 @@ MeteorologicalBulletin {
       ValidUntilUtc = null
     }
   ]
-  TranslationFailedTac = null
 }

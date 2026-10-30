@@ -3,43 +3,6 @@ using System;
 namespace Iwxxm.Net
 {
     /// <summary>
-    /// Identifies the technology-agnostic processing stage where a validation or processing error originated.
-    /// The machine-readable contract of an error is its <see cref="ValidationError.Code"/> (for example
-    /// <c>XSD-SCHEMA-VIOLATION</c> or an official Schematron rule identifier); categories only group codes.
-    /// </summary>
-    /// <remarks>
-    /// Renamed in the Unreleased version (numeric values unchanged): <c>XmlWellFormedness</c> is now
-    /// <see cref="MalformedInput"/>, <c>XsdSchemaValidation</c> is now <see cref="SchemaViolation"/> and
-    /// <c>SchematronBusinessRule</c> is now <see cref="BusinessRuleViolation"/>.
-    /// </remarks>
-    public enum ErrorCategory
-    {
-        /// <summary>The input could not be read or is not a well-formed document.</summary>
-        MalformedInput = 0,
-
-        /// <summary>The document violates the structural schema of the format.</summary>
-        SchemaViolation = 1,
-
-        /// <summary>The document violates a business rule (for example an official IWXXM rule or a code-list constraint).</summary>
-        BusinessRuleViolation = 2,
-
-        /// <summary>The structurally valid document could not be decoded into the transport model.</summary>
-        Deserialization = 3,
-
-        /// <summary>The decoded content could not be mapped onto the domain model.</summary>
-        DomainMapping = 4
-    }
-
-    /// <summary>
-    /// Severity level associated with a validation finding.
-    /// </summary>
-    public enum ValidationSeverity
-    {
-        Warning,
-        Error
-    }
-
-    /// <summary>
     /// Represents a structural, business-rule, or domain-invariant error detected during IWXXM processing.
     /// </summary>
     public sealed class ValidationError : IEquatable<ValidationError>

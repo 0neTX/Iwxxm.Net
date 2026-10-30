@@ -1,4 +1,4 @@
-VolcanicAshAdvisoryReport {
+Vaa {
   AdvisoryNumber = null
   EruptionDetails = null
   ForecastAshClouds = []

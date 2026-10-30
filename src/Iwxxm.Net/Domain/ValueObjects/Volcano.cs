@@ -81,5 +81,9 @@ namespace Iwxxm.Net.Reports
                 return hash;
             }
         }
+
+        public static bool operator ==(Volcano? left, Volcano? right) => Equals(left, right);
+
+        public static bool operator !=(Volcano? left, Volcano? right) => !Equals(left, right);
     }
 }

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using System.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Infrastructure.Mapping.Xml;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
@@ -14,7 +16,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// </summary>
     internal static class AerodromeConditionsReader
     {
-        public static SurfaceWindInfo? ReadSurfaceWind(XElement? surfaceWindProp, string context, List<ValidationError> errors)
+        public static SurfaceWind? ReadSurfaceWind(XElement? surfaceWindProp, string context, List<ValidationError> errors)
         {
             XElement? windElem = surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWind")
                                  ?? surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWindForecast");
@@ -25,12 +27,12 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             double? dir = UomMeasureReader.ReadFixedUnit(windElem.Element(IwxxmNs + "meanWindDirection"), UcumUnits.Degree, context, errors);
             Speed? spd = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "meanWindSpeed"), context, errors);
             Speed? gust = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "windGustSpeed"), context, errors);
-            return new SurfaceWindInfo(isVar, dir, spd, gust);
+            return new SurfaceWind(isVar, dir, spd, gust);
         }
 
         public static void ReadCloudLayers(
             XElement? cloudProp,
-            List<AerodromeCloudLayerInfo> target,
+            List<AerodromeCloudLayer> target,
             string context,
             List<ValidationError> errors)
         {
@@ -44,14 +46,23 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 XElement? cl = layerProp.Element(IwxxmNs + "CloudLayer");
                 if (cl == null) continue;
 
-                string? amount = GetHref(cl.Element(IwxxmNs + "amount"));
+                CodeListValue<AerodromeCloudAmount>? amount =
+                    CodeListTables.AerodromeCloudAmounts.Translate(GetHref(cl.Element(IwxxmNs + "amount")));
                 Length? cloudBase = UomMeasureReader.ReadLength(cl.Element(IwxxmNs + "base"), context, errors);
-                string? cloudType = GetHref(cl.Element(IwxxmNs + "cloudType"));
-                target.Add(new AerodromeCloudLayerInfo(amount, cloudBase, cloudType));
+                CodeListValue<ConvectiveCloudType>? cloudType =
+                    CodeListTables.ConvectiveCloudTypes.Translate(GetHref(cl.Element(IwxxmNs + "cloudType")));
+                target.Add(new AerodromeCloudLayer(amount, cloudBase, cloudType));
             }
         }
 
-        public static AerodromeForecastGroupInfo ReadForecastGroup(XElement fcstElem, List<ValidationError> errors)
+        /// <summary>
+        /// Translates the <c>xlink:href</c> codes of present / forecast weather elements (WMO code list
+        /// <c>AerodromePresentOrForecastWeather</c>), in document order; elements without a reference (nil) are skipped.
+        /// </summary>
+        public static List<AerodromeWeather> ReadWeather(IEnumerable<XElement> weatherElements) =>
+            CollectHrefs(weatherElements).Select(AerodromeWeatherCodeList.Translate).ToList();
+
+        public static AerodromeForecastGroup ReadForecastGroup(XElement fcstElem, List<ValidationError> errors)
         {
             string id = GetGmlId(fcstElem);
             string? changeInd = fcstElem.Attribute("changeIndicator")?.Value;
@@ -67,13 +78,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             double? vis = UomMeasureReader.ReadFixedUnit(fcstElem.Element(IwxxmNs + "prevailingVisibility"), UcumUnits.Meter, id, errors);
             string? visOp = GetText(fcstElem.Element(IwxxmNs + "prevailingVisibilityOperator"));
-            SurfaceWindInfo? wind = ReadSurfaceWind(fcstElem.Element(IwxxmNs + "surfaceWind"), id, errors);
-            List<string> wxList = CollectHrefs(fcstElem.Elements(IwxxmNs + "weather"));
+            SurfaceWind? wind = ReadSurfaceWind(fcstElem.Element(IwxxmNs + "surfaceWind"), id, errors);
+            List<AerodromeWeather> wxList = ReadWeather(fcstElem.Elements(IwxxmNs + "weather"));
 
-            var layers = new List<AerodromeCloudLayerInfo>();
+            var layers = new List<AerodromeCloudLayer>();
             ReadCloudLayers(fcstElem.Element(IwxxmNs + "cloud"), layers, id, errors);
 
-            return new AerodromeForecastGroupInfo(
+            return new AerodromeForecastGroup(
                 id,
                 changeInd,
                 cavok,

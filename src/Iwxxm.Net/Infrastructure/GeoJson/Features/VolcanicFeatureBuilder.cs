@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.GeoJson.GeoJsonProperties;
 
@@ -8,7 +9,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
     internal static class VolcanicFeatureBuilder
     {
         public static void AddVonaFeatures(
-            VonaReport vona,
+            Vona vona,
             string? bulletinId,
             List<GeoJsonFeature> features)
         {
@@ -18,15 +19,15 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 props.Add(("name", vol.Name));
                 props.Add(("wmoNumber", vol.WmoNumber));
                 props.Add(("noticeNumber", vona.NoticeNumber));
-                props.Add(("currentColourCodeUri", vona.CurrentColourCodeUri));
-                props.Add(("previousColourCodeUri", vona.PreviousColourCodeUri));
+                props.Add(("currentColourCodeUri", CodeListTables.AviationColourCodes.ToReference(vona.CurrentColourCode)));
+                props.Add(("previousColourCodeUri", CodeListTables.AviationColourCodes.ToReference(vona.PreviousColourCode)));
                 AddVerticalLimit(props, "ashCloudElevation", vona.AshCloudElevation);
                 features.Add(GeoJsonFeature.ForPoint(vol.Id, vol.Position, props));
             }
         }
 
         public static void AddQvaciFeatures(
-            QvaciReport qvaci,
+            Qvaci qvaci,
             string? bulletinId,
             List<GeoJsonFeature> features)
         {
@@ -51,7 +52,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
         }
 
         public static void AddVaaFeatures(
-            VolcanicAshAdvisoryReport vaa,
+            Vaa vaa,
             string? bulletinId,
             List<GeoJsonFeature> features)
         {

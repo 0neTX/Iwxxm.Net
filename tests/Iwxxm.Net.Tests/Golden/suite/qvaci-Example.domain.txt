@@ -1,4 +1,4 @@
-QvaciReport {
+Qvaci {
   AshConcentrationClouds = [
     VolcanicAshConcentrationCloud {
       Area = GeoPolygon {

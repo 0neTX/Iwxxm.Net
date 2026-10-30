@@ -14,7 +14,7 @@ namespace Iwxxm.Net
         /// schema validation, business-rule validation and mapping to the domain model.
         /// </summary>
         /// <param name="xmlStream">Readable stream containing the IWXXM 2025-2 SIGWX document.</param>
-        /// <returns>A <see cref="Result{SignificantWeatherReport}"/> containing either the aggregate root or validation errors.</returns>
-        Result<SignificantWeatherReport> Process(Stream xmlStream);
+        /// <returns>A <see cref="Result{Sigwx}"/> containing either the aggregate root or validation errors.</returns>
+        Result<Sigwx> Process(Stream xmlStream);
     }
 }

@@ -1,28 +1,32 @@
-TafReport {
+Taf {
   AerodromeDesignator = "YUDO"
   AerodromeName = "DONLON/INTERNATIONAL"
   AerodromePosition = GeoCoordinate {
     Lat = 12.34
     Lon = -12.34
   }
-  BaseForecast = AerodromeForecastGroupInfo {
+  BaseForecast = AerodromeForecastGroup {
     ChangeIndicator = null
     CloudAndVisibilityOk = false
     CloudLayers = [
-      AerodromeCloudLayerInfo {
-        AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/BKN"
+      AerodromeCloudLayer {
+        Amount = CodeListValue<AerodromeCloudAmount> {
+          Code = AerodromeCloudAmount.Broken
+          IsKnown = true
+          Notation = "BKN"
+        }
         Base = Length {
           Unit = LengthUnit.Feet
           UnitOfMeasure = "[ft_i]"
           Value = 2000
         }
-        CloudTypeUri = null
+        CloudType = null
       }
     ]
     Id = "uuid.13048235-8f8a-4587-a6be-e8ce99f4525c"
     PrevailingVisibilityMeters = 9000
     PrevailingVisibilityOperator = null
-    SurfaceWind = SurfaceWindInfo {
+    SurfaceWind = SurfaceWind {
       GustSpeed = null
       IsVariableDirection = false
       MeanDirectionDegrees = 130
@@ -34,33 +38,45 @@ TafReport {
     }
     ValidFromUtc = null
     ValidUntilUtc = null
-    WeatherUris = []
+    Weather = []
   }
   BaseForecastNilReason = null
   CancelledReportValidFromUtc = null
   CancelledReportValidUntilUtc = null
   ChangeForecasts = [
-    AerodromeForecastGroupInfo {
+    AerodromeForecastGroup {
       ChangeIndicator = "BECOMING"
       CloudAndVisibilityOk = false
       CloudLayers = [
-        AerodromeCloudLayerInfo {
-          AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/SCT"
+        AerodromeCloudLayer {
+          Amount = CodeListValue<AerodromeCloudAmount> {
+            Code = AerodromeCloudAmount.Scattered
+            IsKnown = true
+            Notation = "SCT"
+          }
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 1500
           }
-          CloudTypeUri = "http://codes.wmo.int/49-2/SigConvectiveCloudType/CB"
+          CloudType = CodeListValue<ConvectiveCloudType> {
+            Code = ConvectiveCloudType.Cumulonimbus
+            IsKnown = true
+            Notation = "CB"
+          }
         }
-        AerodromeCloudLayerInfo {
-          AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/BKN"
+        AerodromeCloudLayer {
+          Amount = CodeListValue<AerodromeCloudAmount> {
+            Code = AerodromeCloudAmount.Broken
+            IsKnown = true
+            Notation = "BKN"
+          }
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 2000
           }
-          CloudTypeUri = null
+          CloudType = null
         }
       ]
       Id = "uuid.fe2635c8-3994-4423-b79f-123593fa2b55"
@@ -69,35 +85,47 @@ TafReport {
       SurfaceWind = null
       ValidFromUtc = 2012-08-16T06:00:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T08:00:00.0000000+00:00
-      WeatherUris = []
+      Weather = []
     }
-    AerodromeForecastGroupInfo {
+    AerodromeForecastGroup {
       ChangeIndicator = "TEMPORARY_FLUCTUATIONS"
       CloudAndVisibilityOk = false
       CloudLayers = [
-        AerodromeCloudLayerInfo {
-          AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/SCT"
+        AerodromeCloudLayer {
+          Amount = CodeListValue<AerodromeCloudAmount> {
+            Code = AerodromeCloudAmount.Scattered
+            IsKnown = true
+            Notation = "SCT"
+          }
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 1000
           }
-          CloudTypeUri = "http://codes.wmo.int/49-2/SigConvectiveCloudType/CB"
+          CloudType = CodeListValue<ConvectiveCloudType> {
+            Code = ConvectiveCloudType.Cumulonimbus
+            IsKnown = true
+            Notation = "CB"
+          }
         }
-        AerodromeCloudLayerInfo {
-          AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/BKN"
+        AerodromeCloudLayer {
+          Amount = CodeListValue<AerodromeCloudAmount> {
+            Code = AerodromeCloudAmount.Broken
+            IsKnown = true
+            Notation = "BKN"
+          }
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 2000
           }
-          CloudTypeUri = null
+          CloudType = null
         }
       ]
       Id = "uuid.8985ba4e-f6f0-4dc2-8dd7-2cbf86a64056"
       PrevailingVisibilityMeters = 1000
       PrevailingVisibilityOperator = null
-      SurfaceWind = SurfaceWindInfo {
+      SurfaceWind = SurfaceWind {
         GustSpeed = Speed {
           Unit = SpeedUnit.MetersPerSecond
           UnitOfMeasure = "m/s"
@@ -113,28 +141,35 @@ TafReport {
       }
       ValidFromUtc = 2012-08-16T08:00:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T12:00:00.0000000+00:00
-      WeatherUris = [
-        "http://codes.wmo.int/306/4678/TSRA"
+      Weather = [
+        AerodromeWeather {
+          IsKnown = true
+          Notation = "TSRA"
+        }
       ]
     }
-    AerodromeForecastGroupInfo {
+    AerodromeForecastGroup {
       ChangeIndicator = "FROM"
       CloudAndVisibilityOk = false
       CloudLayers = [
-        AerodromeCloudLayerInfo {
-          AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/BKN"
+        AerodromeCloudLayer {
+          Amount = CodeListValue<AerodromeCloudAmount> {
+            Code = AerodromeCloudAmount.Broken
+            IsKnown = true
+            Notation = "BKN"
+          }
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 2000
           }
-          CloudTypeUri = null
+          CloudType = null
         }
       ]
       Id = "uuid.aeadfb00-4cfa-46b5-af21-1e79e4b6b1b5"
       PrevailingVisibilityMeters = 10000
       PrevailingVisibilityOperator = "ABOVE"
-      SurfaceWind = SurfaceWindInfo {
+      SurfaceWind = SurfaceWind {
         GustSpeed = null
         IsVariableDirection = false
         MeanDirectionDegrees = 150
@@ -146,7 +181,7 @@ TafReport {
       }
       ValidFromUtc = 2012-08-16T12:30:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T18:00:00.0000000+00:00
-      WeatherUris = []
+      Weather = []
     }
   ]
   Id = "uuid.d6a85870-f32e-4ea8-8502-c7d9be7e0144"

@@ -1,4 +1,4 @@
-AirmetReport {
+Airmet {
   AtsUnitDesignator = "YUDD"
   AtsUnitName = "YUDD FIC"
   EvolvingConditions = [
@@ -58,7 +58,11 @@ AirmetReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PhenomenonUri = "http://codes.wmo.int/49-2/AirWxPhenomena/ISOL_TS"
+  Phenomenon = CodeListValue<AirmetPhenomenon> {
+    Code = AirmetPhenomenon.IsolatedThunderstorms
+    IsKnown = true
+    Notation = "ISOL_TS"
+  }
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Airmet
   SequenceNumber = "1"
