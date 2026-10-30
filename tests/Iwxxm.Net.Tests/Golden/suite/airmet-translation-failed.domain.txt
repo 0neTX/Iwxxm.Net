@@ -1,10 +1,15 @@
 Airmet {
   AtsUnitDesignator = "YUDD"
   AtsUnitName = "YUDD FIC"
+  CancelledReportSequenceNumber = null
+  CancelledReportValidFromUtc = null
+  CancelledReportValidUntilUtc = null
   EvolvingConditions = []
   FirDesignator = null
   FirName = null
   Id = "uuid.a587cca7-b8e1-4633-b3a5-7a0e5f6e50c9"
+  IsActiveHazard = true
+  IsCancelReport = false
   IsTranslationFailed = true
   IssueTimeUtc = 2014-05-10T15:00:00.0000000+00:00
   MwoDesignator = null

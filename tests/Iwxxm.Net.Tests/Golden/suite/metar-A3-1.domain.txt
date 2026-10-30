@@ -87,6 +87,7 @@ Metar {
       PrevailingVisibilityMeters = 800
       PrevailingVisibilityOperator = null
       SurfaceWind = null
+      TimeIndicator = TrendTimeIndicator.Until
       ValidFromUtc = 2012-08-22T16:30:00.0000000+00:00
       ValidUntilUtc = 2012-08-22T17:00:00.0000000+00:00
       Weather = [
@@ -104,6 +105,7 @@ Metar {
       PrevailingVisibilityMeters = 10000
       PrevailingVisibilityOperator = "ABOVE"
       SurfaceWind = null
+      TimeIndicator = TrendTimeIndicator.At
       ValidFromUtc = 2012-08-22T18:00:00.0000000+00:00
       ValidUntilUtc = null
       Weather = []

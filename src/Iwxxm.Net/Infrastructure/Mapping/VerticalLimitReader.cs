@@ -24,9 +24,21 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         /// absent; returns a nil <see cref="VerticalLimit"/> for <c>xsi:nil</c> / <c>nilReason</c> / empty content; records a
         /// mapping error (and returns <c>null</c>) when the value or unit cannot be interpreted.
         /// </summary>
-        public static VerticalLimit? Read(XElement? valueElement, XElement? referenceElement, string context, List<ValidationError> errors)
+        public static VerticalLimit? Read(XElement? valueElement, XElement? referenceElement, string context, List<ValidationError> errors) =>
+            Read(valueElement, referenceElement, context, errors, null);
+
+        /// <summary>Reads a vertical distance whose unit must belong to <paramref name="allowedUoms"/> when given.</summary>
+        public static VerticalLimit? Read(
+            XElement? valueElement,
+            XElement? referenceElement,
+            string context,
+            List<ValidationError> errors,
+            IReadOnlyList<string>? allowedUoms)
         {
             if (valueElement == null)
+                return null;
+
+            if (allowedUoms != null && !UomMeasureReader.IsAllowed(valueElement, context + "/" + valueElement.Name.LocalName, allowedUoms, errors))
                 return null;
 
             string? nil = valueElement.Attribute(XsiNs + "nil")?.Value;

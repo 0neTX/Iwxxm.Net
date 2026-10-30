@@ -1,5 +1,41 @@
 Tca {
   AdvisoryNumber = "2004/13"
+  CumulonimbusCloudLocations = [
+    EnRoutePhenomenonVolume {
+      Area = GeoCircle {
+        Centre = GeoCoordinate {
+          Lat = 27.1
+          Lon = -73.1
+        }
+        Radius = Length {
+          Unit = LengthUnit.NauticalMiles
+          UnitOfMeasure = "[nmi_i]"
+          Value = 250
+        }
+      }
+      DirectionOfMotionDegrees = null
+      Id = "uuid.d4938cc8-c129-4cd7-bda5-588c434ef996"
+      IntensityChange = null
+      LowerLimit = null
+      PhenomenonTimeUtc = null
+      SpeedOfMotion = null
+      TimeIndicator = null
+      TropicalCycloneCentre = null
+      UpperLimit = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Std
+        ReferenceCode = "STD"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.FlightLevel
+        UnitOfMeasure = "FL"
+        Value = 500
+      }
+    }
+  ]
   CycloneName = "GLORIA"
   Forecasts = [
     TropicalCycloneTrackPoint {

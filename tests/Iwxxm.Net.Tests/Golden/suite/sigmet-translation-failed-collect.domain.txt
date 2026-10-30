@@ -2,17 +2,21 @@ MeteorologicalBulletin {
   BulletinIdentifier = "A_LSYU31YUSO101000_C_YUSO_20120810100000.xml"
   Id = "uuid.fee171e9-1aec-4815-bcca-9e3c467388c6"
   IssueTimeUtc = 2012-08-10T10:00:00.0000000+00:00
+  ItemErrors = []
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   ReportResults = [
     Result<IwxxmReport> {
       Errors = []
+      HasWarnings = false
       IsFailure = false
       IsSuccess = true
       Value = Sigmet {
         AtsUnitDesignator = "YUDD"
         AtsUnitName = "YUDD FIC"
         CancelledReportSequenceNumber = null
+        CancelledReportValidFromUtc = null
+        CancelledReportValidUntilUtc = null
         EruptingVolcano = null
         EvolvingConditions = []
         FirDesignator = null
@@ -35,6 +39,7 @@ MeteorologicalBulletin {
         ValidFromUtc = 2012-08-10T12:00:00.0000000+00:00
         ValidUntilUtc = 2012-08-10T16:00:00.0000000+00:00
       }
+      Warnings = []
     }
   ]
   ReportStatus = ReportStatus.Normal
@@ -44,6 +49,8 @@ MeteorologicalBulletin {
       AtsUnitDesignator = "YUDD"
       AtsUnitName = "YUDD FIC"
       CancelledReportSequenceNumber = null
+      CancelledReportValidFromUtc = null
+      CancelledReportValidUntilUtc = null
       EruptingVolcano = null
       EvolvingConditions = []
       FirDesignator = null

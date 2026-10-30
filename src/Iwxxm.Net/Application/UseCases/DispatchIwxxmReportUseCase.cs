@@ -80,7 +80,7 @@ namespace Iwxxm.Net.Application.UseCases
 
             if (dispatchResult.Value is MeteorologicalBulletin bulletin)
             {
-                return Result<MeteorologicalBulletin>.Success(bulletin);
+                return Result<MeteorologicalBulletin>.Success(bulletin, dispatchResult.Warnings);
             }
 
             return Result<MeteorologicalBulletin>.Failure(

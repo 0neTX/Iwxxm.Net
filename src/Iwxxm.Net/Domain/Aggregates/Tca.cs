@@ -23,6 +23,12 @@ namespace Iwxxm.Net.Reports
         public string? AdvisoryNumber { get; }
         public TropicalCycloneTrackPoint? Observation { get; }
         public IReadOnlyList<TropicalCycloneTrackPoint> Forecasts { get; }
+
+        /// <summary>
+        /// Observed <c>cumulonimbusCloudLocation</c> volumes (polygon or circle, e.g. "CB WI 250NM OF TC CENTRE") with
+        /// their vertical limits, in document order.
+        /// </summary>
+        public IReadOnlyList<EnRoutePhenomenonVolume> CumulonimbusCloudLocations { get; }
         public string? Remarks { get; }
         public DateTimeOffset? NextAdvisoryTimeUtc { get; }
         public override bool IsTranslationFailed { get; }
@@ -47,7 +53,8 @@ namespace Iwxxm.Net.Reports
             string? remarks,
             DateTimeOffset? nextAdvisoryTimeUtc,
             bool isTranslationFailed,
-            string? translationFailedTac)
+            string? translationFailedTac,
+            IReadOnlyList<EnRoutePhenomenonVolume> cumulonimbusCloudLocations)
         {
             Id = id;
             IssueTimeUtc = issueTimeUtc;
@@ -64,6 +71,7 @@ namespace Iwxxm.Net.Reports
             NextAdvisoryTimeUtc = nextAdvisoryTimeUtc;
             IsTranslationFailed = isTranslationFailed;
             TranslationFailedTac = translationFailedTac;
+            CumulonimbusCloudLocations = cumulonimbusCloudLocations;
         }
 
         public static Result<Tca> Create(
@@ -81,8 +89,10 @@ namespace Iwxxm.Net.Reports
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
             PermissibleUsageReason? permissibleUsageReason = null,
-            string? permissibleUsageSupplementary = null)
+            string? permissibleUsageSupplementary = null,
+            IEnumerable<EnRoutePhenomenonVolume>? cumulonimbusCloudLocations = null)
         {
+            var cbClouds = cumulonimbusCloudLocations?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
             var invariants = new DomainInvariants(id);
             invariants.RequireText(id, "DOMAIN-TCA-ID", "The TropicalCycloneAdvisory report gml:id identifier is required.");
             invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
@@ -92,6 +102,11 @@ namespace Iwxxm.Net.Reports
             foreach (TropicalCycloneTrackPoint forecast in forecasts ?? Enumerable.Empty<TropicalCycloneTrackPoint>())
             {
                 invariants.Check(forecast, "forecast tropical cyclone");
+            }
+
+            foreach (EnRoutePhenomenonVolume cbCloud in cbClouds)
+            {
+                invariants.Check(cbCloud);
             }
 
             if (invariants.HasErrors)
@@ -114,7 +129,8 @@ namespace Iwxxm.Net.Reports
                 remarks,
                 nextAdvisoryTimeUtc,
                 isTranslationFailed,
-                translationFailedTac));
+                translationFailedTac,
+                new ReadOnlyCollection<EnRoutePhenomenonVolume>(cbClouds)));
         }
     }
 }

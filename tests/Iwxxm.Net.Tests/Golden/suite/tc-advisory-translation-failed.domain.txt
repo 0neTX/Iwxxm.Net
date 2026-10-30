@@ -1,5 +1,6 @@
 Tca {
   AdvisoryNumber = null
+  CumulonimbusCloudLocations = []
   CycloneName = null
   Forecasts = []
   Id = "uuid.4a954e38-b132-4d3c-aaba-90dbd056d497"

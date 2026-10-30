@@ -90,6 +90,97 @@ Sigwx {
         ]
         InteriorRings = []
       }
+      Areas = [
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = -41.623153
+              Lon = -158.734129
+            }
+            GeoCoordinate {
+              Lat = -42.921036
+              Lon = -158.310418
+            }
+            GeoCoordinate {
+              Lat = -43.614695
+              Lon = -156.56584
+            }
+            GeoCoordinate {
+              Lat = -44.448049
+              Lon = -154.972043
+            }
+            GeoCoordinate {
+              Lat = -45.933174
+              Lon = -154.748367
+            }
+            GeoCoordinate {
+              Lat = -46.733087
+              Lon = -153.171172
+            }
+            GeoCoordinate {
+              Lat = -46.985416
+              Lon = -151.1643
+            }
+            GeoCoordinate {
+              Lat = -46.884731
+              Lon = -149.037755
+            }
+            GeoCoordinate {
+              Lat = -47.995659
+              Lon = -147.690252
+            }
+            GeoCoordinate {
+              Lat = -48.19933
+              Lon = -145.711761
+            }
+            GeoCoordinate {
+              Lat = -46.904387
+              Lon = -145.018761
+            }
+            GeoCoordinate {
+              Lat = -45.627836
+              Lon = -145.977674
+            }
+            GeoCoordinate {
+              Lat = -44.393574
+              Lon = -146.977162
+            }
+            GeoCoordinate {
+              Lat = -42.959553
+              Lon = -147.449231
+            }
+            GeoCoordinate {
+              Lat = -41.878655
+              Lon = -148.831074
+            }
+            GeoCoordinate {
+              Lat = -41.959083
+              Lon = -150.789464
+            }
+            GeoCoordinate {
+              Lat = -41.053172
+              Lon = -152.365167
+            }
+            GeoCoordinate {
+              Lat = -40.289571
+              Lon = -154.037198
+            }
+            GeoCoordinate {
+              Lat = -40.159991
+              Lon = -155.942752
+            }
+            GeoCoordinate {
+              Lat = -40.378993
+              Lon = -157.783406
+            }
+            GeoCoordinate {
+              Lat = -41.623153
+              Lon = -158.734129
+            }
+          ]
+          InteriorRings = []
+        }
+      ]
       Base = VerticalLimit {
         IsGround = false
         IsNil = false
@@ -165,6 +256,49 @@ Sigwx {
         ]
         InteriorRings = []
       }
+      Areas = [
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = 26.7
+              Lon = -84.7
+            }
+            GeoCoordinate {
+              Lat = 24.2
+              Lon = -84.2
+            }
+            GeoCoordinate {
+              Lat = 19
+              Lon = -79.6
+            }
+            GeoCoordinate {
+              Lat = 19.6
+              Lon = -74.9
+            }
+            GeoCoordinate {
+              Lat = 23
+              Lon = -72.2
+            }
+            GeoCoordinate {
+              Lat = 28.2
+              Lon = -72.2
+            }
+            GeoCoordinate {
+              Lat = 31.7
+              Lon = -77.9
+            }
+            GeoCoordinate {
+              Lat = 28.6
+              Lon = -85.1
+            }
+            GeoCoordinate {
+              Lat = 26.7
+              Lon = -84.7
+            }
+          ]
+          InteriorRings = []
+        }
+      ]
       Base = VerticalLimit {
         IsGround = false
         IsNil = true
@@ -200,6 +334,7 @@ Sigwx {
       TypeNumericCode = 9
     }
   ]
+  FeatureErrors = []
   Id = "uuid.ce3b61b9-d360-4da1-83b9-67e668406869"
   IsTranslationFailed = false
   IssueTimeUtc = 2001-01-30T21:00:00.0000000+00:00
@@ -797,6 +932,81 @@ Sigwx {
         ]
         InteriorRings = []
       }
+      Areas = [
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = 44.5
+              Lon = -96.8
+            }
+            GeoCoordinate {
+              Lat = 44.6
+              Lon = -94.2
+            }
+            GeoCoordinate {
+              Lat = 46
+              Lon = -89.1
+            }
+            GeoCoordinate {
+              Lat = 44.8
+              Lon = -75.8
+            }
+            GeoCoordinate {
+              Lat = 45.2
+              Lon = -63.5
+            }
+            GeoCoordinate {
+              Lat = 44.6
+              Lon = -57.2
+            }
+            GeoCoordinate {
+              Lat = 44.4
+              Lon = -50
+            }
+            GeoCoordinate {
+              Lat = 44.8
+              Lon = -34.3
+            }
+            GeoCoordinate {
+              Lat = 46.8
+              Lon = -32.8
+            }
+            GeoCoordinate {
+              Lat = 51.5
+              Lon = -38.9
+            }
+            GeoCoordinate {
+              Lat = 52.2
+              Lon = -47.1
+            }
+            GeoCoordinate {
+              Lat = 52.6
+              Lon = -59.4
+            }
+            GeoCoordinate {
+              Lat = 54.6
+              Lon = -69
+            }
+            GeoCoordinate {
+              Lat = 55.3
+              Lon = -84.3
+            }
+            GeoCoordinate {
+              Lat = 52.2
+              Lon = -91.6
+            }
+            GeoCoordinate {
+              Lat = 47
+              Lon = -97.7
+            }
+            GeoCoordinate {
+              Lat = 44.5
+              Lon = -96.8
+            }
+          ]
+          InteriorRings = []
+        }
+      ]
       Base = VerticalLimit {
         IsGround = false
         IsNil = false

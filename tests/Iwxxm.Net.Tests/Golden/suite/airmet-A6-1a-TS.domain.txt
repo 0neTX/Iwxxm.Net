@@ -1,57 +1,74 @@
 Airmet {
   AtsUnitDesignator = "YUDD"
   AtsUnitName = "YUDD FIC"
+  CancelledReportSequenceNumber = null
+  CancelledReportValidFromUtc = null
+  CancelledReportValidUntilUtc = null
   EvolvingConditions = [
-    EnRoutePhenomenonVolume {
-      Area = GeoPolygon {
-        ExteriorRing = [
-          GeoCoordinate {
-            Lat = -50
-            Lon = 50
-          }
-          GeoCoordinate {
-            Lat = -50
-            Lon = 70
-          }
-          GeoCoordinate {
-            Lat = -40
-            Lon = 70
-          }
-          GeoCoordinate {
-            Lat = -40
-            Lon = 50
-          }
-          GeoCoordinate {
-            Lat = -50
-            Lon = 50
-          }
-        ]
-        InteriorRings = []
-      }
-      DirectionOfMotionDegrees = null
+    AirmetEvolvingCondition {
+      CloudBase = null
+      CloudTop = null
       Id = "uuid.deeb1ae5-0094-4ec8-af92-aa7b3f156a3f"
-      IntensityChange = "WEAKEN"
-      LowerLimit = null
-      SpeedOfMotion = null
-      TropicalCycloneCentre = null
-      UpperLimit = VerticalLimit {
-        IsGround = false
-        IsNil = false
-        IsUnlimited = false
-        NilReason = null
-        Reference = VerticalReference.Std
-        ReferenceCode = "STD"
-        SpecialValue = VerticalSpecialValue.None
-        SpecialValueCode = null
-        Unit = VerticalUnit.FlightLevel
-        UnitOfMeasure = "FL"
-        Value = 100
+      IsCloudTopAbove = null
+      SurfaceVisibility = null
+      SurfaceVisibilityCauses = []
+      SurfaceWindDirectionDegrees = null
+      SurfaceWindSpeed = null
+      Volume = EnRoutePhenomenonVolume {
+        Area = GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = -50
+              Lon = 50
+            }
+            GeoCoordinate {
+              Lat = -50
+              Lon = 70
+            }
+            GeoCoordinate {
+              Lat = -40
+              Lon = 70
+            }
+            GeoCoordinate {
+              Lat = -40
+              Lon = 50
+            }
+            GeoCoordinate {
+              Lat = -50
+              Lon = 50
+            }
+          ]
+          InteriorRings = []
+        }
+        DirectionOfMotionDegrees = null
+        Id = "uuid.deeb1ae5-0094-4ec8-af92-aa7b3f156a3f"
+        IntensityChange = "WEAKEN"
+        LowerLimit = null
+        PhenomenonTimeUtc = null
+        SpeedOfMotion = null
+        TimeIndicator = TimeIndicator.Observation
+        TropicalCycloneCentre = null
+        UpperLimit = VerticalLimit {
+          IsGround = false
+          IsNil = false
+          IsUnlimited = false
+          NilReason = null
+          Reference = VerticalReference.Std
+          ReferenceCode = "STD"
+          SpecialValue = VerticalSpecialValue.None
+          SpecialValueCode = null
+          Unit = VerticalUnit.FlightLevel
+          UnitOfMeasure = "FL"
+          Value = 100
+        }
       }
     }
   ]
   FirDesignator = "YUDD"
   FirName = "SHANLON FIR"
   Id = "uuid.69a2497b-193c-47bf-a6bd-1cc71acbc8e5"
+  IsActiveHazard = true
+  IsCancelReport = false
   IsTranslationFailed = false
   IssueTimeUtc = 2014-05-15T15:20:00.0000000+00:00
   MwoDesignator = "YUDD"

@@ -34,8 +34,19 @@ namespace Iwxxm.Net.Reports
         public override TResult Accept<TResult>(IIwxxmDocumentVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
-        public IReadOnlyList<EnRoutePhenomenonVolume> ObservedAshClouds { get; }
-        public IReadOnlyList<EnRoutePhenomenonVolume> ForecastAshClouds { get; }
+        /// <summary>Observed or estimated conditions (<c>iwxxm:observation</c>): time, status and ash clouds; <c>null</c> when absent.</summary>
+        public VolcanicAshConditions? Observation { get; }
+
+        /// <summary>Ash clouds of <see cref="Observation"/> (empty when there is no observation).</summary>
+        public IReadOnlyList<EnRoutePhenomenonVolume> ObservedAshClouds => Observation?.AshClouds ?? EmptyClouds;
+
+        /// <summary>
+        /// Forecast conditions, one per <c>iwxxm:forecast</c> (+6/+12/+18 HR) in document order, each with its own
+        /// <c>phenomenonTime</c>, <c>@status</c> (e.g. <c>NO_VOLCANIC_ASH_EXPECTED</c>) and ash clouds.
+        /// </summary>
+        public IReadOnlyList<VolcanicAshConditions> Forecasts { get; }
+
+        private static readonly IReadOnlyList<EnRoutePhenomenonVolume> EmptyClouds = new ReadOnlyCollection<EnRoutePhenomenonVolume>(new List<EnRoutePhenomenonVolume>(0));
 
         private Vaa(
             string id,
@@ -55,8 +66,8 @@ namespace Iwxxm.Net.Reports
             DateTimeOffset? nextAdvisoryTimeUtc,
             bool isTranslationFailed,
             string? translationFailedTac,
-            IReadOnlyList<EnRoutePhenomenonVolume> observedAshClouds,
-            IReadOnlyList<EnRoutePhenomenonVolume> forecastAshClouds)
+            VolcanicAshConditions? observation,
+            IReadOnlyList<VolcanicAshConditions> forecasts)
         {
             Id = id;
             IssueTimeUtc = issueTimeUtc;
@@ -75,8 +86,8 @@ namespace Iwxxm.Net.Reports
             NextAdvisoryTimeUtc = nextAdvisoryTimeUtc;
             IsTranslationFailed = isTranslationFailed;
             TranslationFailedTac = translationFailedTac;
-            ObservedAshClouds = observedAshClouds;
-            ForecastAshClouds = forecastAshClouds;
+            Observation = observation;
+            Forecasts = forecasts;
         }
 
         public static Result<Vaa> Create(
@@ -95,8 +106,8 @@ namespace Iwxxm.Net.Reports
             DateTimeOffset? nextAdvisoryTimeUtc = null,
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
-            IEnumerable<EnRoutePhenomenonVolume>? observedAshClouds = null,
-            IEnumerable<EnRoutePhenomenonVolume>? forecastAshClouds = null,
+            VolcanicAshConditions? observation = null,
+            IEnumerable<VolcanicAshConditions>? forecasts = null,
             PermissibleUsageReason? permissibleUsageReason = null,
             string? permissibleUsageSupplementary = null)
         {
@@ -105,9 +116,24 @@ namespace Iwxxm.Net.Reports
             invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
             invariants.RequireIssueTime(issueTimeUtc);
             invariants.RequireUtc(nextAdvisoryTimeUtc, "next advisory time");
-            foreach (EnRoutePhenomenonVolume cloud in (observedAshClouds ?? Enumerable.Empty<EnRoutePhenomenonVolume>()).Concat(forecastAshClouds ?? Enumerable.Empty<EnRoutePhenomenonVolume>()))
+            var forecastList = forecasts?.ToList() ?? new List<VolcanicAshConditions>(0);
+            var allConditions = forecastList.ToList();
+            if (observation != null)
+                allConditions.Insert(0, observation);
+
+            foreach (VolcanicAshConditions conditions in allConditions)
             {
-                invariants.Check(cloud);
+                if (conditions == null)
+                {
+                    invariants.Add("DOMAIN-VAA-CONDITIONS-NULL", "Volcanic ash conditions cannot be null.");
+                    continue;
+                }
+
+                invariants.RequireUtc(conditions.PhenomenonTimeUtc, "volcanic ash conditions time");
+                foreach (EnRoutePhenomenonVolume cloud in conditions.AshClouds)
+                {
+                    invariants.Check(cloud);
+                }
             }
 
             if (invariants.HasErrors)
@@ -133,8 +159,8 @@ namespace Iwxxm.Net.Reports
                 nextAdvisoryTimeUtc,
                 isTranslationFailed,
                 translationFailedTac,
-                new ReadOnlyCollection<EnRoutePhenomenonVolume>(observedAshClouds?.ToList() ?? new List<EnRoutePhenomenonVolume>(0)),
-                new ReadOnlyCollection<EnRoutePhenomenonVolume>(forecastAshClouds?.ToList() ?? new List<EnRoutePhenomenonVolume>(0))));
+                observation,
+                new ReadOnlyCollection<VolcanicAshConditions>(forecastList)));
         }
     }
 }

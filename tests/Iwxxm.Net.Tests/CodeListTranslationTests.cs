@@ -36,6 +36,9 @@ namespace Iwxxm.Net.Tests
         public void SpaceWeatherLocationTable_MatchesTheOfficialRdf() => AssertTableMatchesOfficialRdf(CodeListTables.SpaceWeatherLocations);
 
         [Fact]
+        public void VisibilityReductionCauseTable_MatchesTheOfficialRdf() => AssertTableMatchesOfficialRdf(CodeListTables.VisibilityReductionCauses);
+
+        [Fact]
         public void AerodromeWeatherCodes_AreReadFromTheOfficialRdf()
         {
             Assert.Equal(AerodromeWeatherCodeList.RegisterUri, OfficialCodeListReader.ReadRegisterUri(AerodromeWeatherCodeList.ResourcePath));

@@ -36,8 +36,9 @@ Taf {
         Value = 5
       }
     }
-    ValidFromUtc = null
-    ValidUntilUtc = null
+    TimeIndicator = null
+    ValidFromUtc = 2012-08-16T00:00:00.0000000+00:00
+    ValidUntilUtc = 2012-08-16T18:00:00.0000000+00:00
     Weather = []
   }
   BaseForecastNilReason = null
@@ -83,6 +84,7 @@ Taf {
       PrevailingVisibilityMeters = null
       PrevailingVisibilityOperator = null
       SurfaceWind = null
+      TimeIndicator = null
       ValidFromUtc = 2012-08-16T06:00:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T08:00:00.0000000+00:00
       Weather = []
@@ -139,6 +141,7 @@ Taf {
           Value = 6
         }
       }
+      TimeIndicator = null
       ValidFromUtc = 2012-08-16T08:00:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T12:00:00.0000000+00:00
       Weather = [
@@ -179,6 +182,7 @@ Taf {
           Value = 4
         }
       }
+      TimeIndicator = null
       ValidFromUtc = 2012-08-16T12:30:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T18:00:00.0000000+00:00
       Weather = []

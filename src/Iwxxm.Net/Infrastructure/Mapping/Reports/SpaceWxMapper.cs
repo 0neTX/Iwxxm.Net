@@ -23,13 +23,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             List<string> replacedNumbers = ReadNonBlankValues(root, "replacedAdvisoryNumber");
             List<string> effects = ReadNonBlankValues(root, "effect");
 
-            var analyses = new List<SpaceWeatherAnalysisRegion>();
+            var analyses = new List<SpaceWeatherAnalysis>();
             foreach (XElement analysisProp in root.Elements(IwxxmNs + "analysis"))
             {
                 XElement? analysisElem = analysisProp.Element(IwxxmNs + "SpaceWeatherAnalysis");
                 if (analysisElem == null) continue;
 
-                ReadAnalysis(analysisElem, analyses, errors);
+                analyses.Add(ReadAnalysis(analysisElem, errors));
             }
 
             DateTimeOffset? nextAdvisory = GmlTimeReader.ReadOptionalInstant(root.Element(IwxxmNs + "nextAdvisoryTime"), "nextAdvisoryTime", id, errors);
@@ -64,25 +64,34 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 .Where(v => !string.IsNullOrWhiteSpace(v))
                 .ToList();
 
-        /// <summary>Adds one <see cref="SpaceWeatherAnalysisRegion"/> per <c>iwxxm:intensityAndRegion</c> of the analysis.</summary>
-        private static void ReadAnalysis(XElement analysisElem, List<SpaceWeatherAnalysisRegion> analyses, List<ValidationError> errors)
+        /// <summary>
+        /// Reads one <c>SpaceWeatherAnalysis</c>: one <see cref="SpaceWeatherAnalysisRegion"/> per
+        /// <c>iwxxm:intensityAndRegion</c>, inline or by local reference; a nil group keeps its nil reason.
+        /// </summary>
+        private static SpaceWeatherAnalysis ReadAnalysis(XElement analysisElem, List<ValidationError> errors)
         {
             string analysisId = GetGmlId(analysisElem);
-            string? timeInd = analysisElem.Attribute("timeIndicator")?.Value;
+            TimeIndicator? timeIndicator = TimeIndicatorReader.Read(analysisElem, analysisId, errors);
             DateTimeOffset? phenTime = GmlTimeReader.ReadOptionalInstant(analysisElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", analysisId, errors);
 
+            var regions = new List<SpaceWeatherAnalysisRegion>();
+            string? nilReason = null;
             foreach (XElement irProp in analysisElem.Elements(IwxxmNs + "intensityAndRegion"))
             {
-                XElement? irElem = irProp.Element(IwxxmNs + "SpaceWeatherIntensityAndRegion");
-                if (irElem == null) continue;
+                XElement? irElem = GmlReferenceResolver.Content(irProp, IwxxmNs + "SpaceWeatherIntensityAndRegion");
+                if (irElem == null)
+                {
+                    nilReason ??= irProp.Attribute("nilReason")?.Value;
+                    continue;
+                }
 
                 string? intensity = GetText(irElem.Element(IwxxmNs + "intensity"));
                 var locations = new List<CodeListValue<SpaceWeatherLocation>>();
-                var polygons = new List<GeoPolygon>();
+                var areas = new List<GeoSurface>();
 
                 foreach (XElement regProp in irElem.Elements(IwxxmNs + "region"))
                 {
-                    XElement? regElem = regProp.Element(IwxxmNs + "SpaceWeatherRegion");
+                    XElement? regElem = GmlReferenceResolver.Content(regProp, IwxxmNs + "SpaceWeatherRegion");
                     if (regElem == null) continue;
 
                     foreach (string href in CollectHrefs(regElem.Elements(IwxxmNs + "locationIndicator")))
@@ -91,20 +100,22 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                     }
 
                     XElement? patches = AixmFeatureReader.GetHorizontalProjectionPatches(
-                        regElem.Element(IwxxmNs + "location")?.Element(AixmNs + "AirspaceVolume"));
+                        GmlReferenceResolver.Content(regElem.Element(IwxxmNs + "location"), AixmNs + "AirspaceVolume"));
 
                     if (patches != null)
                     {
-                        GeoPolygon? poly = GmlGeometryReader.ReadPatchesPolygon(patches, GetGmlId(regElem), errors);
-                        if (poly != null)
+                        GeoSurface? area = GmlGeometryReader.ReadPatchesSurface(patches, GetGmlId(regElem), errors);
+                        if (area != null)
                         {
-                            polygons.Add(poly);
+                            areas.Add(area);
                         }
                     }
                 }
 
-                analyses.Add(new SpaceWeatherAnalysisRegion(analysisId, timeInd, phenTime, intensity, locations, polygons));
+                regions.Add(new SpaceWeatherAnalysisRegion(GetGmlId(irElem), intensity, locations, areas));
             }
+
+            return new SpaceWeatherAnalysis(analysisId, timeIndicator, phenTime, regions, regions.Count == 0 ? nilReason : null);
         }
     }
 }

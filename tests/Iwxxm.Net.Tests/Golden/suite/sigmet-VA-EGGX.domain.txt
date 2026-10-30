@@ -2,6 +2,8 @@ Sigmet {
   AtsUnitDesignator = "EGGX"
   AtsUnitName = "SHANWICK OCEANIC AREA CONTROL CENTRE"
   CancelledReportSequenceNumber = null
+  CancelledReportValidFromUtc = null
+  CancelledReportValidUntilUtc = null
   EruptingVolcano = Volcano {
     EruptionTimeUtc = null
     Id = "uuid.99646618-9ec7-47c0-8b50-daba5b6b1da9"
@@ -51,7 +53,9 @@ Sigmet {
         UnitOfMeasure = null
         Value = null
       }
+      PhenomenonTimeUtc = 2018-07-25T16:00:00.0000000+00:00
       SpeedOfMotion = null
+      TimeIndicator = TimeIndicator.Observation
       TropicalCycloneCentre = null
       UpperLimit = VerticalLimit {
         IsGround = false
@@ -97,7 +101,9 @@ Sigmet {
       Id = "uuid.fefac6d8-d236-4008-ad4d-cc8b229b7c50"
       IntensityChange = null
       LowerLimit = null
+      PhenomenonTimeUtc = 2018-07-25T22:00:00.0000000+00:00
       SpeedOfMotion = null
+      TimeIndicator = null
       TropicalCycloneCentre = null
       UpperLimit = null
     }

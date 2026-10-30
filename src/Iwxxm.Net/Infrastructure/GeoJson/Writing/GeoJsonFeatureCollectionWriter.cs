@@ -85,34 +85,13 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
 
             writer.WritePropertyName("geometry");
-            if (feature.GeometryType == null)
+            if (feature.Geometry == null)
             {
                 writer.WriteNullValue();
             }
             else
             {
-                writer.BeginObject();
-                writer.WriteProperty("type", feature.GeometryType);
-                writer.WritePropertyName("coordinates");
-                if (feature.GeometryType == "Point" && feature.PointCoordinate.HasValue)
-                {
-                    writer.WriteCoordinatePair(feature.PointCoordinate.Value);
-                }
-                else if (feature.GeometryType == "LineString" && feature.LineCoordinates != null)
-                {
-                    writer.WriteCoordinateSequence(feature.LineCoordinates);
-                }
-                else if (feature.GeometryType == "Polygon" && feature.Polygon != null)
-                {
-                    writer.BeginArray();
-                    writer.WriteCoordinateRingElement(feature.Polygon.ExteriorRing);
-                    for (int h = 0; h < feature.Polygon.InteriorRings.Count; h++)
-                    {
-                        writer.WriteCoordinateRingElement(feature.Polygon.InteriorRings[h]);
-                    }
-                    writer.EndArray();
-                }
-                writer.EndObject();
+                WriteGeometry(writer, feature.Geometry);
             }
 
             writer.WritePropertyName("properties");
@@ -127,6 +106,59 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
             writer.EndObject();
             writer.EndObject();
+        }
+
+        private static void WriteGeometry(Rfc8259JsonWriter writer, GeoJsonGeometry geometry)
+        {
+            writer.BeginObject();
+            writer.WriteProperty("type", geometry.TypeName);
+            writer.WritePropertyName("coordinates");
+            switch (geometry.Type)
+            {
+                case GeoJsonGeometryType.Point:
+                    writer.WritePosition(geometry.Point);
+                    break;
+                case GeoJsonGeometryType.LineString:
+                    writer.WritePositionSequence(geometry.Lines![0]);
+                    break;
+                case GeoJsonGeometryType.MultiLineString:
+                    writer.BeginArray();
+                    foreach (IReadOnlyList<GeoJsonPosition> line in geometry.Lines!)
+                    {
+                        writer.WritePositionSequenceElement(line);
+                    }
+                    writer.EndArray();
+                    break;
+                case GeoJsonGeometryType.Polygon:
+                    WriteRings(writer, geometry.Polygons![0]);
+                    break;
+                case GeoJsonGeometryType.MultiPolygon:
+                    writer.BeginArray();
+                    foreach (IReadOnlyList<IReadOnlyList<GeoJsonPosition>> polygon in geometry.Polygons!)
+                    {
+                        writer.BeginArrayElement();
+                        WriteRingElements(writer, polygon);
+                        writer.EndArray();
+                    }
+                    writer.EndArray();
+                    break;
+            }
+            writer.EndObject();
+        }
+
+        private static void WriteRings(Rfc8259JsonWriter writer, IReadOnlyList<IReadOnlyList<GeoJsonPosition>> rings)
+        {
+            writer.BeginArray();
+            WriteRingElements(writer, rings);
+            writer.EndArray();
+        }
+
+        private static void WriteRingElements(Rfc8259JsonWriter writer, IReadOnlyList<IReadOnlyList<GeoJsonPosition>> rings)
+        {
+            for (int r = 0; r < rings.Count; r++)
+            {
+                writer.WritePositionSequenceElement(rings[r]);
+            }
         }
     }
 }

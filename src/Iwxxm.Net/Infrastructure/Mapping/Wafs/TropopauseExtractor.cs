@@ -37,7 +37,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 var ringCoordsRes = SigwxGeometryReader.ReadRingCoordinates(
                     feature.PhenomenonGeometry.Polygon.Exterior,
                     context,
-                    feature.PhenomenonGeometry.Polygon.SrsDimensionSpecified ? feature.PhenomenonGeometry.Polygon.SrsDimension : 2);
+                    SigwxGeometryReader.SrsAttributes.From(
+                        feature.PhenomenonGeometry.Polygon.SrsName,
+                        feature.PhenomenonGeometry.Polygon.AxisLabels,
+                        feature.PhenomenonGeometry.Polygon.SrsDimensionSpecified,
+                        feature.PhenomenonGeometry.Polygon.SrsDimension));
 
                 if (ringCoordsRes.IsFailure)
                     return Result<Tropopause>.Failure(ringCoordsRes.Errors);

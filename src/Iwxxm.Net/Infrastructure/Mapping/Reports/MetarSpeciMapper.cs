@@ -149,10 +149,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 XElement? rvrElem = rvrProp.Element(IwxxmNs + "AerodromeRunwayVisualRange");
                 if (rvrElem == null) continue;
 
-                // The runway may be given only by an xlink:href reference (not resolved): the designator is then null.
-                string? rwyDesig = GetText(rvrElem
-                    .Element(IwxxmNs + "runway")
-                    ?.Element(AixmNs + "RunwayDirection")
+                // The runway may be given by a local xlink:href reference (resolved); a remote one leaves the designator null.
+                string? rwyDesig = GetText(GmlReferenceResolver.Content(rvrElem.Element(IwxxmNs + "runway"), AixmNs + "RunwayDirection")
                     ?.Element(AixmNs + "timeSlice")
                     ?.Element(AixmNs + "RunwayDirectionTimeSlice")
                     ?.Element(AixmNs + "designator"));

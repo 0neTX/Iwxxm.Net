@@ -35,6 +35,20 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         public static Result<IReadOnlyList<GeoCoordinate>> ParsePosList(
             string? posListText,
             int srsDimension,
+            string? contextLocation) =>
+            ParsePosList(posListText, srsDimension, false, contextLocation);
+
+        /// <summary>
+        /// Parses a coordinate list using the axis order and dimension of <paramref name="crs"/>: a <c>"Long Lat"</c>
+        /// sequence is swapped into Domain (latitude, longitude) coordinates; the third coordinate of a 3-D position is ignored.
+        /// </summary>
+        public static Result<IReadOnlyList<GeoCoordinate>> ParsePosList(string? posListText, GmlCrs crs, string? contextLocation) =>
+            ParsePosList(posListText, crs.Dimension, crs.IsLongitudeFirst, contextLocation);
+
+        private static Result<IReadOnlyList<GeoCoordinate>> ParsePosList(
+            string? posListText,
+            int srsDimension,
+            bool longitudeFirst,
             string? contextLocation)
         {
             if (string.IsNullOrWhiteSpace(posListText))
@@ -116,7 +130,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     tokenIndex++;
                 }
 
-                Result<GeoCoordinate> coordResult = GeoCoordinate.Create(lat, lon, contextLocation);
+                Result<GeoCoordinate> coordResult = longitudeFirst
+                    ? GeoCoordinate.Create(lon, lat, contextLocation)
+                    : GeoCoordinate.Create(lat, lon, contextLocation);
                 if (coordResult.IsFailure)
                 {
                     return Result<IReadOnlyList<GeoCoordinate>>.Failure(coordResult.Errors);
@@ -141,7 +157,17 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         /// Parses a single <c>gml:pos</c> string (<c>lat lon</c>) into a <see cref="GeoCoordinate"/> without array allocation.
         /// Only the first two numbers are read; trailing tokens are ignored.
         /// </summary>
-        public static Result<GeoCoordinate> ParseSinglePoint(string? posText, string? contextLocation)
+        public static Result<GeoCoordinate> ParseSinglePoint(string? posText, string? contextLocation) =>
+            ParseSinglePoint(posText, false, contextLocation);
+
+        /// <summary>
+        /// Parses a single <c>gml:pos</c> with the axis order of <paramref name="crs"/> (<c>"Long Lat"</c> is swapped);
+        /// a third coordinate (height) is ignored.
+        /// </summary>
+        public static Result<GeoCoordinate> ParseSinglePoint(string? posText, GmlCrs crs, string? contextLocation) =>
+            ParseSinglePoint(posText, crs.IsLongitudeFirst, contextLocation);
+
+        private static Result<GeoCoordinate> ParseSinglePoint(string? posText, bool longitudeFirst, string? contextLocation)
         {
             if (string.IsNullOrWhiteSpace(posText))
             {
@@ -168,7 +194,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     contextLocation);
             }
 
-            return GeoCoordinate.Create(lat, lon, contextLocation);
+            return longitudeFirst
+                ? GeoCoordinate.Create(lon, lat, contextLocation)
+                : GeoCoordinate.Create(lat, lon, contextLocation);
         }
 
         private static bool SkipWhitespace(string text, ref int index, int length)
@@ -255,15 +283,17 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 {
                     index++;
                 }
+                // Non-finite tokens (NaN, Infinity, overflowing exponents) are rejected: they are not coordinates.
 #if NETSTANDARD2_1_OR_GREATER
                 return double.TryParse(
                     text.AsSpan(tokenStart, index - tokenStart),
                     NumberStyles.Float,
                     CultureInfo.InvariantCulture,
-                    out value);
+                    out value) && !double.IsNaN(value) && !double.IsInfinity(value);
 #else
                 string fallbackToken = text.Substring(tokenStart, index - tokenStart);
-                return double.TryParse(fallbackToken, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+                return double.TryParse(fallbackToken, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+                       !double.IsNaN(value) && !double.IsInfinity(value);
 #endif
             }
 

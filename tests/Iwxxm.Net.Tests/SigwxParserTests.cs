@@ -60,7 +60,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(9, cloud.TypeNumericCode);
             Assert.True(cloud.Base!.Value.IsNil); // lowerElevation has xsi:nil="true" nilReason=".../inapplicable"
             Assert.Equal(Vertical(12496.8, VerticalUnit.Meters, VerticalReference.Msl), cloud.Top); // kept as reported (MSL, not FL410)
-            Assert.Equal(9, cloud.Area.ExteriorRing.Count);
+            Assert.Equal(9, Assert.IsType<GeoPolygon>(cloud.Area).ExteriorRing.Count);
 
             // 3. Verify Tropopause mapped from MeteorologicalFeature (Polygon + ElevatedLevel 14020 m MSL)
             Assert.Single(report.Tropopauses);
@@ -88,7 +88,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(10, turbulence.DegreeNumericCode);
             Assert.Equal(Vertical(10363.2, VerticalUnit.Meters, VerticalReference.Msl), turbulence.Base);
             Assert.Equal(Vertical(12192.0, VerticalUnit.Meters, VerticalReference.Msl), turbulence.Top);
-            Assert.Equal(17, turbulence.Area.ExteriorRing.Count);
+            Assert.Equal(17, Assert.IsType<GeoPolygon>(turbulence.Area).ExteriorRing.Count);
 
             // 6. Verify AirframeIcing mapped from MeteorologicalFeature (ElevatedVolume uom="FL" 100-240 with MSL reference + DegreeOfIcing 3)
             Assert.Single(report.AirframeIcings);
@@ -101,7 +101,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(3, icing.DegreeNumericCode);
             Assert.Equal(Vertical(100, VerticalUnit.FlightLevel, VerticalReference.Msl), icing.Base);
             Assert.Equal(Vertical(240, VerticalUnit.FlightLevel, VerticalReference.Msl), icing.Top);
-            Assert.Equal(21, icing.Area.ExteriorRing.Count);
+            Assert.Equal(21, Assert.IsType<GeoPolygon>(icing.Area).ExteriorRing.Count);
 
             // 7. Verify TropicalCyclone mapped from MeteorologicalFeature (FRED at 25.0, -78.0)
             Assert.Single(report.TropicalCyclones);
@@ -221,7 +221,7 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void Parse_OutOfBoundsLatitudeInPosList_FailsInDomainAclMapping()
+        public void Parse_OutOfBoundsLatitudeInPosList_IsReportedAsAFeatureErrorOfTheChart()
         {
             // Arrange: Inject latitude 95.4 (outside [-90, 90]) into WAFS-Example.xml JetStream posList
             string validXml = File.ReadAllText(OfficialWmoWafsExamplePath);
@@ -230,11 +230,12 @@ namespace Iwxxm.Net.Tests
             // Act
             var result = IwxxmSigwxParser.Parse(invalidCoordXml);
 
-            // Assert
-            Assert.True(result.IsFailure);
-            Assert.Contains(result.Errors, e =>
+            // Assert: the feature is skipped (AUD-M12 partial results); the rest of the chart is kept.
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            Assert.Contains(result.Value.FeatureErrors.SelectMany(f => f.Errors), e =>
                 e.Category == ErrorCategory.DomainMapping &&
                 e.Code == "GEO-INVALID-LAT");
+            Assert.Contains(result.Warnings, w => w.Code == "GEO-INVALID-LAT" && w.Severity == ValidationSeverity.Warning);
         }
 
         private static VerticalLimit Vertical(double value, VerticalUnit unit, VerticalReference? reference) =>

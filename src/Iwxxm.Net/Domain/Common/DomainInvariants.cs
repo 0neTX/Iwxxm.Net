@@ -141,6 +141,17 @@ namespace Iwxxm.Net.Reports
             RequireNonNegative(volume.SpeedOfMotion, $"speed of motion of '{volume.Id}'");
         }
 
+        internal void Check(AirmetEvolvingCondition condition)
+        {
+            Check(condition.Volume);
+            RequireDirection(condition.SurfaceWindDirectionDegrees, $"surface wind direction of '{condition.Id}'");
+            RequireNonNegative(condition.SurfaceWindSpeed, $"surface wind speed of '{condition.Id}'");
+            if (condition.SurfaceVisibility.HasValue && condition.SurfaceVisibility.Value.Value < 0.0)
+            {
+                Add(DomainErrorCodes.NegativeVisibility, $"The surface visibility of '{condition.Id}' cannot be negative.");
+            }
+        }
+
         internal void Check(TropicalCycloneTrackPoint? point, string field)
         {
             if (point == null)

@@ -19,8 +19,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             string id = GetGmlId(bulletinElem);
             string bulletinIdentifier = bulletinElem.Element(CollectNs + "bulletinIdentifier")?.Value ?? string.Empty;
 
+            // Partial results (AUD-M12 / AUD-U4): a report that cannot be mapped does not fail the bulletin; it is
+            // reported as an item error of the bulletin, which keeps every other report.
             var childResults = new List<Result<IwxxmReport>>();
-            var errors = new List<ValidationError>();
+            var itemIds = new List<string?>();
 
             foreach (XElement metInfo in bulletinElem.Elements(CollectNs + "meteorologicalInformation"))
             {
@@ -28,20 +30,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 if (reportElem == null)
                     continue;
 
-                Result<IwxxmReport> childResult = mapReport(reportElem);
-                childResults.Add(childResult);
-                if (childResult.IsFailure)
-                {
-                    errors.AddRange(childResult.Errors);
-                }
+                childResults.Add(mapReport(reportElem));
+                itemIds.Add(reportElem.Attribute(GmlNs + "id")?.Value);
             }
 
-            if (errors.Count > 0)
-            {
-                return Result<MeteorologicalBulletin>.Failure(errors);
-            }
-
-            return MeteorologicalBulletin.Create(id, bulletinIdentifier, childResults);
+            return MeteorologicalBulletin.Create(id, bulletinIdentifier, childResults, itemIds);
         }
     }
 }

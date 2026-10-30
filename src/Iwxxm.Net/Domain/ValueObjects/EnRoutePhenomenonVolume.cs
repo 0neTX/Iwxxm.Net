@@ -12,7 +12,11 @@ namespace Iwxxm.Net.Reports
     public sealed class EnRoutePhenomenonVolume : IEquatable<EnRoutePhenomenonVolume>
     {
         public string Id { get; }
-        public GeoPolygon? Area { get; }
+        /// <summary>
+        /// Horizontal projection of the volume: a <see cref="GeoPolygon"/> or a <see cref="GeoCircle"/>
+        /// (<c>gml:CircleByCenterPoint</c>, e.g. "WI 250NM OF TC CENTRE"); <c>null</c> when not reported.
+        /// </summary>
+        public GeoSurface? Area { get; }
         public VerticalLimit? LowerLimit { get; }
         public VerticalLimit? UpperLimit { get; }
         public string? IntensityChange { get; }
@@ -20,15 +24,26 @@ namespace Iwxxm.Net.Reports
         public Speed? SpeedOfMotion { get; }
         public GeoCoordinate? TropicalCycloneCentre { get; }
 
+        /// <summary>
+        /// <c>@timeIndicator</c> of the enclosing condition collection (SIGMET/AIRMET: observed or forecast);
+        /// <c>null</c> when the collection does not report one (e.g. SIGMET forecast positions, VAA clouds).
+        /// </summary>
+        public TimeIndicator? TimeIndicator { get; }
+
+        /// <summary><c>phenomenonTime</c> of the enclosing collection or conditions; <c>null</c> when nil or unresolved.</summary>
+        public DateTimeOffset? PhenomenonTimeUtc { get; }
+
         public EnRoutePhenomenonVolume(
             string id,
-            GeoPolygon? area,
+            GeoSurface? area,
             VerticalLimit? lowerLimit,
             VerticalLimit? upperLimit,
             string? intensityChange = null,
             double? directionOfMotionDegrees = null,
             Speed? speedOfMotion = null,
-            GeoCoordinate? tropicalCycloneCentre = null)
+            GeoCoordinate? tropicalCycloneCentre = null,
+            TimeIndicator? timeIndicator = null,
+            DateTimeOffset? phenomenonTimeUtc = null)
         {
             Id = id ?? string.Empty;
             Area = area;
@@ -39,6 +54,8 @@ namespace Iwxxm.Net.Reports
             DirectionOfMotionDegrees = directionOfMotionDegrees;
             SpeedOfMotion = speedOfMotion;
             TropicalCycloneCentre = tropicalCycloneCentre;
+            TimeIndicator = timeIndicator;
+            PhenomenonTimeUtc = phenomenonTimeUtc;
         }
 
         public bool Equals(EnRoutePhenomenonVolume? other)
@@ -52,7 +69,9 @@ namespace Iwxxm.Net.Reports
                    string.Equals(IntensityChange, other.IntensityChange, StringComparison.Ordinal) &&
                    Nullable.Equals(DirectionOfMotionDegrees, other.DirectionOfMotionDegrees) &&
                    Nullable.Equals(SpeedOfMotion, other.SpeedOfMotion) &&
-                   Nullable.Equals(TropicalCycloneCentre, other.TropicalCycloneCentre);
+                   Nullable.Equals(TropicalCycloneCentre, other.TropicalCycloneCentre) &&
+                   TimeIndicator == other.TimeIndicator &&
+                   Nullable.Equals(PhenomenonTimeUtc, other.PhenomenonTimeUtc);
         }
 
         public override bool Equals(object? obj) => obj is EnRoutePhenomenonVolume other && Equals(other);
@@ -68,7 +87,8 @@ namespace Iwxxm.Net.Reports
             hash = ValueEquality.AddDouble(hash, DirectionOfMotionDegrees);
             hash = ValueEquality.Add(hash, SpeedOfMotion);
             hash = ValueEquality.Add(hash, TropicalCycloneCentre);
-            return hash;
+            hash = ValueEquality.Add(hash, TimeIndicator);
+            return ValueEquality.Add(hash, PhenomenonTimeUtc);
         }
 
         public static bool operator ==(EnRoutePhenomenonVolume? left, EnRoutePhenomenonVolume? right) => Equals(left, right);

@@ -339,13 +339,31 @@ if (sigmetResult.IsSuccess)
         Console.WriteLine($"  Upper as FL     : {volume.UpperLimit?.AsFlightLevel()?.ToString() ?? "n/a (not an STD flight level)"}");
         Console.WriteLine($"  Intensity Change: {volume.IntensityChange}");
         Console.WriteLine($"  Motion          : {volume.DirectionOfMotionDegrees}° at {volume.SpeedOfMotion} ({volume.SpeedOfMotion?.ToKnots():F0} kt)");
-        Console.WriteLine($"  Polygon Vertices: {volume.Area?.ExteriorRing.Count ?? 0}");
+        Console.WriteLine($"  Time Context    : {volume.TimeIndicator} at {volume.PhenomenonTimeUtc:O}"); // OBS/FCST of its collection
+        // The area is a closed union: GeoPolygon or GeoCircle ("WI 250NM OF TC CENTRE").
+        string area = volume.Area?.Match(
+            polygon => $"polygon, {polygon.ExteriorRing.Count} vertices",
+            circle => $"circle, {circle.Radius.Value} {circle.Radius.UnitOfMeasure} around {circle.Centre}") ?? "(none)";
+        Console.WriteLine($"  Area            : {area}");
     }
 
     foreach (EnRoutePhenomenonVolume forecast in sigmet.ForecastPositions)
     {
-        Console.WriteLine($"Forecast Volume {forecast.Id}: {forecast.Area?.ExteriorRing.Count ?? 0} vertices");
+        int vertices = forecast.Area is GeoPolygon polygon ? polygon.ExteriorRing.Count : 0;
+        Console.WriteLine($"Forecast Volume {forecast.Id}: {vertices} vertices at {forecast.PhenomenonTimeUtc:O}");
     }
+}
+
+// AIRMET: a cancellation (CNL) is distinguishable and never describes an active hazard.
+Airmet airmet = IwxxmParser.ParseFileAs<Airmet>("Samples/wmo-examples/airmet-A6-1a-TS.xml").Value;
+if (airmet.IsCancelReport)
+{
+    Console.WriteLine($"AIRMET {airmet.SequenceNumber} cancels AIRMET {airmet.CancelledReportSequenceNumber} ({airmet.CancelledReportValidFromUtc:O} - {airmet.CancelledReportValidUntilUtc:O})");
+}
+foreach (AirmetEvolvingCondition condition in airmet.EvolvingConditions)
+{
+    // AIRMET-specific content next to the shared volume: BKN/OVC CLD, SFC VIS, SFC WIND.
+    Console.WriteLine($"  {condition.Id}: cloud {condition.CloudBase}-{condition.CloudTop}, vis {condition.SurfaceVisibility}, wind {condition.SurfaceWindDirectionDegrees}/{condition.SurfaceWindSpeed}, top FL {condition.Volume.UpperLimit?.AsFlightLevel()}");
 }
 ```
 
@@ -445,20 +463,30 @@ if (qvaciResult.IsSuccess)
 
 ```csharp
 var vaa = IwxxmParser.ParseFileAs<Vaa>("Samples/wmo-examples/va-advisory-A7-2.xml").Value;
-Console.WriteLine($"VAAC {vaa.IssuingVaacName} #{vaa.AdvisoryNumber}: {vaa.ObservedAshClouds.Count} observed, {vaa.ForecastAshClouds.Count} forecast clouds");
+Console.WriteLine($"VAAC {vaa.IssuingVaacName} #{vaa.AdvisoryNumber}: {vaa.ObservedAshClouds.Count} observed clouds at {vaa.Observation?.PhenomenonTimeUtc:O}");
+foreach (VolcanicAshConditions forecast in vaa.Forecasts) // one entry per +6/+12/+18 HR offset
+{
+    Console.WriteLine($"  FCST {forecast.PhenomenonTimeUtc:O}: {forecast.Status} ({forecast.AshClouds.Count} clouds)"); // e.g. NoVolcanicAshExpected
+}
 
 var tca = IwxxmParser.ParseFileAs<Tca>("Samples/wmo-examples/tc-advisory-A2-2.xml").Value;
-Console.WriteLine($"TCAC {tca.IssuingTcacDesignator} Cyclone {tca.CycloneName}: Obs Pressure={tca.Observation?.CentralPressureHpa} hPa, {tca.Forecasts.Count} forecast track points");
+Console.WriteLine($"TCAC {tca.IssuingTcacDesignator} Cyclone {tca.CycloneName}: Obs Pressure={tca.Observation?.CentralPressureHpa} hPa, {tca.Forecasts.Count} forecast track points, {tca.CumulonimbusCloudLocations.Count} CB extents");
 
 var swx = IwxxmParser.ParseFileAs<SpaceWx>("Samples/wmo-examples/spacewx-A7-3.xml").Value;
-Console.WriteLine($"SWXC {swx.IssuingSwxcName} #{swx.AdvisoryNumber}: Effects=[{string.Join(", ", swx.Effects)}], {swx.Analyses.Count} analysis regions");
+Console.WriteLine($"SWXC {swx.IssuingSwxcName} #{swx.AdvisoryNumber}: Effects=[{string.Join(", ", swx.Effects)}]");
+foreach (SpaceWeatherAnalysis analysis in swx.Analyses) // observation and each forecast offset
+{
+    Console.WriteLine(analysis.IsNothingOfOperationalSignificance
+        ? $"  {analysis.TimeIndicator} {analysis.PhenomenonTimeUtc:O}: NO SWX EXP"
+        : $"  {analysis.TimeIndicator} {analysis.PhenomenonTimeUtc:O}: {analysis.Regions.Count} intensity/region groups");
+}
 ```
 
 ---
 
 ### 4.6 SWIM / AMHS Collective Bulletins (`collect:MeteorologicalBulletin`)
 
-SWIM and AMHS networks frequently bundle multiple `METAR`, `SPECI`, or `TAF` reports inside a `<collect:MeteorologicalBulletin>` envelope. `MeteorologicalBulletin` exposes both `Reports` (all valid reports) and `ReportResults` (individual `Result<IwxxmReport>` outcomes per `<collect:meteorologicalInformation>` entry):
+SWIM and AMHS networks frequently bundle multiple `METAR`, `SPECI`, or `TAF` reports inside a `<collect:MeteorologicalBulletin>` envelope. `MeteorologicalBulletin` exposes `Reports` (all mapped reports), `ReportResults` (individual `Result<IwxxmReport>` outcomes per `<collect:meteorologicalInformation>` entry) and `ItemErrors` (the entries that could not be mapped, with their index and `gml:id`). **Partial results**: a bulletin succeeds as long as one report maps; each skipped report also appears as a `Warning` in `Result.Warnings`. A bulletin with no mapped report fails with `DOMAIN-BULLETIN-EMPTY`. The same applies per feature to WAFS charts (`Sigwx.FeatureErrors`). Schema and Schematron validation remain document-level.
 
 ```csharp
 using System;
@@ -473,6 +501,10 @@ if (bulletinResult.IsSuccess)
     MeteorologicalBulletin bulletin = bulletinResult.Value;
     Console.WriteLine($"Bulletin ID : {bulletin.BulletinIdentifier}");
     Console.WriteLine($"Valid Count : {bulletin.Reports.Count} / {bulletin.ReportResults.Count}");
+    foreach (ItemMappingError skipped in bulletin.ItemErrors) // also reported in bulletinResult.Warnings
+    {
+        Console.WriteLine($"  skipped entry #{skipped.Index} ({skipped.ItemId}): {skipped.Errors[0].Code}");
+    }
 
     foreach (IwxxmReport childReport in bulletin.Reports)
     {
@@ -491,7 +523,10 @@ if (bulletinResult.IsSuccess)
 `Iwxxm.Net` includes a zero-dependency **RFC 7946 GeoJSON Exporter** that converts any `IwxxmDocument` (an `IwxxmReport` or a `MeteorologicalBulletin`) into a standards-compliant GeoJSON `FeatureCollection`:
 - Automatically swaps GML `[latitude, longitude]` coordinates into **RFC 7946 Section 3.1.1 `[longitude, latitude]`** order.
 - Preserves **interior hole rings** (`GeoPolygon.InteriorRings`) as secondary linear rings in GeoJSON `Polygon` coordinates (`[exteriorRing, hole1, ...]`).
-- Computes the global **`bbox`** (`[minLon, minLat, maxLon, maxLat]`) across all features.
+- Computes the global **`bbox`** (`[west, south, east, north]`) across all features; when a geometry crosses the antimeridian, `west` > `east` (RFC 7946 §5.2).
+- Applies the **right-hand rule** (exterior rings counterclockwise, holes clockwise) and **splits geometries crossing ±180** into `MultiLineString` / `MultiPolygon` (§3.1.9); rings that go around a pole are written as polar caps. The Domain model keeps the source order.
+- Writes **circles** (`GeoCircle`, `gml:CircleByCenterPoint`; RFC 7946 has no circle) as a densified polygon of 64 segments (geodesic points at the radius on the IUGG mean sphere) plus the properties `center` (`[lon, lat]`), `radius`, `radiusUom` and `circleSegments`, from which consumers can rebuild the exact circle.
+- Never writes `NaN`/`Infinity` (non-finite values are rejected by the mappers; a non-finite property would be written as `null`).
 - Synthesizes a `TC_TRACK` `LineString` connecting observed and forecast tropical cyclone positions in `Tca`.
 - Emits measures **as reported, without unit conversion**: each speed/length property is written as a value plus a sibling `...Uom` property holding the UCUM unit (e.g. `"windSpeed": 25, "windSpeedUom": "[kn_i]"`, `"speedOfMotion"` / `"speedOfMotionUom"`, `"maxSurfaceWindSpeed"` / `"maxSurfaceWindSpeedUom"`, `"sourceElevation"` / `"sourceElevationUom"`, `"maxWindSpeed"` / `"maxWindSpeedUom"`). WMO BUFR codes are emitted as both the enum name and the official numeric code (`degreeNumericCode`, `distributionNumericCode`, `typeNumericCode`).
 
@@ -712,6 +747,8 @@ Result<IwxxmDocument> result = parser.ProcessFile("metar.xml");
 | Value Object | Namespace | Description |
 | :--- | :--- | :--- |
 | **`GeoCoordinate`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` enforcing WGS84 geodetic bounds (`Lat` $\in [-90, 90]$, `Lon` $\in [-180, 180]$). Values are quantized once at construction to 7 decimal degrees (`GeoCoordinate.Precision` = 1e-7, ~1.1 cm) and compared exactly, so `Equals`/`GetHashCode` agree and equality is transitive. |
+| **`GeoSurface`** | `Iwxxm.Net.Reports` | Closed union of horizontal surfaces: `GeoPolygon` or `GeoCircle` (`Match(polygon => ..., circle => ...)` or pattern matching). Used by `EnRoutePhenomenonVolume.Area`, `SpaceWeatherAnalysisRegion.Areas` and the SIGWX `Cloud`/`Turbulence`/`AirframeIcing` areas. |
+| **`GeoCircle`** | `Iwxxm.Net.Reports` | Circle from `gml:CircleByCenterPoint`: `Centre` (`GeoCoordinate`) and `Radius` (`Length`, value and unit as reported, strictly positive). |
 | **`GeoPolygon`** | `Iwxxm.Net.Reports` | Immutable polygon enforcing $\ge 3$ distinct vertices, automatic ring closure, and optional `InteriorRings` (`IReadOnlyList<IReadOnlyList<GeoCoordinate>>`) for hollow contours. Equality and hash code cover every exterior and interior vertex. |
 | **`VerticalLimit`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` keeping a vertical limit exactly as reported: `Value`, `Unit` (`VerticalUnit`: `FlightLevel`, `Feet`, `Meters`, `Kilometers`, `StandardMeters`), `Reference` (`VerticalReference`: `Sfc`, `Msl`, `W84`, `Std`, `Other`; `null` when not reported), `SpecialValue` (`GND`, `UNL`, `FLOOR`, `CEILING`) and `NilReason`. "15 km AMSL" is not FL492 and `GND SFC` is not FL000. Exact structural equality; `TryCompareTo` only compares commensurable limits. |
 | **`FlightLevel`** | `Iwxxm.Net.Reports` | Derived view: `VerticalLimit.AsFlightLevel()` returns a flight level only for STD limits in `FL` (or exact hundreds of `FT`). |
@@ -791,10 +828,20 @@ bash tools/run-local-ci.sh
 # Specify a custom incremental build number:
 BUILD_NUMBER=5 bash tools/run-local-ci.sh
 
+# Use Podman instead of Docker:
+CONTAINER_ENGINE=podman bash tools/run-local-ci.sh
+
 # Or target individual stages directly via docker build:
 docker build --target build .
 docker build --target test .
 docker build --target pack --build-arg PACKAGE_VERSION=1.0.0-rc.2 .
+```
+
+The local pipeline **never publishes**: the `ci` image only copies the artifacts to `/out`, and the script does not forward `GITHUB_TOKEN`. Packages are published by the GitHub Actions workflow. A deliberate local publish is an explicit opt-in that refuses to run unless every condition holds:
+
+```bash
+# Requires --publish, a dedicated key (GITHUB_TOKEN is ignored), an explicit version and a clean git tree
+IWXXM_NUGET_PUBLISH_API_KEY=... PACKAGE_VERSION=1.2.3 bash tools/run-local-ci.sh --publish
 ```
 
 ### Running the BenchmarkDotNet Performance Suite

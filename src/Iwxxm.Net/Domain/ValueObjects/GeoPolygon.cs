@@ -12,7 +12,7 @@ namespace Iwxxm.Net.Reports
     /// Equality is structural: the exterior ring and every interior ring are compared vertex by vertex, in order
     /// (vertices use the exact, quantized equality of <see cref="GeoCoordinate"/>), and all of them take part in the hash code.
     /// </summary>
-    public sealed class GeoPolygon : IEquatable<GeoPolygon>
+    public sealed class GeoPolygon : GeoSurface, IEquatable<GeoPolygon>
     {
         public IReadOnlyList<GeoCoordinate> ExteriorRing { get; }
 
@@ -89,6 +89,10 @@ namespace Iwxxm.Net.Reports
                 new ReadOnlyCollection<GeoCoordinate>(vertices),
                 new ReadOnlyCollection<IReadOnlyList<GeoCoordinate>>(holes)));
         }
+
+        /// <inheritdoc />
+        public override TResult Match<TResult>(Func<GeoPolygon, TResult> polygon, Func<GeoCircle, TResult> circle) =>
+            (polygon ?? throw new ArgumentNullException(nameof(polygon)))(this);
 
         public bool Equals(GeoPolygon? other)
         {

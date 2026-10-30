@@ -7,14 +7,15 @@ using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
 namespace Iwxxm.Net.Infrastructure.Mapping.Xml
 {
     /// <summary>
-    /// Reads GML 3.2 temporal properties (<c>gml:TimeInstant</c>, <c>gml:TimePeriod</c>) as UTC instants. A mandatory
-    /// value that is absent is a mapping error; a value given only by an unresolved <c>xlink:href</c> is <c>null</c>.
+    /// Reads GML 3.2 temporal properties (<c>gml:TimeInstant</c>, <c>gml:TimePeriod</c>) as UTC instants, inline or given
+    /// by a local <c>xlink:href="#id"</c> reference (<see cref="GmlReferenceResolver"/>). A mandatory value that is absent
+    /// is a mapping error; a value given only by an unresolved (remote or unknown) <c>xlink:href</c> is <c>null</c>.
     /// </summary>
     internal static class GmlTimeReader
     {
         /// <summary>
         /// Reads the mandatory <c>issueTime</c>. An absent element, or one given only by an <c>xlink:href</c> reference
-        /// (not resolved by this version), is a mapping error: the issue time is never invented.
+        /// that cannot be resolved locally, is a mapping error: the issue time is never invented.
         /// </summary>
         public static DateTimeOffset ReadIssueTime(XElement root, string id, List<ValidationError> errors)
         {
@@ -25,14 +26,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
                 return default;
             }
 
-            XElement? instant = prop.Element(GmlNs + "TimeInstant");
+            XElement? instant = GmlReferenceResolver.Content(prop, GmlNs + "TimeInstant");
             if (instant == null)
             {
                 string? href = prop.Attribute(XlinkNs + "href")?.Value;
                 errors.Add(MappingErrors.Create(
                     MappingErrors.IssueTimeMissingCode,
                     href != null
-                        ? $"The mandatory element 'issueTime' is given only by the reference xlink:href='{href}', which is not resolved; no issue time is assumed."
+                        ? $"The mandatory element 'issueTime' is given only by the reference xlink:href='{href}', which cannot be resolved in this document; no issue time is assumed."
                         : "The mandatory element 'issueTime' has no gml:TimeInstant; no issue time is assumed.",
                     id));
                 return default;
@@ -56,10 +57,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             return ReadOptionalInstant(prop, field, id, errors);
         }
 
-        /// <summary>Reads an optional time-instant property: absent, nil or <c>xlink:href</c>-only -> <c>null</c>.</summary>
+        /// <summary>Reads an optional time-instant property: absent, nil or unresolved <c>xlink:href</c> -> <c>null</c>.</summary>
         public static DateTimeOffset? ReadOptionalInstant(XElement? prop, string field, string id, List<ValidationError> errors)
         {
-            XElement? instant = prop?.Element(GmlNs + "TimeInstant");
+            XElement? instant = GmlReferenceResolver.Content(prop, GmlNs + "TimeInstant");
             if (instant == null)
                 return null;
 
@@ -92,7 +93,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
                 return;
             }
 
-            XElement? periodElem = prop.Element(GmlNs + "TimePeriod");
+            XElement? periodElem = GmlReferenceResolver.Content(prop, GmlNs + "TimePeriod");
             if (periodElem == null)
                 return;
 

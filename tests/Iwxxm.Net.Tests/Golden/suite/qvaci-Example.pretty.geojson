@@ -49,7 +49,8 @@
         "upperLimitUom": "FL",
         "upperLimitReference": "STD",
         "upperLimitFlightLevel": "FL400",
-        "interiorHoleCount": 0
+        "interiorHoleCount": 0,
+        "phenomenonTimeUtc": "2021-12-17T12:00:00.0000000+00:00"
       }
     },
     {
@@ -75,7 +76,8 @@
         "upperLimitUom": "FL",
         "upperLimitReference": "STD",
         "upperLimitFlightLevel": "FL400",
-        "interiorHoleCount": 0
+        "interiorHoleCount": 0,
+        "phenomenonTimeUtc": "2021-12-17T12:00:00.0000000+00:00"
       }
     },
     {
@@ -101,7 +103,8 @@
         "upperLimitUom": "FL",
         "upperLimitReference": "STD",
         "upperLimitFlightLevel": "FL350",
-        "interiorHoleCount": 0
+        "interiorHoleCount": 0,
+        "phenomenonTimeUtc": "2021-12-17T12:00:00.0000000+00:00"
       }
     },
     {
@@ -127,7 +130,8 @@
         "upperLimitUom": "FL",
         "upperLimitReference": "STD",
         "upperLimitFlightLevel": "FL400",
-        "interiorHoleCount": 0
+        "interiorHoleCount": 0,
+        "phenomenonTimeUtc": "2021-12-17T12:00:00.0000000+00:00"
       }
     },
     {
@@ -137,7 +141,7 @@
         "type": "Polygon",
         "coordinates": [
           [[105.42, -6.097], [105.349, -6.474], [105.333, -6.701], [105.32, -6.993], [105.373, -7.124], [105.438, -7.21], [105.655, -7.209], [105.775, -7.161], [106.013, -7.034], [106.324, -6.793], [106.559, -6.568], [106.602, -6.467], [106.607, -6.356], [106.604, -6.297], [106.555, -6.247], [106.446, -6.221], [106.311, -6.223], [106.13, -6.224], [105.986, -6.23], [105.853, -6.236], [105.749, -6.222], [105.632, -6.187], [105.525, -6.15], [105.42, -6.097]],
-          [[106.424, -6.5], [106.458, -6.461], [106.436, -6.404], [106.35, -6.41], [106.288, -6.435], [106.272, -6.509], [106.311, -6.536], [106.364, -6.541], [106.424, -6.5]]
+          [[106.424, -6.5], [106.364, -6.541], [106.311, -6.536], [106.272, -6.509], [106.288, -6.435], [106.35, -6.41], [106.436, -6.404], [106.458, -6.461], [106.424, -6.5]]
         ]
       },
       "properties": {
@@ -154,7 +158,8 @@
         "upperLimitUom": "FL",
         "upperLimitReference": "STD",
         "upperLimitFlightLevel": "FL450",
-        "interiorHoleCount": 1
+        "interiorHoleCount": 1,
+        "phenomenonTimeUtc": "2021-12-17T12:00:00.0000000+00:00"
       }
     }
   ]

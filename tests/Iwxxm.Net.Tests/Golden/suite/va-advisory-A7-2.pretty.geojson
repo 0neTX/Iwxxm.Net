@@ -43,6 +43,8 @@
         "reportType": "VolcanicAshAdvisory",
         "issueTimeUtc": "2024-09-23T01:30:00.0000000+00:00",
         "advisoryNumber": "2024/4",
+        "phenomenonTimeUtc": "2024-09-23T01:00:00.0000000+00:00",
+        "status": "PROVIDED",
         "lowerLimit": 250,
         "lowerLimitUom": "FL",
         "lowerLimitReference": "STD",
@@ -71,6 +73,8 @@
         "reportType": "VolcanicAshAdvisory",
         "issueTimeUtc": "2024-09-23T01:30:00.0000000+00:00",
         "advisoryNumber": "2024/4",
+        "phenomenonTimeUtc": "2024-09-23T01:00:00.0000000+00:00",
+        "status": "PROVIDED",
         "lowerLimitReference": "SFC",
         "lowerLimitSpecialValue": "GND",
         "upperLimit": 200,
@@ -97,6 +101,8 @@
         "reportType": "VolcanicAshAdvisory",
         "issueTimeUtc": "2024-09-23T01:30:00.0000000+00:00",
         "advisoryNumber": "2024/4",
+        "phenomenonTimeUtc": "2024-09-23T07:00:00.0000000+00:00",
+        "status": "PROVIDED",
         "lowerLimit": 250,
         "lowerLimitUom": "FL",
         "lowerLimitReference": "STD",
@@ -122,6 +128,8 @@
         "reportType": "VolcanicAshAdvisory",
         "issueTimeUtc": "2024-09-23T01:30:00.0000000+00:00",
         "advisoryNumber": "2024/4",
+        "phenomenonTimeUtc": "2024-09-23T07:00:00.0000000+00:00",
+        "status": "PROVIDED",
         "lowerLimitReference": "SFC",
         "lowerLimitSpecialValue": "GND",
         "upperLimit": 180,
@@ -145,12 +153,28 @@
         "reportType": "VolcanicAshAdvisory",
         "issueTimeUtc": "2024-09-23T01:30:00.0000000+00:00",
         "advisoryNumber": "2024/4",
+        "phenomenonTimeUtc": "2024-09-23T13:00:00.0000000+00:00",
+        "status": "PROVIDED",
         "lowerLimitReference": "SFC",
         "lowerLimitSpecialValue": "GND",
         "upperLimit": 270,
         "upperLimitUom": "FL",
         "upperLimitReference": "STD",
         "upperLimitFlightLevel": "FL270"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.e453c86f-6912-47f0-9649-19d656b1bd1f",
+      "geometry": null,
+      "properties": {
+        "featureType": "FORECAST_ASH_CONDITIONS",
+        "reportId": "uuid.fb4861a8-0438-4f17-b8a7-efc13de58dec",
+        "reportType": "VolcanicAshAdvisory",
+        "issueTimeUtc": "2024-09-23T01:30:00.0000000+00:00",
+        "advisoryNumber": "2024/4",
+        "phenomenonTimeUtc": "2024-09-23T19:00:00.0000000+00:00",
+        "status": "NO_VOLCANIC_ASH_EXPECTED"
       }
     }
   ]

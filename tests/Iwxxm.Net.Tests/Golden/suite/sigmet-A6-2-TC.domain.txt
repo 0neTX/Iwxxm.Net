@@ -2,15 +2,29 @@ Sigmet {
   AtsUnitDesignator = "YUCC"
   AtsUnitName = "YUCC FIC"
   CancelledReportSequenceNumber = null
+  CancelledReportValidFromUtc = null
+  CancelledReportValidUntilUtc = null
   EruptingVolcano = null
   EvolvingConditions = [
     EnRoutePhenomenonVolume {
-      Area = null
+      Area = GeoCircle {
+        Centre = GeoCoordinate {
+          Lat = 27.1
+          Lon = -73.1
+        }
+        Radius = Length {
+          Unit = LengthUnit.NauticalMiles
+          UnitOfMeasure = "[nmi_i]"
+          Value = 250
+        }
+      }
       DirectionOfMotionDegrees = null
       Id = "uuid.c0a23437-9eb7-4e6b-82f2-6fbd5757440c"
       IntensityChange = null
       LowerLimit = null
+      PhenomenonTimeUtc = 2012-08-25T16:00:00.0000000+00:00
       SpeedOfMotion = null
+      TimeIndicator = TimeIndicator.Observation
       TropicalCycloneCentre = GeoCoordinate {
         Lat = 27.1
         Lon = -73.1
@@ -39,7 +53,9 @@ Sigmet {
       Id = "uuid.338354de-7634-4fca-ac75-3675cb592284"
       IntensityChange = null
       LowerLimit = null
+      PhenomenonTimeUtc = 2012-08-25T22:00:00.0000000+00:00
       SpeedOfMotion = null
+      TimeIndicator = null
       TropicalCycloneCentre = GeoCoordinate {
         Lat = 27.6667
         Lon = -73.75

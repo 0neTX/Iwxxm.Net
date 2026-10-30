@@ -9,6 +9,7 @@ Thank you for contributing to the **Iwxxm** .NET library! This document outlines
 - **.NET 10 SDK** (configured in [`global.json`](global.json); native `.slnx` solution support).
 - `Iwxxm.Net` multi-targets **`netstandard2.0`** and **`netstandard2.1`**; the optional `Iwxxm.Net.Validation.Saxon` package and the test projects target **`net10.0`**.
 - The reference build is the container pipeline: `podman build --target test -t iwxxm-net-test .` (or `docker build`).
+- `tools/run-local-ci.sh` never publishes packages and never forwards `GITHUB_TOKEN`. Publishing belongs to the GitHub Actions workflow; a local publish needs the explicit `--publish` flag, `IWXXM_NUGET_PUBLISH_API_KEY`, an explicit `PACKAGE_VERSION` and a clean git tree (see README).
 
 ---
 

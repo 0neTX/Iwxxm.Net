@@ -22,6 +22,15 @@ namespace Iwxxm.Net
         public IReadOnlyList<ValidationError> Errors { get; }
 
         /// <summary>
+        /// Non-fatal problems of a successful result (<see cref="ValidationSeverity.Warning"/>), e.g. the items of a
+        /// bulletin or WAFS chart that could not be mapped while the others were. Always empty for a failure.
+        /// </summary>
+        public IReadOnlyList<ValidationError> Warnings { get; }
+
+        /// <summary>Gets a value indicating whether the result succeeded with warnings.</summary>
+        public bool HasWarnings => Warnings.Count > 0;
+
+        /// <summary>
         /// Gets the encapsulated value when <see cref="IsSuccess"/> is true.
         /// Throws <see cref="InvalidOperationException"/> if accessed on a failed result.
         /// </summary>
@@ -38,11 +47,12 @@ namespace Iwxxm.Net
             }
         }
 
-        private Result(bool isSuccess, T? value, IReadOnlyList<ValidationError> errors)
+        private Result(bool isSuccess, T? value, IReadOnlyList<ValidationError> errors, IReadOnlyList<ValidationError> warnings)
         {
             IsSuccess = isSuccess;
             _value = value;
             Errors = errors;
+            Warnings = warnings;
         }
 
         public static Result<T> Success(T value)
@@ -50,7 +60,17 @@ namespace Iwxxm.Net
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
-            return new Result<T>(true, value, EmptyErrors);
+            return new Result<T>(true, value, EmptyErrors, EmptyErrors);
+        }
+
+        /// <summary>Creates a successful result that carries non-fatal <paramref name="warnings"/>.</summary>
+        public static Result<T> Success(T value, IEnumerable<ValidationError>? warnings)
+        {
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+
+            List<ValidationError> list = warnings?.ToList() ?? new List<ValidationError>(0);
+            return new Result<T>(true, value, EmptyErrors, list.Count == 0 ? EmptyErrors : new ReadOnlyCollection<ValidationError>(list));
         }
 
         public static Result<T> Failure(ValidationError error)
@@ -58,7 +78,7 @@ namespace Iwxxm.Net
             if (error == null)
                 throw new ArgumentNullException(nameof(error));
 
-            return new Result<T>(false, default, new ReadOnlyCollection<ValidationError>(new[] { error }));
+            return new Result<T>(false, default, new ReadOnlyCollection<ValidationError>(new[] { error }), EmptyErrors);
         }
 
         public static Result<T> Failure(IEnumerable<ValidationError> errors)
@@ -70,7 +90,7 @@ namespace Iwxxm.Net
             if (errorList.Count == 0)
                 throw new ArgumentException("A failed Result must contain at least one ValidationError.", nameof(errors));
 
-            return new Result<T>(false, default, new ReadOnlyCollection<ValidationError>(errorList));
+            return new Result<T>(false, default, new ReadOnlyCollection<ValidationError>(errorList), EmptyErrors);
         }
 
         public static Result<T> Failure(string code, string message, ErrorCategory category, string? location = null)

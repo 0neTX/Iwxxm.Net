@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Iwxxm.Net.Reports;
 using Iwxxm20252.Generated;
 
@@ -50,18 +51,40 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 "boundingVolume/ElevatedEnvelope/upperElevation",
                 errors);
 
+            // Partial results (AUD-M12): a feature that cannot be mapped is reported as a feature error of the chart,
+            // which keeps every other feature. Chart-level content (metadata, times, bounding volume) stays mandatory, and
+            // a chart whose features all fail is a failure.
             var features = new SigwxFeatureSet();
+            var featureErrors = new List<ItemMappingError>();
+            int inlineFeatureCount = 0;
             if (dto.Features != null)
             {
-                foreach (MeteorologicalFeaturePropertyType featureProp in dto.Features)
+                for (int index = 0; index < dto.Features.Count; index++)
                 {
                     // An external xlink:href feature reference without inline payload is skipped.
-                    MeteorologicalFeatureType? feature = featureProp.MeteorologicalFeature;
-                    if (feature != null)
+                    MeteorologicalFeatureType? feature = dto.Features[index].MeteorologicalFeature;
+                    if (feature == null)
+                        continue;
+
+                    inlineFeatureCount++;
+                    var itemErrors = new List<ValidationError>();
+                    Extract(feature, features, itemErrors);
+                    if (itemErrors.Count > 0)
                     {
-                        Extract(feature, features, errors);
+                        featureErrors.Add(new ItemMappingError(index, feature.Id, itemErrors));
                     }
                 }
+            }
+
+            if (inlineFeatureCount > 0 && featureErrors.Count == inlineFeatureCount)
+            {
+                errors.AddRange(featureErrors.SelectMany(e => e.Errors));
+                errors.Add(new ValidationError(
+                    "DOMAIN-SIGWX-NO-FEATURE",
+                    "No feature of the WAFS chart could be mapped.",
+                    ErrorCategory.DomainMapping,
+                    ValidationSeverity.Error,
+                    dto.Id));
             }
 
             if (errors.Count > 0)
@@ -89,7 +112,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 sandstorms: features.Sandstorms,
                 radiationIncidents: features.RadiationIncidents,
                 permissibleUsageReason: metadata.Reason,
-                permissibleUsageSupplementary: metadata.Supplementary);
+                permissibleUsageSupplementary: metadata.Supplementary,
+                featureErrors: featureErrors);
         }
 
         /// <summary>Dispatches a feature to the first extractor whose suffix matches; unknown phenomena are ignored.</summary>

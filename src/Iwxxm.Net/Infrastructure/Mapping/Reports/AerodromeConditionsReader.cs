@@ -18,15 +18,17 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     {
         public static SurfaceWind? ReadSurfaceWind(XElement? surfaceWindProp, string context, List<ValidationError> errors)
         {
+            // Observation (metarSpeci.xsd), TAF forecast (taf.xsd) and METAR/SPECI trend (metarSpeci.xsd, common.xsd) winds.
             XElement? windElem = surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWind")
-                                 ?? surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWindForecast");
+                                 ?? surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWindForecast")
+                                 ?? surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWindTrendForecast");
             if (windElem == null)
                 return null;
 
             bool isVar = ParseBoolAttribute(windElem, "variableWindDirection");
             double? dir = UomMeasureReader.ReadFixedUnit(windElem.Element(IwxxmNs + "meanWindDirection"), UcumUnits.Degree, context, errors);
-            Speed? spd = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "meanWindSpeed"), context, errors);
-            Speed? gust = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "windGustSpeed"), context, errors);
+            Speed? spd = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "meanWindSpeed"), context, errors, UomMeasureReader.Subsets.WindSpeed);
+            Speed? gust = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "windGustSpeed"), context, errors, UomMeasureReader.Subsets.WindSpeed);
             return new SurfaceWind(isVar, dir, spd, gust);
         }
 
@@ -48,7 +50,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
                 CodeListValue<AerodromeCloudAmount>? amount =
                     CodeListTables.AerodromeCloudAmounts.Translate(GetHref(cl.Element(IwxxmNs + "amount")));
-                Length? cloudBase = UomMeasureReader.ReadLength(cl.Element(IwxxmNs + "base"), context, errors);
+                Length? cloudBase = UomMeasureReader.ReadLength(cl.Element(IwxxmNs + "base"), context, errors, UomMeasureReader.Subsets.CloudHeight);
                 CodeListValue<ConvectiveCloudType>? cloudType =
                     CodeListTables.ConvectiveCloudTypes.Translate(GetHref(cl.Element(IwxxmNs + "cloudType")));
                 target.Add(new AerodromeCloudLayer(amount, cloudBase, cloudType));
@@ -66,6 +68,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
         {
             string id = GetGmlId(fcstElem);
             string? changeInd = fcstElem.Attribute("changeIndicator")?.Value;
+            TrendTimeIndicator? timeIndicator = ReadTrendTimeIndicator(fcstElem.Element(IwxxmNs + "timeIndicator"), id, errors);
             bool cavok = ParseBoolAttribute(fcstElem, "cloudAndVisibilityOK");
 
             // phenomenonTime may be a period, an instant, or an unresolved xlink:href reference (-> null bounds).
@@ -94,7 +97,28 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 visOp,
                 wind,
                 wxList,
-                layers);
+                layers,
+                timeIndicator);
+        }
+
+        /// <summary>Reads a METAR/SPECI trend <c>timeIndicator</c> (<c>AT</c>, <c>UNTIL</c>, <c>FROM</c>).</summary>
+        private static TrendTimeIndicator? ReadTrendTimeIndicator(XElement? element, string id, List<ValidationError> errors)
+        {
+            string? value = GetText(element);
+            switch (value)
+            {
+                case null:
+                    return null;
+                case "AT":
+                    return TrendTimeIndicator.At;
+                case "UNTIL":
+                    return TrendTimeIndicator.Until;
+                case "FROM":
+                    return TrendTimeIndicator.From;
+                default:
+                    errors.Add(MappingErrors.Create(TimeIndicatorReader.InvalidCode, $"Unsupported trend timeIndicator '{value}' (expected AT, UNTIL or FROM).", id));
+                    return null;
+            }
         }
     }
 }

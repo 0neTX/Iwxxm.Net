@@ -41,7 +41,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 props.Add(("typeNumericCode", cloud.TypeNumericCode));
                 AddVerticalLimit(props, "base", cloud.Base);
                 AddVerticalLimit(props, "top", cloud.Top);
-                features.Add(GeoJsonFeature.ForPolygon(cloud.Id, cloud.Area, props));
+                features.Add(GeoJsonFeature.ForSurfaces(cloud.Id, cloud.Areas, props));
             }
 
             foreach (var turb in sigwx.Turbulences)
@@ -52,7 +52,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 props.Add(("degreeNumericCode", turb.DegreeNumericCode));
                 AddVerticalLimit(props, "base", turb.Base);
                 AddVerticalLimit(props, "top", turb.Top);
-                features.Add(GeoJsonFeature.ForPolygon(turb.Id, turb.Area, props));
+                features.Add(GeoJsonFeature.ForSurfaces(turb.Id, turb.Areas, props));
             }
 
             foreach (var icing in sigwx.AirframeIcings)
@@ -63,7 +63,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 props.Add(("degreeNumericCode", icing.DegreeNumericCode));
                 AddVerticalLimit(props, "base", icing.Base);
                 AddVerticalLimit(props, "top", icing.Top);
-                features.Add(GeoJsonFeature.ForPolygon(icing.Id, icing.Area, props));
+                features.Add(GeoJsonFeature.ForSurfaces(icing.Id, icing.Areas, props));
             }
 
             foreach (var trop in sigwx.Tropopauses)

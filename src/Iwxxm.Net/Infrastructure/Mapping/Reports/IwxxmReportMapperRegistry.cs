@@ -42,7 +42,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             where TReport : IwxxmReport
         {
             return typedResult.IsSuccess
-                ? Result<IwxxmReport>.Success(typedResult.Value)
+                ? Result<IwxxmReport>.Success(typedResult.Value, typedResult.Warnings)
                 : Result<IwxxmReport>.Failure(typedResult.Errors);
         }
 
@@ -51,7 +51,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             where TDocument : IwxxmDocument
         {
             return typedResult.IsSuccess
-                ? Result<IwxxmDocument>.Success(typedResult.Value)
+                ? Result<IwxxmDocument>.Success(typedResult.Value, typedResult.Warnings)
                 : Result<IwxxmDocument>.Failure(typedResult.Errors);
         }
     }

@@ -38,6 +38,14 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
         /// <summary>Formats an optional instant as ISO 8601 round-trip text, or <c>null</c>.</summary>
         public static string? FormatInstant(DateTimeOffset? instant) => instant?.ToString("O", CultureInfo.InvariantCulture);
 
+        /// <summary>Formats a time indicator as its IWXXM code (<c>OBSERVATION</c> / <c>FORECAST</c>), or <c>null</c>.</summary>
+        public static string? FormatTimeIndicator(TimeIndicator? indicator) => indicator switch
+        {
+            TimeIndicator.Observation => "OBSERVATION",
+            TimeIndicator.Forecast => "FORECAST",
+            _ => null
+        };
+
         /// <summary>
         /// Emits a speed as reported: <c>{name}</c> holds the numeric value and <c>{name}Uom</c> the UCUM unit
         /// (<c>m/s</c>, <c>[kn_i]</c> or <c>km/h</c>). No unit conversion is applied.

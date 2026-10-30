@@ -8,7 +8,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
 {
     /// <summary>
     /// Reads the AIXM 5.1.1 features embedded in IWXXM reports (<c>aixm:AirportHeliport</c>, <c>aixm:Unit</c>,
-    /// <c>aixm:Airspace</c>, <c>aixm:AirspaceVolume</c>) exactly as reported.
+    /// <c>aixm:Airspace</c>, <c>aixm:AirspaceVolume</c>) exactly as reported, inline or by local <c>xlink:href="#id"</c>.
     /// </summary>
     internal static class AixmFeatureReader
     {
@@ -23,8 +23,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             name = null;
             position = null;
 
-            XElement? slice = aerodromeProp
-                ?.Element(AixmNs + "AirportHeliport")
+            XElement? slice = GmlReferenceResolver.Content(aerodromeProp, AixmNs + "AirportHeliport")
                 ?.Element(AixmNs + "timeSlice")
                 ?.Element(AixmNs + "AirportHeliportTimeSlice");
 
@@ -58,8 +57,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             designator = null;
             name = null;
 
-            XElement? slice = unitProp
-                ?.Element(AixmNs + "Unit")
+            XElement? slice = GmlReferenceResolver.Content(unitProp, AixmNs + "Unit")
                 ?.Element(AixmNs + "timeSlice")
                 ?.Element(AixmNs + "UnitTimeSlice");
 
@@ -78,8 +76,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             designator = null;
             name = null;
 
-            XElement? slice = airspaceProp
-                ?.Element(AixmNs + "Airspace")
+            XElement? slice = GmlReferenceResolver.Content(airspaceProp, AixmNs + "Airspace")
                 ?.Element(AixmNs + "timeSlice")
                 ?.Element(AixmNs + "AirspaceTimeSlice");
 

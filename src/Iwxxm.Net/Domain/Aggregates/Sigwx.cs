@@ -47,6 +47,12 @@ namespace Iwxxm.Net.Reports
         public IReadOnlyList<Sandstorm> Sandstorms { get; }
         public IReadOnlyList<RadiationIncident> RadiationIncidents { get; }
 
+        /// <summary>
+        /// WAFS chart features (<c>iwxxm:feature</c>) that could not be mapped, with their position and <c>gml:id</c>; the
+        /// chart keeps every other feature. Empty when every feature mapped.
+        /// </summary>
+        public IReadOnlyList<ItemMappingError> FeatureErrors { get; }
+
         private Sigwx(
             string id,
             string issuingCentre,
@@ -67,7 +73,8 @@ namespace Iwxxm.Net.Reports
             IReadOnlyList<AirframeIcing> airframeIcings,
             IReadOnlyList<TropicalCyclone> tropicalCyclones,
             IReadOnlyList<Sandstorm> sandstorms,
-            IReadOnlyList<RadiationIncident> radiationIncidents)
+            IReadOnlyList<RadiationIncident> radiationIncidents,
+            IReadOnlyList<ItemMappingError> featureErrors)
         {
             Id = id;
             IssuingCentre = issuingCentre;
@@ -89,6 +96,7 @@ namespace Iwxxm.Net.Reports
             TropicalCyclones = tropicalCyclones;
             Sandstorms = sandstorms;
             RadiationIncidents = radiationIncidents;
+            FeatureErrors = featureErrors;
         }
 
         public static Result<Sigwx> Create(
@@ -111,8 +119,10 @@ namespace Iwxxm.Net.Reports
             IEnumerable<Sandstorm>? sandstorms = null,
             IEnumerable<RadiationIncident>? radiationIncidents = null,
             PermissibleUsageReason? permissibleUsageReason = null,
-            string? permissibleUsageSupplementary = null)
+            string? permissibleUsageSupplementary = null,
+            IEnumerable<ItemMappingError>? featureErrors = null)
         {
+            var featureErrorList = featureErrors?.ToList() ?? new List<ItemMappingError>(0);
             var invariants = new DomainInvariants(id);
             invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
             invariants.RequireIssueTime(issueTimeUtc);
@@ -183,7 +193,9 @@ namespace Iwxxm.Net.Reports
                 new ReadOnlyCollection<AirframeIcing>(airframeIcings?.ToList() ?? new List<AirframeIcing>(0)),
                 new ReadOnlyCollection<TropicalCyclone>(tropicalCyclones?.ToList() ?? new List<TropicalCyclone>(0)),
                 new ReadOnlyCollection<Sandstorm>(sandstorms?.ToList() ?? new List<Sandstorm>(0)),
-                new ReadOnlyCollection<RadiationIncident>(radiationIncidents?.ToList() ?? new List<RadiationIncident>(0))));
+                new ReadOnlyCollection<RadiationIncident>(radiationIncidents?.ToList() ?? new List<RadiationIncident>(0)),
+                new ReadOnlyCollection<ItemMappingError>(featureErrorList)),
+                featureErrorList.SelectMany(e => e.ToWarnings("Feature")));
         }
     }
 }

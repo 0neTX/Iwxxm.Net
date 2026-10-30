@@ -26,6 +26,7 @@
         "firDesignator": "YUDD",
         "sequenceNumber": "2",
         "phenomenonUri": "http://codes.wmo.int/49-2/SigWxPhenomena/OBSC_TS",
+        "timeIndicator": "FORECAST",
         "upperLimit": 390,
         "upperLimitUom": "FL",
         "upperLimitReference": "STD",

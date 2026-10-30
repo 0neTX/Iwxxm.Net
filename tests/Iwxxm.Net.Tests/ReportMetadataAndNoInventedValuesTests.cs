@@ -29,7 +29,7 @@ namespace Iwxxm.Net.Tests
     /// <item>QVACI <c>ashDensityEqualsOrExceeds</c> is a mandatory <c>gml:MeasureType</c> (<c>qvaci.xsd</c>).</item>
     /// </list>
     /// A mandatory element that is absent is a mapping error; a mandatory property given only by an
-    /// <c>xlink:href</c> reference (not resolved by this version) is mapped to <c>null</c>.
+    /// <c>xlink:href</c> reference that cannot be resolved in the document (remote or unknown identifier) is mapped to <c>null</c>.
     /// </remarks>
     public sealed class ReportMetadataAndNoInventedValuesTests
     {
@@ -204,7 +204,23 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void Metar_ObservationTimeGivenByReference_IsNullInsteadOfTheIssueTime()
+        public void Metar_ObservationTimeGivenByARemoteReference_IsNullInsteadOfTheIssueTime()
+        {
+            XDocument doc = XDocument.Load("Samples/wmo-examples/metar-A3-1.xml");
+            XElement observationTime = doc.Root!.Element(Iwxxm + "observationTime")!;
+            observationTime.RemoveNodes();
+            observationTime.SetAttributeValue(XNamespace.Get("http://www.w3.org/1999/xlink") + "href", "http://example.org/other.xml#uuid.e5460ae4-98a4-48fa-bbfc-21799896f1f2");
+
+            var result = MapDirectly(doc.ToString());
+
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            var metar = Assert.IsType<Metar>(result.Value);
+            Assert.Null(metar.ObservationTimeUtc);
+            Assert.Equal(new DateTimeOffset(2012, 8, 22, 16, 30, 0, TimeSpan.Zero), metar.IssueTimeUtc);
+        }
+
+        [Fact]
+        public void Metar_ObservationTimeGivenByALocalReference_IsResolvedToTheReferencedInstant()
         {
             XDocument doc = XDocument.Load("Samples/wmo-examples/metar-A3-1.xml");
             XElement observationTime = doc.Root!.Element(Iwxxm + "observationTime")!;
@@ -215,8 +231,7 @@ namespace Iwxxm.Net.Tests
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var metar = Assert.IsType<Metar>(result.Value);
-            Assert.Null(metar.ObservationTimeUtc);
-            Assert.Equal(new DateTimeOffset(2012, 8, 22, 16, 30, 0, TimeSpan.Zero), metar.IssueTimeUtc);
+            Assert.Equal(metar.IssueTimeUtc, metar.ObservationTimeUtc);
         }
 
         [Fact]

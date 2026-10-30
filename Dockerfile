@@ -89,14 +89,15 @@ FROM scratch AS artifacts
 COPY --from=pack /workspace/artifacts/ /
 
 # ==============================================================================
-# Stage 6: ci — Default runtime stage (exports artifacts & optional GitHub push)
+# Stage 6: ci — Default runtime stage (exports artifacts only; never publishes)
+# Publishing happens exclusively in the GitHub Actions workflow. A deliberate local
+# publish requires `tools/run-local-ci.sh --publish` (see README); this image never
+# reads registry credentials on its own.
 # Usage:
 #   docker build -t iwxxm-net-ci .
 #   docker run --rm -v "$(pwd)/artifacts:/out" iwxxm-net-ci
 # ==============================================================================
 FROM pack AS ci
-ENV GITHUB_OWNER="0neTX"
-ENV GITHUB_TOKEN=""
 
 CMD ["/bin/bash", "-c", "\
     echo '====================================================================' && \
@@ -106,12 +107,5 @@ CMD ["/bin/bash", "-c", "\
     if [ -d /out ]; then \
         cp -rf /workspace/artifacts/* /out/ && \
         echo 'Copied compiled NuGet packages and test coverage reports to /out'; \
-    fi && \
-    if [ -n \"$GITHUB_TOKEN\" ]; then \
-        echo \"Publishing package to GitHub Packages (owner: $GITHUB_OWNER)...\" && \
-        dotnet nuget push \"/workspace/artifacts/*.nupkg\" \
-            --source \"https://nuget.pkg.github.com/${GITHUB_OWNER}/index.json\" \
-            --api-key \"$GITHUB_TOKEN\" \
-            --skip-duplicate; \
     fi \
 "]

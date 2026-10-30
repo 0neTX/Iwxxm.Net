@@ -21,7 +21,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
     /// declared in any official schema) and is validated against a separate legacy schema subset.</item>
     /// </list>
     /// The schema set is chosen from the root element QName. Both compiled <see cref="XmlSchemaSet"/> instances are
-    /// built lazily once per process (thread-safe) and only read afterwards.
+    /// built lazily once per process (thread-safe); validation against one set is serialised (see <c>ValidateAgainst</c>).
     /// </summary>
     internal sealed class XsdValidator : ISchemaValidator
     {
@@ -267,23 +267,15 @@ namespace Iwxxm.Net.Infrastructure.Validation
 
             try
             {
-                document.Validate(
-                    schemaSet,
-                    (sender, args) =>
-                    {
-                        if (args.Severity == XmlSeverityType.Error)
-                        {
-                            errors.Add(new ValidationError(
-                                code: "XSD-SCHEMA-VIOLATION",
-                                message: args.Message ?? "XSD validation error.",
-                                category: ErrorCategory.SchemaViolation,
-                                severity: ValidationSeverity.Error,
-                                location: args.Exception?.SourceUri,
-                                lineNumber: args.Exception?.LineNumber,
-                                linePosition: args.Exception?.LinePosition));
-                        }
-                    },
-                    addSchemaInfo: false);
+                // Concurrency (AUD-N2): XmlSchemaSet documents no thread-safety guarantee for instance members, and
+                // XDocument.Validate builds an XmlSchemaValidator over the set's shared XmlNameTable, which it may write to
+                // (NameTable.Add is not thread-safe). Validation against one shared compiled set is therefore serialised
+                // per set; loading, mapping and Schematron execution of concurrent documents stay parallel. Per-thread
+                // clones were rejected: compiling the official closure costs seconds and tens of megabytes per copy.
+                lock (schemaSet)
+                {
+                    ValidateDocument(document, schemaSet, errors);
+                }
             }
             catch (XmlSchemaException ex)
             {
@@ -296,6 +288,27 @@ namespace Iwxxm.Net.Infrastructure.Validation
                     lineNumber: ex.LineNumber,
                     linePosition: ex.LinePosition));
             }
+        }
+
+        private static void ValidateDocument(XDocument document, XmlSchemaSet schemaSet, List<ValidationError> errors)
+        {
+            document.Validate(
+                schemaSet,
+                (sender, args) =>
+                {
+                    if (args.Severity == XmlSeverityType.Error)
+                    {
+                        errors.Add(new ValidationError(
+                            code: "XSD-SCHEMA-VIOLATION",
+                            message: args.Message ?? "XSD validation error.",
+                            category: ErrorCategory.SchemaViolation,
+                            severity: ValidationSeverity.Error,
+                            location: args.Exception?.SourceUri,
+                            lineNumber: args.Exception?.LineNumber,
+                            linePosition: args.Exception?.LinePosition));
+                    }
+                },
+                addSchemaInfo: false);
         }
 
         private XmlQualifiedName? ReadRootElementName(Stream source, List<ValidationError> errors)

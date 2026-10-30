@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Xml.Linq;
 using Iwxxm.Net.Reports;
 
@@ -24,6 +25,29 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         internal const string UomUnsupportedCode = "ACL-MEASURE-UOM-UNSUPPORTED";
         internal const string UomMismatchCode = "ACL-MEASURE-UOM-MISMATCH";
         internal const string ValueInvalidCode = "ACL-MEASURE-VALUE-INVALID";
+        internal const string UomNotAllowedCode = "ACL-MEASURE-UOM-NOT-ALLOWED";
+
+        /// <summary>
+        /// Per-field unit subsets of the official rules (<c>IWXXM/rule/iwxxm.sch</c>): a unit valid in general but not
+        /// allowed for the field is a mapping error naming the field.
+        /// </summary>
+        internal static class Subsets
+        {
+            /// <summary>Surface wind / gust / maximum surface wind speeds: <c>m/s</c> or <c>[kn_i]</c>
+            /// (SPECI.AerodromeSurfaceWind-6/7, Common.AerodromeSurfaceWindTrendForecast-2/3, AIRMET.AIRMETEvolvingCondition-6,
+            /// TropicalCycloneAdvisory.TropicalCycloneObservedConditions-2, TropicalCycloneForecastConditions-1).</summary>
+            public static readonly string[] WindSpeed = { "m/s", "[kn_i]" };
+
+            /// <summary>Speed of motion: <c>km/h</c> or <c>[kn_i]</c> (SIGMET.SIGMETEvolvingCondition-3,
+            /// AIRMET.AIRMETEvolvingCondition-4, VolcanicAshAdvisory.VolcanicAshCloud-2).</summary>
+            public static readonly string[] SpeedOfMotion = { "km/h", "[kn_i]" };
+
+            /// <summary>Cloud base / top: <c>m</c> or <c>[ft_i]</c> (Common.CloudLayer-1, AIRMET.AIRMETEvolvingCondition-1/2).</summary>
+            public static readonly string[] CloudHeight = { "m", "[ft_i]" };
+
+            /// <summary>AIRMET surface visibility: <c>m</c> (AIRMET.AIRMETEvolvingCondition-5).</summary>
+            public static readonly string[] Visibility = { "m" };
+        }
 
         private static readonly XNamespace XsiNs = "http://www.w3.org/2001/XMLSchema-instance";
 
@@ -80,10 +104,44 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 ? (Speed?)null
                 : ReadSpeed(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors);
 
+        /// <summary>Reads a speed whose unit must belong to the field subset <paramref name="allowedUoms"/>.</summary>
+        public static Speed? ReadSpeed(XElement? measureElem, string context, List<ValidationError> errors, IReadOnlyList<string> allowedUoms) =>
+            measureElem == null || IsNil(measureElem) || !IsAllowed(measureElem, Describe(measureElem, context), allowedUoms, errors)
+                ? (Speed?)null
+                : ReadSpeed(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors);
+
         public static Length? ReadLength(XElement? measureElem, string context, List<ValidationError> errors) =>
             measureElem == null || IsNil(measureElem)
                 ? (Length?)null
                 : ReadLength(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors);
+
+        /// <summary>Reads a length whose unit must belong to the field subset <paramref name="allowedUoms"/>.</summary>
+        public static Length? ReadLength(XElement? measureElem, string context, List<ValidationError> errors, IReadOnlyList<string> allowedUoms) =>
+            measureElem == null || IsNil(measureElem) || !IsAllowed(measureElem, Describe(measureElem, context), allowedUoms, errors)
+                ? (Length?)null
+                : ReadLength(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors);
+
+        /// <summary>
+        /// Checks the <c>@uom</c> of a non-nil measure against a per-field subset. A missing unit is left to the regular
+        /// reader (which reports it); a unit outside the subset is an <see cref="UomNotAllowedCode"/> error naming the field.
+        /// </summary>
+        internal static bool IsAllowed(XElement measureElem, string location, IReadOnlyList<string> allowedUoms, List<ValidationError> errors)
+        {
+            string? uom = measureElem.Attribute("uom")?.Value?.Trim();
+            if (string.IsNullOrEmpty(uom))
+                return true;
+
+            foreach (string allowed in allowedUoms)
+            {
+                if (string.Equals(allowed, uom, StringComparison.Ordinal))
+                    return true;
+            }
+
+            errors.Add(Error(UomNotAllowedCode,
+                $"Unit of measure '{uom}' is not allowed for '{measureElem.Name.LocalName}' at '{location}'; IWXXM 2025-2 (iwxxm.sch) allows {string.Join(" or ", allowedUoms.Select(u => "'" + u + "'"))}.",
+                location));
+            return false;
+        }
 
         public static double? ReadFixedUnit(XElement? measureElem, string requiredUom, string context, List<ValidationError> errors) =>
             measureElem == null || IsNil(measureElem)

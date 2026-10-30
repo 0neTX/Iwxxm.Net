@@ -47,6 +47,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 AddVerticalLimit(props, "lowerLimit", cloud.LowerLimit);
                 AddVerticalLimit(props, "upperLimit", cloud.UpperLimit);
                 props.Add(("interiorHoleCount", cloud.Area.InteriorRings.Count));
+                props.Add(("phenomenonTimeUtc", FormatInstant(cloud.PhenomenonTimeUtc)));
                 features.Add(GeoJsonFeature.ForPolygon(cloud.Id, cloud.Area, props));
             }
         }
@@ -66,27 +67,61 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 features.Add(GeoJsonFeature.ForPoint(vaa.Volcano.Id, vaa.Volcano.Position, props));
             }
 
-            foreach (var cloud in vaa.ObservedAshClouds)
+            if (vaa.Observation != null)
+            {
+                AddConditionsFeatures(vaa, vaa.Observation, "OBSERVED_ASH_CLOUD", "OBSERVED_ASH_CONDITIONS", bulletinId, features);
+            }
+
+            foreach (VolcanicAshConditions forecast in vaa.Forecasts)
+            {
+                AddConditionsFeatures(vaa, forecast, "FORECAST_ASH_CLOUD", "FORECAST_ASH_CONDITIONS", bulletinId, features);
+            }
+        }
+
+        // One feature per ash cloud with its time and status; conditions without any cloud (e.g. NO_VOLCANIC_ASH_EXPECTED)
+        // yield one feature without geometry so that the statement is not lost.
+        private static void AddConditionsFeatures(
+            Vaa vaa,
+            VolcanicAshConditions conditions,
+            string cloudFeatureType,
+            string emptyFeatureType,
+            string? bulletinId,
+            List<GeoJsonFeature> features)
+        {
+            string? status = FormatStatus(conditions.Status);
+            if (conditions.AshClouds.Count == 0)
+            {
+                var props = CreateBase(vaa, emptyFeatureType, bulletinId);
+                props.Add(("advisoryNumber", vaa.AdvisoryNumber));
+                props.Add(("phenomenonTimeUtc", FormatInstant(conditions.PhenomenonTimeUtc)));
+                props.Add(("status", status));
+                features.Add(GeoJsonFeature.WithoutGeometry(conditions.Id, props));
+                return;
+            }
+
+            foreach (EnRoutePhenomenonVolume cloud in conditions.AshClouds)
             {
                 if (cloud.Area == null) continue;
-                var props = CreateBase(vaa, "OBSERVED_ASH_CLOUD", bulletinId);
+                var props = CreateBase(vaa, cloudFeatureType, bulletinId);
                 props.Add(("advisoryNumber", vaa.AdvisoryNumber));
+                props.Add(("phenomenonTimeUtc", FormatInstant(conditions.PhenomenonTimeUtc)));
+                props.Add(("status", status));
                 AddVerticalLimit(props, "lowerLimit", cloud.LowerLimit);
                 AddVerticalLimit(props, "upperLimit", cloud.UpperLimit);
                 props.Add(("directionOfMotionDegrees", cloud.DirectionOfMotionDegrees));
                 AddSpeed(props, "speedOfMotion", cloud.SpeedOfMotion);
-                features.Add(GeoJsonFeature.ForPolygon(cloud.Id, cloud.Area, props));
-            }
-
-            foreach (var cloud in vaa.ForecastAshClouds)
-            {
-                if (cloud.Area == null) continue;
-                var props = CreateBase(vaa, "FORECAST_ASH_CLOUD", bulletinId);
-                props.Add(("advisoryNumber", vaa.AdvisoryNumber));
-                AddVerticalLimit(props, "lowerLimit", cloud.LowerLimit);
-                AddVerticalLimit(props, "upperLimit", cloud.UpperLimit);
-                features.Add(GeoJsonFeature.ForPolygon(cloud.Id, cloud.Area, props));
+                features.Add(GeoJsonFeature.ForSurface(cloud.Id, cloud.Area, props));
             }
         }
+
+        private static string? FormatStatus(VolcanicAshConditionsStatus? status) => status switch
+        {
+            VolcanicAshConditionsStatus.Provided => "PROVIDED",
+            VolcanicAshConditionsStatus.NotProvided => "NOT_PROVIDED",
+            VolcanicAshConditionsStatus.NotAvailable => "NOT_AVAILABLE",
+            VolcanicAshConditionsStatus.NotIdentifiable => "NOT_IDENTIFIABLE",
+            VolcanicAshConditionsStatus.NoVolcanicAshExpected => "NO_VOLCANIC_ASH_EXPECTED",
+            _ => null
+        };
     }
 }

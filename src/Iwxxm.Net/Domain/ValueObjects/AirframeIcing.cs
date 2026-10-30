@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Collections.ObjectModel;
+using System.Collections.Generic;
 
 namespace Iwxxm.Net.Reports
 {
@@ -22,7 +25,14 @@ namespace Iwxxm.Net.Reports
         public VerticalLimit? Base { get; }
         /// <summary>Upper limit as reported (value, unit, vertical reference or nil reason).</summary>
         public VerticalLimit Top { get; }
-        public GeoPolygon Area { get; }
+        /// <summary>Horizontal extent: a <see cref="GeoPolygon"/> or a <see cref="GeoCircle"/> (<c>gml:CircleByCenterPoint</c>).</summary>
+        public GeoSurface Area { get; }
+
+        /// <summary>
+        /// Every horizontal extent of the feature, one per <c>gml:PolygonPatch</c> in document order; <see cref="Area"/> is
+        /// the first one. A single-patch feature has exactly one entry.
+        /// </summary>
+        public IReadOnlyList<GeoSurface> Areas { get; }
 
         private AirframeIcing(
             string id,
@@ -30,7 +40,8 @@ namespace Iwxxm.Net.Reports
             IcingDegreeCode degree,
             VerticalLimit? baseLimit,
             VerticalLimit topLimit,
-            GeoPolygon area)
+            GeoSurface area,
+            IReadOnlyList<GeoSurface> areas)
         {
             Id = id;
             RawDegreeReference = rawDegreeReference;
@@ -38,6 +49,7 @@ namespace Iwxxm.Net.Reports
             Base = baseLimit;
             Top = topLimit;
             Area = area;
+            Areas = areas;
         }
 
         public static Result<AirframeIcing> Create(
@@ -45,7 +57,8 @@ namespace Iwxxm.Net.Reports
             string? rawDegreeReference,
             VerticalLimit? baseLimit,
             VerticalLimit topLimit,
-            GeoPolygon area)
+            GeoSurface area,
+            IEnumerable<GeoSurface>? additionalAreas = null)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -81,7 +94,8 @@ namespace Iwxxm.Net.Reports
                 degree,
                 baseLimit,
                 topLimit,
-                area));
+                area,
+                new ReadOnlyCollection<GeoSurface>(new[] { area }.Concat(additionalAreas ?? Enumerable.Empty<GeoSurface>()).ToList())));
         }
 
         public bool Equals(AirframeIcing? other)
@@ -93,7 +107,8 @@ namespace Iwxxm.Net.Reports
                    Degree == other.Degree &&
                    Nullable.Equals(Base, other.Base) &&
                    Top == other.Top &&
-                   Area.Equals(other.Area);
+                   Area.Equals(other.Area) &&
+                   Areas.SequenceEqual(other.Areas);
         }
 
         public override bool Equals(object? obj) => obj is AirframeIcing other && Equals(other);

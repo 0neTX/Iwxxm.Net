@@ -9,6 +9,11 @@ namespace Iwxxm.Net.Reports
     /// Domain Aggregate Root representing an Airmen's Meteorological Information (<c>AIRMET</c>) report
     /// under ICAO/WMO IWXXM 2025-2.
     /// </summary>
+    /// <remarks>
+    /// A cancellation (<c>AIRMET ... CNL</c>, <c>@isCancelReport="true"</c>) carries <see cref="IsCancelReport"/>, the
+    /// cancelled report sequence number and validity, and never a phenomenon or evolving condition: it does not describe
+    /// an active hazard (<c>iwxxm.sch</c> AIRMET.AIRMET-3).
+    /// </remarks>
     public sealed class Airmet : IwxxmReport
     {
         public override string Id { get; }
@@ -31,6 +36,22 @@ namespace Iwxxm.Net.Reports
         public DateTimeOffset? ValidUntilUtc { get; }
         /// <summary>Reported phenomenon (WMO code list), or <c>null</c> when absent or nil; a non-official code is kept as <c>Unknown</c> with its raw notation.</summary>
         public CodeListValue<AirmetPhenomenon>? Phenomenon { get; }
+
+        /// <summary><c>@isCancelReport</c>: <c>true</c> for a cancellation (<c>CNL</c>) of an earlier AIRMET.</summary>
+        public bool IsCancelReport { get; }
+
+        /// <summary><c>cancelledReportSequenceNumber</c> of a cancellation, or <c>null</c>.</summary>
+        public string? CancelledReportSequenceNumber { get; }
+
+        /// <summary>Start of <c>cancelledReportValidPeriod</c> of a cancellation, or <c>null</c>.</summary>
+        public DateTimeOffset? CancelledReportValidFromUtc { get; }
+
+        /// <summary>End of <c>cancelledReportValidPeriod</c> of a cancellation, or <c>null</c>.</summary>
+        public DateTimeOffset? CancelledReportValidUntilUtc { get; }
+
+        /// <summary>Gets a value indicating whether the report describes an active hazard (not a cancellation).</summary>
+        public bool IsActiveHazard => !IsCancelReport;
+
         public override bool IsTranslationFailed { get; }
         public override string? TranslationFailedTac { get; }
 
@@ -38,7 +59,11 @@ namespace Iwxxm.Net.Reports
         public override TResult Accept<TResult>(IIwxxmDocumentVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
-        public IReadOnlyList<EnRoutePhenomenonVolume> EvolvingConditions { get; }
+        /// <summary>
+        /// <c>analysis/AIRMETEvolvingConditionCollection/member</c> conditions: volume plus AIRMET-specific content
+        /// (cloud, surface visibility, surface wind). Always empty for a cancellation.
+        /// </summary>
+        public IReadOnlyList<AirmetEvolvingCondition> EvolvingConditions { get; }
 
         private Airmet(
             string id,
@@ -56,9 +81,13 @@ namespace Iwxxm.Net.Reports
             DateTimeOffset? validFromUtc,
             DateTimeOffset? validUntilUtc,
             CodeListValue<AirmetPhenomenon>? phenomenon,
+            bool isCancelReport,
+            string? cancelledReportSequenceNumber,
+            DateTimeOffset? cancelledReportValidFromUtc,
+            DateTimeOffset? cancelledReportValidUntilUtc,
             bool isTranslationFailed,
             string? translationFailedTac,
-            IReadOnlyList<EnRoutePhenomenonVolume> evolvingConditions)
+            IReadOnlyList<AirmetEvolvingCondition> evolvingConditions)
         {
             Id = id;
             IssueTimeUtc = issueTimeUtc;
@@ -75,6 +104,10 @@ namespace Iwxxm.Net.Reports
             ValidFromUtc = validFromUtc;
             ValidUntilUtc = validUntilUtc;
             Phenomenon = phenomenon;
+            IsCancelReport = isCancelReport;
+            CancelledReportSequenceNumber = cancelledReportSequenceNumber;
+            CancelledReportValidFromUtc = cancelledReportValidFromUtc;
+            CancelledReportValidUntilUtc = cancelledReportValidUntilUtc;
             IsTranslationFailed = isTranslationFailed;
             TranslationFailedTac = translationFailedTac;
             EvolvingConditions = evolvingConditions;
@@ -96,11 +129,15 @@ namespace Iwxxm.Net.Reports
             CodeListValue<AirmetPhenomenon>? phenomenon = null,
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
-            IEnumerable<EnRoutePhenomenonVolume>? evolvingConditions = null,
+            IEnumerable<AirmetEvolvingCondition>? evolvingConditions = null,
             PermissibleUsageReason? permissibleUsageReason = null,
-            string? permissibleUsageSupplementary = null)
+            string? permissibleUsageSupplementary = null,
+            bool isCancelReport = false,
+            string? cancelledReportSequenceNumber = null,
+            DateTimeOffset? cancelledReportValidFromUtc = null,
+            DateTimeOffset? cancelledReportValidUntilUtc = null)
         {
-            var evolving = evolvingConditions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
+            var evolving = evolvingConditions?.ToList() ?? new List<AirmetEvolvingCondition>(0);
 
             var invariants = new DomainInvariants(id);
             invariants.RequireText(id, "DOMAIN-AIRMET-ID", "The AIRMET report gml:id identifier is required.");
@@ -108,9 +145,22 @@ namespace Iwxxm.Net.Reports
             invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
             invariants.RequireIssueTime(issueTimeUtc);
             invariants.RequireOrderedPeriod(validFromUtc, validUntilUtc, "DOMAIN-AIRMET-VALID-PERIOD", "AIRMET validity period");
-            foreach (EnRoutePhenomenonVolume volume in evolving)
+            invariants.RequireOrderedPeriod(cancelledReportValidFromUtc, cancelledReportValidUntilUtc, "DOMAIN-AIRMET-CANCELLED-VALID-PERIOD", "cancelled AIRMET validity period");
+            if (isCancelReport && (phenomenon != null || evolving.Count > 0))
             {
-                invariants.Check(volume);
+                invariants.Add("DOMAIN-AIRMET-CANCEL-CONTENT",
+                    "A cancellation AIRMET cannot carry a phenomenon or evolving conditions (iwxxm.sch AIRMET.AIRMET-3).");
+            }
+
+            foreach (AirmetEvolvingCondition condition in evolving)
+            {
+                if (condition == null)
+                {
+                    invariants.Add("DOMAIN-AIRMET-CONDITION-NULL", "An AIRMET evolving condition cannot be null.");
+                    continue;
+                }
+
+                invariants.Check(condition);
             }
 
             if (invariants.HasErrors)
@@ -134,9 +184,13 @@ namespace Iwxxm.Net.Reports
                 validFromUtc,
                 validUntilUtc,
                 phenomenon,
+                isCancelReport,
+                cancelledReportSequenceNumber,
+                cancelledReportValidFromUtc,
+                cancelledReportValidUntilUtc,
                 isTranslationFailed,
                 translationFailedTac,
-                new ReadOnlyCollection<EnRoutePhenomenonVolume>(evolving)));
+                new ReadOnlyCollection<AirmetEvolvingCondition>(evolving)));
         }
     }
 }

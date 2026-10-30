@@ -32,7 +32,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 cloudType: cloudType,
                 baseLimit: volumeRes.Value.Base,
                 topLimit: volumeRes.Value.Top,
-                area: volumeRes.Value.Polygon);
+                area: volumeRes.Value.Areas[0],
+                additionalAreas: volumeRes.Value.Areas.Skip(1));
         }
 
         public static Result<Cloud> FromCompact(CloudDistributionFeatureType dto)
@@ -40,17 +41,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             string context = $"cloud[@gml:id='{dto.Id}']";
             PolygonType? polygonDto = dto.Geometry?.Polygon;
 
-            int polyDim = polygonDto != null && polygonDto.SrsDimensionSpecified && polygonDto.SrsDimension > 0
-                ? polygonDto.SrsDimension
-                : 2;
+            SigwxGeometryReader.SrsAttributes polyAttributes = polygonDto == null
+                ? SigwxGeometryReader.SrsAttributes.None
+                : SigwxGeometryReader.SrsAttributes.From(polygonDto.SrsName, polygonDto.AxisLabels, polygonDto.SrsDimensionSpecified, polygonDto.SrsDimension);
 
-            var coordsResult = SigwxGeometryReader.ReadRingCoordinates(polygonDto?.Exterior, $"{context}/geometry", polyDim);
-            if (coordsResult.IsFailure)
-                return Result<Cloud>.Failure(coordsResult.Errors);
-
-            var polygonResult = GeoPolygon.Create(coordsResult.Value, context);
-            if (polygonResult.IsFailure)
-                return Result<Cloud>.Failure(polygonResult.Errors);
+            var surfaceResult = SigwxGeometryReader.ReadSurface(polygonDto?.Exterior, polygonDto?.Interiors ?? new List<AbstractRingPropertyType>(), $"{context}/geometry", polyAttributes);
+            if (surfaceResult.IsFailure)
+                return Result<Cloud>.Failure(surfaceResult.Errors);
 
             if (dto.Top == null)
             {
@@ -73,7 +70,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 cloudType: dto.CloudType,
                 baseLimit: baseLimit,
                 topLimit: topLimit.Value,
-                area: polygonResult.Value);
+                area: surfaceResult.Value);
         }
     }
 }

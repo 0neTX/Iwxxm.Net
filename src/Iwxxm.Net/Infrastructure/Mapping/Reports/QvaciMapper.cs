@@ -87,6 +87,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             VerticalLimit? upper = VerticalLimitReader.Read(
                 volGeom.Element(IwxxmNs + "upperElevation"), volGeom.Element(IwxxmNs + "upperVerticalReference"), featId, errors);
 
+            DateTimeOffset? phenomenonTime = GmlTimeReader.ReadOptionalInstant(feat.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", featId, errors);
+
             // ashDensityEqualsOrExceeds is a mandatory gml:MeasureType (qvaci.xsd): never defaulted to 0.
             double? density = UomMeasureReader.ReadFixedUnit(
                 concProp.Element(IwxxmNs + "ashDensityEqualsOrExceeds"), UcumUnits.MilligramPerCubicMeter, featId, errors);
@@ -99,7 +101,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             }
             else if (poly != null)
             {
-                ashClouds.Add(new VolcanicAshConcentrationCloud(featId, poly, lower, upper, density.Value));
+                ashClouds.Add(new VolcanicAshConcentrationCloud(featId, poly, lower, upper, density.Value, phenomenonTime));
             }
         }
     }

@@ -11,7 +11,7 @@
   "features": [
     {
       "type": "Feature",
-      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#poly-1",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.c264db5c-3f0b-4444-ab5e-71f48a514644#poly-1",
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -33,7 +33,7 @@
     },
     {
       "type": "Feature",
-      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#poly-1",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.00f9026a-845a-4472-acee-9ec5d7ba6839#poly-1",
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -51,6 +51,98 @@
         "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
         "intensity": "MOD",
         "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/HSH"]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.96cfc825-3f5d-40f0-b9bd-46d790ee9f50#uuid.c264db5c-3f0b-4444-ab5e-71f48a514644#poly-1",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[180, 60], [180, 90], [-180, 90], [-180, 60], [180, 60]]
+        ]
+      },
+      "properties": {
+        "featureType": "SPACE_WEATHER_REGION",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/2",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-08T07:00:00.0000000+00:00",
+        "intensity": "MOD",
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/HNH"]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.96cfc825-3f5d-40f0-b9bd-46d790ee9f50#uuid.00f9026a-845a-4472-acee-9ec5d7ba6839#poly-1",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[180, -60], [-180, -60], [-180, -90], [180, -90], [180, -60]]
+        ]
+      },
+      "properties": {
+        "featureType": "SPACE_WEATHER_REGION",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/2",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-08T07:00:00.0000000+00:00",
+        "intensity": "MOD",
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/HSH"]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.8fc8a55b-e730-4d84-bb44-6e7b7dc3dd32#nil",
+      "geometry": null,
+      "properties": {
+        "featureType": "SPACE_WEATHER_ANALYSIS_NIL",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/2",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-08T13:00:00.0000000+00:00",
+        "nilReason": "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.6a1f263b-5aeb-4002-af1b-9c3ef2812f8d#nil",
+      "geometry": null,
+      "properties": {
+        "featureType": "SPACE_WEATHER_ANALYSIS_NIL",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/2",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-08T19:00:00.0000000+00:00",
+        "nilReason": "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.ba259410-18a3-4074-92e5-1fd09dccedd4#nil",
+      "geometry": null,
+      "properties": {
+        "featureType": "SPACE_WEATHER_ANALYSIS_NIL",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/2",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-09T01:00:00.0000000+00:00",
+        "nilReason": "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
       }
     }
   ]

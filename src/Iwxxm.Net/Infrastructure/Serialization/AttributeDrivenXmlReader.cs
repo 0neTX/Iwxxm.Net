@@ -24,7 +24,9 @@ namespace Iwxxm.Net.Infrastructure.Serialization
     /// model relies on: unknown elements and attributes are ignored, the last occurrence wins for single-valued
     /// members, repeated elements are appended to <see cref="List{T}"/> members, <c>xsi:nil="true"</c> yields
     /// <c>null</c> for members declared with <see cref="XmlElementAttribute.IsNullable"/>, and the
-    /// <c>{Member}Specified</c> companion property is set to <c>true</c> when a value is read.
+    /// <c>{Member}Specified</c> companion property is set to <c>true</c> when a value is read. Several
+    /// <see cref="XmlElementAttribute"/>s with a <see cref="XmlElementAttribute.Type"/> on one list member read an ordered
+    /// choice of element names (e.g. the <c>gml:segments</c> sequence) into one list, in document order.
     /// </para>
     /// <para>Conversion failures are reported as <see cref="InvalidOperationException"/>, like <see cref="XmlSerializer"/>.</para>
     /// </remarks>
@@ -121,7 +123,12 @@ namespace Iwxxm.Net.Infrastructure.Serialization
                 if (type == typeof(long))
                     return XmlConvert.ToInt64(raw.Trim());
                 if (type == typeof(double))
-                    return XmlConvert.ToDouble(raw.Trim());
+                {
+                    double number = XmlConvert.ToDouble(raw.Trim());
+                    if (double.IsNaN(number) || double.IsInfinity(number))
+                        throw new FormatException("Non-finite numbers (NaN, INF) are not accepted.");
+                    return number;
+                }
                 if (type == typeof(decimal))
                     return XmlConvert.ToDecimal(raw.Trim());
                 if (type == typeof(bool))
@@ -173,7 +180,7 @@ namespace Iwxxm.Net.Infrastructure.Serialization
                 foreach (XmlElementAttribute elementAttribute in property.GetCustomAttributes<XmlElementAttribute>(inherit: true))
                 {
                     XName name = XName.Get(elementAttribute.ElementName, elementAttribute.Namespace ?? defaultNamespace);
-                    elements[name] = new MemberMap(property, specified, elementAttribute.IsNullable);
+                    elements[name] = new MemberMap(property, specified, elementAttribute.IsNullable, elementAttribute.Type);
                 }
 
                 XmlAttributeAttribute? attributeAttribute = property.GetCustomAttribute<XmlAttributeAttribute>(inherit: true);
@@ -216,7 +223,7 @@ namespace Iwxxm.Net.Infrastructure.Serialization
             private readonly PropertyInfo _property;
             private readonly PropertyInfo? _specified;
 
-            public MemberMap(PropertyInfo property, PropertyInfo? specified, bool isNullable)
+            public MemberMap(PropertyInfo property, PropertyInfo? specified, bool isNullable, Type? elementType = null)
             {
                 _property = property;
                 _specified = specified;
@@ -231,6 +238,12 @@ namespace Iwxxm.Net.Infrastructure.Serialization
                 else
                 {
                     ValueType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+                }
+
+                // [XmlElement(name, typeof(Derived))]: one member holding several element names (ordered choice).
+                if (elementType != null && ValueType.IsAssignableFrom(elementType))
+                {
+                    ValueType = elementType;
                 }
             }
 

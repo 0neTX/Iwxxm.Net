@@ -43,6 +43,8 @@
         "firDesignator": "EGGX",
         "sequenceNumber": "4",
         "phenomenonUri": "http://codes.wmo.int/49-2/SigWxPhenomena/VA",
+        "timeIndicator": "OBSERVATION",
+        "phenomenonTimeUtc": "2018-07-25T16:00:00.0000000+00:00",
         "lowerLimitReference": "SFC",
         "lowerLimitSpecialValue": "GND",
         "upperLimit": 550,
@@ -58,7 +60,7 @@
       "geometry": {
         "type": "Polygon",
         "coordinates": [
-          [[-12, 60], [-14, 58], [-15.58, 60], [-12, 60]]
+          [[-12, 60], [-15.58, 60], [-14, 58], [-12, 60]]
         ]
       },
       "properties": {
@@ -68,7 +70,8 @@
         "issueTimeUtc": "2018-07-25T16:00:00.0000000+00:00",
         "firDesignator": "EGGX",
         "sequenceNumber": "4",
-        "phenomenonUri": "http://codes.wmo.int/49-2/SigWxPhenomena/VA"
+        "phenomenonUri": "http://codes.wmo.int/49-2/SigWxPhenomena/VA",
+        "phenomenonTimeUtc": "2018-07-25T22:00:00.0000000+00:00"
       }
     }
   ]

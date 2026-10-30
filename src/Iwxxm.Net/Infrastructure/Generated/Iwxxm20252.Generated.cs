@@ -105,10 +105,10 @@ namespace Iwxxm20252.Generated
         [XmlIgnore]
         public bool IsNil => !string.IsNullOrWhiteSpace(NilReason) || string.IsNullOrWhiteSpace(RawValue);
 
-        /// <summary>Parsed numeric value, or <c>null</c> when the text is not a number (never defaulted to 0).</summary>
+        /// <summary>Parsed numeric value, or <c>null</c> when the text is not a finite number (never defaulted to 0; NaN/Infinity rejected).</summary>
         [XmlIgnore]
         public double? Value =>
-            double.TryParse(RawValue?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v)
+            double.TryParse(RawValue?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) && !double.IsNaN(v) && !double.IsInfinity(v)
                 ? v
                 : (double?)null;
     }
@@ -198,7 +198,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("LineStringSegmentType", Namespace = XmlNamespaces.Gml)]
-    internal partial class LineStringSegmentType
+    internal partial class LineStringSegmentType : AbstractCurveSegmentType
     {
         [XmlElement("posList", Namespace = XmlNamespaces.Gml)]
         public DirectPositionListType? PosList { get; set; }
@@ -207,7 +207,7 @@ namespace Iwxxm20252.Generated
     [Serializable]
     [DebuggerStepThrough]
     [XmlType("CubicSplineType", Namespace = XmlNamespaces.Gml)]
-    internal partial class CubicSplineType
+    internal partial class CubicSplineType : AbstractCurveSegmentType
     {
         [XmlElement("posList", Namespace = XmlNamespaces.Gml)]
         public DirectPositionListType? PosList { get; set; }
@@ -224,11 +224,32 @@ namespace Iwxxm20252.Generated
     [XmlType("CurveSegmentArrayPropertyType", Namespace = XmlNamespaces.Gml)]
     internal partial class CurveSegmentArrayPropertyType
     {
-        [XmlElement("LineStringSegment", Namespace = XmlNamespaces.Gml)]
-        public List<LineStringSegmentType> LineStringSegments { get; set; } = new List<LineStringSegmentType>();
+        /// <summary>Curve segments in document order (<c>gml:segments</c> is an ordered sequence).</summary>
+        [XmlElement("LineStringSegment", typeof(LineStringSegmentType), Namespace = XmlNamespaces.Gml)]
+        [XmlElement("CubicSpline", typeof(CubicSplineType), Namespace = XmlNamespaces.Gml)]
+        [XmlElement("CircleByCenterPoint", typeof(CircleByCenterPointType), Namespace = XmlNamespaces.Gml)]
+        public List<AbstractCurveSegmentType> Items { get; set; } = new List<AbstractCurveSegmentType>();
+    }
 
-        [XmlElement("CubicSpline", Namespace = XmlNamespaces.Gml)]
-        public List<CubicSplineType> CubicSplines { get; set; } = new List<CubicSplineType>();
+    /// <summary>Base of the supported <c>gml:AbstractCurveSegment</c> substitutions.</summary>
+    [Serializable]
+    [DebuggerStepThrough]
+    [XmlType("AbstractCurveSegmentType", Namespace = XmlNamespaces.Gml)]
+    internal abstract partial class AbstractCurveSegmentType
+    {
+    }
+
+    /// <summary><c>gml:CircleByCenterPoint</c>: centre position and radius (with <c>@uom</c>).</summary>
+    [Serializable]
+    [DebuggerStepThrough]
+    [XmlType("CircleByCenterPointType", Namespace = XmlNamespaces.Gml)]
+    internal partial class CircleByCenterPointType : AbstractCurveSegmentType
+    {
+        [XmlElement("pos", Namespace = XmlNamespaces.Gml)]
+        public DirectPositionType? Pos { get; set; }
+
+        [XmlElement("radius", Namespace = XmlNamespaces.Gml)]
+        public MeasureType? Radius { get; set; }
     }
 
     [Serializable]
@@ -299,6 +320,9 @@ namespace Iwxxm20252.Generated
     {
         [XmlElement("exterior", Namespace = XmlNamespaces.Gml)]
         public AbstractRingPropertyType? Exterior { get; set; }
+
+        [XmlElement("interior", Namespace = XmlNamespaces.Gml)]
+        public List<AbstractRingPropertyType> Interiors { get; set; } = new List<AbstractRingPropertyType>();
     }
 
     [Serializable]
@@ -318,6 +342,9 @@ namespace Iwxxm20252.Generated
     {
         [XmlElement("exterior", Namespace = XmlNamespaces.Gml)]
         public AbstractRingPropertyType? Exterior { get; set; }
+
+        [XmlElement("interior", Namespace = XmlNamespaces.Gml)]
+        public List<AbstractRingPropertyType> Interiors { get; set; } = new List<AbstractRingPropertyType>();
 
         [XmlAttribute("srsName", DataType = "anyURI")]
         public string? SrsName { get; set; }

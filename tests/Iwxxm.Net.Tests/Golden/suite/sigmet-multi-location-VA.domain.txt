@@ -2,6 +2,8 @@ Sigmet {
   AtsUnitDesignator = "YUDD"
   AtsUnitName = "SHANWICK OCEANIC AREA CONTROL CENTRE"
   CancelledReportSequenceNumber = null
+  CancelledReportValidFromUtc = null
+  CancelledReportValidUntilUtc = null
   EruptingVolcano = Volcano {
     EruptionTimeUtc = null
     Id = "uuid.8c2bf282-1268-4066-bfc9-a56f7ae999f5"
@@ -59,7 +61,9 @@ Sigmet {
         UnitOfMeasure = "FL"
         Value = 250
       }
+      PhenomenonTimeUtc = 2018-07-10T12:00:00.0000000+00:00
       SpeedOfMotion = null
+      TimeIndicator = TimeIndicator.Observation
       TropicalCycloneCentre = null
       UpperLimit = VerticalLimit {
         IsGround = false
@@ -117,7 +121,9 @@ Sigmet {
         UnitOfMeasure = "FL"
         Value = 150
       }
+      PhenomenonTimeUtc = 2018-07-10T12:00:00.0000000+00:00
       SpeedOfMotion = null
+      TimeIndicator = TimeIndicator.Observation
       TropicalCycloneCentre = null
       UpperLimit = VerticalLimit {
         IsGround = false
@@ -167,7 +173,9 @@ Sigmet {
       Id = "uuid.a229e75e-9c12-4bac-a4d3-37eeaa99023f"
       IntensityChange = null
       LowerLimit = null
+      PhenomenonTimeUtc = 2018-07-10T18:00:00.0000000+00:00
       SpeedOfMotion = null
+      TimeIndicator = null
       TropicalCycloneCentre = null
       UpperLimit = null
     }
@@ -201,7 +209,9 @@ Sigmet {
       Id = "uuid.43b58951-4023-4805-97f3-bad21c4e6f74"
       IntensityChange = null
       LowerLimit = null
+      PhenomenonTimeUtc = 2018-07-10T18:00:00.0000000+00:00
       SpeedOfMotion = null
+      TimeIndicator = null
       TropicalCycloneCentre = null
       UpperLimit = null
     }

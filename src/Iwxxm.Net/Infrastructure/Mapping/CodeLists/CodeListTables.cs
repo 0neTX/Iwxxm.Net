@@ -91,6 +91,33 @@ namespace Iwxxm.Net.Infrastructure.Mapping.CodeLists
                 ["MOD_MTW"] = AirmetPhenomenon.ModerateMountainWave
             });
 
+        /// <summary>WMO code list <c>http://codes.wmo.int/49-2/WeatherCausingVisibilityReduction</c> (<see cref="VisibilityReductionCause"/>).</summary>
+        internal static readonly CodeListTable<VisibilityReductionCause> VisibilityReductionCauses = new CodeListTable<VisibilityReductionCause>(
+            "http://codes.wmo.int/49-2/WeatherCausingVisibilityReduction",
+            ResourceFolder + "codes.wmo.int-49-2-WeatherCausingVisibilityReduction.rdf",
+            new Dictionary<string, VisibilityReductionCause>
+            {
+                ["BR"] = VisibilityReductionCause.Mist,
+                ["DS"] = VisibilityReductionCause.Duststorm,
+                ["DU"] = VisibilityReductionCause.Dust,
+                ["DZ"] = VisibilityReductionCause.Drizzle,
+                ["FC"] = VisibilityReductionCause.FunnelCloud,
+                ["FG"] = VisibilityReductionCause.Fog,
+                ["FU"] = VisibilityReductionCause.Smoke,
+                ["GR"] = VisibilityReductionCause.Hail,
+                ["GS"] = VisibilityReductionCause.SmallHail,
+                ["HZ"] = VisibilityReductionCause.Haze,
+                ["PL"] = VisibilityReductionCause.IcePellets,
+                ["PO"] = VisibilityReductionCause.DustSandWhirls,
+                ["RA"] = VisibilityReductionCause.Rain,
+                ["SA"] = VisibilityReductionCause.Sand,
+                ["SG"] = VisibilityReductionCause.SnowGrains,
+                ["SN"] = VisibilityReductionCause.Snow,
+                ["SQ"] = VisibilityReductionCause.Squall,
+                ["SS"] = VisibilityReductionCause.Sandstorm,
+                ["VA"] = VisibilityReductionCause.VolcanicAsh
+            });
+
         /// <summary>WMO code list <c>http://codes.wmo.int/iwxxm/AviationColourCode</c> (<see cref="AviationColourCode"/>).</summary>
         internal static readonly CodeListTable<AviationColourCode> AviationColourCodes = new CodeListTable<AviationColourCode>(
             "http://codes.wmo.int/iwxxm/AviationColourCode",

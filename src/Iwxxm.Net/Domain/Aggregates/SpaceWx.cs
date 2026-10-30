@@ -22,7 +22,8 @@ namespace Iwxxm.Net.Reports
         public string? AdvisoryNumber { get; }
         public IReadOnlyList<string> ReplacedAdvisoryNumbers { get; }
         public IReadOnlyList<string> Effects { get; }
-        public IReadOnlyList<SpaceWeatherAnalysisRegion> Analyses { get; }
+        /// <summary>One entry per <c>iwxxm:analysis</c> (observation and each forecast offset), in document order.</summary>
+        public IReadOnlyList<SpaceWeatherAnalysis> Analyses { get; }
         public string? Remarks { get; }
         public DateTimeOffset? NextAdvisoryTimeUtc { get; }
         public override bool IsTranslationFailed { get; }
@@ -43,7 +44,7 @@ namespace Iwxxm.Net.Reports
             string? advisoryNumber,
             IReadOnlyList<string> replacedAdvisoryNumbers,
             IReadOnlyList<string> effects,
-            IReadOnlyList<SpaceWeatherAnalysisRegion> analyses,
+            IReadOnlyList<SpaceWeatherAnalysis> analyses,
             string? remarks,
             DateTimeOffset? nextAdvisoryTimeUtc,
             bool isTranslationFailed,
@@ -75,7 +76,7 @@ namespace Iwxxm.Net.Reports
             string? advisoryNumber = null,
             IEnumerable<string>? replacedAdvisoryNumbers = null,
             IEnumerable<string>? effects = null,
-            IEnumerable<SpaceWeatherAnalysisRegion>? analyses = null,
+            IEnumerable<SpaceWeatherAnalysis>? analyses = null,
             string? remarks = null,
             DateTimeOffset? nextAdvisoryTimeUtc = null,
             bool isTranslationFailed = false,
@@ -88,7 +89,7 @@ namespace Iwxxm.Net.Reports
             invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
             invariants.RequireIssueTime(issueTimeUtc);
             invariants.RequireUtc(nextAdvisoryTimeUtc, "next advisory time");
-            foreach (SpaceWeatherAnalysisRegion analysis in analyses ?? Enumerable.Empty<SpaceWeatherAnalysisRegion>())
+            foreach (SpaceWeatherAnalysis analysis in analyses ?? Enumerable.Empty<SpaceWeatherAnalysis>())
             {
                 invariants.RequireUtc(analysis?.PhenomenonTimeUtc, "space weather analysis time");
             }
@@ -109,7 +110,7 @@ namespace Iwxxm.Net.Reports
                 advisoryNumber,
                 new ReadOnlyCollection<string>(replacedAdvisoryNumbers?.ToList() ?? new List<string>(0)),
                 new ReadOnlyCollection<string>(effects?.ToList() ?? new List<string>(0)),
-                new ReadOnlyCollection<SpaceWeatherAnalysisRegion>(analyses?.ToList() ?? new List<SpaceWeatherAnalysisRegion>(0)),
+                new ReadOnlyCollection<SpaceWeatherAnalysis>(analyses?.ToList() ?? new List<SpaceWeatherAnalysis>(0)),
                 remarks,
                 nextAdvisoryTimeUtc,
                 isTranslationFailed,

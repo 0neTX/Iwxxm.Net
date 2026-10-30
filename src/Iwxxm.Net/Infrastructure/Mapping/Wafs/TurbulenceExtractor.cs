@@ -23,7 +23,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 rawDegreeReference: degreeHref,
                 baseLimit: volumeRes.Value.Base,
                 topLimit: volumeRes.Value.Top,
-                area: volumeRes.Value.Polygon);
+                area: volumeRes.Value.Areas[0],
+                additionalAreas: volumeRes.Value.Areas.Skip(1));
         }
     }
 }

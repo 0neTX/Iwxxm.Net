@@ -31,6 +31,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             // validPeriod is mandatory (sigmet.xsd): absent -> mapping error; xlink:href only -> null (unresolved).
             GmlTimeReader.ReadPeriod(root.Element(IwxxmNs + "validPeriod"), "validPeriod", MappingErrors.ValidPeriodMissingCode, id, errors, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
+            GmlTimeReader.ReadPeriod(root.Element(IwxxmNs + "cancelledReportValidPeriod"), "cancelledReportValidPeriod", null, id, errors, out DateTimeOffset? cancelledFrom, out DateTimeOffset? cancelledUntil);
             CodeListValue<SigmetPhenomenon>? phenomenon = CodeListTables.SigmetPhenomena.Translate(GetHref(root.Element(IwxxmNs + "phenomenon")));
 
             var evolvingConditions = new List<EnRoutePhenomenonVolume>();
@@ -72,7 +73,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 evolvingConditions,
                 forecastPositions,
                 header.Metadata.Reason,
-                header.Metadata.Supplementary);
+                header.Metadata.Supplementary,
+                cancelledFrom,
+                cancelledUntil);
         }
 
         private static void ReadAnalyses(

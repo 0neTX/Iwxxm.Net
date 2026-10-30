@@ -51,6 +51,12 @@ namespace Iwxxm.Net.Reports
         /// </summary>
         public IReadOnlyList<Result<IwxxmReport>> ReportResults { get; }
 
+        /// <summary>
+        /// The <c>collect:meteorologicalInformation</c> entries that could not be mapped, with their position and report
+        /// <c>gml:id</c>; the bulletin keeps every other report in <see cref="Reports"/>. Empty when every report mapped.
+        /// </summary>
+        public IReadOnlyList<ItemMappingError> ItemErrors { get; }
+
         private MeteorologicalBulletin(
             string id,
             string bulletinIdentifier,
@@ -59,7 +65,8 @@ namespace Iwxxm.Net.Reports
             PermissibleUsage permissibleUsage,
             PermissibleUsageReason? permissibleUsageReason,
             IReadOnlyList<IwxxmReport> reports,
-            IReadOnlyList<Result<IwxxmReport>> reportResults)
+            IReadOnlyList<Result<IwxxmReport>> reportResults,
+            IReadOnlyList<ItemMappingError> itemErrors)
         {
             Id = id;
             BulletinIdentifier = bulletinIdentifier;
@@ -69,12 +76,23 @@ namespace Iwxxm.Net.Reports
             PermissibleUsageReason = permissibleUsageReason;
             Reports = reports;
             ReportResults = reportResults;
+            ItemErrors = itemErrors;
         }
 
+        /// <summary>
+        /// Creates a bulletin from the per-entry mapping results. Failed entries become <see cref="ItemErrors"/> and the
+        /// result succeeds with one <see cref="ValidationSeverity.Warning"/> per item error, as long as at least one
+        /// report mapped; with no mapped report the result fails with <c>DOMAIN-BULLETIN-EMPTY</c> and the entry errors.
+        /// </summary>
+        /// <param name="id">Bulletin <c>gml:id</c>.</param>
+        /// <param name="bulletinIdentifier"><c>collect:bulletinIdentifier</c>.</param>
+        /// <param name="reportResults">One result per <c>collect:meteorologicalInformation</c>, in document order.</param>
+        /// <param name="itemIds">Optional <c>gml:id</c> of each entry (same order), used to identify failed entries.</param>
         public static Result<MeteorologicalBulletin> Create(
             string id,
             string bulletinIdentifier,
-            IEnumerable<Result<IwxxmReport>> reportResults)
+            IEnumerable<Result<IwxxmReport>> reportResults,
+            IReadOnlyList<string?>? itemIds = null)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -99,13 +117,26 @@ namespace Iwxxm.Net.Reports
                 .Select(r => r.Value)
                 .ToList();
 
+            var itemErrors = new List<ItemMappingError>();
+            for (int i = 0; i < resultsList.Count; i++)
+            {
+                if (resultsList[i].IsFailure)
+                {
+                    string? itemId = itemIds != null && i < itemIds.Count ? itemIds[i] : null;
+                    itemErrors.Add(new ItemMappingError(i, itemId, resultsList[i].Errors));
+                }
+            }
+
             if (validReports.Count == 0)
             {
-                return Result<MeteorologicalBulletin>.Failure(
+                var emptyErrors = itemErrors.SelectMany(e => e.Errors).ToList();
+                emptyErrors.Add(new ValidationError(
                     "DOMAIN-BULLETIN-EMPTY",
                     "The MeteorologicalBulletin contains no successfully mapped report; its issue time and metadata cannot be derived.",
                     ErrorCategory.DomainMapping,
-                    id);
+                    ValidationSeverity.Error,
+                    id));
+                return Result<MeteorologicalBulletin>.Failure(emptyErrors);
             }
 
             DateTimeOffset issueTime = validReports.Min(r => r.IssueTimeUtc);
@@ -126,7 +157,9 @@ namespace Iwxxm.Net.Reports
                 usage,
                 reason,
                 new ReadOnlyCollection<IwxxmReport>(validReports),
-                new ReadOnlyCollection<Result<IwxxmReport>>(resultsList)));
+                new ReadOnlyCollection<Result<IwxxmReport>>(resultsList),
+                new ReadOnlyCollection<ItemMappingError>(itemErrors)),
+                itemErrors.SelectMany(e => e.ToWarnings("Report")));
         }
     }
 }

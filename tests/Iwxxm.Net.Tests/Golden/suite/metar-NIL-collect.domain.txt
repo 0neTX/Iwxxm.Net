@@ -2,11 +2,13 @@ MeteorologicalBulletin {
   BulletinIdentifier = "A_LAYU31YUDO221630_C_YUDO_20120822163000.xml"
   Id = "uuid.6f353602-12a1-40a7-b6b5-3edb14c6241e"
   IssueTimeUtc = 2012-08-22T16:30:00.0000000+00:00
+  ItemErrors = []
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   ReportResults = [
     Result<IwxxmReport> {
       Errors = []
+      HasWarnings = false
       IsFailure = false
       IsSuccess = true
       Value = Metar {
@@ -37,6 +39,7 @@ MeteorologicalBulletin {
         TranslationFailedTac = null
         TrendForecasts = []
       }
+      Warnings = []
     }
   ]
   ReportStatus = ReportStatus.Normal

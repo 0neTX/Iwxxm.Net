@@ -21,23 +21,23 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             Volcano? volcano = VolcanoElementReader.ReadMetceVolcano(root.Element(IwxxmNs + "volcano"), errors);
             Length? sourceElev = UomMeasureReader.ReadLength(root.Element(IwxxmNs + "sourceElevationAMSL"), id, errors);
 
-            var observedClouds = new List<EnRoutePhenomenonVolume>();
+            VolcanicAshConditions? observation = null;
             XElement? obsCond = root
                 .Element(IwxxmNs + "observation")
                 ?.Element(IwxxmNs + "VolcanicAshObservedOrEstimatedConditions");
 
             if (obsCond != null)
             {
-                ReadAshClouds(obsCond, "VolcanicAshCloudObservedOrEstimated", observedClouds, errors);
+                observation = ReadConditions(obsCond, "VolcanicAshCloudObservedOrEstimated", errors);
             }
 
-            var forecastClouds = new List<EnRoutePhenomenonVolume>();
+            var forecasts = new List<VolcanicAshConditions>();
             foreach (XElement fcstProp in root.Elements(IwxxmNs + "forecast"))
             {
                 XElement? fcstCond = fcstProp.Element(IwxxmNs + "VolcanicAshForecastConditions");
                 if (fcstCond == null) continue;
 
-                ReadAshClouds(fcstCond, "VolcanicAshCloudForecast", forecastClouds, errors);
+                forecasts.Add(ReadConditions(fcstCond, "VolcanicAshCloudForecast", errors));
             }
 
             DateTimeOffset? nextAdvisory = GmlTimeReader.ReadOptionalInstant(root.Element(IwxxmNs + "nextAdvisoryTime"), "nextAdvisoryTime", id, errors);
@@ -63,21 +63,53 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 nextAdvisory,
                 header.IsTranslationFailed,
                 header.FailedTac,
-                observedClouds,
-                forecastClouds,
+                observation,
+                forecasts,
                 header.Metadata.Reason,
                 header.Metadata.Supplementary);
         }
 
-        private static void ReadAshClouds(XElement conditions, string cloudName, List<EnRoutePhenomenonVolume> target, List<ValidationError> errors)
+        /// <summary>Reads one observed or forecast conditions element: its time, status and ash clouds.</summary>
+        private static VolcanicAshConditions ReadConditions(XElement conditions, string cloudName, List<ValidationError> errors)
         {
+            string id = GetGmlId(conditions);
+            DateTimeOffset? phenomenonTime = GmlTimeReader.ReadOptionalInstant(conditions.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", id, errors);
+            VolcanicAshConditionsStatus? status = ReadStatus(conditions, id, errors);
+
+            var clouds = new List<EnRoutePhenomenonVolume>();
             foreach (XElement ashProp in conditions.Elements(IwxxmNs + "ashCloud"))
             {
-                XElement? ashElem = ashProp.Element(IwxxmNs + cloudName);
+                XElement? ashElem = GmlReferenceResolver.Content(ashProp, IwxxmNs + cloudName);
                 if (ashElem != null)
                 {
-                    target.Add(EnRouteVolumeReader.ReadAshCloudVolume(ashElem, errors));
+                    clouds.Add(EnRouteVolumeReader.ReadAshCloudVolume(ashElem, phenomenonTime, errors));
                 }
+            }
+
+            return new VolcanicAshConditions(id, phenomenonTime, status, clouds);
+        }
+
+        private static VolcanicAshConditionsStatus? ReadStatus(XElement conditions, string id, List<ValidationError> errors)
+        {
+            string? value = conditions.Attribute("status")?.Value?.Trim();
+            switch (value)
+            {
+                case null:
+                case "":
+                    return null;
+                case "PROVIDED":
+                    return VolcanicAshConditionsStatus.Provided;
+                case "NOT_PROVIDED":
+                    return VolcanicAshConditionsStatus.NotProvided;
+                case "NOT_AVAILABLE":
+                    return VolcanicAshConditionsStatus.NotAvailable;
+                case "NOT_IDENTIFIABLE":
+                    return VolcanicAshConditionsStatus.NotIdentifiable;
+                case "NO_VOLCANIC_ASH_EXPECTED":
+                    return VolcanicAshConditionsStatus.NoVolcanicAshExpected;
+                default:
+                    errors.Add(MappingErrors.Create("ACL-VAA-STATUS-INVALID", $"Unsupported volcanic ash conditions status '{value}'.", id));
+                    return null;
             }
         }
     }

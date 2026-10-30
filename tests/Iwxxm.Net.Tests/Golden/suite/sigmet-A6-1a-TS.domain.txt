@@ -2,6 +2,8 @@ Sigmet {
   AtsUnitDesignator = "YUDD"
   AtsUnitName = "YUDD FIC"
   CancelledReportSequenceNumber = null
+  CancelledReportValidFromUtc = null
+  CancelledReportValidUntilUtc = null
   EruptingVolcano = null
   EvolvingConditions = [
     EnRoutePhenomenonVolume {
@@ -34,11 +36,13 @@ Sigmet {
       Id = "uuid.10f68782-703d-43a6-a4e5-af27469edc6e"
       IntensityChange = "WEAKEN"
       LowerLimit = null
+      PhenomenonTimeUtc = null
       SpeedOfMotion = Speed {
         Unit = SpeedUnit.Knots
         UnitOfMeasure = "[kn_i]"
         Value = 20
       }
+      TimeIndicator = TimeIndicator.Forecast
       TropicalCycloneCentre = null
       UpperLimit = VerticalLimit {
         IsGround = false

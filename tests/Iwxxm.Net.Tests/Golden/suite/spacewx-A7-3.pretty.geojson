@@ -1,6 +1,6 @@
 {
   "type": "FeatureCollection",
-  "bbox": [-180, -60, 180, 60],
+  "bbox": [-180, -90, 180, 74.1213567],
   "metadata": {
     "id": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
     "reportType": "SpaceWeatherAdvisory",
@@ -11,7 +11,7 @@
   "features": [
     {
       "type": "Feature",
-      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#poly-1",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.34415dca-6fab-45e4-8225-c45960b1e9d2#poly-1",
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -33,7 +33,7 @@
     },
     {
       "type": "Feature",
-      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#poly-2",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.34415dca-6fab-45e4-8225-c45960b1e9d2#poly-2",
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -55,7 +55,7 @@
     },
     {
       "type": "Feature",
-      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#poly-3",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.34415dca-6fab-45e4-8225-c45960b1e9d2#poly-3",
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -77,7 +77,7 @@
     },
     {
       "type": "Feature",
-      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#poly-4",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.34415dca-6fab-45e4-8225-c45960b1e9d2#poly-4",
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -95,6 +95,96 @@
         "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
         "intensity": "SEV",
         "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH", "http://codes.wmo.int/49-2/SpaceWxLocation/EQN", "http://codes.wmo.int/49-2/SpaceWxLocation/EQS", "http://codes.wmo.int/49-2/SpaceWxLocation/MSH", "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.34415dca-6fab-45e4-8225-c45960b1e9d2#poly-5",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[-180, -45.3280975], [-180, -90], [180, -90], [180, -45.3280975], [178.0160502, -42.2993529], [175.1888968, -37.1115327], [172.7358362, -31.8624565], [170.5571765, -26.568752], [168.5801138, -21.2423234], [166.7495171, -15.8920344], [165.0218938, -10.52477], [163.3612765, -5.1461396], [161.7362551, 0.2390304], [160.1176563, 5.6263206], [158.4765193, 11.0113996], [156.7820817, 16.3897132], [154.9994891, 21.7561341], [153.0868695, 27.1045164], [150.9912589, 32.4270693], [148.6425522, 37.7134113], [145.9440887, 42.9490604], [142.7574569, 48.1129044], [138.8773095, 53.1727716], [133.9892352, 58.0773499], [127.6016583, 62.7409686], [118.9536093, 67.0148872], [106.9820534, 70.6378656], [90.7405424, 73.1826459], [70.94, 74.1213567], [51.1394576, 73.1826459], [34.8979466, 70.6378656], [22.9263907, 67.0148872], [14.2783417, 62.7409686], [7.8907648, 58.0773499], [3.0026905, 53.1727716], [-0.8774569, 48.1129044], [-4.0640887, 42.9490604], [-6.7625522, 37.7134113], [-9.1112589, 32.4270693], [-11.2068695, 27.1045164], [-13.1194891, 21.7561341], [-14.9020817, 16.3897132], [-16.5965193, 11.0113996], [-18.2376563, 5.6263206], [-19.8562551, 0.2390304], [-21.4812765, -5.1461396], [-23.1418938, -10.52477], [-24.8695171, -15.8920344], [-26.7001138, -21.2423234], [-28.6771765, -26.568752], [-30.8558362, -31.8624565], [-33.3088968, -37.1115327], [-36.1360502, -42.2993529], [-39.4783519, -47.4017896], [-43.5412754, -52.3824673], [-48.6309848, -57.1843924], [-55.2070414, -61.7149767], [-63.9373969, -65.819928], [-75.6627665, -69.2440253], [-90.9688827, -71.6022124], [-109.06, -72.4586433], [-127.1511173, -71.6022124], [-142.4572335, -69.2440253], [-154.1826031, -65.819928], [-162.9129586, -61.7149767], [-169.4890152, -57.1843924], [-174.5787246, -52.3824673], [-178.6416481, -47.4017896], [-180, -45.3280975]]
+        ]
+      },
+      "properties": {
+        "featureType": "SPACE_WEATHER_REGION",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/1",
+        "timeIndicator": "OBSERVATION",
+        "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "intensity": "SEV",
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH", "http://codes.wmo.int/49-2/SpaceWxLocation/EQN", "http://codes.wmo.int/49-2/SpaceWxLocation/EQS", "http://codes.wmo.int/49-2/SpaceWxLocation/MSH", "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"],
+        "center": [70.94, -16.71],
+        "radius": 10100,
+        "radiusUom": "km",
+        "circleSegments": 64
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.96cfc825-3f5d-40f0-b9bd-46d790ee9f50#nil",
+      "geometry": null,
+      "properties": {
+        "featureType": "SPACE_WEATHER_ANALYSIS_NIL",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/1",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-08T07:00:00.0000000+00:00",
+        "nilReason": "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.8fc8a55b-e730-4d84-bb44-6e7b7dc3dd32#nil",
+      "geometry": null,
+      "properties": {
+        "featureType": "SPACE_WEATHER_ANALYSIS_NIL",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/1",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-08T13:00:00.0000000+00:00",
+        "nilReason": "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.6a1f263b-5aeb-4002-af1b-9c3ef2812f8d#nil",
+      "geometry": null,
+      "properties": {
+        "featureType": "SPACE_WEATHER_ANALYSIS_NIL",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/1",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-08T19:00:00.0000000+00:00",
+        "nilReason": "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.ba259410-18a3-4074-92e5-1fd09dccedd4#nil",
+      "geometry": null,
+      "properties": {
+        "featureType": "SPACE_WEATHER_ANALYSIS_NIL",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/1",
+        "timeIndicator": "FORECAST",
+        "phenomenonTimeUtc": "2020-11-09T01:00:00.0000000+00:00",
+        "nilReason": "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
       }
     }
   ]

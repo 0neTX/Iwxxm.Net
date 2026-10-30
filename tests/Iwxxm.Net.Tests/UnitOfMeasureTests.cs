@@ -189,7 +189,6 @@ namespace Iwxxm.Net.Tests
 
         [Theory]
         [InlineData("[kn_i]", SpeedUnit.Knots)]
-        [InlineData("km/h", SpeedUnit.KilometersPerHour)]
         public void Parse_MetarWithAlternativeWindUnit_KeepsReportedUnit(string uom, SpeedUnit expected)
         {
             string xml = File.ReadAllText(MetarPath).Replace(
@@ -227,7 +226,7 @@ namespace Iwxxm.Net.Tests
 
             Assert.True(result.IsFailure);
             Assert.Contains(result.Errors, e =>
-                e.Category == ErrorCategory.DomainMapping && e.Code == UomMeasureReader.UomUnsupportedCode);
+                e.Category == ErrorCategory.DomainMapping && e.Code == UomMeasureReader.UomNotAllowedCode);
         }
 
         [Fact]
@@ -247,7 +246,6 @@ namespace Iwxxm.Net.Tests
         [Theory]
         [InlineData("[kn_i]", SpeedUnit.Knots)]
         [InlineData("km/h", SpeedUnit.KilometersPerHour)]
-        [InlineData("m/s", SpeedUnit.MetersPerSecond)]
         public void Parse_SigmetSpeedOfMotion_KeepsReportedUnit(string uom, SpeedUnit expected)
         {
             string xml = File.ReadAllText(SigmetPath).Replace(

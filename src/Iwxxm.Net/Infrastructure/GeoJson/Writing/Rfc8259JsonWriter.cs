@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -80,7 +81,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             {
                 _sb.Append(_indented ? ", " : ",");
             }
-            _sb.Append(value.ToString("G15", CultureInfo.InvariantCulture));
+            AppendNumber(value);
             _inlineNeedsComma = true;
         }
 
@@ -128,7 +129,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         public void WriteProperty(string name, double value)
         {
             WritePropertyName(name);
-            _sb.Append(value.ToString("G15", CultureInfo.InvariantCulture));
+            AppendPropertyNumber(value);
             _needsComma = true;
             _afterPropertyName = false;
         }
@@ -164,6 +165,18 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 case bool b:
                     WriteProperty(name, b);
                     break;
+                case IReadOnlyList<double> numbers:
+                    WritePropertyName(name);
+                    _sb.Append('[');
+                    for (int idx = 0; idx < numbers.Count; idx++)
+                    {
+                        if (idx > 0) _sb.Append(_indented ? ", " : ",");
+                        AppendPropertyNumber(numbers[idx]);
+                    }
+                    _sb.Append(']');
+                    _needsComma = true;
+                    _afterPropertyName = false;
+                    break;
                 case IReadOnlyList<string> strList:
                     WritePropertyName(name);
                     _sb.Append('[');
@@ -185,27 +198,28 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         /// <summary>
         /// Writes an RFC 7946 Section 3.1.1 <c>[longitude, latitude]</c> coordinate position.
         /// </summary>
-        public void WriteCoordinatePair(GeoCoordinate coord)
+        public void WritePosition(GeoJsonPosition position)
         {
             _sb.Append('[');
-            _sb.Append(coord.Lon.ToString("G15", CultureInfo.InvariantCulture));
+            AppendNumber(position.Lon);
             _sb.Append(_indented ? ", " : ",");
-            _sb.Append(coord.Lat.ToString("G15", CultureInfo.InvariantCulture));
+            AppendNumber(position.Lat);
             _sb.Append(']');
             _needsComma = true;
             _afterPropertyName = false;
         }
 
-        public void WriteCoordinateSequence(IReadOnlyList<GeoCoordinate> coords)
+        /// <summary>Writes an inline array of positions (a line string or a linear ring).</summary>
+        public void WritePositionSequence(IReadOnlyList<GeoJsonPosition> positions)
         {
             _sb.Append('[');
-            for (int i = 0; i < coords.Count; i++)
+            for (int i = 0; i < positions.Count; i++)
             {
                 if (i > 0) _sb.Append(_indented ? ", " : ",");
                 _sb.Append('[');
-                _sb.Append(coords[i].Lon.ToString("G15", CultureInfo.InvariantCulture));
+                AppendNumber(positions[i].Lon);
                 _sb.Append(_indented ? ", " : ",");
-                _sb.Append(coords[i].Lat.ToString("G15", CultureInfo.InvariantCulture));
+                AppendNumber(positions[i].Lat);
                 _sb.Append(']');
             }
             _sb.Append(']');
@@ -213,10 +227,18 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             _afterPropertyName = false;
         }
 
-        public void WriteCoordinateRingElement(IReadOnlyList<GeoCoordinate> ring)
+        /// <summary>Writes a position sequence as an element of the current array.</summary>
+        public void WritePositionSequenceElement(IReadOnlyList<GeoJsonPosition> positions)
         {
             WriteCommaIfNeeded();
-            WriteCoordinateSequence(ring);
+            WritePositionSequence(positions);
+        }
+
+        /// <summary>Begins an array that is an element of the current array.</summary>
+        public void BeginArrayElement()
+        {
+            WriteCommaIfNeeded();
+            BeginArray();
         }
 
         private void WriteCommaIfNeeded()
@@ -232,6 +254,31 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 WriteIndent();
             }
             _afterPropertyName = false;
+        }
+
+        /// <summary>
+        /// Appends a coordinate or bbox number. RFC 8259 has no NaN/Infinity tokens and a position cannot be null, so a
+        /// non-finite value here is an internal invariant violation (the mappers reject non-finite input): it is never
+        /// written as a bare token.
+        /// </summary>
+        private void AppendNumber(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+                throw new InvalidOperationException("RFC 8259 cannot represent the non-finite number " + value.ToString(CultureInfo.InvariantCulture) + " in a GeoJSON position.");
+
+            _sb.Append(value.ToString("G15", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>Appends a property number; a non-finite value is written as <c>null</c> (RFC 8259 has no NaN/Infinity).</summary>
+        private void AppendPropertyNumber(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                _sb.Append("null");
+                return;
+            }
+
+            _sb.Append(value.ToString("G15", CultureInfo.InvariantCulture));
         }
 
         private void WriteIndent()

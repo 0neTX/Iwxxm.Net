@@ -24,6 +24,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 ?.Element(MetceNs + "name")?.Value;
 
             TropicalCycloneTrackPoint? obsPoint = null;
+            var cbClouds = new List<EnRoutePhenomenonVolume>();
             XElement? obsElem = root
                 .Element(IwxxmNs + "observation")
                 ?.Element(IwxxmNs + "TropicalCycloneObservedConditions");
@@ -32,12 +33,22 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             {
                 DateTimeOffset? obsTime = GmlTimeReader.ReadOptionalInstant(obsElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", id, errors);
                 GeoCoordinate? pos = ReadCyclonePosition(obsElem, errors);
-                Speed? maxWind = UomMeasureReader.ReadSpeed(obsElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors);
+                Speed? maxWind = UomMeasureReader.ReadSpeed(obsElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors, UomMeasureReader.Subsets.WindSpeed);
                 double? pressure = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "centralPressure"), UcumUnits.Hectopascal, id, errors);
 
                 if (pos.HasValue)
                 {
                     obsPoint = new TropicalCycloneTrackPoint(obsTime, pos.Value, maxWind, pressure);
+                }
+
+                // cumulonimbusCloudLocation (0..n, nillable): CB extent, polygon or circle ("WI 250NM OF TC CENTRE").
+                foreach (XElement cbProp in obsElem.Elements(IwxxmNs + "cumulonimbusCloudLocation"))
+                {
+                    XElement? volume = cbProp.Element(AixmNs + "AirspaceVolume");
+                    if (volume != null)
+                    {
+                        cbClouds.Add(EnRouteVolumeReader.ReadAirspaceVolume(volume, errors));
+                    }
                 }
             }
 
@@ -49,7 +60,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
                 DateTimeOffset? fcstTime = GmlTimeReader.ReadOptionalInstant(fcstElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", id, errors);
                 GeoCoordinate? pos = ReadCyclonePosition(fcstElem, errors);
-                Speed? maxWind = UomMeasureReader.ReadSpeed(fcstElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors);
+                Speed? maxWind = UomMeasureReader.ReadSpeed(fcstElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors, UomMeasureReader.Subsets.WindSpeed);
 
                 if (pos.HasValue)
                 {
@@ -79,7 +90,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 header.IsTranslationFailed,
                 header.FailedTac,
                 header.Metadata.Reason,
-                header.Metadata.Supplementary);
+                header.Metadata.Supplementary,
+                cbClouds);
         }
 
         private static GeoCoordinate? ReadCyclonePosition(XElement conditions, List<ValidationError> errors) =>

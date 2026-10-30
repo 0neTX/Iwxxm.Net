@@ -29,6 +29,9 @@ namespace Iwxxm.Net.Tests
             yield return Case("VolcanicAshConcentrationCloud", AshCloud);
             yield return Case("TropicalCycloneTrackPoint", TrackPoint);
             yield return Case("SpaceWeatherAnalysisRegion", SpaceWeatherRegion);
+            yield return Case("SpaceWeatherAnalysis", SpaceWeatherAnalysisCase);
+            yield return Case("AirmetEvolvingCondition", AirmetCondition);
+            yield return Case("VolcanicAshConditions", AshConditions);
             yield return Case("CodeListValue<SigmetPhenomenon>", PhenomenonCode);
             yield return Case("AerodromeWeather", Weather);
         }
@@ -242,7 +245,9 @@ namespace Iwxxm.Net.Tests
                 MaybeText(r, "INTSF", "NC"),
                 MaybeDouble(r, 360),
                 MaybeSpeed(r),
-                r.Next(3) == 0 ? (GeoCoordinate?)null : Coordinate(r));
+                r.Next(3) == 0 ? (GeoCoordinate?)null : Coordinate(r),
+                r.Next(3) == 0 ? (TimeIndicator?)null : TimeIndicator.Observation,
+                r.Next(3) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(r.Next(6)));
 
         private static JetStreamCorePoint CorePoint(Random r) =>
             new JetStreamCorePoint(
@@ -278,8 +283,6 @@ namespace Iwxxm.Net.Tests
         private static SpaceWeatherAnalysisRegion SpaceWeatherRegion(Random r) =>
             new SpaceWeatherAnalysisRegion(
                 "swx-" + r.Next(5),
-                MaybeText(r, "OBSERVATION", "FORECAST"),
-                r.Next(3) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(r.Next(24)),
                 MaybeText(r, "MOD", "SEV"),
                 Enumerable.Range(0, r.Next(3))
                     .Select(_ => r.Next(2) == 0
@@ -287,6 +290,34 @@ namespace Iwxxm.Net.Tests
                         : new CodeListValue<SpaceWeatherLocation>(SpaceWeatherLocation.Unknown, "DAYLIGHT_SIDE"))
                     .ToList(),
                 Enumerable.Range(0, r.Next(3)).Select(_ => Polygon(r)).ToList());
+
+        private static SpaceWeatherAnalysis SpaceWeatherAnalysisCase(Random r) =>
+            new SpaceWeatherAnalysis(
+                "analysis-" + r.Next(5),
+                r.Next(3) == 0 ? (TimeIndicator?)null : (r.Next(2) == 0 ? TimeIndicator.Observation : TimeIndicator.Forecast),
+                r.Next(3) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(r.Next(24)),
+                Enumerable.Range(0, r.Next(3)).Select(_ => SpaceWeatherRegion(r)).ToList(),
+                MaybeText(r, SpaceWeatherAnalysis.NothingOfOperationalSignificance, "http://codes.wmo.int/common/nil/missing"));
+
+        private static VolcanicAshConditions AshConditions(Random r) =>
+            new VolcanicAshConditions(
+                "fcst-" + r.Next(4),
+                r.Next(3) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(6 * r.Next(4)),
+                r.Next(3) == 0 ? (VolcanicAshConditionsStatus?)null : VolcanicAshConditionsStatus.NoVolcanicAshExpected,
+                Enumerable.Range(0, r.Next(3)).Select(_ => Volume(r)).ToList());
+
+        private static AirmetEvolvingCondition AirmetCondition(Random r) =>
+            new AirmetEvolvingCondition(
+                Volume(r),
+                r.Next(2) == 0 ? (VerticalLimit?)null : VerticalLimit.Create(r.Next(5) * 500, VerticalUnit.Feet, VerticalReference.Sfc).Value,
+                null,
+                r.Next(3) == 0 ? (bool?)null : r.Next(2) == 0,
+                r.Next(2) == 0 ? (Length?)null : new Length(r.Next(5) * 1000, LengthUnit.Meters),
+                Enumerable.Range(0, r.Next(3))
+                    .Select(_ => new CodeListValue<VisibilityReductionCause>(VisibilityReductionCause.Fog, "FG"))
+                    .ToList(),
+                r.Next(2) == 0 ? (double?)null : r.Next(36) * 10,
+                MaybeSpeed(r));
 
         private static CodeListValue<SigmetPhenomenon> PhenomenonCode(Random r) =>
             r.Next(2) == 0

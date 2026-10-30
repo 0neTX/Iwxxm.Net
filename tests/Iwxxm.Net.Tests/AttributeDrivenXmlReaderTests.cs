@@ -78,8 +78,27 @@ namespace Iwxxm.Net.Tests
 
             var dto = AttributeDrivenXmlReader.Read<CurveSegmentArrayPropertyType>(element);
 
-            Assert.Equal(2, dto.LineStringSegments.Count);
-            Assert.Equal("5 6 7 8", dto.LineStringSegments[1].PosList!.Value);
+            Assert.Equal(2, dto.Items.Count);
+            Assert.Equal("5 6 7 8", Assert.IsType<LineStringSegmentType>(dto.Items[1]).PosList!.Value);
+        }
+
+        [Fact]
+        public void Read_OrderedChoiceList_KeepsDocumentOrderAcrossElementNames()
+        {
+            var element = XElement.Parse(
+                $"<gml:segments xmlns:gml='{Gml}'>" +
+                "<gml:CubicSpline><gml:posList>1 2 3 4</gml:posList></gml:CubicSpline>" +
+                "<gml:LineStringSegment><gml:posList>5 6 7 8</gml:posList></gml:LineStringSegment>" +
+                "<gml:CircleByCenterPoint><gml:pos>1 2</gml:pos><gml:radius uom='km'>3</gml:radius></gml:CircleByCenterPoint>" +
+                "</gml:segments>");
+
+            var dto = AttributeDrivenXmlReader.Read<CurveSegmentArrayPropertyType>(element);
+
+            Assert.Collection(
+                dto.Items,
+                s => Assert.Equal("1 2 3 4", Assert.IsType<CubicSplineType>(s).PosList!.Value),
+                s => Assert.Equal("5 6 7 8", Assert.IsType<LineStringSegmentType>(s).PosList!.Value),
+                s => Assert.Equal("km", Assert.IsType<CircleByCenterPointType>(s).Radius!.Uom));
         }
 
         [Fact]

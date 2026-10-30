@@ -184,7 +184,7 @@ namespace Iwxxm.Net
                         result.Value.Id);
                 }
 
-                return Result<string>.Success(json);
+                return Result<string>.Success(json, result.Warnings);
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
@@ -261,7 +261,7 @@ namespace Iwxxm.Net
                     ErrorCategory.DomainMapping);
             }
 
-            return Result<TDocument>.Success(typed);
+            return Result<TDocument>.Success(typed, result.Warnings);
         }
     }
 }

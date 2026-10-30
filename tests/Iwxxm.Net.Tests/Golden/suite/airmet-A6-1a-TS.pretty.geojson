@@ -26,6 +26,7 @@
         "firDesignator": "YUDD",
         "sequenceNumber": "1",
         "phenomenonUri": "http://codes.wmo.int/49-2/AirWxPhenomena/ISOL_TS",
+        "timeIndicator": "OBSERVATION",
         "upperLimit": 100,
         "upperLimitUom": "FL",
         "upperLimitReference": "STD",

@@ -34,6 +34,12 @@ namespace Iwxxm.Net.Reports
         public CodeListValue<SigmetPhenomenon>? Phenomenon { get; }
         public bool IsCancelReport { get; }
         public string? CancelledReportSequenceNumber { get; }
+
+        /// <summary>Start of <c>cancelledReportValidPeriod</c> of a cancellation, or <c>null</c>.</summary>
+        public DateTimeOffset? CancelledReportValidFromUtc { get; }
+
+        /// <summary>End of <c>cancelledReportValidPeriod</c> of a cancellation, or <c>null</c>.</summary>
+        public DateTimeOffset? CancelledReportValidUntilUtc { get; }
         public override bool IsTranslationFailed { get; }
         public override string? TranslationFailedTac { get; }
 
@@ -65,6 +71,8 @@ namespace Iwxxm.Net.Reports
             CodeListValue<SigmetPhenomenon>? phenomenon,
             bool isCancelReport,
             string? cancelledReportSequenceNumber,
+            DateTimeOffset? cancelledReportValidFromUtc,
+            DateTimeOffset? cancelledReportValidUntilUtc,
             bool isTranslationFailed,
             string? translationFailedTac,
             Volcano? eruptingVolcano,
@@ -90,6 +98,8 @@ namespace Iwxxm.Net.Reports
             Phenomenon = phenomenon;
             IsCancelReport = isCancelReport;
             CancelledReportSequenceNumber = cancelledReportSequenceNumber;
+            CancelledReportValidFromUtc = cancelledReportValidFromUtc;
+            CancelledReportValidUntilUtc = cancelledReportValidUntilUtc;
             IsTranslationFailed = isTranslationFailed;
             TranslationFailedTac = translationFailedTac;
             EruptingVolcano = eruptingVolcano;
@@ -122,7 +132,9 @@ namespace Iwxxm.Net.Reports
             IEnumerable<EnRoutePhenomenonVolume>? evolvingConditions = null,
             IEnumerable<EnRoutePhenomenonVolume>? forecastPositions = null,
             PermissibleUsageReason? permissibleUsageReason = null,
-            string? permissibleUsageSupplementary = null)
+            string? permissibleUsageSupplementary = null,
+            DateTimeOffset? cancelledReportValidFromUtc = null,
+            DateTimeOffset? cancelledReportValidUntilUtc = null)
         {
             var evolving = evolvingConditions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
             var positions = forecastPositions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
@@ -133,6 +145,7 @@ namespace Iwxxm.Net.Reports
             invariants.RequireMetadata(reportStatus, permissibleUsage, permissibleUsageReason);
             invariants.RequireIssueTime(issueTimeUtc);
             invariants.RequireOrderedPeriod(validFromUtc, validUntilUtc, "DOMAIN-SIGMET-VALID-PERIOD", "SIGMET validity period");
+            invariants.RequireOrderedPeriod(cancelledReportValidFromUtc, cancelledReportValidUntilUtc, "DOMAIN-SIGMET-CANCELLED-VALID-PERIOD", "cancelled SIGMET validity period");
             foreach (EnRoutePhenomenonVolume volume in evolving.Concat(positions))
             {
                 invariants.Check(volume);
@@ -162,6 +175,8 @@ namespace Iwxxm.Net.Reports
                 phenomenon,
                 isCancelReport,
                 cancelledReportSequenceNumber,
+                cancelledReportValidFromUtc,
+                cancelledReportValidUntilUtc,
                 isTranslationFailed,
                 translationFailedTac,
                 eruptingVolcano,

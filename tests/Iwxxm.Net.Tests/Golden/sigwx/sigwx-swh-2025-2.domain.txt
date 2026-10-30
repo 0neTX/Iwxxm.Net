@@ -27,6 +27,33 @@ Sigwx {
         ]
         InteriorRings = []
       }
+      Areas = [
+        GeoPolygon {
+          ExteriorRing = [
+            GeoCoordinate {
+              Lat = 43
+              Lon = -9
+            }
+            GeoCoordinate {
+              Lat = 46.5
+              Lon = -9
+            }
+            GeoCoordinate {
+              Lat = 46.5
+              Lon = -1.5
+            }
+            GeoCoordinate {
+              Lat = 43
+              Lon = -1.5
+            }
+            GeoCoordinate {
+              Lat = 43
+              Lon = -9
+            }
+          ]
+          InteriorRings = []
+        }
+      ]
       Base = VerticalLimit {
         IsGround = false
         IsNil = false
@@ -62,6 +89,7 @@ Sigwx {
       TypeNumericCode = null
     }
   ]
+  FeatureErrors = []
   Id = "uuid.sigwx.wafc.egrr.202610281800"
   IsTranslationFailed = false
   IssueTimeUtc = 2026-10-28T18:00:00.0000000+00:00

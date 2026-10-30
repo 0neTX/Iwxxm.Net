@@ -72,6 +72,7 @@ Speci {
       PrevailingVisibilityMeters = 600
       PrevailingVisibilityOperator = null
       SurfaceWind = null
+      TimeIndicator = TrendTimeIndicator.Until
       ValidFromUtc = 2012-08-15T11:15:00.0000000+00:00
       ValidUntilUtc = 2012-08-15T12:00:00.0000000+00:00
       Weather = []
@@ -84,6 +85,7 @@ Speci {
       PrevailingVisibilityMeters = 8000
       PrevailingVisibilityOperator = null
       SurfaceWind = null
+      TimeIndicator = TrendTimeIndicator.At
       ValidFromUtc = 2012-08-15T12:00:00.0000000+00:00
       ValidUntilUtc = null
       Weather = []

@@ -23,6 +23,12 @@ namespace Iwxxm.Net.Reports
         public IReadOnlyList<AerodromeWeather> Weather { get; }
         public IReadOnlyList<AerodromeCloudLayer> CloudLayers { get; }
 
+        /// <summary>
+        /// METAR/SPECI trend <c>timeIndicator</c> (<c>AT</c>, <c>UNTIL</c>, <c>FROM</c>); <c>null</c> when absent (always for TAF
+        /// groups). The trend time is <see cref="ValidFromUtc"/> (instant or period start) and <see cref="ValidUntilUtc"/>.
+        /// </summary>
+        public TrendTimeIndicator? TimeIndicator { get; }
+
         public AerodromeForecastGroup(
             string id,
             string? changeIndicator,
@@ -33,7 +39,8 @@ namespace Iwxxm.Net.Reports
             string? prevailingVisibilityOperator,
             SurfaceWind? surfaceWind,
             IEnumerable<AerodromeWeather>? weather = null,
-            IEnumerable<AerodromeCloudLayer>? cloudLayers = null)
+            IEnumerable<AerodromeCloudLayer>? cloudLayers = null,
+            TrendTimeIndicator? timeIndicator = null)
         {
             Id = id ?? string.Empty;
             ChangeIndicator = changeIndicator;
@@ -45,6 +52,7 @@ namespace Iwxxm.Net.Reports
             SurfaceWind = surfaceWind;
             Weather = new ReadOnlyCollection<AerodromeWeather>(weather?.ToList() ?? new List<AerodromeWeather>(0));
             CloudLayers = new ReadOnlyCollection<AerodromeCloudLayer>(cloudLayers?.ToList() ?? new List<AerodromeCloudLayer>(0));
+            TimeIndicator = timeIndicator;
         }
 
         public bool Equals(AerodromeForecastGroup? other)
@@ -60,7 +68,8 @@ namespace Iwxxm.Net.Reports
                    string.Equals(PrevailingVisibilityOperator, other.PrevailingVisibilityOperator, StringComparison.Ordinal) &&
                    Equals(SurfaceWind, other.SurfaceWind) &&
                    ValueEquality.SequenceEqual(Weather, other.Weather) &&
-                   ValueEquality.SequenceEqual(CloudLayers, other.CloudLayers);
+                   ValueEquality.SequenceEqual(CloudLayers, other.CloudLayers) &&
+                   TimeIndicator == other.TimeIndicator;
         }
 
         public override bool Equals(object? obj) => obj is AerodromeForecastGroup other && Equals(other);
@@ -76,7 +85,8 @@ namespace Iwxxm.Net.Reports
             hash = ValueEquality.Add(hash, PrevailingVisibilityOperator);
             hash = ValueEquality.Add(hash, SurfaceWind);
             hash = ValueEquality.AddSequence(hash, Weather);
-            return ValueEquality.AddSequence(hash, CloudLayers);
+            hash = ValueEquality.AddSequence(hash, CloudLayers);
+            return ValueEquality.Add(hash, TimeIndicator);
         }
 
         public static bool operator ==(AerodromeForecastGroup? left, AerodromeForecastGroup? right) => Equals(left, right);
