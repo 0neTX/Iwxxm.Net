@@ -1,4 +1,4 @@
-SigmetReport {
+Sigmet {
   AtsUnitDesignator = "YUDD"
   AtsUnitName = "YUDD FIC"
   CancelledReportSequenceNumber = null
@@ -66,7 +66,11 @@ SigmetReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PhenomenonUri = "http://codes.wmo.int/49-2/SigWxPhenomena/OBSC_TS"
+  Phenomenon = CodeListValue<SigmetPhenomenon> {
+    Code = SigmetPhenomenon.ObscuredThunderstorm
+    IsKnown = true
+    Notation = "OBSC_TS"
+  }
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Sigmet
   SequenceNumber = "2"

@@ -7,27 +7,27 @@ using Xunit;
 namespace Iwxxm.Net.Tests
 {
     /// <summary>
-    /// Contract tests for <see cref="IIwxxmReportVisitor{TResult}"/> and <see cref="IwxxmReport.Accept{TResult}"/>:
-    /// every concrete report dispatches to the overload of its own type.
+    /// Contract tests for <see cref="IIwxxmDocumentVisitor{TResult}"/> and <see cref="IwxxmDocument.Accept{TResult}"/>:
+    /// every concrete document (report or bulletin) dispatches to the overload of its own type.
     /// </summary>
     public sealed class ReportVisitorTests
     {
         [Fact]
-        public void Visitor_DeclaresOneVisitOverloadPerConcreteReportType()
+        public void Visitor_DeclaresOneVisitOverloadPerConcreteDocumentType()
         {
-            var reportTypes = typeof(IwxxmReport).Assembly.GetTypes()
-                .Where(t => t.IsClass && !t.IsAbstract && typeof(IwxxmReport).IsAssignableFrom(t))
+            var documentTypes = typeof(IwxxmDocument).Assembly.GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract && typeof(IwxxmDocument).IsAssignableFrom(t))
                 .OrderBy(t => t.Name, StringComparer.Ordinal)
                 .ToList();
 
-            var visitedTypes = typeof(IIwxxmReportVisitor<>).GetMethods()
-                .Where(m => m.Name == nameof(IIwxxmReportVisitor<int>.Visit))
+            var visitedTypes = typeof(IIwxxmDocumentVisitor<>).GetMethods()
+                .Where(m => m.Name == nameof(IIwxxmDocumentVisitor<int>.Visit))
                 .Select(m => m.GetParameters().Single().ParameterType)
                 .OrderBy(t => t.Name, StringComparer.Ordinal)
                 .ToList();
 
-            Assert.Equal(11, reportTypes.Count);
-            Assert.Equal(reportTypes, visitedTypes);
+            Assert.Equal(12, documentTypes.Count);
+            Assert.Equal(documentTypes, visitedTypes);
         }
 
         [Theory]
@@ -41,12 +41,12 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void Accept_CompactSigwxReport_DispatchesToSignificantWeatherOverload()
+        public void Accept_CompactSigwxReport_DispatchesToSigwxOverload()
         {
             var result = IwxxmSigwxParser.ParseFile(Path.Combine("Samples", "sigwx-swh-2025-2.xml"));
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
 
-            Assert.Equal(typeof(SignificantWeatherReport), result.Value.Accept(new TypeRecordingVisitor()));
+            Assert.Equal(typeof(Sigwx), result.Value.Accept(new TypeRecordingVisitor()));
         }
 
         [Fact]
@@ -58,18 +58,19 @@ namespace Iwxxm.Net.Tests
             Assert.Throws<ArgumentNullException>(() => result.Value.Accept<Type>(null!));
         }
 
-        private sealed class TypeRecordingVisitor : IIwxxmReportVisitor<Type>
+        private sealed class TypeRecordingVisitor : IIwxxmDocumentVisitor<Type>
         {
-            public Type Visit(AerodromeWeatherReport report) => typeof(AerodromeWeatherReport);
-            public Type Visit(TafReport report) => typeof(TafReport);
-            public Type Visit(SigmetReport report) => typeof(SigmetReport);
-            public Type Visit(AirmetReport report) => typeof(AirmetReport);
-            public Type Visit(VonaReport report) => typeof(VonaReport);
-            public Type Visit(QvaciReport report) => typeof(QvaciReport);
-            public Type Visit(VolcanicAshAdvisoryReport report) => typeof(VolcanicAshAdvisoryReport);
-            public Type Visit(TropicalCycloneAdvisoryReport report) => typeof(TropicalCycloneAdvisoryReport);
-            public Type Visit(SpaceWeatherAdvisoryReport report) => typeof(SpaceWeatherAdvisoryReport);
-            public Type Visit(SignificantWeatherReport report) => typeof(SignificantWeatherReport);
+            public Type Visit(Metar metar) => typeof(Metar);
+            public Type Visit(Speci speci) => typeof(Speci);
+            public Type Visit(Taf report) => typeof(Taf);
+            public Type Visit(Sigmet report) => typeof(Sigmet);
+            public Type Visit(Airmet report) => typeof(Airmet);
+            public Type Visit(Vona report) => typeof(Vona);
+            public Type Visit(Qvaci report) => typeof(Qvaci);
+            public Type Visit(Vaa report) => typeof(Vaa);
+            public Type Visit(Tca report) => typeof(Tca);
+            public Type Visit(SpaceWx report) => typeof(SpaceWx);
+            public Type Visit(Sigwx report) => typeof(Sigwx);
             public Type Visit(MeteorologicalBulletin bulletin) => typeof(MeteorologicalBulletin);
         }
     }

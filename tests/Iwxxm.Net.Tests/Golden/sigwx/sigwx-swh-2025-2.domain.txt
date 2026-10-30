@@ -1,4 +1,4 @@
-SignificantWeatherReport {
+Sigwx {
   AirframeIcings = []
   Clouds = [
     Cloud {

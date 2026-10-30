@@ -6,35 +6,6 @@ using System.Linq;
 namespace Iwxxm.Net.Reports
 {
     /// <summary>
-    /// Represents a maximum wind symbol or isotach core point along a Jet Stream axis
-    /// (e.g., iwxxm:WAFSJetStreamWindSymbol or iwxxm:corePoint).
-    /// </summary>
-    public sealed class JetStreamCorePoint
-    {
-        public GeoCoordinate Location { get; }
-        /// <summary>Level of the core point as reported (value, unit and vertical reference; e.g. <c>15240 M MSL</c>).</summary>
-        public VerticalLimit Level { get; }
-        /// <summary>Wind speed exactly as reported (<c>m/s</c> or <c>[kn_i]</c>).</summary>
-        public Speed WindSpeed { get; }
-        public VerticalLimit? LowerIsotachLimit { get; }
-        public VerticalLimit? UpperIsotachLimit { get; }
-
-        public JetStreamCorePoint(
-            GeoCoordinate location,
-            VerticalLimit level,
-            Speed windSpeed,
-            VerticalLimit? lowerIsotachLimit = null,
-            VerticalLimit? upperIsotachLimit = null)
-        {
-            Location = location;
-            Level = level;
-            WindSpeed = windSpeed;
-            LowerIsotachLimit = lowerIsotachLimit;
-            UpperIsotachLimit = upperIsotachLimit;
-        }
-    }
-
-    /// <summary>
     /// Value Object representing a Jet Stream phenomenon in a SIGWX report.
     /// Its trajectory is mapped from a gml:Curve (CubicSpline or LineStringSegment).
     /// </summary>
@@ -114,7 +85,8 @@ namespace Iwxxm.Net.Reports
             return Id == other.Id &&
                    CoreLevel == other.CoreLevel &&
                    MaxWindSpeed == other.MaxWindSpeed &&
-                   AxisTrajectory.SequenceEqual(other.AxisTrajectory);
+                   AxisTrajectory.SequenceEqual(other.AxisTrajectory) &&
+                   ValueEquality.SequenceEqual(CorePoints, other.CorePoints);
         }
 
         public override bool Equals(object? obj) => obj is JetStream other && Equals(other);
@@ -129,5 +101,9 @@ namespace Iwxxm.Net.Reports
                 return hash;
             }
         }
+
+        public static bool operator ==(JetStream? left, JetStream? right) => Equals(left, right);
+
+        public static bool operator !=(JetStream? left, JetStream? right) => !Equals(left, right);
     }
 }

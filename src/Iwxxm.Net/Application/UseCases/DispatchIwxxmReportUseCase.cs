@@ -30,7 +30,7 @@ namespace Iwxxm.Net.Application.UseCases
             _options = options ?? IwxxmParserOptions.Default;
         }
 
-        public Result<IwxxmReport> Process(Stream xmlStream)
+        public Result<IwxxmDocument> Process(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
@@ -38,7 +38,7 @@ namespace Iwxxm.Net.Application.UseCases
             Result<byte[]> buffered = BoundedDocumentBuffer.Read(xmlStream, _options, emptyCode: "STREAM-EMPTY", unreadableCode: "STREAM-UNREADABLE");
             if (buffered.IsFailure)
             {
-                return Result<IwxxmReport>.Failure(buffered.Errors);
+                return Result<IwxxmDocument>.Failure(buffered.Errors);
             }
 
             byte[] payload = buffered.Value;
@@ -49,7 +49,7 @@ namespace Iwxxm.Net.Application.UseCases
                 var schemaErrors = PipelineGuard.Validate(() => _schemaValidator.Validate(view), PipelineGuard.SchemaValidatorErrorCode, ErrorCategory.SchemaViolation, "schema validator");
                 if (schemaErrors.Count > 0)
                 {
-                    return Result<IwxxmReport>.Failure(schemaErrors);
+                    return Result<IwxxmDocument>.Failure(schemaErrors);
                 }
             }
 
@@ -59,7 +59,7 @@ namespace Iwxxm.Net.Application.UseCases
                 var ruleErrors = PipelineGuard.Validate(() => _schematronValidator.Validate(view), PipelineGuard.RuleValidatorErrorCode, ErrorCategory.BusinessRuleViolation, "business-rule validator");
                 if (ruleErrors.Count > 0)
                 {
-                    return Result<IwxxmReport>.Failure(ruleErrors);
+                    return Result<IwxxmDocument>.Failure(ruleErrors);
                 }
             }
 
@@ -72,7 +72,7 @@ namespace Iwxxm.Net.Application.UseCases
 
         public Result<MeteorologicalBulletin> ProcessBulletin(Stream xmlStream)
         {
-            Result<IwxxmReport> dispatchResult = Process(xmlStream);
+            Result<IwxxmDocument> dispatchResult = Process(xmlStream);
             if (dispatchResult.IsFailure)
             {
                 return Result<MeteorologicalBulletin>.Failure(dispatchResult.Errors);

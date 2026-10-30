@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Infrastructure.Mapping.Xml;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
@@ -8,10 +9,10 @@ using static Iwxxm.Net.Infrastructure.Mapping.Xml.XmlValueReader;
 
 namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 {
-    /// <summary>Maps <c>iwxxm:VolcanoObservatoryNoticeForAviation</c> (<c>vona.xsd</c>) onto <see cref="VonaReport"/>.</summary>
+    /// <summary>Maps <c>iwxxm:VolcanoObservatoryNoticeForAviation</c> (<c>vona.xsd</c>) onto <see cref="Vona"/>.</summary>
     internal static class VonaMapper
     {
-        public static Result<VonaReport> Map(XElement root)
+        public static Result<Vona> Map(XElement root)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -54,10 +55,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             if (errors.Count > 0)
             {
-                return Result<VonaReport>.Failure(errors);
+                return Result<Vona>.Failure(errors);
             }
 
-            return VonaReport.Create(
+            return Vona.Create(
                 header.Id,
                 header.IssueTime,
                 header.Metadata.Status,
@@ -66,8 +67,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 centreDesig,
                 GetText(root.Element(IwxxmNs + "stateOrRegion")),
                 GetText(root.Element(IwxxmNs + "noticeNumber")),
-                GetHref(root.Element(IwxxmNs + "currentColourCode")),
-                GetHref(root.Element(IwxxmNs + "previousColourCode")),
+                CodeListTables.AviationColourCodes.Translate(GetHref(root.Element(IwxxmNs + "currentColourCode"))),
+                CodeListTables.AviationColourCodes.Translate(GetHref(root.Element(IwxxmNs + "previousColourCode"))),
                 GetText(root.Element(IwxxmNs + "contacts")),
                 GetText(root.Element(IwxxmNs + "remarks")),
                 GetText(root.Element(IwxxmNs + "nextNotice")),

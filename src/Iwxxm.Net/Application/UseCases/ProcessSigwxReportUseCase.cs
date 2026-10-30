@@ -9,7 +9,7 @@ namespace Iwxxm.Net.Application.UseCases
     /// Application Use Case that orchestrates the SIGWX processing pipeline:
     /// 1) Bounded buffer (enforcing <see cref="IwxxmParserOptions.MaxDocumentBytes"/>),
     /// 2) Schema validation, 3) Business-rule validation, 4) Mapping to the
-    /// <see cref="SignificantWeatherReport"/> Domain Aggregate Root.
+    /// <see cref="Sigwx"/> Domain Aggregate Root.
     /// Depends exclusively on Domain types and outbound ports.
     /// </summary>
     internal sealed class ProcessSigwxReportUseCase : IIwxxmSigwxProcessor
@@ -31,7 +31,7 @@ namespace Iwxxm.Net.Application.UseCases
             _options = options ?? IwxxmParserOptions.Default;
         }
 
-        public Result<SignificantWeatherReport> Process(Stream xmlStream)
+        public Result<Sigwx> Process(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
@@ -39,7 +39,7 @@ namespace Iwxxm.Net.Application.UseCases
             Result<byte[]> buffered = BoundedDocumentBuffer.Read(xmlStream, _options, emptyCode: "XML-EMPTY-STREAM", unreadableCode: "STREAM-NOT-READABLE");
             if (buffered.IsFailure)
             {
-                return Result<SignificantWeatherReport>.Failure(buffered.Errors);
+                return Result<Sigwx>.Failure(buffered.Errors);
             }
 
             byte[] payload = buffered.Value;
@@ -49,7 +49,7 @@ namespace Iwxxm.Net.Application.UseCases
                 var schemaErrors = PipelineGuard.Validate(() => _schemaValidator.Validate(view), PipelineGuard.SchemaValidatorErrorCode, ErrorCategory.SchemaViolation, "schema validator");
                 if (schemaErrors.Count > 0)
                 {
-                    return Result<SignificantWeatherReport>.Failure(schemaErrors);
+                    return Result<Sigwx>.Failure(schemaErrors);
                 }
             }
 
@@ -58,7 +58,7 @@ namespace Iwxxm.Net.Application.UseCases
                 var ruleErrors = PipelineGuard.Validate(() => _schematronValidator.Validate(view), PipelineGuard.RuleValidatorErrorCode, ErrorCategory.BusinessRuleViolation, "business-rule validator");
                 if (ruleErrors.Count > 0)
                 {
-                    return Result<SignificantWeatherReport>.Failure(ruleErrors);
+                    return Result<Sigwx>.Failure(ruleErrors);
                 }
             }
 

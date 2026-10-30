@@ -165,10 +165,10 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void ParseFileAs_OfficialSpeciA32_KeepsKnotsAndConvertsExactly()
         {
-            var result = IwxxmParser.ParseFileAs<AerodromeWeatherReport>(SpeciPath);
+            var result = IwxxmParser.ParseFileAs<AerodromeObservation>(SpeciPath);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            SurfaceWindInfo wind = result.Value.SurfaceWind!;
+            SurfaceWind wind = result.Value.SurfaceWind!;
             Assert.Equal(new Speed(25.0, SpeedUnit.Knots), wind.MeanSpeed);
             Assert.Equal(12.8611, wind.MeanSpeed!.Value.ToMetersPerSecond(), 4);
             Assert.Equal(new Speed(37.0, SpeedUnit.Knots), wind.GustSpeed);
@@ -179,7 +179,7 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void ParseFileAs_OfficialMetarA31_KeepsMetersPerSecondAndFeet()
         {
-            var result = IwxxmParser.ParseFileAs<AerodromeWeatherReport>(MetarPath);
+            var result = IwxxmParser.ParseFileAs<AerodromeObservation>(MetarPath);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Assert.Equal(new Speed(4.0, SpeedUnit.MetersPerSecond), result.Value.SurfaceWind!.MeanSpeed);
@@ -196,7 +196,7 @@ namespace Iwxxm.Net.Tests
                 "<iwxxm:meanWindSpeed uom=\"m/s\">4.0</iwxxm:meanWindSpeed>",
                 $"<iwxxm:meanWindSpeed uom=\"{uom}\">4.0</iwxxm:meanWindSpeed>");
 
-            var result = IwxxmParser.ParseAs<AerodromeWeatherReport>(xml);
+            var result = IwxxmParser.ParseAs<AerodromeObservation>(xml);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Assert.Equal(new Speed(4.0, expected), result.Value.SurfaceWind!.MeanSpeed);
@@ -209,7 +209,7 @@ namespace Iwxxm.Net.Tests
                 "<iwxxm:base uom=\"[ft_i]\">1000</iwxxm:base>",
                 "<iwxxm:base uom=\"m\">300</iwxxm:base>");
 
-            var result = IwxxmParser.ParseAs<AerodromeWeatherReport>(xml);
+            var result = IwxxmParser.ParseAs<AerodromeObservation>(xml);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Assert.Equal(new Length(300.0, LengthUnit.Meters), result.Value.CloudLayers[0].Base);
@@ -254,7 +254,7 @@ namespace Iwxxm.Net.Tests
                 "<iwxxm:speedOfMotion uom=\"[kn_i]\">20</iwxxm:speedOfMotion>",
                 $"<iwxxm:speedOfMotion uom=\"{uom}\">20</iwxxm:speedOfMotion>");
 
-            var result = IwxxmParser.ParseAs<SigmetReport>(xml);
+            var result = IwxxmParser.ParseAs<Sigmet>(xml);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Assert.Contains(result.Value.EvolvingConditions, v => v.SpeedOfMotion == new Speed(20.0, expected));
@@ -263,7 +263,7 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void ParseFileAs_OfficialVaaA72_KeepsSpeedOfMotionInKnotsAndSourceElevation()
         {
-            var result = IwxxmParser.ParseFileAs<VolcanicAshAdvisoryReport>(VaaPath);
+            var result = IwxxmParser.ParseFileAs<Vaa>(VaaPath);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Assert.Contains(result.Value.ObservedAshClouds, c => c.SpeedOfMotion == new Speed(20.0, SpeedUnit.Knots));

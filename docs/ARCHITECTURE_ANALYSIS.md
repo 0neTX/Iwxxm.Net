@@ -89,16 +89,18 @@ graph TD
     end
 
     subgraph Domain ["Núcleo del Dominio (Pureza 100% C# BCL)"]
-        Aggregates["Agregados: Metar, Taf, Sigmet, Sigwx..."]
-        ValueObjects["Value Objects: Speed, Length, FlightLevel, GeoPolygon..."]
+        Documents["Raíz cerrada IwxxmDocument: IwxxmReport | MeteorologicalBulletin"]
+        Aggregates["Agregados: AerodromeObservation (Metar, Speci), Taf, Sigmet, Airmet, Vona, Qvaci, Vaa, Tca, SpaceWx, Sigwx"]
+        ValueObjects["Value Objects: SurfaceWind, RunwayVisualRange, AerodromeCloudLayer, AerodromeForecastGroup, VerticalLimit, GeoPolygon, CodeListValue&lt;TCode&gt;, AerodromeWeather..."]
         Common["Result&lt;T&gt;, ValidationError"]
-        Visitor["IIwxxmReportVisitor&lt;TResult&gt;"]
+        Visitor["IIwxxmDocumentVisitor&lt;TResult&gt;"]
     end
 
     subgraph AdaptersOut ["Adaptadores Secundarios (Infrastructure)"]
         XsdAdapter["XsdValidator (WMO Official Schemas)"]
         SchAdapter["XsltSchematronValidator / Saxon Validator"]
-        Mappers["IwxxmSuiteMapper (composite) + mappers por familia: MetarSpeciMapper, TafMapper..."]
+        Mappers["IwxxmSuiteMapper (composite) + mappers por familia: MetarSpeciMapper, TafMapper, VaaMapper, TcaMapper, SpaceWxMapper..."]
+        CodeListAcl["CodeLists ACL: CodeListTables / AerodromeWeatherCodeList (RDF oficiales embebidos)"]
         GeoJsonAdapters["Rfc7946GeoJsonExporter + feature builders por familia (Visitor)"]
         GeneratedDto["Iwxxm20252.Generated (Internal ACL)"]
     end
@@ -113,8 +115,9 @@ graph TD
     DispatchUC --> SuiteMapperPort
     ExportUC --> GeoJsonExporterPort
 
-    DispatchUC --> Aggregates
-    ExportUC --> Aggregates
+    DispatchUC --> Documents
+    ExportUC --> Documents
+    Documents --> Aggregates
     Aggregates --> ValueObjects
 
     XsdAdapter -.->|implementa| XsdPort
@@ -122,6 +125,8 @@ graph TD
     Mappers -.->|implementa| SuiteMapperPort
     GeoJsonAdapters -.->|implementa| GeoJsonExporterPort
     Mappers --> GeneratedDto
+    Mappers --> CodeListAcl
+    CodeListAcl --> ValueObjects
     Mappers --> Aggregates
 
     Builder --> Facade
@@ -177,24 +182,27 @@ graph TD
 
 ## 5. Matriz de Mapeo del Lenguaje Ubicuo (Nomenclatura Propuesta)
 
-| Modelo Actual | Tipo DDD | Nombre Propuesto (Acrónimo) | Justificación Operativa |
+| Modelo anterior | Tipo DDD | Nombre final (implementado) | Justificación Operativa |
 | :--- | :--- | :--- | :--- |
-| `AerodromeWeatherReport` (tipo METAR) | Agregado | `MetarReport` (o `Metar`) | Identificación directa con el informe rutinario de aeródromo. |
-| `AerodromeWeatherReport` (tipo SPECI) | Agregado | `SpeciReport` (o `Speci`) | Informe especial de aeródromo por cambio significativo. |
-| `TafReport` | Agregado | `Taf` (o `TafReport`) | Terminal Aerodrome Forecast. |
-| `SignificantWeatherReport` | Agregado | `Sigwx` (o `SigwxReport`) | Pronóstico WAFS Significant Weather. |
-| `SigmetReport` | Agregado | `Sigmet` (o `SigmetReport`) | Fenómenos meteorológicos en ruta que afectan a la seguridad. |
-| `AirmetReport` | Agregado | `Airmet` (o `AirmetReport`) | Fenómenos meteorológicos para vuelos a baja cota. |
-| `VolcanicAshAdvisoryReport` | Agregado | `Vaa` (o `VaaReport`) | Volcanic Ash Advisory. |
-| `TropicalCycloneAdvisoryReport` | Agregado | `Tca` (o `TcaReport`) | Tropical Cyclone Advisory. |
-| `SpaceWeatherAdvisoryReport` | Agregado | `SpaceWx` (o `SpaceWxReport`) | Space Weather Advisory. |
+| `IIwxxmReport` / `IwxxmReport` (raíz común) | Raíz cerrada | `IwxxmDocument` → `IwxxmReport` \| `MeteorologicalBulletin` | Un boletín no es un informe: dos ramas cerradas bajo una raíz común (DDD-04). |
+| `AerodromeWeatherReport` (tipo METAR) | Agregado | `Metar` (base abstracta `AerodromeObservation`) | Identificación directa con el informe rutinario de aeródromo. |
+| `AerodromeWeatherReport` (tipo SPECI) | Agregado | `Speci` (base abstracta `AerodromeObservation`) | Informe especial de aeródromo por cambio significativo; comparte tipo IWXXM con METAR. |
+| `TafReport` | Agregado | `Taf` | Terminal Aerodrome Forecast. |
+| `SignificantWeatherReport` | Agregado | `Sigwx` | Pronóstico WAFS Significant Weather. |
+| `SigmetReport` | Agregado | `Sigmet` | Fenómenos meteorológicos en ruta que afectan a la seguridad (incluye VA y TC SIGMET). |
+| `AirmetReport` | Agregado | `Airmet` | Fenómenos meteorológicos para vuelos a baja cota. |
+| `VolcanicAshAdvisoryReport` | Agregado | `Vaa` | Volcanic Ash Advisory. |
+| `TropicalCycloneAdvisoryReport` | Agregado | `Tca` | Tropical Cyclone Advisory. |
+| `SpaceWeatherAdvisoryReport` | Agregado | `SpaceWx` | Space Weather Advisory. |
 | `VonaReport` | Agregado | `Vona` | Volcano Observatory Notice for Aviation. |
 | `QvaciReport` | Agregado | `Qvaci` | Quantitative Volcanic Ash Concentration. |
-| `MeteorologicalBulletin` | Agregado / Envelope | `MeteorologicalBulletin` | Contenedor SWIM / COLLECT de boletines. |
+| `MeteorologicalBulletin` | Envelope | `MeteorologicalBulletin` | Contenedor SWIM / COLLECT de boletines (rama propia de `IwxxmDocument`). |
+| `IIwxxmReportVisitor<TResult>` | Visitor | `IIwxxmDocumentVisitor<TResult>` | Recorre todos los documentos (un `Visit` por tipo concreto, incluidos `Metar`, `Speci` y el boletín). |
 | `SurfaceWindInfo` | Value Object | `SurfaceWind` | Sin sufijo `Info`. Viento en superficie. |
 | `RunwayVisualRangeInfo` | Value Object | `RunwayVisualRange` | Sin sufijo `Info`. RVR de pista. |
 | `AerodromeCloudLayerInfo` | Value Object | `AerodromeCloudLayer` | Sin sufijo `Info`. Capa de nubes de aeródromo. |
 | `AerodromeForecastGroupInfo` | Value Object | `AerodromeForecastGroup` | Sin sufijo `Info`. Grupo de cambio (TEMPO, BECMG). |
+| URIs de codelists (`string`) | Value Object | `CodeListValue<TCode>` / `AerodromeWeather` | Código del dominio (enum) más la notación notificada; sin URIs en el Dominio (DDD-10). |
 
 ---
 
@@ -255,7 +263,7 @@ La columna **Rompe API** indica si el cambio obliga a modificar código de los c
 | # | Código | Criticidad | Alcance | Rompe API | Resumen | Referencias | Estado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | **DDD-07** | Crítica | M (~10 ficheros, 41 puntos) | Sí (campos pasan a nullable) | Eliminar valores inventados por defecto | AUD-H5 | Implementado (Unreleased) |
-| 2 | **DDD-03** | Crítica | M | Sí | `ReportStatus` / `PermissibleUsage` tipados y sin *defaulting* | AUD-M8, AUD-U8 | Implementado (Unreleased); segregación de interfaces pendiente (DDD-04) |
+| 2 | **DDD-03** | Crítica | M | Sí | `ReportStatus` / `PermissibleUsage` tipados y sin *defaulting* | AUD-M8, AUD-U8 | Implementado (Unreleased); segregación resuelta en DDD-04 |
 | 3 | **DDD-08** | Alta | M–L | Sí | `VerticalLimit` con referencia vertical | AUD-M7, AUD-U7 | Implementado (Unreleased) |
 | 4 | **DDD-06** | Alta | S (2 ficheros) | No (cambia comportamiento) | Contrato `Equals` / `GetHashCode` de `GeoCoordinate` y `GeoPolygon` | AUD-M6 | Implementado (Unreleased) |
 | 5 | **CLN-04** | Alta | S (1–2 ficheros) | No | Excepciones de I/O fuera de `Result<T>` | AUD-M4 | Implementado (Unreleased) |
@@ -263,16 +271,26 @@ La columna **Rompe API** indica si el cambio obliga a modificar código de los c
 | 7 | **CLN-01** | Media | L (~1.360 líneas) | No | Descomponer `IwxxmSuiteMapper` | AUD-A1 §8.2 | Implementado (Unreleased) |
 | 8 | **CLN-05** | Media | L (~1.000 líneas) | No | Descomponer `SigwxMapper` | AUD-A1 §8.2 | Implementado (Unreleased) |
 | 9 | **CLN-02** | Media | M (~980 líneas) | Sí (Visitor y jerarquía cerrada `IwxxmReport`) | Visitor y descomposición del exportador GeoJSON | AUD-A1 §8.2 | Implementado (Unreleased) |
-| 10 | **DDD-09** | Media | S–M (6 tipos) | No (cambia comportamiento) | Igualdad estructural en VOs auxiliares | AUD-L10 | Pendiente |
-| 11 | **DDD-04** | Media | S–M | Sí | Segregar `IMeteorologicalReport` / `IBulletinEnvelope` | AUD-M8 | Pendiente |
-| 12 | **DDD-10** | Media | M | Sí | URIs de codelists traducidas en la ACL | AUD-A1 §8.2 | Pendiente |
-| 13 | **DDD-01** | Baja | L (transversal) | Sí | Nombres operativos (`Metar`, `Speci`, `Sigwx`, …) | AUD-A1 §8.1 | Pendiente |
-| 14 | **DDD-02** | Baja | S | Sí | Eliminar el sufijo `Info` | AUD-A1 §8.1 | Pendiente |
-| 15 | **CLN-03** | Baja | S (mecánico, ~5 ficheros → ~25) | No | Un tipo público por fichero | AUD-A1 §8.2 | Pendiente |
-| 16 | **CLN-06** | Baja | S | No | Comentarios veraces | AUD-M16, AUD-L1 | Pendiente |
-| 17 | **CLN-07** | Baja | S | No | Duplicación y números mágicos en `WmoCodes` | — | Pendiente |
+| 10 | **DDD-09** | Media | S–M (6 tipos) | No (cambia comportamiento) | Igualdad estructural en VOs auxiliares | AUD-L10 | Implementado (Unreleased) |
+| 11 | **DDD-04** | Media | S–M | Sí | Segregar `IMeteorologicalReport` / `IBulletinEnvelope` | AUD-M8 | Implementado (Unreleased) |
+| 12 | **DDD-10** | Media | M | Sí | URIs de codelists traducidas en la ACL | AUD-A1 §8.2 | Implementado (Unreleased); SIGWX conserva la referencia bruta junto al código tipado |
+| 13 | **DDD-01** | Baja | L (transversal) | Sí | Nombres operativos (`Metar`, `Speci`, `Sigwx`, …) | AUD-A1 §8.1 | Implementado (Unreleased) |
+| 14 | **DDD-02** | Baja | S | Sí | Eliminar el sufijo `Info` | AUD-A1 §8.1 | Implementado (Unreleased) |
+| 15 | **CLN-03** | Baja | S (mecánico, ~5 ficheros → ~25) | No | Un tipo público por fichero | AUD-A1 §8.2 | Implementado (Unreleased) |
+| 16 | **CLN-06** | Baja | S | No | Comentarios veraces | AUD-M16, AUD-L1 | Implementado (Unreleased) |
+| 17 | **CLN-07** | Baja | S | No | Duplicación y números mágicos en `WmoCodes` | — | Implementado (Unreleased) |
 
 > **Estado (Unreleased)**: los puntos 1 a 9 están implementados. Decisiones principales: (1) un dato obligatorio según el XSD oficial que falta es un error de mapeo; un dato opcional, nulo o dado solo por `xlink:href` (no resuelto) es `null`; (2) `ReportStatus`, `PermissibleUsage` y `PermissibleUsageReason` son enums y los metadatos de `MeteorologicalBulletin` se derivan de sus informes (hora de emisión más temprana; no operacional si algún informe lo es); (3) `VerticalLimit` conserva valor, unidad, referencia vertical, valor especial y `nilReason`, y `FlightLevel` es solo una vista derivada para STD; (4) `GeoCoordinate` se cuantiza a 1e-7 grados al construirse y se compara de forma exacta; (5) los fallos de E/S y de adaptadores se devuelven como errores tipados (`FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, ...); (6) las fábricas `Create` aplican invariantes físicas homogéneas: periodos ordenados, desfase UTC nulo, dirección en [0, 360], magnitudes no negativas, metadatos definidos y unidad ATS obligatoria en AIRMET. Las reglas de negocio del Schematron oficial no se duplican. (7–9) Las tres *God Classes* se descompusieron sin cambio de comportamiento: `IwxxmSuiteMapper` es un *composite* que carga el documento y despacha por el QName raíz mediante un registro estático (`IwxxmReportMapperRegistry`) hacia un mapper por familia (`Infrastructure/Mapping/Reports`) con lectores compartidos en `Infrastructure/Mapping/Xml`; `SigwxMapper` coordina `WafsForecastMapper`, `CompactSigwxReportMapper` y un extractor por familia de fenómeno WAFS (`Infrastructure/Mapping/Sigwx`); `Rfc7946GeoJsonExporter` usa el Visitor del dominio (`IIwxxmReportVisitor<TResult>`, `IwxxmReport.Accept<TResult>`) con un *feature builder* por familia y escritores separados. Los *characterization tests* (`tests/Iwxxm.Net.Tests/GoldenMaster`) se generaron antes del refactor sobre los 29 ejemplos oficiales y las dos muestras SIGWX (modelo de dominio completo y GeoJSON) y no cambiaron después. `IwxxmReportType` se conserva por compatibilidad como clasificación descriptiva; las comprobaciones `is MeteorologicalBulletin` / `is TReport` que permanecen son refinamientos de un único tipo, no despacho por tipo de informe.
+
+> **Estado (Unreleased), puntos 10 a 17**: todos implementados, con 0 advertencias y todos los tests en verde. Decisiones principales:
+> - **CLN-03**: un tipo por fichero en todo `src` (los *value objects* en `Domain/ValueObjects`); la única excepción es el modelo de transporte SIGWX interno `Iwxxm20252.Generated.cs`.
+> - **CLN-06**: la cabecera de `Iwxxm20252.Generated.cs` declara que el fichero se mantiene a mano (no es salida de `xscgen`); se eliminó el *target* MSBuild `GenerateXsdClasses`, que lo habría sobrescrito, y `tools/generate-xsd-classes.sh` solo genera un andamiaje de referencia en `artifacts/xscgen-reference/`. La documentación de `GmlCoordinateTokenizer` describe su perfil real de asignaciones (no es *zero-allocation*) y su precisión.
+> - **CLN-07**: `WmoCodeRegistry` resuelve las cuatro tablas con un único algoritmo genérico; la guarda `>= 0` (el miembro `Unknown` vale -1 y nunca es un código oficial) y el límite de tres dígitos (el mayor código de las tablas soportadas es 63) son constantes con nombre y documentadas.
+> - **DDD-09**: igualdad estructural exacta (`IEquatable<T>`, `Equals`/`GetHashCode`, `==`/`!=`) en todos los *value objects* de tipo referencia; colecciones comparadas por contenido y orden; `0.0`/`-0.0` y NaN con el mismo *hash* en todos los *frameworks* (`ValueObjectEqualityTests`, pruebas de propiedades con generadores deterministas).
+> - **DDD-10**: la capa anticorrupción (`Infrastructure/Mapping/CodeLists`) traduce los `xlink:href` a tipos del Dominio: `CodeListValue<TCode>` (enum + notación notificada) para las listas cerradas (`AerodromeCloudAmount`, `ConvectiveCloudType`, `SigmetPhenomenon`, `AirmetPhenomenon`, `AviationColourCode`, `SpaceWeatherLocation`) y el *value object* `AerodromeWeather` para la lista combinatoria de 402 códigos de tiempo presente/previsto (cuyos códigos se leen del RDF oficial embebido, publicado bajo el registro `http://codes.wmo.int/306/4678`). Los RDF oficiales siguen siendo la fuente de verdad: `CodeListTranslationTests` compara cada tabla y cada URI de registro con ellos, aplicando el mismo filtro de versión 2025-2 que el Schematron oficial. Un código desconocido nunca se descarta: queda como `Unknown` con su valor bruto. El GeoJSON reconstruye las referencias originales sin pérdida y no cambia. Pendiente: los VO SIGWX (`Cloud`, `Turbulence`, `AirframeIcing`) ya están tipados, pero conservan la referencia bruta como `string` informativo y su resolución sigue en el Dominio (`WmoCodeRegistry`).
+> - **DDD-04**: raíz cerrada `IwxxmDocument` (constructor `private protected`) con dos ramas: `IwxxmReport` (abstracta; informes con estado, uso y metadatos de traducción) y `MeteorologicalBulletin` (sellada; identificador, informes y metadatos derivados, sin campos ficticios por informe). El Visitor pasa a `IIwxxmDocumentVisitor<TResult>`; las fachadas y puertos devuelven `Result<IwxxmDocument>` y `ParseAs<T>` exige `T : IwxxmDocument`. Un boletín anidado en otro se rechaza (`COLLECT-NESTED-BULLETIN`).
+> - **DDD-01 / DDD-02**: nombres operativos sin sufijo `Report` y *value objects* sin sufijo `Info` (tabla de la sección 5). `Metar` y `Speci` son subclases selladas de la base abstracta `AerodromeObservation`, que contiene una sola vez el contenido, las invariantes y la fábrica; el *mapper* también es único. `IwxxmReportType` se conserva. El espacio de nombres interno `Infrastructure.Mapping.Sigwx` pasa a `Infrastructure.Mapping.Wafs` para no colisionar con el agregado `Sigwx`.
+> - **Golden master**: los ficheros GeoJSON no cambian. En los volcados de dominio solo cambian los nombres de tipo (DDD-01/02), las URIs de codelist sustituidas por sus valores del Dominio (DDD-10) y la desaparición de las tres propiedades ficticias del boletín (DDD-04).
 
 > **Cambio respecto a la versión 1.0**: DDD-01 bajó de *Alta* a *Baja* y CLN-01 de *Crítica* a *Media*. No porque dejen de ser importantes, sino porque no generan datos erróneos: son deuda de mantenimiento. En cambio, los valores inventados (DDD-07) y el modelo vertical (DDD-08), que no figuraban, sí pueden mostrar al usuario información falsa con apariencia de válida.
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Infrastructure.Mapping.Xml;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
@@ -10,11 +11,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 {
     /// <summary>
     /// Maps <c>iwxxm:SIGMET</c>, <c>iwxxm:VolcanicAshSIGMET</c> and <c>iwxxm:TropicalCycloneSIGMET</c> (<c>sigmet.xsd</c>)
-    /// onto <see cref="SigmetReport"/>.
+    /// onto <see cref="Sigmet"/>.
     /// </summary>
     internal static class SigmetMapper
     {
-        public static Result<SigmetReport> Map(XElement root, IwxxmReportType reportType)
+        public static Result<Sigmet> Map(XElement root, IwxxmReportType reportType)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -30,7 +31,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             // validPeriod is mandatory (sigmet.xsd): absent -> mapping error; xlink:href only -> null (unresolved).
             GmlTimeReader.ReadPeriod(root.Element(IwxxmNs + "validPeriod"), "validPeriod", MappingErrors.ValidPeriodMissingCode, id, errors, out DateTimeOffset? validFrom, out DateTimeOffset? validUntil);
-            string? phenomenonUri = GetHref(root.Element(IwxxmNs + "phenomenon"));
+            CodeListValue<SigmetPhenomenon>? phenomenon = CodeListTables.SigmetPhenomena.Translate(GetHref(root.Element(IwxxmNs + "phenomenon")));
 
             var evolvingConditions = new List<EnRoutePhenomenonVolume>();
             var forecastPositions = new List<EnRoutePhenomenonVolume>();
@@ -44,10 +45,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             if (errors.Count > 0)
             {
-                return Result<SigmetReport>.Failure(errors);
+                return Result<Sigmet>.Failure(errors);
             }
 
-            return SigmetReport.Create(
+            return Sigmet.Create(
                 id,
                 reportType,
                 header.IssueTime,
@@ -61,7 +62,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 seqNumber,
                 validFrom,
                 validUntil,
-                phenomenonUri,
+                phenomenon,
                 isCancel,
                 cancelSeqNumber,
                 header.IsTranslationFailed,

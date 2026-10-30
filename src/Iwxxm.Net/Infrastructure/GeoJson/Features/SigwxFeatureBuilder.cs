@@ -8,7 +8,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
     internal static class SigwxFeatureBuilder
     {
         public static void AddSigwxFeatures(
-            SignificantWeatherReport sigwx,
+            Sigwx sigwx,
             string? bulletinId,
             List<GeoJsonFeature> features)
         {

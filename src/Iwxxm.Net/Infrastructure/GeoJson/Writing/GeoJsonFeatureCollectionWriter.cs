@@ -12,7 +12,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
     /// </summary>
     internal static class GeoJsonFeatureCollectionWriter
     {
-        public static string Write(IwxxmReport report, IReadOnlyList<GeoJsonFeature> features, GeoJsonExportOptions options)
+        public static string Write(IwxxmDocument document, IReadOnlyList<GeoJsonFeature> features, GeoJsonExportOptions options)
         {
             var sb = new StringBuilder(Math.Max(512, features.Count * 256));
             var writer = new Rfc8259JsonWriter(sb, options.Indented);
@@ -32,7 +32,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 writer.EndInlineArray();
             }
 
-            WriteMetadata(writer, report);
+            WriteMetadata(writer, document);
 
             writer.WritePropertyName("features");
             writer.BeginArray();
@@ -46,27 +46,28 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             return sb.ToString();
         }
 
-        private static void WriteMetadata(Rfc8259JsonWriter writer, IwxxmReport report)
+        private static void WriteMetadata(Rfc8259JsonWriter writer, IwxxmDocument document)
         {
             writer.WritePropertyName("metadata");
             writer.BeginObject();
-            writer.WriteProperty("id", report.Id);
-            writer.WriteProperty("reportType", report.ReportType.ToString());
-            writer.WriteProperty("issueTimeUtc", GeoJsonProperties.FormatInstant(report.IssueTimeUtc));
-            writer.WriteProperty("reportStatus", ReportMetadataCodes.ToCode(report.ReportStatus));
-            writer.WriteProperty("permissibleUsage", ReportMetadataCodes.ToCode(report.PermissibleUsage));
-            if (report.PermissibleUsageReason.HasValue)
+            writer.WriteProperty("id", document.Id);
+            writer.WriteProperty("reportType", document.ReportType.ToString());
+            writer.WriteProperty("issueTimeUtc", GeoJsonProperties.FormatInstant(document.IssueTimeUtc));
+            writer.WriteProperty("reportStatus", ReportMetadataCodes.ToCode(document.ReportStatus));
+            writer.WriteProperty("permissibleUsage", ReportMetadataCodes.ToCode(document.PermissibleUsage));
+            if (document.PermissibleUsageReason.HasValue)
             {
-                writer.WriteProperty("permissibleUsageReason", ReportMetadataCodes.ToCode(report.PermissibleUsageReason.Value));
+                writer.WriteProperty("permissibleUsageReason", ReportMetadataCodes.ToCode(document.PermissibleUsageReason.Value));
             }
 
-            if (report.PermissibleUsageSupplementary != null)
+            // Branch-specific metadata of the closed document hierarchy (two-way refinement, not a report-type dispatch):
+            // only reports carry supplementary usage text, only bulletins carry an identifier and a report count.
+            if (document is IwxxmReport report && report.PermissibleUsageSupplementary != null)
             {
                 writer.WriteProperty("permissibleUsageSupplementary", report.PermissibleUsageSupplementary);
             }
 
-            // Envelope-only metadata: a single-type refinement, not a report-type dispatch.
-            if (report is MeteorologicalBulletin bulletin)
+            if (document is MeteorologicalBulletin bulletin)
             {
                 writer.WriteProperty("bulletinIdentifier", bulletin.BulletinIdentifier);
                 writer.WriteProperty("reportCount", bulletin.Reports.Count);

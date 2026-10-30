@@ -1,4 +1,4 @@
-AerodromeWeatherReport {
+Metar {
   AerodromeDesignator = "YUDO"
   AerodromeName = "DONLON/INTERNATIONAL"
   AerodromePosition = GeoCoordinate {
@@ -8,23 +8,31 @@ AerodromeWeatherReport {
   AirTemperatureCelsius = 17
   CloudAndVisibilityOk = false
   CloudLayers = [
-    AerodromeCloudLayerInfo {
-      AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/SCT"
+    AerodromeCloudLayer {
+      Amount = CodeListValue<AerodromeCloudAmount> {
+        Code = AerodromeCloudAmount.Scattered
+        IsKnown = true
+        Notation = "SCT"
+      }
       Base = Length {
         Unit = LengthUnit.Feet
         UnitOfMeasure = "[ft_i]"
         Value = 1000
       }
-      CloudTypeUri = null
+      CloudType = null
     }
-    AerodromeCloudLayerInfo {
-      AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/OVC"
+    AerodromeCloudLayer {
+      Amount = CodeListValue<AerodromeCloudAmount> {
+        Code = AerodromeCloudAmount.Overcast
+        IsKnown = true
+        Notation = "OVC"
+      }
       Base = Length {
         Unit = LengthUnit.Feet
         UnitOfMeasure = "[ft_i]"
         Value = 2000
       }
-      CloudTypeUri = null
+      CloudType = null
     }
   ]
   DewpointTemperatureCelsius = 16
@@ -38,22 +46,28 @@ AerodromeWeatherReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PresentWeatherUris = [
-    "http://codes.wmo.int/306/4678/DZ"
-    "http://codes.wmo.int/306/4678/FG"
+  PresentWeather = [
+    AerodromeWeather {
+      IsKnown = true
+      Notation = "DZ"
+    }
+    AerodromeWeather {
+      IsKnown = true
+      Notation = "FG"
+    }
   ]
   PrevailingVisibilityMeters = 600
   QnhHpa = 1018
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Metar
   RunwayVisualRanges = [
-    RunwayVisualRangeInfo {
+    RunwayVisualRange {
       MeanRvrMeters = 1000
       PastTendency = "UPWARD"
       RunwayDesignator = "12"
     }
   ]
-  SurfaceWind = SurfaceWindInfo {
+  SurfaceWind = SurfaceWind {
     GustSpeed = null
     IsVariableDirection = false
     MeanDirectionDegrees = 240
@@ -65,7 +79,7 @@ AerodromeWeatherReport {
   }
   TranslationFailedTac = null
   TrendForecasts = [
-    AerodromeForecastGroupInfo {
+    AerodromeForecastGroup {
       ChangeIndicator = "BECOMING"
       CloudAndVisibilityOk = false
       CloudLayers = []
@@ -75,11 +89,14 @@ AerodromeWeatherReport {
       SurfaceWind = null
       ValidFromUtc = 2012-08-22T16:30:00.0000000+00:00
       ValidUntilUtc = 2012-08-22T17:00:00.0000000+00:00
-      WeatherUris = [
-        "http://codes.wmo.int/306/4678/FG"
+      Weather = [
+        AerodromeWeather {
+          IsKnown = true
+          Notation = "FG"
+        }
       ]
     }
-    AerodromeForecastGroupInfo {
+    AerodromeForecastGroup {
       ChangeIndicator = "BECOMING"
       CloudAndVisibilityOk = false
       CloudLayers = []
@@ -89,7 +106,7 @@ AerodromeWeatherReport {
       SurfaceWind = null
       ValidFromUtc = 2012-08-22T18:00:00.0000000+00:00
       ValidUntilUtc = null
-      WeatherUris = []
+      Weather = []
     }
   ]
 }

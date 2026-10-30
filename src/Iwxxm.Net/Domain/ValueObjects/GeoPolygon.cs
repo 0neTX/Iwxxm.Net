@@ -130,5 +130,9 @@ namespace Iwxxm.Net.Reports
                 return hash;
             }
         }
+
+        public static bool operator ==(GeoPolygon? left, GeoPolygon? right) => Equals(left, right);
+
+        public static bool operator !=(GeoPolygon? left, GeoPolygon? right) => !Equals(left, right);
     }
 }

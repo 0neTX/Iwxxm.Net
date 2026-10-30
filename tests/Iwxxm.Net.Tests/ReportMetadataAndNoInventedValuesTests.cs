@@ -53,7 +53,7 @@ namespace Iwxxm.Net.Tests
 
             List<IwxxmReport> reports = result.Value is MeteorologicalBulletin bulletin
                 ? bulletin.Reports.ToList()
-                : new List<IwxxmReport> { result.Value };
+                : new List<IwxxmReport> { (IwxxmReport)result.Value };
 
             Assert.Equal(reportElements.Count, reports.Count);
             for (int i = 0; i < reports.Count; i++)
@@ -94,7 +94,7 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             XElement root = XDocument.Load(path).Root!;
 
-            foreach (IwxxmReport report in result.Value is MeteorologicalBulletin b ? b.Reports : new[] { result.Value })
+            foreach (IwxxmReport report in result.Value is MeteorologicalBulletin b ? b.Reports : new[] { (IwxxmReport)result.Value })
             {
                 XElement element = root.Name == Collect + "MeteorologicalBulletin"
                     ? root.Descendants().First(e => (string?)e.Attribute(Gml + "id") == report.Id)
@@ -102,18 +102,18 @@ namespace Iwxxm.Net.Tests
 
                 switch (report)
                 {
-                    case AerodromeWeatherReport metar:
+                    case AerodromeObservation metar:
                         Assert.Equal(InlineInstant(element.Element(Iwxxm + "observationTime")), metar.ObservationTimeUtc);
                         break;
-                    case SigmetReport sigmet:
+                    case Sigmet sigmet:
                         Assert.Equal(InlineBegin(element.Element(Iwxxm + "validPeriod")), sigmet.ValidFromUtc);
                         Assert.Equal(InlineEnd(element.Element(Iwxxm + "validPeriod")), sigmet.ValidUntilUtc);
                         break;
-                    case AirmetReport airmet:
+                    case Airmet airmet:
                         Assert.Equal(InlineBegin(element.Element(Iwxxm + "validPeriod")), airmet.ValidFromUtc);
                         Assert.Equal(InlineEnd(element.Element(Iwxxm + "validPeriod")), airmet.ValidUntilUtc);
                         break;
-                    case TafReport taf:
+                    case Taf taf:
                         Assert.Equal(InlineBegin(element.Element(Iwxxm + "validPeriod")), taf.ValidFromUtc);
                         Assert.Equal(InlineEnd(element.Element(Iwxxm + "validPeriod")), taf.ValidUntilUtc);
                         break;
@@ -131,7 +131,7 @@ namespace Iwxxm.Net.Tests
             var result = IwxxmParser.ParseFile(amended!);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            IwxxmReport report = result.Value is MeteorologicalBulletin b ? b.Reports[0] : result.Value;
+            IwxxmReport report = result.Value is MeteorologicalBulletin b ? b.Reports[0] : (IwxxmReport)result.Value;
             Assert.Equal(ReportStatus.Amendment, report.ReportStatus);
         }
 
@@ -142,7 +142,7 @@ namespace Iwxxm.Net.Tests
                 "permissibleUsage=\"OPERATIONAL\"",
                 "permissibleUsage=\"NON-OPERATIONAL\" permissibleUsageReason=\"EXERCISE\" permissibleUsageSupplementary=\"Regional exercise\"");
 
-            var result = new IwxxmParserBuilder().WithoutSchematron().Build().ProcessAs<AerodromeWeatherReport>(xml);
+            var result = new IwxxmParserBuilder().WithoutSchematron().Build().ProcessAs<Metar>(xml);
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Assert.Equal(PermissibleUsage.NonOperational, result.Value.PermissibleUsage);
@@ -214,7 +214,7 @@ namespace Iwxxm.Net.Tests
             var result = MapDirectly(doc.ToString());
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            var metar = Assert.IsType<AerodromeWeatherReport>(result.Value);
+            var metar = Assert.IsType<Metar>(result.Value);
             Assert.Null(metar.ObservationTimeUtc);
             Assert.Equal(new DateTimeOffset(2012, 8, 22, 16, 30, 0, TimeSpan.Zero), metar.IssueTimeUtc);
         }
@@ -246,11 +246,11 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             switch (result.Value)
             {
-                case SigmetReport sigmet:
+                case Sigmet sigmet:
                     Assert.Null(sigmet.ValidFromUtc);
                     Assert.Null(sigmet.ValidUntilUtc);
                     break;
-                case AirmetReport airmet:
+                case Airmet airmet:
                     Assert.Null(airmet.ValidFromUtc);
                     Assert.Null(airmet.ValidUntilUtc);
                     break;
@@ -292,7 +292,7 @@ namespace Iwxxm.Net.Tests
             XDocument doc = XDocument.Load("Samples/wmo-examples/qvaci-Example.xml");
             double expected = double.Parse(doc.Descendants(Iwxxm + "ashDensityEqualsOrExceeds").First().Value, CultureInfo.InvariantCulture);
 
-            var qvaci = IwxxmParser.ParseFileAs<QvaciReport>("Samples/wmo-examples/qvaci-Example.xml");
+            var qvaci = IwxxmParser.ParseFileAs<Qvaci>("Samples/wmo-examples/qvaci-Example.xml");
 
             Assert.True(qvaci.IsSuccess, string.Join(" | ", qvaci.Errors));
             Assert.Equal(expected, qvaci.Value.AshConcentrationClouds[0].AshDensityMgPerM3);
@@ -310,7 +310,7 @@ namespace Iwxxm.Net.Tests
             var result = MapDirectly(doc.ToString());
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            var vona = Assert.IsType<VonaReport>(result.Value);
+            var vona = Assert.IsType<Vona>(result.Value);
             Assert.Null(Assert.Single(vona.Volcanoes).Name);
         }
 
@@ -342,8 +342,8 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Bulletin_WithANonOperationalReport_IsNonOperational()
         {
-            IwxxmReport operational = Metar("op", ReportStatus.Normal, PermissibleUsage.Operational, null, new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero));
-            IwxxmReport exercise = Metar("ex", ReportStatus.Correction, PermissibleUsage.NonOperational, PermissibleUsageReason.Exercise, new DateTimeOffset(2026, 1, 1, 9, 0, 0, TimeSpan.Zero));
+            IwxxmReport operational = CreateMetar("op", ReportStatus.Normal, PermissibleUsage.Operational, null, new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero));
+            IwxxmReport exercise = CreateMetar("ex", ReportStatus.Correction, PermissibleUsage.NonOperational, PermissibleUsageReason.Exercise, new DateTimeOffset(2026, 1, 1, 9, 0, 0, TimeSpan.Zero));
 
             var bulletin = MeteorologicalBulletin.Create("b1", "A_TEST", new[]
             {
@@ -370,8 +370,8 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Factories_RejectUndefinedMetadataValues()
         {
-            var result = AerodromeWeatherReport.Create(
-                "m1", IwxxmReportType.Metar, new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero), null,
+            var result = Metar.Create(
+                "m1", new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero), null,
                 default(ReportStatus), (PermissibleUsage)42, false, "YUDO", null, null);
 
             Assert.True(result.IsFailure);
@@ -379,16 +379,16 @@ namespace Iwxxm.Net.Tests
             Assert.Contains(result.Errors, e => e.Code == "DOMAIN-PERMISSIBLE-USAGE-INVALID");
         }
 
-        private static AerodromeWeatherReport Metar(string id, ReportStatus status, PermissibleUsage usage, PermissibleUsageReason? reason, DateTimeOffset issueTime)
+        private static Metar CreateMetar(string id, ReportStatus status, PermissibleUsage usage, PermissibleUsageReason? reason, DateTimeOffset issueTime)
         {
-            var result = AerodromeWeatherReport.Create(
-                id, IwxxmReportType.Metar, issueTime, issueTime, status, usage, false, "YUDO", null, null,
+            var result = Metar.Create(
+                id, issueTime, issueTime, status, usage, false, "YUDO", null, null,
                 permissibleUsageReason: reason);
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             return result.Value;
         }
 
-        private static Result<IwxxmReport> MapDirectly(string xml)
+        private static Result<IwxxmDocument> MapDirectly(string xml)
         {
             using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml)))
             {

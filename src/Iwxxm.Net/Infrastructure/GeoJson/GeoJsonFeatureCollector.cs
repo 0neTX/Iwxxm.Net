@@ -6,11 +6,11 @@ using Iwxxm.Net.Reports;
 namespace Iwxxm.Net.Infrastructure.GeoJson
 {
     /// <summary>
-    /// <see cref="IIwxxmReportVisitor{TResult}"/> that collects the GeoJSON features of a report, delegating each report
+    /// <see cref="IIwxxmDocumentVisitor{TResult}"/> that collects the GeoJSON features of a report, delegating each report
     /// family to its feature builder. Bulletins are expanded recursively, tagging every feature of a contained report
     /// with the <c>bulletinIdentifier</c>.
     /// </summary>
-    internal sealed class GeoJsonFeatureCollector : IIwxxmReportVisitor<IReadOnlyList<GeoJsonFeature>>
+    internal sealed class GeoJsonFeatureCollector : IIwxxmDocumentVisitor<IReadOnlyList<GeoJsonFeature>>
     {
         private readonly string? _bulletinId;
 
@@ -19,34 +19,37 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             _bulletinId = bulletinId;
         }
 
-        public IReadOnlyList<GeoJsonFeature> Visit(AerodromeWeatherReport report) =>
-            Build(features => AerodromeFeatureBuilder.AddAerodromeObservationFeature(report, _bulletinId, features));
+        public IReadOnlyList<GeoJsonFeature> Visit(Metar metar) =>
+            Build(features => AerodromeFeatureBuilder.AddAerodromeObservationFeature(metar, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(TafReport report) =>
+        public IReadOnlyList<GeoJsonFeature> Visit(Speci speci) =>
+            Build(features => AerodromeFeatureBuilder.AddAerodromeObservationFeature(speci, _bulletinId, features));
+
+        public IReadOnlyList<GeoJsonFeature> Visit(Taf report) =>
             Build(features => AerodromeFeatureBuilder.AddTafFeature(report, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(SigmetReport report) =>
+        public IReadOnlyList<GeoJsonFeature> Visit(Sigmet report) =>
             Build(features => EnRouteHazardFeatureBuilder.AddSigmetFeatures(report, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(AirmetReport report) =>
+        public IReadOnlyList<GeoJsonFeature> Visit(Airmet report) =>
             Build(features => EnRouteHazardFeatureBuilder.AddAirmetFeatures(report, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(VonaReport report) =>
+        public IReadOnlyList<GeoJsonFeature> Visit(Vona report) =>
             Build(features => VolcanicFeatureBuilder.AddVonaFeatures(report, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(QvaciReport report) =>
+        public IReadOnlyList<GeoJsonFeature> Visit(Qvaci report) =>
             Build(features => VolcanicFeatureBuilder.AddQvaciFeatures(report, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(VolcanicAshAdvisoryReport report) =>
+        public IReadOnlyList<GeoJsonFeature> Visit(Vaa report) =>
             Build(features => VolcanicFeatureBuilder.AddVaaFeatures(report, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(TropicalCycloneAdvisoryReport report) =>
-            Build(features => TropicalCycloneAdvisoryFeatureBuilder.AddTcaFeatures(report, _bulletinId, features));
+        public IReadOnlyList<GeoJsonFeature> Visit(Tca report) =>
+            Build(features => TcaFeatureBuilder.AddTcaFeatures(report, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(SpaceWeatherAdvisoryReport report) =>
-            Build(features => SpaceWeatherFeatureBuilder.AddSpaceWxFeatures(report, _bulletinId, features));
+        public IReadOnlyList<GeoJsonFeature> Visit(SpaceWx report) =>
+            Build(features => SpaceWxFeatureBuilder.AddSpaceWxFeatures(report, _bulletinId, features));
 
-        public IReadOnlyList<GeoJsonFeature> Visit(SignificantWeatherReport report) =>
+        public IReadOnlyList<GeoJsonFeature> Visit(Sigwx report) =>
             Build(features => SigwxFeatureBuilder.AddSigwxFeatures(report, _bulletinId, features));
 
         public IReadOnlyList<GeoJsonFeature> Visit(MeteorologicalBulletin bulletin)

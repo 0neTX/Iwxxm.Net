@@ -9,11 +9,11 @@ using static Iwxxm.Net.Infrastructure.Mapping.Xml.XmlValueReader;
 namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 {
     /// <summary>
-    /// Maps <c>iwxxm:QuantitativeVolcanicAshConcentrationInformation</c> (<c>qvaci.xsd</c>) onto <see cref="QvaciReport"/>.
+    /// Maps <c>iwxxm:QuantitativeVolcanicAshConcentrationInformation</c> (<c>qvaci.xsd</c>) onto <see cref="Qvaci"/>.
     /// </summary>
     internal static class QvaciMapper
     {
-        public static Result<QvaciReport> Map(XElement root)
+        public static Result<Qvaci> Map(XElement root)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -51,10 +51,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             if (errors.Count > 0)
             {
-                return Result<QvaciReport>.Failure(errors);
+                return Result<Qvaci>.Failure(errors);
             }
 
-            return QvaciReport.Create(
+            return Qvaci.Create(
                 id,
                 header.IssueTime,
                 header.Metadata.Status,

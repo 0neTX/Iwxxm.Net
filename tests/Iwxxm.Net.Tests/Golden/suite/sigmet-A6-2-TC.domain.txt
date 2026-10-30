@@ -1,4 +1,4 @@
-SigmetReport {
+Sigmet {
   AtsUnitDesignator = "YUCC"
   AtsUnitName = "YUCC FIC"
   CancelledReportSequenceNumber = null
@@ -55,7 +55,11 @@ SigmetReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PhenomenonUri = "http://codes.wmo.int/49-2/SigWxPhenomena/TC"
+  Phenomenon = CodeListValue<SigmetPhenomenon> {
+    Code = SigmetPhenomenon.TropicalCyclone
+    IsKnown = true
+    Notation = "TC"
+  }
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.TropicalCycloneSigmet
   SequenceNumber = "3"

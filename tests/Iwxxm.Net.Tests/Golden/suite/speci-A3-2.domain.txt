@@ -1,4 +1,4 @@
-AerodromeWeatherReport {
+Speci {
   AerodromeDesignator = "YUDO"
   AerodromeName = "DONLON/INTERNATIONAL"
   AerodromePosition = GeoCoordinate {
@@ -8,14 +8,22 @@ AerodromeWeatherReport {
   AirTemperatureCelsius = 25
   CloudAndVisibilityOk = false
   CloudLayers = [
-    AerodromeCloudLayerInfo {
-      AmountUri = "http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/BKN"
+    AerodromeCloudLayer {
+      Amount = CodeListValue<AerodromeCloudAmount> {
+        Code = AerodromeCloudAmount.Broken
+        IsKnown = true
+        Notation = "BKN"
+      }
       Base = Length {
         Unit = LengthUnit.Feet
         UnitOfMeasure = "[ft_i]"
         Value = 500
       }
-      CloudTypeUri = "http://codes.wmo.int/49-2/SigConvectiveCloudType/CB"
+      CloudType = CodeListValue<ConvectiveCloudType> {
+        Code = ConvectiveCloudType.Cumulonimbus
+        IsKnown = true
+        Notation = "CB"
+      }
     }
   ]
   DewpointTemperatureCelsius = 22
@@ -29,15 +37,18 @@ AerodromeWeatherReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PresentWeatherUris = [
-    "http://codes.wmo.int/306/4678/+TSRA"
+  PresentWeather = [
+    AerodromeWeather {
+      IsKnown = true
+      Notation = "+TSRA"
+    }
   ]
   PrevailingVisibilityMeters = 3000
   QnhHpa = 1008
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Speci
   RunwayVisualRanges = []
-  SurfaceWind = SurfaceWindInfo {
+  SurfaceWind = SurfaceWind {
     GustSpeed = Speed {
       Unit = SpeedUnit.Knots
       UnitOfMeasure = "[kn_i]"
@@ -53,7 +64,7 @@ AerodromeWeatherReport {
   }
   TranslationFailedTac = null
   TrendForecasts = [
-    AerodromeForecastGroupInfo {
+    AerodromeForecastGroup {
       ChangeIndicator = "TEMPORARY_FLUCTUATIONS"
       CloudAndVisibilityOk = false
       CloudLayers = []
@@ -63,9 +74,9 @@ AerodromeWeatherReport {
       SurfaceWind = null
       ValidFromUtc = 2012-08-15T11:15:00.0000000+00:00
       ValidUntilUtc = 2012-08-15T12:00:00.0000000+00:00
-      WeatherUris = []
+      Weather = []
     }
-    AerodromeForecastGroupInfo {
+    AerodromeForecastGroup {
       ChangeIndicator = "BECOMING"
       CloudAndVisibilityOk = false
       CloudLayers = []
@@ -75,7 +86,7 @@ AerodromeWeatherReport {
       SurfaceWind = null
       ValidFromUtc = 2012-08-15T12:00:00.0000000+00:00
       ValidUntilUtc = null
-      WeatherUris = []
+      Weather = []
     }
   ]
 }

@@ -1,4 +1,4 @@
-SpaceWeatherAdvisoryReport {
+SpaceWx {
   AdvisoryNumber = null
   Analyses = []
   Effects = []

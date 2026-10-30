@@ -1,4 +1,4 @@
-AirmetReport {
+Airmet {
   AtsUnitDesignator = "YUDD"
   AtsUnitName = "YUDD FIC"
   EvolvingConditions = []
@@ -11,7 +11,7 @@ AirmetReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PhenomenonUri = null
+  Phenomenon = null
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Airmet
   SequenceNumber = null

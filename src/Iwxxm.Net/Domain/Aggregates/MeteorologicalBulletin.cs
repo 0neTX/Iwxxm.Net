@@ -7,14 +7,16 @@ namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Domain Aggregate Root representing a WMO/SWIM Collective Bulletin (<c>collect:MeteorologicalBulletin</c>,
-    /// <c>http://def.wmo.int/collect/2014</c>) that bundles one or more IWXXM 2025-2 reports.
+    /// <c>http://def.wmo.int/collect/2014</c>) that bundles one or more IWXXM 2025-2 reports. It is the sealed envelope
+    /// branch of <see cref="IwxxmDocument"/>, not an <see cref="IwxxmReport"/>: it exposes its bulletin identifier, its
+    /// reports and metadata derived from them, and no per-report fields (translation metadata, supplementary usage text).
     /// Supports both aggregate access to valid reports (<see cref="Reports"/>) and individual per-report
     /// validation results (<see cref="ReportResults"/>).
     /// </summary>
     /// <remarks>
     /// <para>A COLLECT bulletin carries no issue time, status or permissible usage of its own
     /// (<c>collect:MeteorologicalBulletin</c> only holds <c>bulletinIdentifier</c> and <c>meteorologicalInformation</c>).
-    /// The <see cref="IwxxmReport"/> metadata of the envelope is therefore <b>derived from the contained reports</b>,
+    /// The <see cref="IwxxmDocument"/> metadata of the envelope is therefore <b>derived from the contained reports</b>,
     /// never invented, and a bulletin without any successfully mapped report cannot be created:</para>
     /// <list type="bullet">
     /// <item><see cref="IssueTimeUtc"/>: the earliest issue time of the contained reports.</item>
@@ -22,10 +24,9 @@ namespace Iwxxm.Net.Reports
     /// non-operational (never upgrades non-operational content to operational); otherwise operational.</item>
     /// <item><see cref="PermissibleUsageReason"/>: the reason shared by every non-operational report, otherwise <c>null</c>.</item>
     /// <item><see cref="ReportStatus"/>: the most significant status present (<c>Correction</c> &gt; <c>Amendment</c> &gt; <c>Normal</c>).</item>
-    /// <item><see cref="PermissibleUsageSupplementary"/>: always <c>null</c> (free text is not aggregated).</item>
     /// </list>
     /// </remarks>
-    public sealed class MeteorologicalBulletin : IwxxmReport
+    public sealed class MeteorologicalBulletin : IwxxmDocument
     {
         public override string Id { get; }
         public override IwxxmReportType ReportType => IwxxmReportType.MeteorologicalBulletin;
@@ -34,12 +35,9 @@ namespace Iwxxm.Net.Reports
         public override ReportStatus ReportStatus { get; }
         public override PermissibleUsage PermissibleUsage { get; }
         public override PermissibleUsageReason? PermissibleUsageReason { get; }
-        public override string? PermissibleUsageSupplementary => null;
-        public override bool IsTranslationFailed => false;
-        public override string? TranslationFailedTac => null;
 
         /// <inheritdoc />
-        public override TResult Accept<TResult>(IIwxxmReportVisitor<TResult> visitor) =>
+        public override TResult Accept<TResult>(IIwxxmDocumentVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
         /// <summary>

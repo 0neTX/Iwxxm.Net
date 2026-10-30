@@ -1,4 +1,4 @@
-VolcanicAshAdvisoryReport {
+Vaa {
   AdvisoryNumber = "2024/4"
   EruptionDetails = "FL300 REPORTED"
   ForecastAshClouds = [

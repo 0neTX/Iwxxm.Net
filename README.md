@@ -43,20 +43,22 @@
 
 | Category | Root XML Element(s) | `IwxxmReportType` | Domain Aggregate Root |
 | :--- | :--- | :--- | :--- |
-| **WAFS Significant Weather** | `iwxxm:WAFSSignificantWeatherForecast`, `iwxxm:SIGWXReport` (non-standard extension) | `SignificantWeather` | `SignificantWeatherReport` |
-| **Aerodrome Routine Observation** | `iwxxm:METAR` | `Metar` | `AerodromeWeatherReport` |
-| **Aerodrome Special Observation** | `iwxxm:SPECI` | `Speci` | `AerodromeWeatherReport` |
-| **Terminal Aerodrome Forecast** | `iwxxm:TAF` | `Taf` | `TafReport` |
-| **En-Route SIGMET** | `iwxxm:SIGMET` | `Sigmet` | `SigmetReport` |
-| **Volcanic Ash SIGMET** | `iwxxm:VolcanicAshSIGMET` | `VolcanicAshSigmet` | `SigmetReport` |
-| **Tropical Cyclone SIGMET** | `iwxxm:TropicalCycloneSIGMET` | `TropicalCycloneSigmet` | `SigmetReport` |
-| **Low-Level AIRMET** | `iwxxm:AIRMET` | `Airmet` | `AirmetReport` |
-| **Volcano Observatory Notice** | `iwxxm:VolcanoObservatoryNoticeForAviation` | `VolcanoObservatoryNotice` | `VonaReport` |
-| **Quantitative Volcanic Ash** | `iwxxm:QuantitativeVolcanicAshConcentrationInformation` | `QuantitativeVolcanicAshConcentration` | `QvaciReport` |
-| **Volcanic Ash Advisory** | `iwxxm:VolcanicAshAdvisory` | `VolcanicAshAdvisory` | `VolcanicAshAdvisoryReport` |
-| **Tropical Cyclone Advisory** | `iwxxm:TropicalCycloneAdvisory` | `TropicalCycloneAdvisory` | `TropicalCycloneAdvisoryReport` |
-| **Space Weather Advisory** | `iwxxm:SpaceWeatherAdvisory` | `SpaceWeatherAdvisory` | `SpaceWeatherAdvisoryReport` |
+| **WAFS Significant Weather** | `iwxxm:WAFSSignificantWeatherForecast`, `iwxxm:SIGWXReport` (non-standard extension) | `SignificantWeather` | `Sigwx` |
+| **Aerodrome Routine Observation** | `iwxxm:METAR` | `Metar` | `Metar` (base `AerodromeObservation`) |
+| **Aerodrome Special Observation** | `iwxxm:SPECI` | `Speci` | `Speci` (base `AerodromeObservation`) |
+| **Terminal Aerodrome Forecast** | `iwxxm:TAF` | `Taf` | `Taf` |
+| **En-Route SIGMET** | `iwxxm:SIGMET` | `Sigmet` | `Sigmet` |
+| **Volcanic Ash SIGMET** | `iwxxm:VolcanicAshSIGMET` | `VolcanicAshSigmet` | `Sigmet` |
+| **Tropical Cyclone SIGMET** | `iwxxm:TropicalCycloneSIGMET` | `TropicalCycloneSigmet` | `Sigmet` |
+| **Low-Level AIRMET** | `iwxxm:AIRMET` | `Airmet` | `Airmet` |
+| **Volcano Observatory Notice** | `iwxxm:VolcanoObservatoryNoticeForAviation` | `VolcanoObservatoryNotice` | `Vona` |
+| **Quantitative Volcanic Ash** | `iwxxm:QuantitativeVolcanicAshConcentrationInformation` | `QuantitativeVolcanicAshConcentration` | `Qvaci` |
+| **Volcanic Ash Advisory** | `iwxxm:VolcanicAshAdvisory` | `VolcanicAshAdvisory` | `Vaa` |
+| **Tropical Cyclone Advisory** | `iwxxm:TropicalCycloneAdvisory` | `TropicalCycloneAdvisory` | `Tca` |
+| **Space Weather Advisory** | `iwxxm:SpaceWeatherAdvisory` | `SpaceWeatherAdvisory` | `SpaceWx` |
 | **SWIM / AMHS Collective Bulletin** | `collect:MeteorologicalBulletin` | `MeteorologicalBulletin` | `MeteorologicalBulletin` |
+
+Every parsed document derives from the closed abstract root `IwxxmDocument`, which has two branches: `IwxxmReport` (the eleven meteorological report aggregates above, which carry their own status, usage and translation metadata) and the `MeteorologicalBulletin` envelope (bulletin identifier, contained reports and metadata derived from them). WMO code-list references (`xlink:href`) are translated into Domain types: `CodeListValue<TCode>` (e.g. `AerodromeCloudAmount`, `SigmetPhenomenon`, `AviationColourCode`) or `AerodromeWeather`, keeping the reported code as `Notation`; a code outside the official IWXXM 2025-2 list is kept as `Unknown`, never dropped.
 
 ---
 
@@ -119,7 +121,7 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<IwxxmReport> result = IwxxmParser.ParseFile("incoming-swim-message.xml");
+Result<IwxxmDocument> result = IwxxmParser.ParseFile("incoming-swim-message.xml");
 
 if (result.IsFailure)
 {
@@ -132,43 +134,43 @@ if (result.IsFailure)
 
 switch (result.Value)
 {
-    case AerodromeWeatherReport obs:
+    case AerodromeObservation obs: // Metar or Speci
         Console.WriteLine($"[{obs.ReportType}] {obs.AerodromeDesignator} at {obs.ObservationTimeUtc:O} — QNH: {obs.QnhHpa} hPa");
         break;
 
-    case TafReport taf:
+    case Taf taf:
         Console.WriteLine($"[TAF] {taf.AerodromeDesignator} ({taf.ValidFromUtc:O} to {taf.ValidUntilUtc:O}) — {taf.ChangeForecasts.Count} change groups");
         break;
 
-    case SigmetReport sigmet:
-        Console.WriteLine($"[{sigmet.ReportType}] FIR {sigmet.FirDesignator} #{sigmet.SequenceNumber} — Phenomenon: {sigmet.PhenomenonUri}");
+    case Sigmet sigmet:
+        Console.WriteLine($"[{sigmet.ReportType}] FIR {sigmet.FirDesignator} #{sigmet.SequenceNumber} — Phenomenon: {sigmet.Phenomenon?.Code} ({sigmet.Phenomenon?.Notation})");
         break;
 
-    case AirmetReport airmet:
-        Console.WriteLine($"[AIRMET] FIR {airmet.FirDesignator} #{airmet.SequenceNumber} — Phenomenon: {airmet.PhenomenonUri}");
+    case Airmet airmet:
+        Console.WriteLine($"[AIRMET] FIR {airmet.FirDesignator} #{airmet.SequenceNumber} — Phenomenon: {airmet.Phenomenon?.Code}");
         break;
 
-    case SignificantWeatherReport sigwx:
+    case Sigwx sigwx:
         Console.WriteLine($"[SIGWX] Centre: {sigwx.IssuingCentre} ({sigwx.LowerLimit} - {sigwx.UpperLimit}) — JetStreams: {sigwx.JetStreams.Count}"); // e.g. "FL100 STD - FL600 STD"
         break;
 
-    case QvaciReport qvaci:
+    case Qvaci qvaci:
         Console.WriteLine($"[QVACI] Centre: {qvaci.OriginatingCentre} — Ash Contours: {qvaci.AshConcentrationClouds.Count}");
         break;
 
-    case VonaReport vona:
-        Console.WriteLine($"[VONA] Notice #{vona.NoticeNumber} — Colour Code: {vona.CurrentColourCodeUri}");
+    case Vona vona:
+        Console.WriteLine($"[VONA] Notice #{vona.NoticeNumber} — Colour Code: {vona.CurrentColourCode?.Code}"); // e.g. Yellow
         break;
 
-    case VolcanicAshAdvisoryReport vaa:
+    case Vaa vaa:
         Console.WriteLine($"[VAA] VAAC {vaa.IssuingVaacName} Advisory #{vaa.AdvisoryNumber} — Volcano: {vaa.Volcano?.Name}");
         break;
 
-    case TropicalCycloneAdvisoryReport tca:
+    case Tca tca:
         Console.WriteLine($"[TCA] TCAC {tca.IssuingTcacDesignator} — Cyclone {tca.CycloneName} (#{tca.AdvisoryNumber})");
         break;
 
-    case SpaceWeatherAdvisoryReport swx:
+    case SpaceWx swx:
         Console.WriteLine($"[SWX] SWXC {swx.IssuingSwxcName} Advisory #{swx.AdvisoryNumber} — Regions: {swx.Analyses.Count}");
         break;
 
@@ -178,14 +180,23 @@ switch (result.Value)
 }
 ```
 
-For exhaustive, compiler-checked handling, implement `IIwxxmReportVisitor<TResult>` (one `Visit` overload per report type) and call `report.Accept(visitor)`: when a report type is added, every visitor stops compiling until it handles it.
+For exhaustive, compiler-checked handling, implement `IIwxxmDocumentVisitor<TResult>` (one `Visit` overload per concrete document type: `Metar`, `Speci`, `Taf`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, `Sigwx` and `MeteorologicalBulletin`) and call `document.Accept(visitor)`: when a document type is added, every visitor stops compiling until it handles it.
 
 ```csharp
-sealed class DescribeVisitor : IIwxxmReportVisitor<string>
+sealed class DescribeVisitor : IIwxxmDocumentVisitor<string>
 {
-    public string Visit(AerodromeWeatherReport report) => $"{report.ReportType} {report.AerodromeDesignator}";
-    public string Visit(TafReport report) => $"TAF {report.AerodromeDesignator}";
-    // ... one overload per report type, including SignificantWeatherReport and MeteorologicalBulletin
+    public string Visit(Metar metar) => $"METAR {metar.AerodromeDesignator}";
+    public string Visit(Speci speci) => $"SPECI {speci.AerodromeDesignator}";
+    public string Visit(Taf taf) => $"TAF {taf.AerodromeDesignator}";
+    public string Visit(Sigmet sigmet) => $"{sigmet.ReportType} {sigmet.FirDesignator}";
+    public string Visit(Airmet airmet) => $"AIRMET {airmet.FirDesignator}";
+    public string Visit(Vona vona) => $"VONA {vona.NoticeNumber}";
+    public string Visit(Qvaci qvaci) => $"QVACI {qvaci.OriginatingCentre}";
+    public string Visit(Vaa vaa) => $"VAA {vaa.AdvisoryNumber}";
+    public string Visit(Tca tca) => $"TCA {tca.CycloneName}";
+    public string Visit(SpaceWx swx) => $"SWX {swx.AdvisoryNumber}";
+    public string Visit(Sigwx sigwx) => $"SIGWX {sigwx.IssuingCentre}";
+    public string Visit(MeteorologicalBulletin bulletin) => $"BULLETIN {bulletin.BulletinIdentifier}";
 }
 
 string description = result.Value.Accept(new DescribeVisitor());
@@ -202,12 +213,13 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<AerodromeWeatherReport> metarResult =
-    IwxxmParser.ParseFileAs<AerodromeWeatherReport>("Samples/wmo-examples/metar-A3-1.xml");
+// ParseFileAs<Metar> or ParseFileAs<Speci> for a specific kind; AerodromeObservation accepts both.
+Result<AerodromeObservation> metarResult =
+    IwxxmParser.ParseFileAs<AerodromeObservation>("Samples/wmo-examples/metar-A3-1.xml");
 
 if (metarResult.IsSuccess)
 {
-    AerodromeWeatherReport metar = metarResult.Value;
+    AerodromeObservation metar = metarResult.Value;
 
     Console.WriteLine($"Report ID       : {metar.Id}");
     Console.WriteLine($"Type            : {metar.ReportType}"); // Metar or Speci
@@ -229,23 +241,24 @@ if (metarResult.IsSuccess)
                           $"Variable: {metar.SurfaceWind.IsVariableDirection})");
     }
 
-    foreach (RunwayVisualRangeInfo rvr in metar.RunwayVisualRanges)
+    foreach (RunwayVisualRange rvr in metar.RunwayVisualRanges)
     {
         Console.WriteLine($"RVR Runway {rvr.RunwayDesignator}: {rvr.MeanRvrMeters} m (Tendency: {rvr.PastTendency})");
     }
 
-    foreach (string wxUri in metar.PresentWeatherUris)
+    foreach (AerodromeWeather wx in metar.PresentWeather)
     {
-        Console.WriteLine($"Present Weather : {wxUri}"); // e.g., http://codes.wmo.int/306/4678/RA
+        Console.WriteLine($"Present Weather : {wx.Notation} (official code: {wx.IsKnown})"); // e.g., "DZ (official code: True)"
     }
 
-    foreach (AerodromeCloudLayerInfo layer in metar.CloudLayers)
+    foreach (AerodromeCloudLayer layer in metar.CloudLayers)
     {
+        // Amount / CloudType are code-list values (e.g. AerodromeCloudAmount.Scattered, notation "SCT");
         // Base keeps the reported unit (m or [ft_i]), e.g. "1000 [ft_i]"
-        Console.WriteLine($"Cloud Layer     : Amount={layer.AmountUri}, Base={layer.Base} ({layer.Base?.ToFeet():F0} ft), Type={layer.CloudTypeUri}");
+        Console.WriteLine($"Cloud Layer     : Amount={layer.Amount?.Code}, Base={layer.Base} ({layer.Base?.ToFeet():F0} ft), Type={layer.CloudType?.Code}");
     }
 
-    foreach (AerodromeForecastGroupInfo trend in metar.TrendForecasts)
+    foreach (AerodromeForecastGroup trend in metar.TrendForecasts)
     {
         Console.WriteLine($"TREND ({trend.ChangeIndicator}): Visibility={trend.PrevailingVisibilityMeters} m");
     }
@@ -259,12 +272,12 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<TafReport> tafResult =
-    IwxxmParser.ParseFileAs<TafReport>("Samples/wmo-examples/taf-A5-1.xml");
+Result<Taf> tafResult =
+    IwxxmParser.ParseFileAs<Taf>("Samples/wmo-examples/taf-A5-1.xml");
 
 if (tafResult.IsSuccess)
 {
-    TafReport taf = tafResult.Value;
+    Taf taf = tafResult.Value;
 
     Console.WriteLine($"TAF for {taf.AerodromeDesignator} ({taf.ValidFromUtc:O} -> {taf.ValidUntilUtc:O})");
     Console.WriteLine($"Status: {taf.ReportStatus}, IsCancelReport: {taf.IsCancelReport}, IsNil: {taf.IsNilForecast}");
@@ -275,10 +288,10 @@ if (tafResult.IsSuccess)
         Console.WriteLine($"Base Wind       : {taf.BaseForecast.SurfaceWind?.MeanDirectionDegrees}° / {taf.BaseForecast.SurfaceWind?.MeanSpeed}");
     }
 
-    foreach (AerodromeForecastGroupInfo change in taf.ChangeForecasts)
+    foreach (AerodromeForecastGroup change in taf.ChangeForecasts)
     {
         Console.WriteLine($"Change [{change.ChangeIndicator}] ({change.ValidFromUtc:HH:mm}Z - {change.ValidUntilUtc:HH:mm}Z): " +
-                          $"Vis={change.PrevailingVisibilityMeters} m, Weather={string.Join(", ", change.WeatherUris)}");
+                          $"Vis={change.PrevailingVisibilityMeters} m, Weather={string.Join(", ", change.Weather.Select(w => w.Notation))}");
     }
 }
 ```
@@ -287,19 +300,19 @@ if (tafResult.IsSuccess)
 
 ### 4.3 En-Route Hazards (`SIGMET`, `VolcanicAshSIGMET`, `TropicalCycloneSIGMET`, `AIRMET`)
 
-`SigmetReport` unifies standard `SIGMET`, `VolcanicAshSIGMET`, and `TropicalCycloneSIGMET` while preserving the specific `ReportType` discriminator:
+`Sigmet` unifies standard `SIGMET`, `VolcanicAshSIGMET`, and `TropicalCycloneSIGMET` while preserving the specific `ReportType` discriminator:
 
 ```csharp
 using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<SigmetReport> sigmetResult =
-    IwxxmParser.ParseFileAs<SigmetReport>("Samples/wmo-examples/sigmet-VA-EGGX.xml");
+Result<Sigmet> sigmetResult =
+    IwxxmParser.ParseFileAs<Sigmet>("Samples/wmo-examples/sigmet-VA-EGGX.xml");
 
 if (sigmetResult.IsSuccess)
 {
-    SigmetReport sigmet = sigmetResult.Value;
+    Sigmet sigmet = sigmetResult.Value;
 
     Console.WriteLine($"SIGMET Variant  : {sigmet.ReportType}"); // Sigmet, VolcanicAshSigmet, or TropicalCycloneSigmet
     Console.WriteLine($"ATS Unit / MWO  : {sigmet.AtsUnitDesignator} ({sigmet.AtsUnitName}) / MWO {sigmet.MwoDesignator}");
@@ -310,7 +323,7 @@ if (sigmetResult.IsSuccess)
     {
         Console.WriteLine($"NON-OPERATIONAL ({sigmet.PermissibleUsageReason}): {sigmet.PermissibleUsageSupplementary}");
     }
-    Console.WriteLine($"Phenomenon URI  : {sigmet.PhenomenonUri}");
+    Console.WriteLine($"Phenomenon      : {sigmet.Phenomenon?.Code} ({sigmet.Phenomenon?.Notation})"); // e.g. VolcanicAsh (VA)
 
     if (sigmet.EruptingVolcano != null)
     {
@@ -340,19 +353,19 @@ if (sigmetResult.IsSuccess)
 
 ### 4.4 WAFS Significant Weather Forecasts (`WAFSSignificantWeatherForecast` & `SIGWXReport`)
 
-You can parse WAFS SIGWX charts via either `IwxxmSigwxParser.ParseFile` or `IwxxmParser.ParseFileAs<SignificantWeatherReport>`:
+You can parse WAFS SIGWX charts via either `IwxxmSigwxParser.ParseFile` or `IwxxmParser.ParseFileAs<Sigwx>`:
 
 ```csharp
 using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<SignificantWeatherReport> result =
+Result<Sigwx> result =
     IwxxmSigwxParser.ParseFile("Samples/wmo-examples/WAFS-Example.xml");
 
 if (result.IsSuccess)
 {
-    SignificantWeatherReport sigwx = result.Value;
+    Sigwx sigwx = result.Value;
 
     Console.WriteLine($"WAFC Issuing Centre : {sigwx.IssuingCentre}");
     Console.WriteLine($"Validity Period     : {sigwx.ValidFromUtc:O} -> {sigwx.ValidUntilUtc:O}");
@@ -373,7 +386,7 @@ if (result.IsSuccess)
     // 3. Clear Air Turbulence (WMO BUFR 0-11-030 Extended Degree of Turbulence)
     foreach (Turbulence turb in sigwx.Turbulences)
     {
-        Console.WriteLine($"Turbulence {turb.Id}: {turb.Degree} ({turb.Base}-{turb.Top}) — e.g. "10363.2 M MSL-12192 M MSL", never converted to FL340-FL400");
+        Console.WriteLine($"Turbulence {turb.Id}: {turb.Degree} ({turb.Base}-{turb.Top})"); // e.g. "10363.2 M MSL-12192 M MSL", never converted to FL340-FL400
     }
 
     // 4. Airframe Icing (WMO BUFR 0-20-041 Airframe Icing)
@@ -409,12 +422,12 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<QvaciReport> qvaciResult =
-    IwxxmParser.ParseFileAs<QvaciReport>("Samples/wmo-examples/qvaci-Example.xml");
+Result<Qvaci> qvaciResult =
+    IwxxmParser.ParseFileAs<Qvaci>("Samples/wmo-examples/qvaci-Example.xml");
 
 if (qvaciResult.IsSuccess)
 {
-    QvaciReport qvaci = qvaciResult.Value;
+    Qvaci qvaci = qvaciResult.Value;
     Console.WriteLine($"Originating Centre: {qvaci.OriginatingCentre} (Model Init: {qvaci.DispersionModelInitialisationTimeUtc:O})");
 
     foreach (VolcanicAshConcentrationCloud cloud in qvaci.AshConcentrationClouds)
@@ -431,13 +444,13 @@ if (qvaciResult.IsSuccess)
 #### Space Weather (`SWX`), Volcanic Ash (`VAA`), and Tropical Cyclone (`TCA`) Advisories
 
 ```csharp
-var vaa = IwxxmParser.ParseFileAs<VolcanicAshAdvisoryReport>("Samples/wmo-examples/va-advisory-A7-2.xml").Value;
+var vaa = IwxxmParser.ParseFileAs<Vaa>("Samples/wmo-examples/va-advisory-A7-2.xml").Value;
 Console.WriteLine($"VAAC {vaa.IssuingVaacName} #{vaa.AdvisoryNumber}: {vaa.ObservedAshClouds.Count} observed, {vaa.ForecastAshClouds.Count} forecast clouds");
 
-var tca = IwxxmParser.ParseFileAs<TropicalCycloneAdvisoryReport>("Samples/wmo-examples/tc-advisory-A2-2.xml").Value;
+var tca = IwxxmParser.ParseFileAs<Tca>("Samples/wmo-examples/tc-advisory-A2-2.xml").Value;
 Console.WriteLine($"TCAC {tca.IssuingTcacDesignator} Cyclone {tca.CycloneName}: Obs Pressure={tca.Observation?.CentralPressureHpa} hPa, {tca.Forecasts.Count} forecast track points");
 
-var swx = IwxxmParser.ParseFileAs<SpaceWeatherAdvisoryReport>("Samples/wmo-examples/spacewx-A7-3.xml").Value;
+var swx = IwxxmParser.ParseFileAs<SpaceWx>("Samples/wmo-examples/spacewx-A7-3.xml").Value;
 Console.WriteLine($"SWXC {swx.IssuingSwxcName} #{swx.AdvisoryNumber}: Effects=[{string.Join(", ", swx.Effects)}], {swx.Analyses.Count} analysis regions");
 ```
 
@@ -463,7 +476,7 @@ if (bulletinResult.IsSuccess)
 
     foreach (IwxxmReport childReport in bulletin.Reports)
     {
-        if (childReport is AerodromeWeatherReport metar)
+        if (childReport is Metar metar)
         {
             Console.WriteLine($"  -> {metar.AerodromeDesignator} (NIL={metar.IsNilObservation}, QNH={metar.QnhHpa})");
         }
@@ -475,11 +488,11 @@ if (bulletinResult.IsSuccess)
 
 ### 4.7 Native RFC 7946 GeoJSON Export (`IwxxmGeoJsonExporter` & `ParseFileToGeoJson`)
 
-`Iwxxm.Net` includes a zero-dependency **RFC 7946 GeoJSON Exporter** that converts any `IwxxmReport` (or `MeteorologicalBulletin`) into a standards-compliant GeoJSON `FeatureCollection`:
+`Iwxxm.Net` includes a zero-dependency **RFC 7946 GeoJSON Exporter** that converts any `IwxxmDocument` (an `IwxxmReport` or a `MeteorologicalBulletin`) into a standards-compliant GeoJSON `FeatureCollection`:
 - Automatically swaps GML `[latitude, longitude]` coordinates into **RFC 7946 Section 3.1.1 `[longitude, latitude]`** order.
 - Preserves **interior hole rings** (`GeoPolygon.InteriorRings`) as secondary linear rings in GeoJSON `Polygon` coordinates (`[exteriorRing, hole1, ...]`).
 - Computes the global **`bbox`** (`[minLon, minLat, maxLon, maxLat]`) across all features.
-- Synthesizes a `TC_TRACK` `LineString` connecting observed and forecast tropical cyclone positions in `TropicalCycloneAdvisoryReport`.
+- Synthesizes a `TC_TRACK` `LineString` connecting observed and forecast tropical cyclone positions in `Tca`.
 - Emits measures **as reported, without unit conversion**: each speed/length property is written as a value plus a sibling `...Uom` property holding the UCUM unit (e.g. `"windSpeed": 25, "windSpeedUom": "[kn_i]"`, `"speedOfMotion"` / `"speedOfMotionUom"`, `"maxSurfaceWindSpeed"` / `"maxSurfaceWindSpeedUom"`, `"sourceElevation"` / `"sourceElevationUom"`, `"maxWindSpeed"` / `"maxWindSpeedUom"`). WMO BUFR codes are emitted as both the enum name and the official numeric code (`degreeNumericCode`, `distributionNumericCode`, `typeNumericCode`).
 
 ```csharp
@@ -574,7 +587,7 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<IwxxmReport> result = IwxxmParser.Parse(untrustedXmlPayload);
+Result<IwxxmDocument> result = IwxxmParser.Parse(untrustedXmlPayload);
 
 if (result.IsFailure)
 {
@@ -624,7 +637,7 @@ IwxxmParser parser = new IwxxmParserBuilder()
     .Build();
 
 using Stream incomingStream = GetNetworkStream();
-Result<IwxxmReport> result = parser.Process(incomingStream);
+Result<IwxxmDocument> result = parser.Process(incomingStream);
 // Streams exceeding maxDocumentBytes fail immediately with code "XML-SIZE-LIMIT" (ErrorCategory.MalformedInput)
 ```
 
@@ -686,7 +699,7 @@ IwxxmParser parser = new IwxxmParserBuilder()
     .UseOfficialSchematron()   // extension method from Iwxxm.Net.Validation.Saxon
     .Build();
 
-Result<IwxxmReport> result = parser.ProcessFile("metar.xml");
+Result<IwxxmDocument> result = parser.ProcessFile("metar.xml");
 // e.g. qnh reported in "mbar" -> Code "METAR_SPECI.MeteorologicalAerodromeObservation-5"
 ```
 
@@ -718,7 +731,7 @@ Consumers never need a layer name in a `using` directive. The public API is grou
 | Namespace | Contents |
 | :--- | :--- |
 | `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, inbound ports (`IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor`, `IGeoJsonExportService`), and the `UseOfficialSchematron()` extension of the optional Saxon package |
-| `Iwxxm.Net.Reports` | Domain model: report aggregates (`IwxxmReport`, `IIwxxmReportVisitor<TResult>`, `AerodromeWeatherReport`, `TafReport`, `SigmetReport`, ..., `MeteorologicalBulletin`) and value objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`, `FlightLevel`, `Speed`, `Length`, WMO codes, ...) |
+| `Iwxxm.Net.Reports` | Domain model: closed document hierarchy (`IwxxmDocument` → `IwxxmReport` / `MeteorologicalBulletin`, `IIwxxmDocumentVisitor<TResult>`, `AerodromeObservation` → `Metar` / `Speci`, `Taf`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, `Sigwx`) and value objects (`GeoCoordinate`, `GeoPolygon`, `VerticalLimit`, `FlightLevel`, `Speed`, `Length`, `SurfaceWind`, `RunwayVisualRange`, `AerodromeCloudLayer`, `AerodromeForecastGroup`, `CodeListValue<TCode>`, `AerodromeWeather`, WMO codes, ...) |
 | `Iwxxm.Net.Extensibility` | Outbound ports for custom adapters (`ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter`) |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
 
@@ -732,8 +745,8 @@ Folders express the hexagonal layers; IL-level tests (`HexagonalArchitectureTest
 src/Iwxxm.Net/
 ├── Domain/                     # Depends on nothing (no System.Xml, System.IO, Application or Infrastructure)
 │   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity        (ns Iwxxm.Net)
-│   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, VerticalLimit, FlightLevel, Speed, Length, WmoCodes, ... (ns Iwxxm.Net.Reports)
-│   └── Aggregates/             # IwxxmReport, IIwxxmReportVisitor<TResult> and every report aggregate (ns Iwxxm.Net.Reports)
+│   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, VerticalLimit, SurfaceWind, ..., CodeLists/ (ns Iwxxm.Net.Reports)
+│   └── Aggregates/             # IwxxmDocument, IwxxmReport, IIwxxmDocumentVisitor<TResult>, every aggregate (ns Iwxxm.Net.Reports)
 ├── Application/                # Depends only on Domain (no System.Xml)
 │   ├── Options/                # IwxxmParserOptions, GeoJsonExportOptions                              (ns Iwxxm.Net)
 │   ├── Ports/In/               # Inbound ports (use-case interfaces)                                   (ns Iwxxm.Net)
@@ -747,8 +760,9 @@ src/Iwxxm.Net/
 │   ├── Mapping/                # IwxxmSuiteMapper (composite), SigwxDocumentMapper, SigwxMapper, UomMeasureReader, GmlCoordinateTokenizer
 │   │   ├── Reports/            # One mapper per report family + IwxxmReportMapperRegistry (dispatch by root QName)
 │   │   ├── Xml/                # Shared LINQ to XML readers: GML time/geometry, AIXM features, text, error codes
-│   │   └── Sigwx/              # WAFS/compact SIGWX mappers and one extractor per phenomenon family
-│   └── GeoJson/                # Rfc7946GeoJsonExporter + GeoJsonFeatureCollector (IIwxxmReportVisitor)
+│   │   ├── CodeLists/          # WMO code-list ACL: translation tables checked against the embedded official RDFs
+│   │   └── Wafs/               # WAFS/compact SIGWX mappers and one extractor per phenomenon family
+│   └── GeoJson/                # Rfc7946GeoJsonExporter + GeoJsonFeatureCollector (IIwxxmDocumentVisitor)
 │       ├── Features/           # One feature builder per report family
 │       └── Writing/            # RFC 8259 JSON writer and FeatureCollection writer
 ├── Composition/                # IwxxmParserBuilder: the only place that references Infrastructure  (ns Iwxxm.Net)
@@ -791,9 +805,9 @@ dotnet run --project tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj --co
 
 ---
 
-## Design-Time XSD Class Generation
+## SIGWX Transport Model (hand-maintained)
 
-This repository uses a pinned local .NET tool manifest ([`.config/dotnet-tools.json`](.config/dotnet-tools.json)) with `XmlSchemaClassGenerator-console` (`dotnet-xscgen`):
+The internal SIGWX transport classes (`src/Iwxxm.Net/Infrastructure/Generated/Iwxxm20252.Generated.cs`) are maintained by hand; no build step regenerates them. A pinned local .NET tool manifest ([`.config/dotnet-tools.json`](.config/dotnet-tools.json)) provides `XmlSchemaClassGenerator-console` (`dotnet-xscgen`) for an optional reference scaffold, written to `artifacts/xscgen-reference/` for manual comparison only:
 
 ```bash
 dotnet tool restore

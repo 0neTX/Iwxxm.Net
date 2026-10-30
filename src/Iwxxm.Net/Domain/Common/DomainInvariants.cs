@@ -5,23 +5,6 @@ using System.Globalization;
 namespace Iwxxm.Net.Reports
 {
     /// <summary>
-    /// Error codes of the physical / structural invariants shared by every aggregate <c>Create</c> factory.
-    /// </summary>
-    internal static class DomainErrorCodes
-    {
-        internal const string TimeNotUtc = "DOMAIN-TIME-NOT-UTC";
-        internal const string IssueTimeMissing = "DOMAIN-ISSUE-TIME-MISSING";
-        internal const string ReportStatusInvalid = "DOMAIN-REPORT-STATUS-INVALID";
-        internal const string PermissibleUsageInvalid = "DOMAIN-PERMISSIBLE-USAGE-INVALID";
-        internal const string PermissibleUsageReasonInvalid = "DOMAIN-PERMISSIBLE-USAGE-REASON-INVALID";
-        internal const string DirectionOutOfRange = "DOMAIN-DIRECTION-OUT-OF-RANGE";
-        internal const string NegativeSpeed = "DOMAIN-NEGATIVE-SPEED";
-        internal const string NegativeVisibility = "DOMAIN-NEGATIVE-VISIBILITY";
-        internal const string NegativeRvr = "DOMAIN-NEGATIVE-RVR";
-        internal const string ForecastGroupPeriod = "DOMAIN-FORECAST-GROUP-PERIOD";
-    }
-
-    /// <summary>
     /// Homogeneous minimal invariants (DDD-05) applied by the aggregate factories. They cover only physical and
     /// structural facts (UTC timestamps, ordered periods, directions within 0-360 degrees, non-negative magnitudes,
     /// defined metadata values); business rules of the official Schematron are deliberately not duplicated.
@@ -129,7 +112,7 @@ namespace Iwxxm.Net.Reports
             }
         }
 
-        internal void Check(SurfaceWindInfo? wind, string field)
+        internal void Check(SurfaceWind? wind, string field)
         {
             if (wind == null)
                 return;
@@ -139,7 +122,7 @@ namespace Iwxxm.Net.Reports
             RequireNonNegative(wind.GustSpeed, field + " gust speed");
         }
 
-        internal void Check(AerodromeForecastGroupInfo? group)
+        internal void Check(AerodromeForecastGroup? group)
         {
             if (group == null)
                 return;

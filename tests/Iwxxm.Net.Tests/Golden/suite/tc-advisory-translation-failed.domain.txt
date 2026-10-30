@@ -1,4 +1,4 @@
-TropicalCycloneAdvisoryReport {
+Tca {
   AdvisoryNumber = null
   CycloneName = null
   Forecasts = []

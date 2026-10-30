@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.GeoJson.GeoJsonProperties;
 
@@ -8,7 +9,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
     internal static class EnRouteHazardFeatureBuilder
     {
         public static void AddSigmetFeatures(
-            SigmetReport sigmet,
+            Sigmet sigmet,
             string? bulletinId,
             List<GeoJsonFeature> features)
         {
@@ -22,28 +23,31 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 features.Add(GeoJsonFeature.ForPoint(sigmet.EruptingVolcano.Id, sigmet.EruptingVolcano.Position, vProps));
             }
 
+            string? phenomenonUri = CodeListTables.SigmetPhenomena.ToReference(sigmet.Phenomenon);
             foreach (var vol in sigmet.EvolvingConditions)
             {
-                AddVolumeFeatures(sigmet, "SIGMET_EVOLVING_VOLUME", sigmet.FirDesignator, sigmet.SequenceNumber, sigmet.PhenomenonUri, vol, bulletinId, features);
+                AddVolumeFeatures(sigmet, "SIGMET_EVOLVING_VOLUME", sigmet.FirDesignator, sigmet.SequenceNumber, phenomenonUri, vol, bulletinId, features);
             }
 
             foreach (var vol in sigmet.ForecastPositions)
             {
-                AddVolumeFeatures(sigmet, "SIGMET_FORECAST_VOLUME", sigmet.FirDesignator, sigmet.SequenceNumber, sigmet.PhenomenonUri, vol, bulletinId, features);
+                AddVolumeFeatures(sigmet, "SIGMET_FORECAST_VOLUME", sigmet.FirDesignator, sigmet.SequenceNumber, phenomenonUri, vol, bulletinId, features);
             }
         }
 
         public static void AddAirmetFeatures(
-            AirmetReport airmet,
+            Airmet airmet,
             string? bulletinId,
             List<GeoJsonFeature> features)
         {
+            string? phenomenonUri = CodeListTables.AirmetPhenomena.ToReference(airmet.Phenomenon);
             foreach (var vol in airmet.EvolvingConditions)
             {
-                AddVolumeFeatures(airmet, "AIRMET_EVOLVING_VOLUME", airmet.FirDesignator, airmet.SequenceNumber, airmet.PhenomenonUri, vol, bulletinId, features);
+                AddVolumeFeatures(airmet, "AIRMET_EVOLVING_VOLUME", airmet.FirDesignator, airmet.SequenceNumber, phenomenonUri, vol, bulletinId, features);
             }
         }
 
+        // phenomenonUri: code-list reference rebuilt from the Domain phenomenon (Linked-Data output).
         private static void AddVolumeFeatures(
             IwxxmReport report,
             string featureType,

@@ -108,5 +108,9 @@ namespace Iwxxm.Net.Reports
                 return hash;
             }
         }
+
+        public static bool operator ==(AirframeIcing? left, AirframeIcing? right) => Equals(left, right);
+
+        public static bool operator !=(AirframeIcing? left, AirframeIcing? right) => !Equals(left, right);
     }
 }

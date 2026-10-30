@@ -1,4 +1,4 @@
-SigmetReport {
+Sigmet {
   AtsUnitDesignator = "EGGX"
   AtsUnitName = "SHANWICK OCEANIC AREA CONTROL CENTRE"
   CancelledReportSequenceNumber = null
@@ -110,7 +110,11 @@ SigmetReport {
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
-  PhenomenonUri = "http://codes.wmo.int/49-2/SigWxPhenomena/VA"
+  Phenomenon = CodeListValue<SigmetPhenomenon> {
+    Code = SigmetPhenomenon.VolcanicAsh
+    IsKnown = true
+    Notation = "VA"
+  }
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.VolcanicAshSigmet
   SequenceNumber = "4"
