@@ -15,5 +15,12 @@ Tca {
   Remarks = null
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.TropicalCycloneAdvisory
+  Translation = TranslationMetadata {
+    TranslatedBulletinId = "TTAAiiCCCYYGGgg"
+    TranslatedBulletinReceptionTimeUtc = 2014-05-15T15:29:00.0000000+00:00
+    TranslationCentreDesignator = "YUZZ"
+    TranslationCentreName = "Fictional translation centre"
+    TranslationTimeUtc = 2014-05-15T15:30:00.0000000+00:00
+  }
   TranslationFailedTac = "TC ADVISORY          DTG:                        20040925/1600Z     TCAC:                       YUFO     TC:                         GLORIA     INVALID INVALID INVALID"
 }

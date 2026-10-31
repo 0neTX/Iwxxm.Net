@@ -1,7 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!--
+      AUD-M17: the core library also targets netstandard2.0 (.NET Framework 4.6.1+), so the suite additionally runs on
+      net48 when building on Windows (the Windows CI job); Linux and macOS builds (Docker, Linux CI) cannot run
+      .NET Framework and build net10.0 only.
+    -->
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net10.0;net48</TargetFrameworks>
     <RootNamespace>Iwxxm.Net.Tests</RootNamespace>
     <AssemblyName>Iwxxm.Net.Tests</AssemblyName>
     <IsPackable>false</IsPackable>

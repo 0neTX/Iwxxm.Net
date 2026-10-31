@@ -5,6 +5,7 @@ Sigmet {
   CancelledReportValidFromUtc = null
   CancelledReportValidUntilUtc = null
   EruptingVolcano = Volcano {
+    ActivityStatus = null
     EruptionTimeUtc = null
     Id = "uuid.8c2bf282-1268-4066-bfc9-a56f7ae999f5"
     Name = "MT ASHVAL"
@@ -12,6 +13,7 @@ Sigmet {
       Lat = 43.25
       Lon = 21.25
     }
+    SourceElevation = null
     WmoNumber = null
   }
   EvolvingConditions = [
@@ -232,8 +234,13 @@ Sigmet {
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.VolcanicAshSigmet
   SequenceNumber = "2"
+  SupplementaryEvolvingConditions = []
+  SupplementaryForecastPositions = []
+  Translation = null
   TranslationFailedTac = null
   TropicalCycloneName = null
   ValidFromUtc = 2018-07-10T12:00:00.0000000+00:00
   ValidUntilUtc = 2018-07-10T18:00:00.0000000+00:00
+  VolcanicAshMovedToFirDesignator = null
+  VolcanicAshMovedToFirName = null
 }

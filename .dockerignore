@@ -13,3 +13,7 @@ artifacts/
 *.snupkg
 *.user
 *.suo
+
+# .git is deliberately NOT ignored (AUD-L11 trade-off): SourceLink (provided by the .NET SDK) reads the repository URL
+# and commit from it to map the PDBs of the .snupkg to the GitHub sources; without it the symbol packages lose source
+# linking. Uncommitted changes are still guarded by tools/run-local-ci.sh, which refuses to publish from a dirty tree.

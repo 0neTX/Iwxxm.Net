@@ -5,6 +5,7 @@ using System.Xml.Linq;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.Mapping.Reports;
 using Iwxxm.Net.Infrastructure.Mapping.Xml;
+using Iwxxm.Net.Infrastructure.Xml;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
 
@@ -25,7 +26,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         private readonly IwxxmParserOptions _options;
 
         public IwxxmSuiteMapper(IwxxmParserOptions? options = null)
-            : this(new SigwxDocumentMapper(options), options)
+            : this(new SigwxDocumentMapper(), options)
         {
         }
 
@@ -35,50 +36,30 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             _options = options ?? IwxxmParserOptions.Default;
         }
 
-        public Result<IwxxmDocument> Map(Stream xmlStream)
+        public Result<IwxxmDocument> Map(IwxxmDocumentContext document)
         {
-            if (xmlStream == null)
-                throw new ArgumentNullException(nameof(xmlStream));
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
 
-            var readerSettings = new XmlReaderSettings
-            {
-                DtdProcessing = DtdProcessing.Prohibit,
-                MaxCharactersInDocument = _options.MaxCharactersInDocument,
-                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
-                XmlResolver = null
-            };
-
-            XDocument doc;
+            // The document was parsed once by the use case (shared tree); a direct call parses it here.
+            XElement root;
             try
             {
-                xmlStream.Position = 0;
-                using (XmlReader reader = XmlReader.Create(xmlStream, readerSettings))
-                {
-                    doc = XDocument.Load(reader, LoadOptions.SetLineInfo);
-                }
+                root = SecureXml.Load(document).Root;
             }
             catch (XmlException ex)
             {
-                return Result<IwxxmDocument>.Failure(
-                    "XML-MALFORMED",
-                    ex.Message,
-                    ErrorCategory.MalformedInput);
+                return Result<IwxxmDocument>.Failure(SecureXml.Malformed(ex));
             }
-
-            XElement? root = doc.Root;
-            if (root == null)
+            catch (InvalidOperationException ex)
             {
-                return Result<IwxxmDocument>.Failure(
-                    "XML-EMPTY-ROOT",
-                    "The XML document does not contain a root element.",
-                    ErrorCategory.MalformedInput);
+                return Result<IwxxmDocument>.Failure(SecureXml.NoRootCode, ex.Message, ErrorCategory.MalformedInput);
             }
 
             // Delegate SIGWX/WAFS directly to the dedicated SIGWX mapper (transport model + ACL)
             if (IsSigwxRoot(root.Name))
             {
-                xmlStream.Position = 0;
-                return IwxxmReportMapperRegistry.ToDocument(_sigwxMapper.Map(xmlStream));
+                return IwxxmReportMapperRegistry.ToDocument(_sigwxMapper.Map(document));
             }
 
             if (root.Name == BulletinName)
@@ -114,12 +95,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             if (IsSigwxRoot(root.Name))
             {
+                // WAFSSignificantWeatherForecast does not derive from the common ReportType: no translation attributes.
                 return MapEmbeddedSigwx(root);
             }
 
             if (IwxxmReportMapperRegistry.TryGetMapper(root.Name, out Func<XElement, Result<IwxxmReport>> mapper))
             {
-                return mapper(root);
+                return ReportTranslationReader.Attach(root, mapper(root));
             }
 
             return Result<IwxxmReport>.Failure(
@@ -128,16 +110,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 ErrorCategory.Deserialization);
         }
 
-        /// <summary>Maps a SIGWX report embedded in a bulletin through the SIGWX outbound port.</summary>
-        private Result<IwxxmReport> MapEmbeddedSigwx(XElement root)
-        {
-            using (var ms = new MemoryStream())
-            {
-                root.Save(ms);
-                ms.Position = 0;
-                return IwxxmReportMapperRegistry.Upcast(_sigwxMapper.Map(ms));
-            }
-        }
+        /// <summary>
+        /// Maps a SIGWX report embedded in a bulletin through the SIGWX outbound port. The port receives a context over the
+        /// already parsed element: the built-in mapper reads the element directly and the report is serialized only if a
+        /// custom mapper asks for its bytes (AUD-L5).
+        /// </summary>
+        private Result<IwxxmReport> MapEmbeddedSigwx(XElement root) =>
+            IwxxmReportMapperRegistry.Upcast(_sigwxMapper.Map(SecureXml.ForElement(root, _options)));
 
         private static readonly XName BulletinName = CollectNs + "MeteorologicalBulletin";
 

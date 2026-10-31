@@ -40,7 +40,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             var result = MapDirectly(doc);
 
             Assert.True(result.IsFailure, $"{element} in {uom} must be rejected.");
-            ValidationError error = Assert.Single(result.Errors.Where(e => e.Code == expectedCode));
+            ValidationError error = Assert.Single(result.Errors, e => e.Code == expectedCode);
             Assert.Contains(element, error.Location ?? error.Message);
         }
 

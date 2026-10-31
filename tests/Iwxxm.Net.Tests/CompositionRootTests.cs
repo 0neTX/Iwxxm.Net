@@ -155,11 +155,16 @@ namespace Iwxxm.Net.Tests
 
             public int Calls { get; private set; }
 
-            public IReadOnlyList<ValidationError> Validate(Stream document)
+            public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document)
             {
                 Calls++;
-                Assert.True(document.CanSeek);
-                Assert.Equal(0, document.Position);
+                using (Stream stream = document.OpenRead())
+                {
+                    Assert.True(stream.CanSeek);
+                    Assert.Equal(0, stream.Position);
+                    Assert.Equal(document.Length, stream.Length);
+                }
+
                 return _errors;
             }
         }
@@ -173,7 +178,7 @@ namespace Iwxxm.Net.Tests
                 _error = error;
             }
 
-            public IReadOnlyList<ValidationError> Validate(Stream document) => new[] { _error };
+            public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document) => new[] { _error };
         }
 
         private sealed class FixedGeoJsonExporter : IGeoJsonExporter
@@ -197,7 +202,7 @@ namespace Iwxxm.Net.Tests
                 _error = error;
             }
 
-            public Result<IwxxmDocument> Map(Stream validatedDocument) => Result<IwxxmDocument>.Failure(_error);
+            public Result<IwxxmDocument> Map(IwxxmDocumentContext validatedDocument) => Result<IwxxmDocument>.Failure(_error);
         }
     }
 }

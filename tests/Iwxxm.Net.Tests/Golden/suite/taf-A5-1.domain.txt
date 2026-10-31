@@ -7,6 +7,31 @@ Taf {
   }
   BaseForecast = AerodromeForecastGroup {
     ChangeIndicator = null
+    Cloud = AerodromeCloud {
+      IsNoCloudDetected = false
+      IsNoSignificantCloud = false
+      Layers = [
+        AerodromeCloudLayer {
+          Amount = CodeListValue<AerodromeCloudAmount> {
+            Code = AerodromeCloudAmount.Broken
+            IsKnown = true
+            Notation = "BKN"
+          }
+          AmountNilReason = null
+          Base = Length {
+            Unit = LengthUnit.Feet
+            UnitOfMeasure = "[ft_i]"
+            Value = 2000
+          }
+          BaseNilReason = null
+          CloudType = null
+          NilReason = null
+        }
+      ]
+      NilReason = null
+      VerticalVisibility = null
+      VerticalVisibilityNilReason = null
+    }
     CloudAndVisibilityOk = false
     CloudLayers = [
       AerodromeCloudLayer {
@@ -15,19 +40,26 @@ Taf {
           IsKnown = true
           Notation = "BKN"
         }
+        AmountNilReason = null
         Base = Length {
           Unit = LengthUnit.Feet
           UnitOfMeasure = "[ft_i]"
           Value = 2000
         }
+        BaseNilReason = null
         CloudType = null
+        NilReason = null
       }
     ]
     Id = "uuid.13048235-8f8a-4587-a6be-e8ce99f4525c"
+    IsNoSignificantWeather = false
     PrevailingVisibilityMeters = 9000
     PrevailingVisibilityOperator = null
     SurfaceWind = SurfaceWind {
+      ExtremeClockwiseDirectionDegrees = null
+      ExtremeCounterClockwiseDirectionDegrees = null
       GustSpeed = null
+      GustSpeedOperator = null
       IsVariableDirection = false
       MeanDirectionDegrees = 130
       MeanSpeed = Speed {
@@ -35,11 +67,14 @@ Taf {
         UnitOfMeasure = "m/s"
         Value = 5
       }
+      MeanSpeedOperator = null
     }
+    Temperatures = []
     TimeIndicator = null
     ValidFromUtc = 2012-08-16T00:00:00.0000000+00:00
     ValidUntilUtc = 2012-08-16T18:00:00.0000000+00:00
     Weather = []
+    WeatherNilReason = null
   }
   BaseForecastNilReason = null
   CancelledReportValidFromUtc = null
@@ -47,6 +82,51 @@ Taf {
   ChangeForecasts = [
     AerodromeForecastGroup {
       ChangeIndicator = "BECOMING"
+      Cloud = AerodromeCloud {
+        IsNoCloudDetected = false
+        IsNoSignificantCloud = false
+        Layers = [
+          AerodromeCloudLayer {
+            Amount = CodeListValue<AerodromeCloudAmount> {
+              Code = AerodromeCloudAmount.Scattered
+              IsKnown = true
+              Notation = "SCT"
+            }
+            AmountNilReason = null
+            Base = Length {
+              Unit = LengthUnit.Feet
+              UnitOfMeasure = "[ft_i]"
+              Value = 1500
+            }
+            BaseNilReason = null
+            CloudType = CodeListValue<ConvectiveCloudType> {
+              Code = ConvectiveCloudType.Cumulonimbus
+              IsKnown = true
+              Notation = "CB"
+            }
+            NilReason = null
+          }
+          AerodromeCloudLayer {
+            Amount = CodeListValue<AerodromeCloudAmount> {
+              Code = AerodromeCloudAmount.Broken
+              IsKnown = true
+              Notation = "BKN"
+            }
+            AmountNilReason = null
+            Base = Length {
+              Unit = LengthUnit.Feet
+              UnitOfMeasure = "[ft_i]"
+              Value = 2000
+            }
+            BaseNilReason = null
+            CloudType = null
+            NilReason = null
+          }
+        ]
+        NilReason = null
+        VerticalVisibility = null
+        VerticalVisibilityNilReason = null
+      }
       CloudAndVisibilityOk = false
       CloudLayers = [
         AerodromeCloudLayer {
@@ -55,16 +135,19 @@ Taf {
             IsKnown = true
             Notation = "SCT"
           }
+          AmountNilReason = null
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 1500
           }
+          BaseNilReason = null
           CloudType = CodeListValue<ConvectiveCloudType> {
             Code = ConvectiveCloudType.Cumulonimbus
             IsKnown = true
             Notation = "CB"
           }
+          NilReason = null
         }
         AerodromeCloudLayer {
           Amount = CodeListValue<AerodromeCloudAmount> {
@@ -72,25 +155,76 @@ Taf {
             IsKnown = true
             Notation = "BKN"
           }
+          AmountNilReason = null
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 2000
           }
+          BaseNilReason = null
           CloudType = null
+          NilReason = null
         }
       ]
       Id = "uuid.fe2635c8-3994-4423-b79f-123593fa2b55"
+      IsNoSignificantWeather = false
       PrevailingVisibilityMeters = null
       PrevailingVisibilityOperator = null
       SurfaceWind = null
+      Temperatures = []
       TimeIndicator = null
       ValidFromUtc = 2012-08-16T06:00:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T08:00:00.0000000+00:00
       Weather = []
+      WeatherNilReason = null
     }
     AerodromeForecastGroup {
       ChangeIndicator = "TEMPORARY_FLUCTUATIONS"
+      Cloud = AerodromeCloud {
+        IsNoCloudDetected = false
+        IsNoSignificantCloud = false
+        Layers = [
+          AerodromeCloudLayer {
+            Amount = CodeListValue<AerodromeCloudAmount> {
+              Code = AerodromeCloudAmount.Scattered
+              IsKnown = true
+              Notation = "SCT"
+            }
+            AmountNilReason = null
+            Base = Length {
+              Unit = LengthUnit.Feet
+              UnitOfMeasure = "[ft_i]"
+              Value = 1000
+            }
+            BaseNilReason = null
+            CloudType = CodeListValue<ConvectiveCloudType> {
+              Code = ConvectiveCloudType.Cumulonimbus
+              IsKnown = true
+              Notation = "CB"
+            }
+            NilReason = null
+          }
+          AerodromeCloudLayer {
+            Amount = CodeListValue<AerodromeCloudAmount> {
+              Code = AerodromeCloudAmount.Broken
+              IsKnown = true
+              Notation = "BKN"
+            }
+            AmountNilReason = null
+            Base = Length {
+              Unit = LengthUnit.Feet
+              UnitOfMeasure = "[ft_i]"
+              Value = 2000
+            }
+            BaseNilReason = null
+            CloudType = null
+            NilReason = null
+          }
+        ]
+        NilReason = null
+        VerticalVisibility = null
+        VerticalVisibilityNilReason = null
+      }
       CloudAndVisibilityOk = false
       CloudLayers = [
         AerodromeCloudLayer {
@@ -99,16 +233,19 @@ Taf {
             IsKnown = true
             Notation = "SCT"
           }
+          AmountNilReason = null
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 1000
           }
+          BaseNilReason = null
           CloudType = CodeListValue<ConvectiveCloudType> {
             Code = ConvectiveCloudType.Cumulonimbus
             IsKnown = true
             Notation = "CB"
           }
+          NilReason = null
         }
         AerodromeCloudLayer {
           Amount = CodeListValue<AerodromeCloudAmount> {
@@ -116,23 +253,30 @@ Taf {
             IsKnown = true
             Notation = "BKN"
           }
+          AmountNilReason = null
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 2000
           }
+          BaseNilReason = null
           CloudType = null
+          NilReason = null
         }
       ]
       Id = "uuid.8985ba4e-f6f0-4dc2-8dd7-2cbf86a64056"
+      IsNoSignificantWeather = false
       PrevailingVisibilityMeters = 1000
       PrevailingVisibilityOperator = null
       SurfaceWind = SurfaceWind {
+        ExtremeClockwiseDirectionDegrees = null
+        ExtremeCounterClockwiseDirectionDegrees = null
         GustSpeed = Speed {
           Unit = SpeedUnit.MetersPerSecond
           UnitOfMeasure = "m/s"
           Value = 12
         }
+        GustSpeedOperator = null
         IsVariableDirection = false
         MeanDirectionDegrees = 170
         MeanSpeed = Speed {
@@ -140,7 +284,9 @@ Taf {
           UnitOfMeasure = "m/s"
           Value = 6
         }
+        MeanSpeedOperator = null
       }
+      Temperatures = []
       TimeIndicator = null
       ValidFromUtc = 2012-08-16T08:00:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T12:00:00.0000000+00:00
@@ -150,9 +296,35 @@ Taf {
           Notation = "TSRA"
         }
       ]
+      WeatherNilReason = null
     }
     AerodromeForecastGroup {
       ChangeIndicator = "FROM"
+      Cloud = AerodromeCloud {
+        IsNoCloudDetected = false
+        IsNoSignificantCloud = false
+        Layers = [
+          AerodromeCloudLayer {
+            Amount = CodeListValue<AerodromeCloudAmount> {
+              Code = AerodromeCloudAmount.Broken
+              IsKnown = true
+              Notation = "BKN"
+            }
+            AmountNilReason = null
+            Base = Length {
+              Unit = LengthUnit.Feet
+              UnitOfMeasure = "[ft_i]"
+              Value = 2000
+            }
+            BaseNilReason = null
+            CloudType = null
+            NilReason = null
+          }
+        ]
+        NilReason = null
+        VerticalVisibility = null
+        VerticalVisibilityNilReason = null
+      }
       CloudAndVisibilityOk = false
       CloudLayers = [
         AerodromeCloudLayer {
@@ -161,19 +333,26 @@ Taf {
             IsKnown = true
             Notation = "BKN"
           }
+          AmountNilReason = null
           Base = Length {
             Unit = LengthUnit.Feet
             UnitOfMeasure = "[ft_i]"
             Value = 2000
           }
+          BaseNilReason = null
           CloudType = null
+          NilReason = null
         }
       ]
       Id = "uuid.aeadfb00-4cfa-46b5-af21-1e79e4b6b1b5"
+      IsNoSignificantWeather = false
       PrevailingVisibilityMeters = 10000
-      PrevailingVisibilityOperator = "ABOVE"
+      PrevailingVisibilityOperator = RelationalOperator.Above
       SurfaceWind = SurfaceWind {
+        ExtremeClockwiseDirectionDegrees = null
+        ExtremeCounterClockwiseDirectionDegrees = null
         GustSpeed = null
+        GustSpeedOperator = null
         IsVariableDirection = false
         MeanDirectionDegrees = 150
         MeanSpeed = Speed {
@@ -181,11 +360,14 @@ Taf {
           UnitOfMeasure = "m/s"
           Value = 4
         }
+        MeanSpeedOperator = null
       }
+      Temperatures = []
       TimeIndicator = null
       ValidFromUtc = 2012-08-16T12:30:00.0000000+00:00
       ValidUntilUtc = 2012-08-16T18:00:00.0000000+00:00
       Weather = []
+      WeatherNilReason = null
     }
   ]
   Id = "uuid.d6a85870-f32e-4ea8-8502-c7d9be7e0144"
@@ -198,6 +380,7 @@ Taf {
   PermissibleUsageSupplementary = null
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Taf
+  Translation = null
   TranslationFailedTac = null
   ValidFromUtc = 2012-08-16T00:00:00.0000000+00:00
   ValidUntilUtc = 2012-08-16T18:00:00.0000000+00:00

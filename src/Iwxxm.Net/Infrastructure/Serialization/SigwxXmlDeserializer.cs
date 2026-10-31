@@ -1,7 +1,8 @@
 using System;
-using System.IO;
 using System.Xml;
 using System.Xml.Linq;
+using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Infrastructure.Xml;
 using Iwxxm20252.Generated;
 
 namespace Iwxxm.Net.Infrastructure.Serialization
@@ -9,46 +10,22 @@ namespace Iwxxm.Net.Infrastructure.Serialization
     /// <summary>
     /// Deserializes a validated SIGWX document (<c>iwxxm:WAFSSignificantWeatherForecast</c> or the non-standard
     /// compact <c>iwxxm:SIGWXReport</c>) into the internal XSD transport model through
-    /// <see cref="AttributeDrivenXmlReader"/>. Input readers are hardened (DTD prohibited, no resolver, size quotas).
+    /// <see cref="AttributeDrivenXmlReader"/>, from the tree parsed by <see cref="SecureXml"/>.
     /// </summary>
-    internal sealed class SigwxXmlDeserializer
+    internal static class SigwxXmlDeserializer
     {
-        private readonly IwxxmParserOptions _options;
-
-        public SigwxXmlDeserializer(IwxxmParserOptions? options = null)
+        /// <summary>
+        /// Reads the transport model from the parsed root of <paramref name="document"/> (the tree parsed once by the use case,
+        /// or the element of a report embedded in a bulletin; no re-serialization, AUD-L5).
+        /// </summary>
+        public static Result<SigwxDocumentEnvelope> Deserialize(IwxxmDocumentContext document)
         {
-            _options = options ?? IwxxmParserOptions.Default;
-        }
-
-        public Result<SigwxDocumentEnvelope> Deserialize(Stream xmlStream)
-        {
-            if (xmlStream == null)
-                throw new ArgumentNullException(nameof(xmlStream));
-
-            var readerSettings = new XmlReaderSettings
-            {
-                DtdProcessing = DtdProcessing.Prohibit,
-                MaxCharactersInDocument = _options.MaxCharactersInDocument,
-                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
-                XmlResolver = null
-            };
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
 
             try
             {
-                XDocument document;
-                using (XmlReader xmlReader = XmlReader.Create(xmlStream, readerSettings))
-                {
-                    document = XDocument.Load(xmlReader);
-                }
-
-                XElement? root = document.Root;
-                if (root == null)
-                {
-                    return Result<SigwxDocumentEnvelope>.Failure(
-                        "XML-NO-ROOT-ELEMENT",
-                        "The XML document does not contain a valid root element.",
-                        ErrorCategory.Deserialization);
-                }
+                XElement root = SecureXml.Load(document).Root;
 
                 if (root.Name.NamespaceName == XmlNamespaces.Iwxxm && root.Name.LocalName == "WAFSSignificantWeatherForecast")
                 {
@@ -76,15 +53,7 @@ namespace Iwxxm.Net.Infrastructure.Serialization
             }
             catch (XmlException ex)
             {
-                return Result<SigwxDocumentEnvelope>.Failure(
-                    new ValidationError(
-                        "XML-MALFORMED",
-                        ex.Message,
-                        ErrorCategory.MalformedInput,
-                        ValidationSeverity.Error,
-                        null,
-                        ex.LineNumber,
-                        ex.LinePosition));
+                return Result<SigwxDocumentEnvelope>.Failure(SecureXml.Malformed(ex));
             }
         }
     }

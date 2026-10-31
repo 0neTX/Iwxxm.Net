@@ -214,7 +214,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
                                 errors.AddRange(res.Errors);
                                 return null;
                             }
-                            allCoords.AddRange(res.Value);
+                            AppendJoined(allCoords, res.Value);
                         }
                     }
                 }
@@ -223,6 +223,19 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Appends the positions of a segment to a ring (AUD-L2): consecutive curve members and segments share their joint
+        /// vertex (the end of one is the start of the next), so that shared vertex is kept once instead of being repeated.
+        /// </summary>
+        private static void AppendJoined(List<GeoCoordinate> ring, IReadOnlyList<GeoCoordinate> segment)
+        {
+            int start = ring.Count > 0 && segment.Count > 0 && ring[ring.Count - 1] == segment[0] ? 1 : 0;
+            for (int i = start; i < segment.Count; i++)
+            {
+                ring.Add(segment[i]);
+            }
         }
 
         /// <summary>Segments interpolated through their control points (<c>gml:posList</c>).</summary>

@@ -171,7 +171,7 @@ namespace Iwxxm.Net.Tests
                 null,
                 null,
                 surfaceWind: wind,
-                prevailingVisibilityMeters: visibility,
+                visibility: visibility.HasValue ? new AerodromeHorizontalVisibility(visibility) : null,
                 runwayVisualRanges: rvr == null ? null : new[] { rvr },
                 trendForecasts: trend == null ? null : new[] { trend });
         }

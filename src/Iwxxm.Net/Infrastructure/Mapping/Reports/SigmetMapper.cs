@@ -36,7 +36,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             var evolvingConditions = new List<EnRoutePhenomenonVolume>();
             var forecastPositions = new List<EnRoutePhenomenonVolume>();
-            ReadAnalyses(root, evolvingConditions, forecastPositions, errors);
+            ReadAnalyses(root.Elements(IwxxmNs + "analysisCollection"), evolvingConditions, forecastPositions, errors);
+
+            // TC SIGMET supplementary analyses and VA SIGMET destination FIR (AUD-L3).
+            var supplementaryEvolving = new List<EnRoutePhenomenonVolume>();
+            var supplementaryPositions = new List<EnRoutePhenomenonVolume>();
+            ReadAnalyses(root.Elements(IwxxmNs + "supplementaryAnalysisCollection"), supplementaryEvolving, supplementaryPositions, errors);
+            AixmFeatureReader.ReadAirspace(root.Element(IwxxmNs + "volcanicAshMovedToFIR"), out string? movedToFirDesig, out string? movedToFirName);
 
             Volcano? eruptingVolcano = VolcanoElementReader.ReadMetceVolcano(root.Element(IwxxmNs + "eruptingVolcano"), errors);
             string? tcName = root
@@ -75,16 +81,20 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 header.Metadata.Reason,
                 header.Metadata.Supplementary,
                 cancelledFrom,
-                cancelledUntil);
+                cancelledUntil,
+                supplementaryEvolving,
+                supplementaryPositions,
+                movedToFirDesig,
+                movedToFirName);
         }
 
         private static void ReadAnalyses(
-            XElement root,
+            IEnumerable<XElement> analysisCollections,
             List<EnRoutePhenomenonVolume> evolvingConditions,
             List<EnRoutePhenomenonVolume> forecastPositions,
             List<ValidationError> errors)
         {
-            foreach (XElement analysisCol in root.Elements(IwxxmNs + "analysisCollection"))
+            foreach (XElement analysisCol in analysisCollections)
             {
                 foreach (XElement posAnalysis in analysisCol.Elements(IwxxmNs + "analysisAndForecastPositionAnalysis"))
                 {

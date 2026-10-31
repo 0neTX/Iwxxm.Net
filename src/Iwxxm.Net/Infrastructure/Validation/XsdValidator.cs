@@ -7,7 +7,9 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
 using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Infrastructure.Caching;
 using Iwxxm.Net.Infrastructure.Resources;
+using Iwxxm.Net.Infrastructure.Xml;
 
 namespace Iwxxm.Net.Infrastructure.Validation
 {
@@ -45,11 +47,12 @@ namespace Iwxxm.Net.Infrastructure.Validation
 
         private static long _officialCompileTicks = -1;
 
-        private static readonly Lazy<XmlSchemaSet> CompiledOfficialSchemaSet =
-            new Lazy<XmlSchemaSet>(BuildOfficialSchemaSet, LazyThreadSafetyMode.ExecutionAndPublication);
+        // Compile failures are not cached (AUD-L6): a later validation retries the compilation.
+        private static readonly RetryOnFailureLazy<XmlSchemaSet> CompiledOfficialSchemaSet =
+            new RetryOnFailureLazy<XmlSchemaSet>(BuildOfficialSchemaSet);
 
-        private static readonly Lazy<XmlSchemaSet> CompiledLegacySigwxSchemaSet =
-            new Lazy<XmlSchemaSet>(BuildLegacySigwxSchemaSet, LazyThreadSafetyMode.ExecutionAndPublication);
+        private static readonly RetryOnFailureLazy<XmlSchemaSet> CompiledLegacySigwxSchemaSet =
+            new RetryOnFailureLazy<XmlSchemaSet>(BuildLegacySigwxSchemaSet);
 
         private readonly bool _useFullSuite;
         private readonly IwxxmParserOptions _options;
@@ -157,30 +160,42 @@ namespace Iwxxm.Net.Infrastructure.Validation
             }
         }
 
-        public IReadOnlyList<ValidationError> Validate(Stream xmlStream)
+        /// <summary>
+        /// Validates the parsed document of <paramref name="document"/> (parsed once per context and shared with the mapper,
+        /// AUD-N3): the schema set is selected from the root element QName, then the tree is validated.
+        /// </summary>
+        public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document)
         {
-            if (xmlStream == null)
-                throw new ArgumentNullException(nameof(xmlStream));
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
 
             var errors = new List<ValidationError>();
 
-            Stream source = xmlStream.CanSeek ? xmlStream : BufferStream(xmlStream);
-            long startPosition = source.Position;
-
-            XmlQualifiedName? rootName = ReadRootElementName(source, errors);
-            if (rootName == null)
+            ParsedXml parsed;
+            try
             {
+                parsed = SecureXml.Load(document);
+            }
+            catch (XmlException ex)
+            {
+                errors.Add(SecureXml.Malformed(ex));
+                return errors;
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add(new ValidationError(SecureXml.NoRootCode, ex.Message, ErrorCategory.MalformedInput));
                 return errors;
             }
 
-            source.Position = startPosition;
+            XElement root = parsed.Root;
+            var rootName = new XmlQualifiedName(root.Name.LocalName, root.Name.NamespaceName);
 
             XmlSchemaSet activeSchemaSet;
             try
             {
                 activeSchemaSet = SelectSchemaSet(rootName, errors);
             }
-            catch (Exception ex) when (ex is XmlSchemaException || ex is XmlException || ex is FileNotFoundException)
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
                 errors.Add(new ValidationError(
                     code: "XSD-SCHEMA-SET-UNAVAILABLE",
@@ -195,7 +210,9 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 return errors;
             }
 
-            ValidateAgainst(activeSchemaSet, source, errors);
+            // An embedded element (no own document) is validated as a document of its own.
+            XDocument tree = parsed.Document ?? new XDocument(root);
+            ValidateAgainst(activeSchemaSet, tree, errors);
             return errors;
         }
 
@@ -240,31 +257,8 @@ namespace Iwxxm.Net.Infrastructure.Validation
         /// official documents such as <c>metar-NIL-collect.xml</c>. With <c>addSchemaInfo: false</c> no default attribute is
         /// inserted and the structural validation is otherwise identical. The official schemas declare no identity constraints.
         /// </summary>
-        private void ValidateAgainst(XmlSchemaSet schemaSet, Stream source, List<ValidationError> errors)
+        private void ValidateAgainst(XmlSchemaSet schemaSet, XDocument document, List<ValidationError> errors)
         {
-            var settings = new XmlReaderSettings
-            {
-                DtdProcessing = DtdProcessing.Prohibit,
-                MaxCharactersInDocument = _options.MaxCharactersInDocument,
-                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
-                XmlResolver = null,
-                CloseInput = false
-            };
-
-            XDocument document;
-            try
-            {
-                using (XmlReader reader = XmlReader.Create(source, settings))
-                {
-                    document = XDocument.Load(reader, LoadOptions.SetLineInfo);
-                }
-            }
-            catch (XmlException ex)
-            {
-                errors.Add(CreateMalformedError(ex));
-                return;
-            }
-
             try
             {
                 // Concurrency (AUD-N2): XmlSchemaSet documents no thread-safety guarantee for instance members, and
@@ -274,8 +268,12 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 // clones were rejected: compiling the official closure costs seconds and tens of megabytes per copy.
                 lock (schemaSet)
                 {
-                    ValidateDocument(document, schemaSet, errors);
+                    ValidateDocument(document, schemaSet, errors, _options.MaxValidationErrors);
                 }
+            }
+            catch (TooManyFindingsException)
+            {
+                // The cap was reached: the sentinel finding is already in the list (AUD-M14).
             }
             catch (XmlSchemaException ex)
             {
@@ -290,15 +288,16 @@ namespace Iwxxm.Net.Infrastructure.Validation
             }
         }
 
-        private static void ValidateDocument(XDocument document, XmlSchemaSet schemaSet, List<ValidationError> errors)
+        private static void ValidateDocument(XDocument document, XmlSchemaSet schemaSet, List<ValidationError> errors, int maxErrors)
         {
+            var limit = new ValidationFindingLimit(errors, maxErrors, ValidationFindingLimit.XsdTooManyErrorsCode, ErrorCategory.SchemaViolation);
             document.Validate(
                 schemaSet,
                 (sender, args) =>
                 {
                     if (args.Severity == XmlSeverityType.Error)
                     {
-                        errors.Add(new ValidationError(
+                        bool added = limit.TryAdd(new ValidationError(
                             code: "XSD-SCHEMA-VIOLATION",
                             message: args.Message ?? "XSD validation error.",
                             category: ErrorCategory.SchemaViolation,
@@ -306,62 +305,19 @@ namespace Iwxxm.Net.Infrastructure.Validation
                             location: args.Exception?.SourceUri,
                             lineNumber: args.Exception?.LineNumber,
                             linePosition: args.Exception?.LinePosition));
+                        if (!added)
+                        {
+                            // XDocument.Validate has no cancellation: leave it through the handler once the cap is reached.
+                            throw new TooManyFindingsException();
+                        }
                     }
                 },
                 addSchemaInfo: false);
         }
 
-        private XmlQualifiedName? ReadRootElementName(Stream source, List<ValidationError> errors)
+        /// <summary>Stops <c>XDocument.Validate</c> once <see cref="IwxxmParserOptions.MaxValidationErrors"/> is reached.</summary>
+        private sealed class TooManyFindingsException : Exception
         {
-            var settings = new XmlReaderSettings
-            {
-                DtdProcessing = DtdProcessing.Prohibit,
-                MaxCharactersInDocument = _options.MaxCharactersInDocument,
-                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
-                XmlResolver = null,
-                CloseInput = false
-            };
-
-            try
-            {
-                using (XmlReader reader = XmlReader.Create(source, settings))
-                {
-                    if (reader.MoveToContent() == XmlNodeType.Element)
-                    {
-                        return new XmlQualifiedName(reader.LocalName, reader.NamespaceURI);
-                    }
-                }
-
-                errors.Add(new ValidationError(
-                    code: "XML-NO-ROOT-ELEMENT",
-                    message: "The XML document does not contain a root element.",
-                    category: ErrorCategory.MalformedInput,
-                    severity: ValidationSeverity.Error));
-            }
-            catch (XmlException ex)
-            {
-                errors.Add(CreateMalformedError(ex));
-            }
-
-            return null;
-        }
-
-        private static ValidationError CreateMalformedError(XmlException ex) =>
-            new ValidationError(
-                code: "XML-MALFORMED",
-                message: ex.Message,
-                category: ErrorCategory.MalformedInput,
-                severity: ValidationSeverity.Error,
-                location: null,
-                lineNumber: ex.LineNumber,
-                linePosition: ex.LinePosition);
-
-        private static MemoryStream BufferStream(Stream input)
-        {
-            var buffer = new MemoryStream();
-            input.CopyTo(buffer);
-            buffer.Position = 0;
-            return buffer;
         }
     }
 }

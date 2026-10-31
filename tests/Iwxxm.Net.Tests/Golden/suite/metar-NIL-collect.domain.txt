@@ -16,6 +16,7 @@ MeteorologicalBulletin {
         AerodromeName = "DONLON/INTERNATIONAL"
         AerodromePosition = null
         AirTemperatureCelsius = null
+        Cloud = null
         CloudAndVisibilityOk = false
         CloudLayers = []
         DewpointTemperatureCelsius = null
@@ -30,14 +31,17 @@ MeteorologicalBulletin {
         PermissibleUsageReason = null
         PermissibleUsageSupplementary = null
         PresentWeather = []
+        PresentWeatherNilReason = null
         PrevailingVisibilityMeters = null
         QnhHpa = null
         ReportStatus = ReportStatus.Normal
         ReportType = IwxxmReportType.Metar
         RunwayVisualRanges = []
         SurfaceWind = null
+        Translation = null
         TranslationFailedTac = null
         TrendForecasts = []
+        Visibility = null
       }
       Warnings = []
     }
@@ -50,6 +54,7 @@ MeteorologicalBulletin {
       AerodromeName = "DONLON/INTERNATIONAL"
       AerodromePosition = null
       AirTemperatureCelsius = null
+      Cloud = null
       CloudAndVisibilityOk = false
       CloudLayers = []
       DewpointTemperatureCelsius = null
@@ -64,14 +69,17 @@ MeteorologicalBulletin {
       PermissibleUsageReason = null
       PermissibleUsageSupplementary = null
       PresentWeather = []
+      PresentWeatherNilReason = null
       PrevailingVisibilityMeters = null
       QnhHpa = null
       ReportStatus = ReportStatus.Normal
       ReportType = IwxxmReportType.Metar
       RunwayVisualRanges = []
       SurfaceWind = null
+      Translation = null
       TranslationFailedTac = null
       TrendForecasts = []
+      Visibility = null
     }
   ]
 }

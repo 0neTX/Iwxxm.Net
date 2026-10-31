@@ -15,18 +15,28 @@ namespace Iwxxm.Net.Reports
         public GeoCoordinate Position { get; }
         public DateTimeOffset? EruptionTimeUtc { get; }
 
+        /// <summary>Activity status (WAFS SIGWX <c>activityStatus</c>); <c>null</c> when not reported.</summary>
+        public VolcanoActivityStatus? ActivityStatus { get; }
+
+        /// <summary>Elevation of the ash source (WAFS SIGWX <c>sourceElevation</c>) as reported; <c>null</c> when not reported.</summary>
+        public VerticalLimit? SourceElevation { get; }
+
         private Volcano(
             string id,
             string? name,
             string? wmoNumber,
             GeoCoordinate position,
-            DateTimeOffset? eruptionTimeUtc)
+            DateTimeOffset? eruptionTimeUtc,
+            VolcanoActivityStatus? activityStatus,
+            VerticalLimit? sourceElevation)
         {
             Id = id;
             Name = name;
             WmoNumber = wmoNumber;
             Position = position;
             EruptionTimeUtc = eruptionTimeUtc;
+            ActivityStatus = activityStatus;
+            SourceElevation = sourceElevation;
         }
 
         public static Result<Volcano> Create(
@@ -34,7 +44,9 @@ namespace Iwxxm.Net.Reports
             string? name,
             string? wmoNumber,
             GeoCoordinate position,
-            DateTimeOffset? eruptionTimeUtc = null)
+            DateTimeOffset? eruptionTimeUtc = null,
+            VolcanoActivityStatus? activityStatus = null,
+            VerticalLimit? sourceElevation = null)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -55,7 +67,7 @@ namespace Iwxxm.Net.Reports
 
             string? normalizedName = string.IsNullOrWhiteSpace(name) ? null : name!.Trim();
             return Result<Volcano>.Success(
-                new Volcano(id, normalizedName, wmoNumber, position, eruptionTimeUtc));
+                new Volcano(id, normalizedName, wmoNumber, position, eruptionTimeUtc, activityStatus, sourceElevation));
         }
 
         public bool Equals(Volcano? other)
@@ -66,7 +78,9 @@ namespace Iwxxm.Net.Reports
                    Name == other.Name &&
                    WmoNumber == other.WmoNumber &&
                    Position == other.Position &&
-                   Nullable.Equals(EruptionTimeUtc, other.EruptionTimeUtc);
+                   Nullable.Equals(EruptionTimeUtc, other.EruptionTimeUtc) &&
+                   ActivityStatus == other.ActivityStatus &&
+                   Nullable.Equals(SourceElevation, other.SourceElevation);
         }
 
         public override bool Equals(object? obj) => obj is Volcano other && Equals(other);

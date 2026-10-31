@@ -30,6 +30,7 @@ MeteorologicalBulletin {
         PermissibleUsageSupplementary = null
         ReportStatus = ReportStatus.Normal
         ReportType = IwxxmReportType.Taf
+        Translation = null
         TranslationFailedTac = null
         ValidFromUtc = null
         ValidUntilUtc = null
@@ -59,6 +60,7 @@ MeteorologicalBulletin {
       PermissibleUsageSupplementary = null
       ReportStatus = ReportStatus.Normal
       ReportType = IwxxmReportType.Taf
+      Translation = null
       TranslationFailedTac = null
       ValidFromUtc = null
       ValidUntilUtc = null

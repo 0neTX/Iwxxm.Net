@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.Serialization;
 using Iwxxm.Net.Reports;
@@ -13,20 +12,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping
     /// </summary>
     internal sealed class SigwxDocumentMapper : ISigwxDocumentMapper
     {
-        private readonly SigwxXmlDeserializer _deserializer;
         private readonly SigwxMapper _mapper = new SigwxMapper();
 
-        public SigwxDocumentMapper(IwxxmParserOptions? options = null)
-        {
-            _deserializer = new SigwxXmlDeserializer(options);
-        }
-
-        public Result<Sigwx> Map(Stream validatedDocument)
+        public Result<Sigwx> Map(IwxxmDocumentContext validatedDocument)
         {
             if (validatedDocument == null)
                 throw new ArgumentNullException(nameof(validatedDocument));
 
-            var transport = _deserializer.Deserialize(validatedDocument);
+            var transport = SigwxXmlDeserializer.Deserialize(validatedDocument);
             return transport.IsSuccess
                 ? _mapper.MapToDomain(transport.Value)
                 : Result<Sigwx>.Failure(transport.Errors);

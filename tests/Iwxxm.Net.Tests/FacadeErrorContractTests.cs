@@ -190,21 +190,21 @@ namespace Iwxxm.Net.Tests
 
         private sealed class ThrowingValidator : ISchemaValidator, ISchematronValidator
         {
-            public IReadOnlyList<ValidationError> Validate(Stream document) =>
+            public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document) =>
                 throw new IOException("Simulated validator failure.");
         }
 
         private sealed class NullReturningValidator : ISchematronValidator
         {
-            public IReadOnlyList<ValidationError> Validate(Stream document) => null!;
+            public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document) => null!;
         }
 
         private sealed class ThrowingMapper : IIwxxmDocumentMapper, ISigwxDocumentMapper
         {
-            Result<IwxxmDocument> IIwxxmDocumentMapper.Map(Stream validatedDocument) =>
+            Result<IwxxmDocument> IIwxxmDocumentMapper.Map(IwxxmDocumentContext validatedDocument) =>
                 throw new InvalidOperationException("Simulated mapper failure.");
 
-            Result<Sigwx> ISigwxDocumentMapper.Map(Stream validatedDocument) =>
+            Result<Sigwx> ISigwxDocumentMapper.Map(IwxxmDocumentContext validatedDocument) =>
                 throw new InvalidOperationException("Simulated mapper failure.");
         }
     }

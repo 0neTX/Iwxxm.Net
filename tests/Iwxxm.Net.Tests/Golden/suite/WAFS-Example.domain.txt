@@ -194,10 +194,12 @@ Sigwx {
         UnitOfMeasure = "FL"
         Value = 100
       }
-      Degree = IcingDegreeCode.LightInPrecipitation
-      DegreeNumericCode = 3
+      Degree = CodeListValue<IcingDegreeCode> {
+        Code = IcingDegreeCode.LightInPrecipitation
+        IsKnown = true
+        Notation = "3"
+      }
       Id = "uuid.48f96fb3-6534-4593-b760-9c65d0b9fa96"
-      RawDegreeReference = "http://codes.wmo.int/bufr4/codeflag/0-20-041/3"
       Top = VerticalLimit {
         IsGround = false
         IsNil = false
@@ -312,10 +314,16 @@ Sigwx {
         UnitOfMeasure = null
         Value = null
       }
-      CloudAmount = "http://codes.wmo.int/bufr4/codeflag/0-20-008/10"
-      CloudType = "http://codes.wmo.int/bufr4/codeflag/0-20-012/9"
-      DistributionCode = CloudDistributionCode.Occasional
-      DistributionNumericCode = 10
+      CloudType = CodeListValue<CloudTypeCode> {
+        Code = CloudTypeCode.Cumulonimbus
+        IsKnown = true
+        Notation = "9"
+      }
+      Distribution = CodeListValue<CloudDistributionCode> {
+        Code = CloudDistributionCode.Occasional
+        IsKnown = true
+        Notation = "10"
+      }
       Id = "uuid.6f770e58-488b-4d89-b828-4c952b7d6a65"
       Top = VerticalLimit {
         IsGround = false
@@ -330,11 +338,25 @@ Sigwx {
         UnitOfMeasure = "M"
         Value = 12496.8
       }
-      TypeCode = CloudTypeCode.Cumulonimbus
-      TypeNumericCode = 9
     }
   ]
-  FeatureErrors = []
+  FeatureErrors = [
+    ItemMappingError {
+      Errors = [
+        ValidationError {
+          Category = ErrorCategory.DomainMapping
+          Code = "ACL-SIGWX-FEATURE-BY-REFERENCE"
+          LineNumber = null
+          LinePosition = null
+          Location = "uuid.ce3b61b9-d360-4da1-83b9-67e668406869"
+          Message = "The feature is given only by the reference 'http://online-resource-of-features?object-reference=60ae20bf-8d5c-4da9-b9a0-71a1395df670', which this version does not resolve."
+          Severity = ValidationSeverity.Error
+        }
+      ]
+      Index = 9
+      ItemId = null
+    }
+  ]
   Id = "uuid.ce3b61b9-d360-4da1-83b9-67e668406869"
   IsTranslationFailed = false
   IssueTimeUtc = 2001-01-30T21:00:00.0000000+00:00
@@ -626,6 +648,7 @@ Sigwx {
       }
     }
   ]
+  Translation = null
   TranslationFailedTac = null
   TropicalCyclones = [
     TropicalCyclone {
@@ -1020,10 +1043,12 @@ Sigwx {
         UnitOfMeasure = "M"
         Value = 10363.2
       }
-      Degree = TurbulenceDegreeCode.Moderate
-      DegreeNumericCode = 10
+      Degree = CodeListValue<TurbulenceDegreeCode> {
+        Code = TurbulenceDegreeCode.Moderate
+        IsKnown = true
+        Notation = "10"
+      }
       Id = "uuid.aaaf9f38-dc4c-410d-b056-c130a049bde9"
-      RawDegreeReference = "http://codes.wmo.int/bufr4/codeflag/0-11-030/10"
       Top = VerticalLimit {
         IsGround = false
         IsNil = false
@@ -1056,6 +1081,7 @@ Sigwx {
   ValidUntilUtc = 2001-02-01T18:00:00.0000000+00:00
   Volcanoes = [
     Volcano {
+      ActivityStatus = null
       EruptionTimeUtc = null
       Id = "uuid.bb8c4828-5d6e-41fb-ac96-130a8c3a7cf2"
       Name = "ETNA"
@@ -1063,6 +1089,7 @@ Sigwx {
         Lat = 37.7
         Lon = 15
       }
+      SourceElevation = null
       WmoNumber = null
     }
   ]

@@ -236,10 +236,7 @@ namespace Iwxxm.Net.Tests
 
         private static IReadOnlyList<ValidationError> ValidateXsd(string xml)
         {
-            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml), writable: false))
-            {
-                return XsdValidator.CreateFullSuiteValidator().Validate(stream);
-            }
+            return XsdValidator.CreateFullSuiteValidator().Validate(new Extensibility.IwxxmDocumentContext(Encoding.UTF8.GetBytes(xml)));
         }
     }
 }

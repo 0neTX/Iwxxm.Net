@@ -3,6 +3,7 @@ Metar {
   AerodromeName = "DONLON/INTERNATIONAL"
   AerodromePosition = null
   AirTemperatureCelsius = null
+  Cloud = null
   CloudAndVisibilityOk = false
   CloudLayers = []
   DewpointTemperatureCelsius = null
@@ -17,12 +18,21 @@ Metar {
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
   PresentWeather = []
+  PresentWeatherNilReason = null
   PrevailingVisibilityMeters = null
   QnhHpa = null
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Metar
   RunwayVisualRanges = []
   SurfaceWind = null
+  Translation = TranslationMetadata {
+    TranslatedBulletinId = "TTAAiiCCCYYGGgg"
+    TranslatedBulletinReceptionTimeUtc = 2014-05-15T15:29:00.0000000+00:00
+    TranslationCentreDesignator = "YUZZ"
+    TranslationCentreName = "Fictional translation centre"
+    TranslationTimeUtc = 2014-05-15T15:30:00.0000000+00:00
+  }
   TranslationFailedTac = "METAR YUDO 221630Z INVALID"
   TrendForecasts = []
+  Visibility = null
 }

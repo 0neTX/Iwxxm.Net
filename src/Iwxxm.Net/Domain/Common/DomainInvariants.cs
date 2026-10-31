@@ -118,6 +118,8 @@ namespace Iwxxm.Net.Reports
                 return;
 
             RequireDirection(wind.MeanDirectionDegrees, field + " direction");
+            RequireDirection(wind.ExtremeClockwiseDirectionDegrees, field + " extreme clockwise direction");
+            RequireDirection(wind.ExtremeCounterClockwiseDirectionDegrees, field + " extreme counter-clockwise direction");
             RequireNonNegative(wind.MeanSpeed, field + " mean speed");
             RequireNonNegative(wind.GustSpeed, field + " gust speed");
         }
@@ -130,6 +132,30 @@ namespace Iwxxm.Net.Reports
             RequireOrderedPeriod(group.ValidFromUtc, group.ValidUntilUtc, DomainErrorCodes.ForecastGroupPeriod, $"forecast group '{group.Id}' period");
             RequireNonNegative(group.PrevailingVisibilityMeters, DomainErrorCodes.NegativeVisibility, $"forecast group '{group.Id}' prevailing visibility");
             Check(group.SurfaceWind, $"forecast group '{group.Id}' surface wind");
+            Check(group.Cloud, $"forecast group '{group.Id}' cloud");
+            foreach (AerodromeTemperatureForecast temperature in group.Temperatures)
+            {
+                RequireUtc(temperature?.MaximumTimeUtc, $"forecast group '{group.Id}' maximum temperature time");
+                RequireUtc(temperature?.MinimumTimeUtc, $"forecast group '{group.Id}' minimum temperature time");
+            }
+        }
+
+        internal void Check(AerodromeHorizontalVisibility? visibility)
+        {
+            if (visibility == null)
+                return;
+
+            RequireNonNegative(visibility.PrevailingMeters, DomainErrorCodes.NegativeVisibility, "prevailing visibility");
+            RequireNonNegative(visibility.MinimumMeters, DomainErrorCodes.NegativeVisibility, "minimum visibility");
+            RequireDirection(visibility.MinimumDirectionDegrees, "minimum visibility direction");
+        }
+
+        internal void Check(AerodromeCloud? cloud, string field)
+        {
+            if (cloud?.VerticalVisibility.HasValue == true && cloud.VerticalVisibility.Value.Value < 0.0)
+            {
+                Add(DomainErrorCodes.NegativeVisibility, $"The {field} vertical visibility ({cloud.VerticalVisibility.Value}) cannot be negative.");
+            }
         }
 
         internal void Check(EnRoutePhenomenonVolume? volume)

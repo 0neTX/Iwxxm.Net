@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Iwxxm.Net.Application.Ports;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Reports;
 
@@ -18,13 +19,16 @@ namespace Iwxxm.Net.Application.UseCases
         private readonly ISchematronValidator _schematronValidator;
         private readonly ISigwxDocumentMapper _documentMapper;
         private readonly IwxxmParserOptions _options;
+        private readonly IDocumentParser _parser;
 
         public ProcessSigwxReportUseCase(
             ISchemaValidator schemaValidator,
             ISchematronValidator schematronValidator,
             ISigwxDocumentMapper documentMapper,
+            IDocumentParser parser,
             IwxxmParserOptions? options = null)
         {
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
             _schemaValidator = schemaValidator ?? throw new ArgumentNullException(nameof(schemaValidator));
             _schematronValidator = schematronValidator ?? throw new ArgumentNullException(nameof(schematronValidator));
             _documentMapper = documentMapper ?? throw new ArgumentNullException(nameof(documentMapper));
@@ -36,36 +40,25 @@ namespace Iwxxm.Net.Application.UseCases
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
 
-            Result<byte[]> buffered = BoundedDocumentBuffer.Read(xmlStream, _options, emptyCode: "XML-EMPTY-STREAM", unreadableCode: "STREAM-NOT-READABLE");
+            return ProcessBuffered(BoundedDocumentBuffer.Read(xmlStream, _options, emptyCode: "XML-EMPTY-STREAM", unreadableCode: "STREAM-NOT-READABLE"));
+        }
+
+        public Result<Sigwx> Process(TextReader xmlText)
+        {
+            if (xmlText == null)
+                throw new ArgumentNullException(nameof(xmlText));
+
+            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: "XML-EMPTY-STRING"));
+        }
+
+        private Result<Sigwx> ProcessBuffered(Result<byte[]> buffered)
+        {
             if (buffered.IsFailure)
             {
                 return Result<Sigwx>.Failure(buffered.Errors);
             }
 
-            byte[] payload = buffered.Value;
-
-            using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
-            {
-                var schemaErrors = PipelineGuard.Validate(() => _schemaValidator.Validate(view), PipelineGuard.SchemaValidatorErrorCode, ErrorCategory.SchemaViolation, "schema validator");
-                if (schemaErrors.Count > 0)
-                {
-                    return Result<Sigwx>.Failure(schemaErrors);
-                }
-            }
-
-            using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
-            {
-                var ruleErrors = PipelineGuard.Validate(() => _schematronValidator.Validate(view), PipelineGuard.RuleValidatorErrorCode, ErrorCategory.BusinessRuleViolation, "business-rule validator");
-                if (ruleErrors.Count > 0)
-                {
-                    return Result<Sigwx>.Failure(ruleErrors);
-                }
-            }
-
-            using (MemoryStream view = BoundedDocumentBuffer.OpenView(payload))
-            {
-                return PipelineGuard.Map(() => _documentMapper.Map(view));
-            }
+            return ValidationPipeline.Run(buffered.Value, _options, _parser, _schemaValidator, _schematronValidator, document => _documentMapper.Map(document));
         }
     }
 }

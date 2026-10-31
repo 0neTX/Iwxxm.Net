@@ -93,5 +93,6 @@ SpaceWx {
   ]
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.SpaceWeatherAdvisory
+  Translation = null
   TranslationFailedTac = null
 }

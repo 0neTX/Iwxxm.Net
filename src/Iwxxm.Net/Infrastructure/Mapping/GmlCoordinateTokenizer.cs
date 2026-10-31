@@ -14,19 +14,23 @@ namespace Iwxxm.Net.Infrastructure.Mapping
     /// tokens (<c>[+-]?\d+(\.\d+)?</c>) are parsed in place without a substring. The result list is allocated, and a token
     /// that needs the fallback parser (exponent notation, more than 15 integer digits) costs one substring on
     /// <c>netstandard2.0</c>; on <c>netstandard2.1</c> the fallback parses a span in place.</para>
-    /// <para>Precision: the fast path computes <c>integer + fraction * 10^-n</c>, which is not correctly rounded and can
-    /// differ from <see cref="double.Parse(string, IFormatProvider)"/> by one unit in the last place; coordinates are
-    /// quantized to 1e-7 degrees by <see cref="GeoCoordinate"/> afterwards. Whitespace is recognised with
-    /// <see cref="char.IsWhiteSpace(char)"/>, which accepts more characters than XML whitespace.</para>
+    /// <para>Precision (AUD-L1): the fast path is correctly rounded. A plain decimal token with at most 15 significant digits
+    /// is turned into an exact integer significand (below 2^53) divided by an exact power of ten (at most 10^15), and an
+    /// IEEE-754 division of two exact operands is correctly rounded, so the result equals
+    /// <see cref="double.Parse(string, IFormatProvider)"/>; any other token (more digits, exponent notation) goes to the
+    /// invariant-culture <c>double.TryParse</c> fallback. Separators are XML whitespace only (space, tab, CR, LF).</para>
     /// </remarks>
     internal static class GmlCoordinateTokenizer
     {
-        private static readonly double[] NegativePowersOfTen =
+        /// <summary>Exact powers of ten (every value up to 10^22 is exactly representable as a double).</summary>
+        private static readonly double[] PowersOfTen =
         {
-            1.0,
-            1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9,
-            1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15
+            1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9,
+            1e10, 1e11, 1e12, 1e13, 1e14, 1e15
         };
+
+        /// <summary>Largest number of significant digits whose integer value is always exactly representable (below 2^53).</summary>
+        private const int MaxFastPathDigits = 15;
 
         /// <summary>
         /// Parses a whitespace-delimited GML coordinate list into a list of <see cref="GeoCoordinate"/> instances
@@ -155,19 +159,19 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
         /// <summary>
         /// Parses a single <c>gml:pos</c> string (<c>lat lon</c>) into a <see cref="GeoCoordinate"/> without array allocation.
-        /// Only the first two numbers are read; trailing tokens are ignored.
+        /// Exactly two numbers are expected: an extra token is an error (AUD-L1).
         /// </summary>
         public static Result<GeoCoordinate> ParseSinglePoint(string? posText, string? contextLocation) =>
-            ParseSinglePoint(posText, false, contextLocation);
+            ParseSinglePoint(posText, false, 2, contextLocation);
 
         /// <summary>
-        /// Parses a single <c>gml:pos</c> with the axis order of <paramref name="crs"/> (<c>"Long Lat"</c> is swapped);
-        /// a third coordinate (height) is ignored.
+        /// Parses a single <c>gml:pos</c> with the axis order and dimension of <paramref name="crs"/> (<c>"Long Lat"</c> is
+        /// swapped); the third coordinate (height) of a 3-D position is read and ignored; any other extra token is an error.
         /// </summary>
         public static Result<GeoCoordinate> ParseSinglePoint(string? posText, GmlCrs crs, string? contextLocation) =>
-            ParseSinglePoint(posText, crs.IsLongitudeFirst, contextLocation);
+            ParseSinglePoint(posText, crs.IsLongitudeFirst, crs.Dimension, contextLocation);
 
-        private static Result<GeoCoordinate> ParseSinglePoint(string? posText, bool longitudeFirst, string? contextLocation)
+        private static Result<GeoCoordinate> ParseSinglePoint(string? posText, bool longitudeFirst, int dimension, string? contextLocation)
         {
             if (string.IsNullOrWhiteSpace(posText))
             {
@@ -185,11 +189,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (!SkipWhitespace(text, ref index, length) ||
                 !TryReadNextDouble(text, ref index, length, out double lat) ||
                 !SkipWhitespace(text, ref index, length) ||
-                !TryReadNextDouble(text, ref index, length, out double lon))
+                !TryReadNextDouble(text, ref index, length, out double lon) ||
+                (dimension == 3 && (!SkipWhitespace(text, ref index, length) || !TryReadNextDouble(text, ref index, length, out _))) ||
+                SkipWhitespace(text, ref index, length))
             {
                 return Result<GeoCoordinate>.Failure(
                     "GML-INVALID-POINT",
-                    $"Invalid GML Point coordinate string '{posText}'. Expected 'lat lon'.",
+                    $"Invalid GML Point coordinate string '{posText}'. Expected exactly {dimension} numbers ('lat lon'{(dimension == 3 ? " plus height" : string.Empty)}).",
                     ErrorCategory.DomainMapping,
                     contextLocation);
             }
@@ -201,18 +207,21 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
         private static bool SkipWhitespace(string text, ref int index, int length)
         {
-            while (index < length && char.IsWhiteSpace(text[index]))
+            while (index < length && IsXmlWhitespace(text[index]))
             {
                 index++;
             }
             return index < length;
         }
 
+        /// <summary>XML whitespace (<c>S</c> production): space, tab, carriage return, line feed.</summary>
+        internal static bool IsXmlWhitespace(char c) => c == ' ' || c == '\t' || c == '\r' || c == '\n';
+
         /// <summary>
         /// Reads the next whitespace-delimited IEEE-754 double from <paramref name="text"/> starting at <paramref name="index"/>.
-        /// Uses in-place character arithmetic for plain decimal numbers (<c>[+-]?\d+(\.\d+)?</c>, up to 15 integer digits)
-        /// and falls back to invariant <c>double.TryParse</c> for any other token (exponent notation, longer integer parts),
-        /// which allocates a substring on <c>netstandard2.0</c> only.
+        /// Uses correctly rounded in-place arithmetic for plain decimal numbers (<c>[+-]?\d+(\.\d+)?</c>, at most 15
+        /// significant digits) and falls back to invariant <c>double.TryParse</c> for any other token (exponent notation,
+        /// more digits), which allocates a substring on <c>netstandard2.0</c> only.
         /// </summary>
         internal static bool TryReadNextDouble(string text, ref int index, int length, out double value)
         {
@@ -262,11 +271,12 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     c = text[index];
                     if (c >= '0' && c <= '9')
                     {
-                        if (fractionDigits < 15)
+                        if (fractionDigits <= MaxFastPathDigits)
                         {
                             fractionPart = (fractionPart * 10L) + (c - '0');
-                            fractionDigits++;
                         }
+
+                        fractionDigits++;
                         index++;
                     }
                     else
@@ -277,9 +287,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
 
             // If scientific notation or oversized integer part is encountered, advance to token end and use invariant TryParse
-            if ((index < length && !char.IsWhiteSpace(text[index])) || intDigits > 15 || (intDigits == 0 && fractionDigits == 0))
+            if ((index < length && !IsXmlWhitespace(text[index])) ||
+                intDigits + fractionDigits > MaxFastPathDigits ||
+                (intDigits == 0 && fractionDigits == 0))
             {
-                while (index < length && !char.IsWhiteSpace(text[index]))
+                while (index < length && !IsXmlWhitespace(text[index]))
                 {
                     index++;
                 }
@@ -297,11 +309,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 #endif
             }
 
-            double result = integerPart;
-            if (fractionDigits > 0)
-            {
-                result += fractionPart * NegativePowersOfTen[fractionDigits];
-            }
+            // Exact significand (< 10^15 < 2^53) divided by an exact power of ten: one correctly rounded operation.
+            long significand = (integerPart * (long)PowersOfTen[fractionDigits]) + fractionPart;
+            double result = fractionDigits == 0 ? significand : significand / PowersOfTen[fractionDigits];
 
             value = isNegative ? -result : result;
             return true;

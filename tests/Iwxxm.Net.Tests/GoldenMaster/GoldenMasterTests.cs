@@ -1,3 +1,7 @@
+// The golden files are generated on .NET (net10.0). On .NET Framework (net48, Windows CI) "R" formatting, double parsing and
+// the math library are not bit-identical to .NET, so the byte-for-byte characterization runs on .NET only; the behaviour is
+// covered on net48 by every other test (AUD-M17).
+#if !NETFRAMEWORK
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -145,3 +149,4 @@ namespace Iwxxm.Net.Tests.GoldenMaster
         }
     }
 }
+#endif

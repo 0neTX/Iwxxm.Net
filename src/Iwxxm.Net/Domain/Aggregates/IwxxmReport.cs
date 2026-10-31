@@ -1,3 +1,5 @@
+using System;
+
 namespace Iwxxm.Net.Reports
 {
     /// <summary>
@@ -31,5 +33,25 @@ namespace Iwxxm.Net.Reports
         /// Gets the raw Traditional Alphanumeric Code (TAC) text when <see cref="IsTranslationFailed"/> is <c>true</c>.
         /// </summary>
         public abstract string? TranslationFailedTac { get; }
+
+        /// <summary>
+        /// Gets the TAC translation metadata (<c>translatedBulletinID</c>, <c>translatedBulletinReceptionTime</c>,
+        /// <c>translationCentreDesignator</c>, <c>translationCentreName</c>, <c>translationTime</c>), or <c>null</c> when
+        /// the report carries none of them (it was not translated from TAC).
+        /// </summary>
+        public TranslationMetadata? Translation { get; private set; }
+
+        /// <summary>
+        /// Attaches the translation metadata read by the Anti-Corruption Layer. Called once, before the aggregate is
+        /// returned to any caller; the report is immutable from then on.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The metadata was already attached.</exception>
+        internal void InitializeTranslation(TranslationMetadata? translation)
+        {
+            if (Translation != null)
+                throw new InvalidOperationException("The translation metadata of a report can only be attached once.");
+
+            Translation = translation;
+        }
     }
 }

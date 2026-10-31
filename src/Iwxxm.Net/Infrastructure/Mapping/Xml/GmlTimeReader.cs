@@ -101,7 +101,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             endUtc = ParseTimePosition(periodElem.Element(GmlNs + "endPosition")?.Value, field + "/endPosition", id, errors);
         }
 
-        private static DateTimeOffset? ParseTimePosition(string? text, string field, string id, List<ValidationError> errors)
+        internal static DateTimeOffset? ParseTimePosition(string? text, string field, string id, List<ValidationError> errors)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return null;

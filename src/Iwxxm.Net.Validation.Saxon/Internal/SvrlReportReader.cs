@@ -1,80 +1,124 @@
 using System;
 using System.Collections.Generic;
-using Saxon.Api;
+using System.IO;
+using System.Xml;
 
 namespace Iwxxm.Net.Validation.Saxon.Internal
 {
     /// <summary>
-    /// Maps an SVRL report produced by SchXslt onto <see cref="ValidationError"/> instances.
+    /// Streams an SVRL report produced by SchXslt onto <see cref="ValidationError"/> instances (forward-only; the report is
+    /// never materialised as a tree).
     /// <list type="bullet">
     /// <item><b>Code</b>: <c>svrl:failed-assert/@id</c> or <c>svrl:successful-report/@id</c> when present, otherwise the
     /// <c>@id</c> of the preceding <c>svrl:active-pattern</c> (the official rule identifier, e.g.
     /// <c>METAR_SPECI.MeteorologicalAerodromeObservation-5</c>; the official rules declare ids on patterns only).</item>
     /// <item><b>Severity</b>: <c>@role</c> (or <c>@flag</c>) of <c>warn</c>, <c>warning</c>, <c>info</c> or
-    /// <c>information</c> maps to <see cref="ValidationSeverity.Warning"/>; anything else (including no role, which is
-    /// the case for every official assertion) maps to <see cref="ValidationSeverity.Error"/>.</item>
+    /// <c>information</c> maps to <see cref="ValidationSeverity.Warning"/>, <c>error</c>/<c>fatal</c> to
+    /// <see cref="ValidationSeverity.Error"/>; without a role a failed assertion is an error (the case for every official
+    /// assertion) and a successful report is a warning.</item>
     /// <item><b>Location</b>: <c>@location</c> (an XPath with <c>Q{namespace}local</c> steps).</item>
     /// <item><b>Message</b>: <c>svrl:text</c>.</item>
+    /// <item><b>Cap</b>: at most <c>maxFindings</c> findings; then a single <see cref="TooManyErrorsCode"/> sentinel.</item>
     /// </list>
     /// </summary>
     internal static class SvrlReportReader
     {
         internal const string SvrlNamespace = "http://purl.oclc.org/dsdl/svrl";
         internal const string FallbackCode = "SCHEMATRON-ASSERT-FAILED";
+        internal const string TooManyErrorsCode = "SCHEMATRON-TOO-MANY-ERRORS";
 
-        public static List<ValidationError> Read(XdmNode svrlDocument)
+        public static List<ValidationError> Read(Stream svrl, int maxFindings, long maxCharacters)
         {
-            if (svrlDocument == null)
-                throw new ArgumentNullException(nameof(svrlDocument));
+            if (svrl == null)
+                throw new ArgumentNullException(nameof(svrl));
+
+            var settings = new XmlReaderSettings
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = maxCharacters,
+                MaxCharactersFromEntities = 0,
+                CloseInput = false
+            };
 
             var findings = new List<ValidationError>();
-            XdmNode? root = svrlDocument.NodeKind == XdmNodeKind.Document ? svrlDocument.OutermostElement : svrlDocument;
-            if (root == null)
-                return findings;
-
+            int sentinelIndex = -1;
             string? currentPatternId = null;
-            foreach (XdmNode child in root.Children())
-            {
-                QName? name = child.NodeName;
-                if (name == null || name.Uri != SvrlNamespace)
-                    continue;
 
-                switch (name.LocalName)
+            using (XmlReader reader = XmlReader.Create(svrl, settings))
+            {
+                while (reader.Read())
                 {
-                    case "active-pattern":
-                        currentPatternId = NullIfEmpty(child.GetAttributeValue("id")) ?? NullIfEmpty(child.GetAttributeValue("name"));
-                        break;
-                    case "failed-assert":
-                    case "successful-report":
-                        findings.Add(ToValidationError(child, currentPatternId));
-                        break;
+                    if (reader.NodeType != XmlNodeType.Element || reader.NamespaceURI != SvrlNamespace)
+                        continue;
+
+                    switch (reader.LocalName)
+                    {
+                        case "active-pattern":
+                            currentPatternId = NullIfEmpty(reader.GetAttribute("id")) ?? NullIfEmpty(reader.GetAttribute("name"));
+                            break;
+                        case "failed-assert":
+                        case "successful-report":
+                            ValidationError finding = ToValidationError(reader, currentPatternId);
+                            if (sentinelIndex >= 0)
+                            {
+                                if (finding.Severity == ValidationSeverity.Error && findings[sentinelIndex].Severity != ValidationSeverity.Error)
+                                    findings[sentinelIndex] = Sentinel(maxFindings, ValidationSeverity.Error);
+                            }
+                            else if (findings.Count >= maxFindings)
+                            {
+                                sentinelIndex = findings.Count;
+                                findings.Add(Sentinel(maxFindings, finding.Severity));
+                            }
+                            else
+                            {
+                                findings.Add(finding);
+                            }
+
+                            break;
+                    }
                 }
             }
 
             return findings;
         }
 
-        private static ValidationError ToValidationError(XdmNode finding, string? patternId)
+        private static ValidationError Sentinel(int maxFindings, ValidationSeverity severity) =>
+            new ValidationError(
+                TooManyErrorsCode,
+                $"Too many validation findings: only the first {maxFindings} are reported.",
+                ErrorCategory.BusinessRuleViolation,
+                severity);
+
+        private static ValidationError ToValidationError(XmlReader reader, string? patternId)
         {
-            string code = NullIfEmpty(finding.GetAttributeValue("id")) ?? patternId ?? FallbackCode;
-            string? test = finding.GetAttributeValue("test");
+            bool isReport = reader.LocalName == "successful-report";
+            string code = NullIfEmpty(reader.GetAttribute("id")) ?? patternId ?? FallbackCode;
+            string? test = reader.GetAttribute("test");
+            string? role = reader.GetAttribute("role") ?? reader.GetAttribute("flag");
+            string? location = NullIfEmpty(reader.GetAttribute("location"));
 
             string? text = null;
-            foreach (XdmNode textNode in finding.Children(SvrlNamespace, "text"))
+            using (XmlReader subtree = reader.ReadSubtree())
             {
-                text = NullIfEmpty(textNode.StringValue?.Trim());
-                break;
+                while (subtree.Read())
+                {
+                    if (text == null && subtree.NodeType == XmlNodeType.Element && subtree.NamespaceURI == SvrlNamespace && subtree.LocalName == "text")
+                    {
+                        text = NullIfEmpty(subtree.ReadElementContentAsString().Trim());
+                    }
+                }
             }
 
             return new ValidationError(
                 code: code,
                 message: text ?? $"Official Schematron assertion failed ({test}).",
                 category: ErrorCategory.BusinessRuleViolation,
-                severity: MapSeverity(finding.GetAttributeValue("role") ?? finding.GetAttributeValue("flag")),
-                location: NullIfEmpty(finding.GetAttributeValue("location")));
+                severity: MapSeverity(role, isReport),
+                location: location);
         }
 
-        private static ValidationSeverity MapSeverity(string? role)
+        internal static ValidationSeverity MapSeverity(string? role, bool isSuccessfulReport)
         {
             switch (role?.Trim().ToLowerInvariant())
             {
@@ -83,8 +127,11 @@ namespace Iwxxm.Net.Validation.Saxon.Internal
                 case "info":
                 case "information":
                     return ValidationSeverity.Warning;
-                default:
+                case "error":
+                case "fatal":
                     return ValidationSeverity.Error;
+                default:
+                    return isSuccessfulReport ? ValidationSeverity.Warning : ValidationSeverity.Error;
             }
         }
 

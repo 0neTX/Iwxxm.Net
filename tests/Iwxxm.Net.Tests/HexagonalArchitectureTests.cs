@@ -170,7 +170,64 @@ namespace Iwxxm.Net.Tests
             Assert.Contains(ports, t => t.Name == "IIwxxmDocumentMapper");
             Assert.Contains(ports, t => t.Name == "ISigwxDocumentMapper");
             Assert.Contains(ports, t => t.Name == "IGeoJsonExporter");
-            Assert.All(ports, t => Assert.True(t.IsInterface && t.IsPublic, $"'{t.FullName}' must be a public interface."));
+
+            // The only non-interface type of the namespace is the neutral document context passed to the ports (HEX-01).
+            Type context = Assert.Single(ports, t => !t.IsInterface);
+            Assert.Equal("IwxxmDocumentContext", context.Name);
+            Assert.True(context.IsPublic && context.IsSealed && context.IsClass);
+            Assert.All(ports.Where(t => t != context), t => Assert.True(t.IsInterface && t.IsPublic, $"'{t.FullName}' must be a public interface."));
+        }
+
+        [Fact]
+        public void Facades_DoNotImplementInboundPorts()
+        {
+            // HEX-02: the use-case contract (inbound port) is implemented only by the use cases; facades delegate to it.
+            string[] inboundPorts = { "IIwxxmReportDispatcher", "IIwxxmSigwxProcessor", "IGeoJsonExportService" };
+            var offenders = CoreAssembly.GetTypes()
+                .Where(t => ArchitectureLayers.Classify(t.Namespace, t.Name) == Layer.Presentation)
+                .Where(t => t.GetInterfaces().Any(i => inboundPorts.Contains(i.Name)))
+                .Select(t => t.FullName)
+                .ToList();
+
+            Assert.True(offenders.Count == 0, "Facades implementing inbound ports: " + string.Join(", ", offenders));
+        }
+
+        [Fact]
+        public void OutboundPorts_ReceiveTheDocumentContext_NotAStream()
+        {
+            // HEX-01: the use case owns reading the input; the ports receive the sanitized, already parsed context.
+            foreach (string portName in new[] { "ISchemaValidator", "ISchematronValidator", "IIwxxmDocumentMapper", "ISigwxDocumentMapper" })
+            {
+                Type port = CoreAssembly.GetType(ArchitectureLayers.ExtensibilityNamespace + "." + portName, throwOnError: true)!;
+                foreach (MethodInfo method in port.GetMethods())
+                {
+                    Assert.All(method.GetParameters(), p => Assert.NotEqual(typeof(System.IO.Stream), p.ParameterType));
+                    Assert.Contains(method.GetParameters(), p => p.ParameterType.Name == "IwxxmDocumentContext");
+                }
+            }
+        }
+
+        [Fact]
+        public void InputXmlReaderSettings_AreCreatedOnlyBySecureXml()
+        {
+            // HEX-01: a single place builds the reader settings for input documents (embedded resources excluded).
+            string[] allowed =
+            {
+                "Iwxxm.Net.Infrastructure.Xml.SecureXml",
+                "Iwxxm.Net.Infrastructure.Validation.XsdValidator",
+                "Iwxxm.Net.Infrastructure.Validation.XsltSchematronValidator",
+                "Iwxxm.Net.Infrastructure.Validation.CachedRuleDocumentResolver",
+                "Iwxxm.Net.Infrastructure.Mapping.CodeLists.OfficialCodeListReader"
+            };
+
+            var offenders = Types.InAssembly(CoreAssembly)
+                .That().HaveDependencyOn("System.Xml.XmlReaderSettings")
+                .GetTypes()
+                .Select(t => t.FullName!)
+                .Where(name => !allowed.Any(a => name == a || name.StartsWith(a + "+", StringComparison.Ordinal)))
+                .ToList();
+
+            Assert.True(offenders.Count == 0, "Input XmlReaderSettings outside SecureXml: " + string.Join(", ", offenders));
         }
 
         private static void AssertNoDependency(Layer layer, string[] forbidden)

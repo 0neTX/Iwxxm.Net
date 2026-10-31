@@ -476,6 +476,15 @@ namespace Iwxxm20252.Generated
 
     [Serializable]
     [DebuggerStepThrough]
+    [XmlType("ElevatedLevelPropertyType", Namespace = XmlNamespaces.Iwxxm)]
+    internal partial class ElevatedLevelPropertyType
+    {
+        [XmlElement("ElevatedLevel", Namespace = XmlNamespaces.Iwxxm)]
+        public ElevatedLevelType? ElevatedLevel { get; set; }
+    }
+
+    [Serializable]
+    [DebuggerStepThrough]
     [XmlType("ElevatedVolumeType", Namespace = XmlNamespaces.Iwxxm)]
     internal partial class ElevatedVolumeType : AbstractGMLType
     {
@@ -541,6 +550,12 @@ namespace Iwxxm20252.Generated
 
         [XmlElement("IAVCEINumber", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
         public StringWithNilReasonType? IAVCEINumber { get; set; }
+
+        [XmlElement("sourceElevation", Namespace = XmlNamespaces.Iwxxm, IsNullable = true)]
+        public ElevatedLevelPropertyType? SourceElevation { get; set; }
+
+        [XmlElement("activityStatus", Namespace = XmlNamespaces.Iwxxm)]
+        public string? ActivityStatus { get; set; }
 
         [XmlElement("wmoNumber", Namespace = XmlNamespaces.Iwxxm)]
         public string? WmoNumber { get; set; }

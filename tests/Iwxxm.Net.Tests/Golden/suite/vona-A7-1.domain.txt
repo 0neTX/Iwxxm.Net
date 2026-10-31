@@ -37,9 +37,11 @@ Vona {
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.VolcanoObservatoryNotice
   StateOrRegion = "RUSSIA"
+  Translation = null
   TranslationFailedTac = null
   Volcanoes = [
     Volcano {
+      ActivityStatus = null
       EruptionTimeUtc = null
       Id = "uuid.a2885938-cbd0-4953-bd07-c813ce918b1d"
       Name = "KARYMSKY"
@@ -47,6 +49,7 @@ Vona {
         Lat = 54.03
         Lon = 159.27
       }
+      SourceElevation = null
       WmoNumber = "300130"
     }
   ]

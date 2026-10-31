@@ -26,10 +26,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
         /// <summary>Maps a document with the mapper only (no XSD / Schematron validation).</summary>
         internal static Result<IwxxmDocument> MapDirectly(string xml)
         {
-            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml)))
-            {
-                return new IwxxmSuiteMapper().Map(stream);
-            }
+            return new IwxxmSuiteMapper().Map(new Extensibility.IwxxmDocumentContext(Encoding.UTF8.GetBytes(xml)));
         }
 
         internal static Result<IwxxmDocument> MapDirectly(XDocument document) => MapDirectly(document.ToString(SaveOptions.DisableFormatting));

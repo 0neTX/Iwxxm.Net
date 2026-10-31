@@ -105,7 +105,8 @@ namespace Iwxxm.Net.Tests.DataFidelity
             var result = IwxxmSigwxParser.Parse(WafsWithBrokenTurbulence(breakAll: false).ToString());
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            ItemMappingError featureError = Assert.Single(result.Value.FeatureErrors);
+            // The official example also references one remote feature, reported as a feature error (AUD-L4).
+            ItemMappingError featureError = Assert.Single(result.Value.FeatureErrors, e => e.ItemId != null);
             Assert.Equal("uuid.aaaf9f38-dc4c-410d-b056-c130a049bde9", featureError.ItemId);
             Assert.Equal(official.Turbulences.Count - 1, result.Value.Turbulences.Count);
             Assert.Equal(official.JetStreams.Count, result.Value.JetStreams.Count);

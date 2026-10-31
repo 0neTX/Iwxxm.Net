@@ -8,7 +8,7 @@
 
 > **Validation scope at a glance**
 > - **XSD**: every standard document is validated against the **unmodified official WMO IWXXM 2025-2 schemas** (`IWXXM/*.xsd` from [wmo-im/iwxxm](https://github.com/wmo-im/iwxxm)) together with the official imported schemas (OGC GML 3.2.1, OGC O&M 2.0, ISO 19139, AIXM 5.1.1, WMO METCE 1.2, OPM 1.2, COLLECT 1.2, W3C XLink/XML), embedded byte-for-byte.
-> - **Business rules (Schematron)**: **partial**. The official `iwxxm.sch` requires XSLT 2.0, which `XslCompiledTransform` cannot run, so the library ships its own XSLT 1.0 subset: **11 of the 165 official rule IDs** are implemented (some only for a subset of their official contexts), plus code-list membership checks of every `codes.wmo.int` `xlink:href` against the **20 official WMO RDF code lists** and a few library-specific checks. A document accepted by the default configuration may still violate official rules that are not implemented.
+> - **Business rules (Schematron)**: **partial**. The official `iwxxm.sch` requires XSLT 2.0, which `XslCompiledTransform` cannot run, so the library ships its own XSLT 1.0 subset: **11 of the 165 official rule IDs** are implemented (some only for a subset of their official contexts), plus code-list membership checks of every `codes.wmo.int` `xlink:href` against the **20 official WMO RDF code lists** and a few library-specific checks. A document accepted by the default configuration may still violate official rules that are not implemented. **This subset is what the core package runs by default** (`IwxxmParser.Default`, `IwxxmSigwxParser.Default`, `new IwxxmParserBuilder().Build()`); full official rule coverage requires `UseOfficialSchematron()` from the optional package below.
 > - **Complete official rules (optional)**: the separate package **`Iwxxm.Net.Validation.Saxon`** (`net10.0`, SaxonCS-HE) runs the **unmodified official `iwxxm.sch` (all 165 rule patterns)** through `IwxxmParserBuilder.UseOfficialSchematron()`; see [4.11](#411-official-wmo-schematron-optional-iwxxmnetvalidationsaxon).
 > - **`iwxxm:SIGWXReport`** is a **NON-STANDARD** compact root specific to this library (it is not declared by any official schema); it is validated against a separate, hand-written legacy schema subset.
 
@@ -79,7 +79,7 @@ Every parsed document derives from the closed abstract root `IwxxmDocument`, whi
 
 ## Installation
 
-Packages are published to **GitHub Packages** (`https://github.com/0neTX/Iwxxm.Net/packages`).
+Packages are published to **GitHub Packages** (`https://github.com/0neTX/Iwxxm.Net/packages`) only for release tags `vMAJOR.MINOR.PATCH[-PRERELEASE]` (the tag is the package version) or a deliberate manual workflow run; pull requests and pushes to `main` build and test `-ci.<run>.<attempt>` prereleases that are never published.
 
 Configure the GitHub Packages NuGet source:
 
@@ -398,19 +398,19 @@ if (result.IsSuccess)
     // 2. Clouds (WMO BUFR 0-20-008 Distribution & 0-20-012 Cloud Type)
     foreach (Cloud cloud in sigwx.Clouds)
     {
-        Console.WriteLine($"Cloud {cloud.Id}: {cloud.DistributionCode} {cloud.TypeCode} ({cloud.Base?.ToString() ?? "XXX"}-{cloud.Top})");
+        Console.WriteLine($"Cloud {cloud.Id}: {cloud.Distribution?.Code} {cloud.CloudType?.Code} ({cloud.Base?.ToString() ?? "XXX"}-{cloud.Top})");
     }
 
     // 3. Clear Air Turbulence (WMO BUFR 0-11-030 Extended Degree of Turbulence)
     foreach (Turbulence turb in sigwx.Turbulences)
     {
-        Console.WriteLine($"Turbulence {turb.Id}: {turb.Degree} ({turb.Base}-{turb.Top})"); // e.g. "10363.2 M MSL-12192 M MSL", never converted to FL340-FL400
+        Console.WriteLine($"Turbulence {turb.Id}: {turb.Degree?.Code} ({turb.Base}-{turb.Top})"); // e.g. "10363.2 M MSL-12192 M MSL", never converted to FL340-FL400
     }
 
     // 4. Airframe Icing (WMO BUFR 0-20-041 Airframe Icing)
     foreach (AirframeIcing icing in sigwx.AirframeIcings)
     {
-        Console.WriteLine($"Icing {icing.Id}: {icing.Degree} ({icing.Base}-{icing.Top})");
+        Console.WriteLine($"Icing {icing.Id}: {icing.Degree?.Code} ({icing.Base}-{icing.Top})");
     }
 
     // 5. Tropopause Contours & Spot Heights
@@ -595,14 +595,16 @@ if (reportResult.IsSuccess)
 
 ### 4.8 Dual Validation & Structured Error Diagnostics (`Result<T>` & `ValidationError`)
 
-Every parsing operation returns an immutable `Result<T>` without throwing exceptions on invalid XML, XSD schema violations, Schematron rule failures, unregistered WMO RDF code-list URIs, file-system errors or failing adapters. **Only argument validation throws**: `ArgumentNullException` for a `null` stream and `ArgumentException` for a `null`, empty or whitespace file path.
+Every parsing operation returns an immutable `Result<T>` (with `Map`, `Bind`, `Match` and `TryGetValue`; non-fatal findings are in `Warnings`) without throwing exceptions on invalid XML, XSD schema violations, Schematron rule failures, unregistered WMO RDF code-list URIs, file-system errors or failing adapters. **Only argument validation throws**: `ArgumentNullException` for a `null` stream and `ArgumentException` for a `null`, empty or whitespace file path.
 
 | Code | Category | Meaning |
 | :--- | :--- | :--- |
 | `FILE-NOT-FOUND` | `MalformedInput` | The file or its directory does not exist. |
 | `ACCESS-DENIED` | `MalformedInput` | Permission denied (or the path is a directory). |
 | `FILE-READ-ERROR` | `MalformedInput` | Sharing violation, path too long, malformed path or other I/O error. |
-| `XML-SIZE-LIMIT`, `XML-MALFORMED`, `STREAM-*` | `MalformedInput` | Size limits, malformed XML, unreadable or empty stream. |
+| `XML-SIZE-LIMIT`, `XML-MALFORMED`, `STREAM-*` | `MalformedInput` | Size limits, malformed XML or DTD (checked once by the use case before any adapter), unreadable or empty stream. |
+| `XSD-TOO-MANY-ERRORS`, `SCHEMATRON-TOO-MANY-ERRORS` | `SchemaViolation` / `BusinessRuleViolation` | More findings than `IwxxmParserOptions.MaxValidationErrors`; only the first ones are reported. |
+| `SCHEMATRON-REPORT-SIZE-LIMIT`, `SCHEMATRON-UNAVAILABLE` | `BusinessRuleViolation` | The SVRL report exceeds `MaxRuleReportBytes` / the rules could not be compiled (retried on the next validation). |
 | `XSD-*` / `SCHEMA-VALIDATOR-ERROR` | `SchemaViolation` | Schema violation / the schema validator threw or returned nothing. |
 | official rule ids / `RULE-VALIDATOR-ERROR` | `BusinessRuleViolation` | Schematron or code-list rule / the rule validator threw or returned nothing. |
 | `MAPPER-ERROR` | `DomainMapping` | The document mapper threw or returned nothing. |
@@ -694,12 +696,14 @@ var builder = new IwxxmParserBuilder()
     // .UseSchemaValidator(...) / .UseDocumentMapper(...) / .UseSigwxDocumentMapper(...) / .UseGeoJsonExporter(...)
     ;
 
-services.AddSingleton(builder.Build());               // IwxxmParser (implements IIwxxmReportDispatcher)
-services.AddSingleton(builder.BuildSigwxParser());    // IwxxmSigwxParser (implements IIwxxmSigwxProcessor)
-services.AddSingleton(builder.BuildGeoJsonExporter()); // IwxxmGeoJsonExporter (implements IGeoJsonExportService)
+services.AddSingleton(builder.Build());               // IwxxmParser (convenience facade)
+services.AddSingleton(builder.BuildSigwxParser());    // IwxxmSigwxParser
+services.AddSingleton(builder.BuildGeoJsonExporter()); // IwxxmGeoJsonExporter
 
-// Inject the inbound ports where only the use case is needed:
-services.AddSingleton<IIwxxmReportDispatcher>(sp => sp.GetRequiredService<IwxxmParser>());
+// The facades do not implement the inbound ports (HEX-02); they expose the port they delegate to.
+// Inject the inbound ports where only the use-case contract is needed:
+services.AddSingleton<IIwxxmReportDispatcher>(sp => sp.GetRequiredService<IwxxmParser>().Dispatcher);
+services.AddSingleton<IIwxxmSigwxProcessor>(sp => sp.GetRequiredService<IwxxmSigwxParser>().Processor);
 ```
 
 | Port | Kind | Namespace | Default adapter |
@@ -713,7 +717,7 @@ services.AddSingleton<IIwxxmReportDispatcher>(sp => sp.GetRequiredService<IwxxmP
 | `ISigwxDocumentMapper` | outbound | `Iwxxm.Net.Extensibility` | built-in SIGWX mapper |
 | `IGeoJsonExporter` | outbound | `Iwxxm.Net.Extensibility` | built-in RFC 7946 writer |
 
-Outbound validators receive a seekable, read-only, size-bounded stream positioned at the start of the document and return `IReadOnlyList<ValidationError>`; any finding stops the pipeline.
+Outbound ports receive an **`IwxxmDocumentContext`** (`Iwxxm.Net.Extensibility`): the use case has already bounded the size, converted text input to UTF-8 and parsed the document once with the hardened reader settings (DTD prohibited, no resolver, character quotas), so a malformed or DTD-bearing document never reaches an adapter (`XML-MALFORMED`). `OpenRead()` returns a read-only stream of the document bytes for adapters that need raw XML; the built-in adapters share the parsed tree. An adapter can be called directly with `new IwxxmDocumentContext(bytes, options)`. Validators return `IReadOnlyList<ValidationError>`: findings with `ValidationSeverity.Error` stop the pipeline, `Warning` findings are returned as `Result<T>.Warnings` of the successful result. Each validator reports at most `IwxxmParserOptions.MaxValidationErrors` findings (then a `*-TOO-MANY-ERRORS` sentinel), and Schematron reports are bounded by `MaxRuleReportBytes` (`SCHEMATRON-REPORT-SIZE-LIMIT`).
 
 ---
 
@@ -723,7 +727,7 @@ The official `iwxxm.sch` uses `queryBinding="xslt2"`, which the .NET BCL cannot 
 
 - The **byte-identical official `iwxxm.sch`** (165 rule patterns, no rewriting) is compiled once per process to XSLT with the vendored **SchXslt 1.10.1** compiler (MIT) and cached as an immutable, thread-safe Saxon executable (first compilation takes roughly a second).
 - **Air-gapped**: the official `document('codes.wmo.int-*.rdf')` code-list lookups resolve to the official WMO RDF files embedded in `Iwxxm.Net`; every other URI (network, file system) is refused.
-- SVRL `failed-assert` / `successful-report` findings become `ValidationError`s with `ErrorCategory.BusinessRuleViolation`, the **official rule (pattern) id** as `Code` (e.g. `METAR_SPECI.MeteorologicalAerodromeObservation-5`), the official message, the SVRL XPath `Location`, and `Severity` from `@role`/`@flag` (the official rules declare none, so all are `Error`).
+- SVRL `failed-assert` / `successful-report` findings become `ValidationError`s with `ErrorCategory.BusinessRuleViolation`, the **official rule (pattern) id** as `Code` (e.g. `METAR_SPECI.MeteorologicalAerodromeObservation-5`), the official message, the SVRL XPath `Location`, and `Severity` from `@role`/`@flag` (the official rules declare none, so all failed assertions are `Error`; a fired `successful-report` without an error role is a `Warning`). The SVRL report is streamed from a size-bounded buffer and findings are capped (see 4.10).
 - All 29 official WMO examples pass. Note that the official rules themselves are not exhaustive: for example, an ordinary TAF whose `iwxxm:baseForecast` element is entirely absent is not reported by `TAF.TAF-5` (its test compares an empty attribute sequence).
 - Requires a `net10.0` application. No Saxonica license key is needed: the package only requests Saxon-HE capabilities (`new Processor(false)`), verified in CI by the package tests.
 
@@ -755,7 +759,10 @@ Result<IwxxmDocument> result = parser.ProcessFile("metar.xml");
 | **`ReportStatus` / `PermissibleUsage` / `PermissibleUsageReason`** | `Iwxxm.Net.Reports` | Typed report metadata (`common.xsd`). Missing or unknown required values are mapping errors; a report is never presented as operational by default. |
 | **`Speed`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` holding a reported speed value and its `SpeedUnit` (`MetersPerSecond`, `Knots`, `KilometersPerHour`); exact conversions `ToMetersPerSecond()`, `ToKnots()`, `ToKilometersPerHour()` (1 kt = 1852/3600 m/s). Equality is exact on value and unit. |
 | **`Length`** | `Iwxxm.Net.Reports` | Immutable `readonly struct` holding a reported length and its `LengthUnit` (`Meters`, `Feet`, `Kilometers`, `NauticalMiles`, `StatuteMiles`); exact conversions `ToMeters()`, `ToFeet()`, ... (1 ft = 0.3048 m). |
-| **`WmoCodeRegistry`** | `Iwxxm.Net.Reports` | Resolves WMO BUFR code-table URIs (`0-20-008`, `0-20-012`, `0-11-030`, `0-20-041`), bare codes and TAC abbreviations into `CloudDistributionCode`, `CloudTypeCode`, `TurbulenceDegreeCode`, and `IcingDegreeCode`. Every official code maps to a member whose numeric value equals the official code and whose name reflects the official meaning (verified against the official RDF tables); `Cloud`, `Turbulence` and `AirframeIcing` also expose the raw value and the parsed official numeric code (`DistributionNumericCode`, `TypeNumericCode`, `DegreeNumericCode`). |
+| **BUFR codes** | `Iwxxm.Net.Reports` | `Cloud.Distribution`, `Cloud.CloudType`, `Turbulence.Degree` and `AirframeIcing.Degree` are `CodeListValue<CloudDistributionCode / CloudTypeCode / TurbulenceDegreeCode / IcingDegreeCode>`, translated by the Anti-Corruption Layer from WMO BUFR code-table URIs (`0-20-008`, `0-20-012`, `0-11-030`, `0-20-041`), bare codes and TAC abbreviations. Every official code maps to a member whose numeric value equals the official code and whose name reflects the official meaning (verified against the official RDF tables); `Notation` keeps the code as reported. |
+| **`CodeListValue<NilReason>`** | `Iwxxm.Net.Reports` | `@nilReason` translated against the official register `http://codes.wmo.int/common/nil`: distinguishes `NSW` (`AerodromeForecastGroup.IsNoSignificantWeather`), `NSC`/`NCD` (`AerodromeCloud.IsNoSignificantCloud` / `IsNoCloudDetected`), `VV///`, `//` and `SKC` from content that is not reported. |
+| **`RelationalOperator`** | `Iwxxm.Net.Reports` | TAC `P`/`M` qualifiers on wind and gust speeds, RVR and prevailing visibility (`SurfaceWind.MeanSpeedOperator`, `RunwayVisualRange.MeanRvrOperator`, `AerodromeHorizontalVisibility.PrevailingOperator`). |
+| **`TranslationMetadata`** | `Iwxxm.Net.Reports` | `IwxxmReport.Translation`: `translatedBulletinID`, reception time, translation centre designator/name and translation time (`null` when the report was not translated from TAC). |
 
 ---
 
@@ -847,7 +854,7 @@ IWXXM_NUGET_PUBLISH_API_KEY=... PACKAGE_VERSION=1.2.3 bash tools/run-local-ci.sh
 ### Running the BenchmarkDotNet Performance Suite
 
 ```bash
-dotnet run --project tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj --configuration Release
+dotnet run --project tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj --configuration Release -- --filter "*"
 ```
 
 ---
@@ -857,7 +864,7 @@ dotnet run --project tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj --co
 The internal SIGWX transport classes (`src/Iwxxm.Net/Infrastructure/Generated/Iwxxm20252.Generated.cs`) are maintained by hand; no build step regenerates them. A pinned local .NET tool manifest ([`.config/dotnet-tools.json`](.config/dotnet-tools.json)) provides `XmlSchemaClassGenerator-console` (`dotnet-xscgen`) for an optional reference scaffold, written to `artifacts/xscgen-reference/` for manual comparison only:
 
 ```bash
-dotnet tool restore
+dotnet tool restore   # optional: only for the xscgen reference scaffold (tools/generate-xsd-classes.sh)
 ./tools/generate-xsd-classes.sh
 ```
 

@@ -584,9 +584,11 @@ Qvaci {
   Remarks = "LATEST REP FM KVERT (0120Z) INDICATES ERUPTION HAS CEASED. TWO DISPERSING VA CLD ARE EVIDENT ON SATELLITE IMAGERY"
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.QuantitativeVolcanicAshConcentration
+  Translation = null
   TranslationFailedTac = null
   Volcanoes = [
     Volcano {
+      ActivityStatus = null
       EruptionTimeUtc = null
       Id = "uuid.48ec622f-338c-4653-8df4-2646afd2a703"
       Name = "KRAKATAU"
@@ -594,6 +596,7 @@ Qvaci {
         Lat = -6.102
         Lon = 105.423
       }
+      SourceElevation = null
       WmoNumber = "262000"
     }
   ]

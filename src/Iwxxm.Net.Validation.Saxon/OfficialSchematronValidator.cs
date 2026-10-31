@@ -18,8 +18,10 @@ namespace Iwxxm.Net.Validation.Saxon
     /// immutable, thread-safe Saxon executable; instances of this class are lightweight and thread-safe.</item>
     /// <item>Runs air-gapped: <c>document()</c> code-list lookups resolve to the official WMO RDF files embedded in
     /// <c>Iwxxm.Net</c>; every other URI is refused.</item>
-    /// <item>Input documents are parsed with DTD processing prohibited, no resolver and the character quotas of
-    /// <see cref="IwxxmParserOptions"/>.</item>
+    /// <item>Input documents are read from <see cref="IwxxmDocumentContext.OpenRead"/> with DTD processing prohibited, no
+    /// resolver and the character quotas of <see cref="IwxxmDocumentContext.Options"/>; the report limits
+    /// (<see cref="IwxxmParserOptions.MaxRuleReportBytes"/>, <see cref="IwxxmParserOptions.MaxValidationErrors"/>) are those
+    /// of the options given to the constructor.</item>
     /// <item>SVRL findings are mapped to <see cref="ValidationError"/> with <see cref="ErrorCategory.BusinessRuleViolation"/>
     /// and the official rule (pattern) identifier as <see cref="ValidationError.Code"/>.</item>
     /// </list>
@@ -35,6 +37,15 @@ namespace Iwxxm.Net.Validation.Saxon
 
         /// <summary>Error code reported when the compiled Schematron fails while evaluating the document.</summary>
         public const string ExecutionErrorCode = "SCHEMATRON-EXECUTION-ERROR";
+
+        /// <summary>
+        /// Error code reported when the SVRL report exceeds <see cref="IwxxmParserOptions.MaxRuleReportBytes"/>
+        /// (a business-rule error: the input itself is well formed).
+        /// </summary>
+        public const string ReportSizeLimitCode = "SCHEMATRON-REPORT-SIZE-LIMIT";
+
+        /// <summary>Error code appended once <see cref="IwxxmParserOptions.MaxValidationErrors"/> findings were reported.</summary>
+        public const string TooManyErrorsCode = SvrlReportReader.TooManyErrorsCode;
 
         private static readonly Uri InputBaseUri = new Uri("http://input.iwxxm-net.invalid/document.xml");
 
@@ -58,7 +69,7 @@ namespace Iwxxm.Net.Validation.Saxon
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<ValidationError> Validate(Stream document)
+        public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -84,7 +95,8 @@ namespace Iwxxm.Net.Validation.Saxon
             {
                 DocumentBuilder builder = engine.Processor.NewDocumentBuilder();
                 builder.BaseUri = InputBaseUri;
-                using (XmlReader reader = XmlReader.Create(document, OfficialSchematronEngine.HardenedReaderSettings(_options), InputBaseUri.AbsoluteUri))
+                using (Stream source = document.OpenRead())
+                using (XmlReader reader = XmlReader.Create(source, OfficialSchematronEngine.HardenedReaderSettings(document.Options), InputBaseUri.AbsoluteUri))
                 {
                     input = builder.Build(reader);
                 }
@@ -105,22 +117,56 @@ namespace Iwxxm.Net.Validation.Saxon
                 };
             }
 
-            try
+            // The SVRL report is serialised into a size-bounded buffer and streamed back (AUD-M14): it is never kept as a
+            // Saxon tree, a runaway report stops the evaluation, and it is read with its own limits (not the input quotas).
+            using (var svrl = new BoundedOutputStream(_options.MaxRuleReportBytes))
             {
-                Xslt30Transformer transformer = engine.CreateTransformer();
-                var svrl = new XdmDestination();
-                transformer.ApplyTemplates(input, svrl);
-                return SvrlReportReader.Read(svrl.XdmNode);
-            }
-            catch (Exception ex)
-            {
-                return new[]
+                try
                 {
-                    new ValidationError(
-                        ExecutionErrorCode,
-                        $"Error executing the official IWXXM Schematron: {ex.Message}",
-                        ErrorCategory.BusinessRuleViolation)
-                };
+                    Xslt30Transformer transformer = engine.CreateTransformer();
+                    Serializer serializer = engine.Processor.NewSerializer(svrl);
+                    transformer.ApplyTemplates(input, serializer);
+                    serializer.Close();
+                }
+                catch (Exception) when (svrl.LimitExceeded)
+                {
+                    return new[]
+                    {
+                        new ValidationError(
+                            ReportSizeLimitCode,
+                            $"The official Schematron report exceeded the maximum allowed size of {_options.MaxRuleReportBytes} bytes; " +
+                            "the document produces too many findings to be evaluated.",
+                            ErrorCategory.BusinessRuleViolation)
+                    };
+                }
+                catch (Exception ex)
+                {
+                    return new[]
+                    {
+                        new ValidationError(
+                            ExecutionErrorCode,
+                            $"Error executing the official IWXXM Schematron: {ex.Message}",
+                            ErrorCategory.BusinessRuleViolation)
+                    };
+                }
+
+                using (MemoryStream report = svrl.OpenRead())
+                {
+                    try
+                    {
+                        return SvrlReportReader.Read(report, _options.MaxValidationErrors, _options.MaxRuleReportBytes);
+                    }
+                    catch (XmlException ex)
+                    {
+                        return new[]
+                        {
+                            new ValidationError(
+                                ExecutionErrorCode,
+                                $"The official Schematron report could not be read: {ex.Message}",
+                                ErrorCategory.BusinessRuleViolation)
+                        };
+                    }
+                }
             }
         }
     }

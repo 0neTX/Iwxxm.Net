@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Iwxxm.Net.Reports;
 using Iwxxm20252.Generated;
@@ -25,12 +26,54 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             string? name = string.IsNullOrWhiteSpace(volcanoProp?.Name?.NilReason) ? volcanoProp?.Name?.Value : null;
             string? wmoNumber = volcanoProp?.IAVCEINumber?.Value ?? volcanoProp?.WmoNumber;
 
+            // activityStatus and sourceElevation (AUD-L3) are optional; an unknown status is a feature error.
+            var errors = new List<ValidationError>();
+            VolcanoActivityStatus? status = ReadActivityStatus(volcanoProp?.ActivityStatus, feature.Id, errors);
+            ElevatedLevelType? source = volcanoProp?.SourceElevation?.ElevatedLevel;
+            VerticalLimit? sourceElevation = source?.Elevation == null || source.Elevation.IsNil
+                ? (VerticalLimit?)null
+                : SigwxMeasureReader.ReadVertical(source.Elevation, source.VerticalReference, $"MeteorologicalFeature[@gml:id='{feature.Id}']/Volcano/sourceElevation", errors);
+            if (errors.Count > 0)
+                return Result<Volcano>.Failure(errors);
+
             return Volcano.Create(
                 id: feature.Id,
                 name: name,
                 wmoNumber: wmoNumber,
                 position: ptRes.Value,
-                eruptionTimeUtc: null);
+                eruptionTimeUtc: null,
+                activityStatus: status,
+                sourceElevation: sourceElevation);
+        }
+
+        private static VolcanoActivityStatus? ReadActivityStatus(string? value, string id, List<ValidationError> errors)
+        {
+            switch (value?.Trim())
+            {
+                case null:
+                case "":
+                    return null;
+                case "NIL":
+                    return VolcanoActivityStatus.Nil;
+                case "UNKNOWN":
+                    return VolcanoActivityStatus.Unknown;
+                case "DECREASED_ACTIVITY":
+                    return VolcanoActivityStatus.DecreasedActivity;
+                case "HEIGHTENED_UNREST":
+                    return VolcanoActivityStatus.HeightenedUnrest;
+                case "ERUPTION_ONGOING":
+                    return VolcanoActivityStatus.EruptionOngoing;
+                case "ERUPTION_OCCURRED":
+                    return VolcanoActivityStatus.EruptionOccurred;
+                default:
+                    errors.Add(new ValidationError(
+                        "ACL-VOLCANO-ACTIVITY-INVALID",
+                        $"Unsupported volcano activityStatus '{value}'.",
+                        ErrorCategory.DomainMapping,
+                        ValidationSeverity.Error,
+                        id));
+                    return null;
+            }
         }
 
         public static Result<Volcano> VolcanoFromCompact(WAFSVolcanoType dto)

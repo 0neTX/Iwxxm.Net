@@ -4,7 +4,9 @@ using System.IO;
 using System.Xml;
 using System.Xml.Xsl;
 using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Infrastructure.Caching;
 using Iwxxm.Net.Infrastructure.Resources;
+using Iwxxm.Net.Infrastructure.Xml;
 
 namespace Iwxxm.Net.Infrastructure.Validation
 {
@@ -18,20 +20,37 @@ namespace Iwxxm.Net.Infrastructure.Validation
         private const string SvrlNamespace = "http://purl.oclc.org/dsdl/svrl";
         private const string EmbeddedXsltResource = "Schematron/iwxxm-2025-2-sigwx.xslt";
 
-        // XslCompiledTransform is thread-safe for concurrent Transform() executions once loaded.
-        private static readonly Lazy<XslCompiledTransform> CompiledSchematron =
-            new Lazy<XslCompiledTransform>(LoadAndCompileXslt, isThreadSafe: true);
+        internal const string UnavailableCode = "SCHEMATRON-UNAVAILABLE";
+        internal const string ExecutionErrorCode = "SCHEMATRON-EXECUTION-ERROR";
+        internal const string ReportSizeLimitCode = "SCHEMATRON-REPORT-SIZE-LIMIT";
+        internal const string ReportInvalidCode = "SCHEMATRON-REPORT-INVALID";
+
+        // XslCompiledTransform is thread-safe for concurrent Transform() executions once loaded. A compile failure is
+        // not cached (AUD-L6): the next validation retries the compilation.
+        private static readonly RetryOnFailureLazy<XslCompiledTransform> SharedCompiledSchematron =
+            new RetryOnFailureLazy<XslCompiledTransform>(LoadAndCompileXslt);
 
         private static readonly EmbeddedXmlUrlResolver SharedEmbeddedResolver = new EmbeddedXmlUrlResolver();
 
+        // document() targets (official code lists) parsed once per process and shared by every Transform (AUD-L5).
+        internal static readonly CachedRuleDocumentResolver SharedRuleDocuments = new CachedRuleDocumentResolver();
+
         private readonly IwxxmParserOptions _options;
+        private readonly RetryOnFailureLazy<XslCompiledTransform> _compiledSchematron;
 
         public XsltSchematronValidator(IwxxmParserOptions? options = null)
+            : this(options, SharedCompiledSchematron)
         {
-            _options = options ?? IwxxmParserOptions.Default;
         }
 
-        private static XslCompiledTransform LoadAndCompileXslt()
+        /// <summary>Test seam: uses <paramref name="compiledSchematron"/> instead of the process-wide compiled stylesheet.</summary>
+        internal XsltSchematronValidator(IwxxmParserOptions? options, RetryOnFailureLazy<XslCompiledTransform> compiledSchematron)
+        {
+            _options = options ?? IwxxmParserOptions.Default;
+            _compiledSchematron = compiledSchematron ?? throw new ArgumentNullException(nameof(compiledSchematron));
+        }
+
+        internal static XslCompiledTransform LoadAndCompileXslt()
         {
             var transform = new XslCompiledTransform(enableDebug: false);
             var xsltSettings = new XsltSettings(enableDocumentFunction: true, enableScript: false);
@@ -50,70 +69,113 @@ namespace Iwxxm.Net.Infrastructure.Validation
             return transform;
         }
 
-        public IReadOnlyList<ValidationError> Validate(Stream xmlStream)
+        /// <summary>
+        /// Runs the compiled rules over the raw bytes of <paramref name="document"/>. The SVRL report is written to a size-bounded buffer
+        /// (<see cref="IwxxmParserOptions.MaxRuleReportBytes"/>) and read back as a stream with its own limits, never with the
+        /// input-document quotas (AUD-M14); at most <see cref="IwxxmParserOptions.MaxValidationErrors"/> findings are returned.
+        /// </summary>
+        public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document)
         {
-            if (xmlStream == null)
-                throw new ArgumentNullException(nameof(xmlStream));
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
 
             var errors = new List<ValidationError>();
 
-            var inputReaderSettings = new XmlReaderSettings
-            {
-                DtdProcessing = DtdProcessing.Prohibit,
-                MaxCharactersInDocument = _options.MaxCharactersInDocument,
-                MaxCharactersFromEntities = _options.MaxCharactersFromEntities,
-                XmlResolver = null
-            };
-
+            XslCompiledTransform compiled;
             try
             {
-                using (var svrlOutputStream = new MemoryStream())
-                {
-                    using (XmlReader inputReader = XmlReader.Create(xmlStream, inputReaderSettings))
-                    using (XmlWriter svrlWriter = XmlWriter.Create(svrlOutputStream, CompiledSchematron.Value.OutputSettings))
-                    {
-                        CompiledSchematron.Value.Transform(inputReader, null, svrlWriter, SharedEmbeddedResolver);
-                    }
+                compiled = _compiledSchematron.Value;
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
+            {
+                errors.Add(new ValidationError(
+                    code: UnavailableCode,
+                    message: $"The business-rule stylesheet could not be compiled: {ex.Message}",
+                    category: ErrorCategory.BusinessRuleViolation));
+                return errors;
+            }
 
-                    svrlOutputStream.Position = 0;
-                    ParseSvrlReport(svrlOutputStream, errors, _options);
+            using (var svrlOutput = new BoundedOutputStream(_options.MaxRuleReportBytes))
+            {
+                try
+                {
+                    using (Stream input = document.OpenRead())
+                    using (XmlReader inputReader = XmlReader.Create(input, SecureXml.InputSettings(document.Options)))
+                    using (XmlWriter svrlWriter = XmlWriter.Create(svrlOutput, compiled.OutputSettings))
+                    {
+                        compiled.Transform(inputReader, null, svrlWriter, SharedRuleDocuments);
+                    }
                 }
-            }
-            catch (XmlException ex)
-            {
-                errors.Add(new ValidationError(
-                    code: "XML-MALFORMED",
-                    message: ex.Message,
-                    category: ErrorCategory.MalformedInput,
-                    severity: ValidationSeverity.Error,
-                    location: null,
-                    lineNumber: ex.LineNumber,
-                    linePosition: ex.LinePosition));
-            }
-            catch (XsltException ex)
-            {
-                errors.Add(new ValidationError(
-                    code: "SCHEMATRON-EXECUTION-ERROR",
-                    message: $"Error executing Schematron XSLT transformation: {ex.Message}",
-                    category: ErrorCategory.BusinessRuleViolation,
-                    severity: ValidationSeverity.Error,
-                    location: null,
-                    lineNumber: ex.LineNumber,
-                    linePosition: ex.LinePosition));
+                catch (Exception) when (svrlOutput.LimitExceeded)
+                {
+                    errors.Add(new ValidationError(
+                        code: ReportSizeLimitCode,
+                        message: $"The business-rule report exceeded the maximum allowed size of {_options.MaxRuleReportBytes} bytes; " +
+                                 "the document produces too many findings to be evaluated.",
+                        category: ErrorCategory.BusinessRuleViolation));
+                    return errors;
+                }
+                catch (XmlException ex)
+                {
+                    errors.Add(new ValidationError(
+                        code: "XML-MALFORMED",
+                        message: ex.Message,
+                        category: ErrorCategory.MalformedInput,
+                        severity: ValidationSeverity.Error,
+                        location: null,
+                        lineNumber: ex.LineNumber,
+                        linePosition: ex.LinePosition));
+                    return errors;
+                }
+                catch (XsltException ex)
+                {
+                    errors.Add(new ValidationError(
+                        code: ExecutionErrorCode,
+                        message: $"Error executing Schematron XSLT transformation: {ex.Message}",
+                        category: ErrorCategory.BusinessRuleViolation,
+                        severity: ValidationSeverity.Error,
+                        location: null,
+                        lineNumber: ex.LineNumber,
+                        linePosition: ex.LinePosition));
+                    return errors;
+                }
+
+                using (MemoryStream svrl = svrlOutput.OpenRead())
+                {
+                    try
+                    {
+                        ParseSvrlReport(svrl, errors, _options);
+                    }
+                    catch (XmlException ex)
+                    {
+                        errors.Add(new ValidationError(
+                            code: ReportInvalidCode,
+                            message: $"The business-rule report could not be read: {ex.Message}",
+                            category: ErrorCategory.BusinessRuleViolation));
+                    }
+                }
             }
 
             return errors;
         }
 
+        /// <summary>
+        /// Streams the SVRL report: <c>svrl:failed-assert</c> findings take the severity of their <c>@role</c>
+        /// (<c>warn</c>/<c>warning</c>/<c>info</c>/<c>information</c> → warning, anything else → error);
+        /// <c>svrl:successful-report</c> findings are warnings unless their role is explicitly an error
+        /// (<c>error</c>/<c>fatal</c>), because a fired report is informative by Schematron convention (AUD-U5).
+        /// </summary>
         private static void ParseSvrlReport(Stream svrlStream, List<ValidationError> errors, IwxxmParserOptions options)
         {
             var readerSettings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
-                MaxCharactersInDocument = options.MaxCharactersInDocument,
-                MaxCharactersFromEntities = options.MaxCharactersFromEntities,
+                MaxCharactersInDocument = options.MaxRuleReportBytes,
+                MaxCharactersFromEntities = 0,
                 XmlResolver = null
             };
+
+            var limit = new ValidationFindingLimit(errors, options.MaxValidationErrors, ValidationFindingLimit.SchematronTooManyErrorsCode, ErrorCategory.BusinessRuleViolation);
 
             using (XmlReader svrlReader = XmlReader.Create(svrlStream, readerSettings))
             {
@@ -123,24 +185,20 @@ namespace Iwxxm.Net.Infrastructure.Validation
                         svrlReader.NamespaceURI == SvrlNamespace &&
                         (svrlReader.LocalName == "failed-assert" || svrlReader.LocalName == "successful-report"))
                     {
+                        bool isReport = svrlReader.LocalName == "successful-report";
                         string ruleId = svrlReader.GetAttribute("id") ?? "SCHEMATRON-ASSERT-FAILED";
                         string? location = svrlReader.GetAttribute("location");
-                        string? role = svrlReader.GetAttribute("role");
+                        string? role = svrlReader.GetAttribute("role") ?? svrlReader.GetAttribute("flag");
                         string? testExpr = svrlReader.GetAttribute("test");
-
-                        ValidationSeverity severity = string.Equals(role, "WARN", StringComparison.OrdinalIgnoreCase) ||
-                                                      string.Equals(role, "WARNING", StringComparison.OrdinalIgnoreCase)
-                            ? ValidationSeverity.Warning
-                            : ValidationSeverity.Error;
 
                         string messageText = ReadSvrlTextElement(svrlReader.ReadSubtree())
                                              ?? $"Schematron business rule assertion failed ({testExpr}).";
 
-                        errors.Add(new ValidationError(
+                        limit.TryAdd(new ValidationError(
                             code: ruleId,
                             message: messageText.Trim(),
                             category: ErrorCategory.BusinessRuleViolation,
-                            severity: severity,
+                            severity: SvrlSeverity.Map(role, isReport),
                             location: location));
                     }
                 }

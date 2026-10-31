@@ -107,7 +107,7 @@ namespace Iwxxm.Net.Tests
             var fg = new AerodromeWeather("FG", isKnown: true);
 
             AerodromeForecastGroup Group(params AerodromeCloudLayer[] layers) =>
-                new AerodromeForecastGroup("g", "BECOMING", false, Epoch, Epoch.AddHours(1), 800, null, null, new[] { fg }, layers);
+                new AerodromeForecastGroup("g", "BECOMING", false, Epoch, Epoch.AddHours(1), 800, null, null, new[] { fg }, new AerodromeCloud(layers));
 
             Assert.Equal(Group(layer1, layer2), Group(
                 new AerodromeCloudLayer(Amount(AerodromeCloudAmount.Few, "FEW"), new Length(1000, LengthUnit.Feet)),
@@ -201,10 +201,32 @@ namespace Iwxxm.Net.Tests
         }
 
         private static SurfaceWind Wind(Random r) =>
-            new SurfaceWind(r.Next(2) == 0, MaybeDouble(r, 360), MaybeSpeed(r), MaybeSpeed(r));
+            new SurfaceWind(
+                r.Next(2) == 0,
+                MaybeDouble(r, 360),
+                MaybeSpeed(r),
+                MaybeSpeed(r),
+                MaybeOperator(r),
+                MaybeOperator(r),
+                MaybeDouble(r, 360),
+                MaybeDouble(r, 360));
+
+        private static RelationalOperator? MaybeOperator(Random r) =>
+            r.Next(3) == 0 ? (RelationalOperator?)null : (r.Next(2) == 0 ? RelationalOperator.Above : RelationalOperator.Below);
+
+        private static CodeListValue<NilReason>? MaybeNilReason(Random r) =>
+            r.Next(3) == 0
+                ? null
+                : (r.Next(2) == 0
+                    ? new CodeListValue<NilReason>(NilReason.NothingOfOperationalSignificance, "nothingOfOperationalSignificance")
+                    : new CodeListValue<NilReason>(NilReason.NotObservable, "notObservable"));
 
         private static RunwayVisualRange Rvr(Random r) =>
-            new RunwayVisualRange(MaybeText(r, "09", "27", "12L"), MaybeDouble(r, 2000), MaybeText(r, "UPWARD", "DOWNWARD", "NO_CHANGE"));
+            new RunwayVisualRange(
+                MaybeText(r, "09", "27", "12L"),
+                MaybeDouble(r, 2000),
+                r.Next(4) == 0 ? (RunwayVisualRangeTendency?)null : (RunwayVisualRangeTendency)r.Next(3),
+                MaybeOperator(r));
 
         private static AerodromeCloudLayer CloudLayer(Random r)
         {
@@ -213,7 +235,10 @@ namespace Iwxxm.Net.Tests
             return new AerodromeCloudLayer(
                 r.Next(4) == 0 ? null : Amount(code, notation),
                 r.Next(4) == 0 ? (Length?)null : new Length(r.Next(1, 100) * 100, LengthUnit.Feet),
-                r.Next(2) == 0 ? null : new CodeListValue<ConvectiveCloudType>(ConvectiveCloudType.Cumulonimbus, "CB"));
+                r.Next(2) == 0 ? null : new CodeListValue<ConvectiveCloudType>(ConvectiveCloudType.Cumulonimbus, "CB"),
+                MaybeNilReason(r),
+                MaybeNilReason(r),
+                MaybeNilReason(r));
         }
 
         private static AerodromeWeather Weather(Random r)
@@ -231,10 +256,21 @@ namespace Iwxxm.Net.Tests
                 r.Next(3) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(r.Next(24)),
                 r.Next(3) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(24 + r.Next(24)),
                 MaybeDouble(r, 9999),
-                MaybeText(r, "ABOVE", "BELOW"),
+                MaybeOperator(r),
                 r.Next(2) == 0 ? null : Wind(r),
                 Enumerable.Range(0, r.Next(3)).Select(_ => Weather(r)).ToList(),
-                Enumerable.Range(0, r.Next(3)).Select(_ => CloudLayer(r)).ToList());
+                r.Next(4) == 0
+                    ? null
+                    : new AerodromeCloud(
+                        Enumerable.Range(0, r.Next(3)).Select(_ => CloudLayer(r)).ToList(),
+                        r.Next(3) == 0 ? (Length?)null : new Length(r.Next(1, 10) * 100, LengthUnit.Feet),
+                        MaybeNilReason(r),
+                        MaybeNilReason(r)),
+                null,
+                MaybeNilReason(r),
+                Enumerable.Range(0, r.Next(2)).Select(_ => new AerodromeTemperatureForecast(
+                    MaybeDouble(r, 40), r.Next(2) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(r.Next(24)),
+                    MaybeDouble(r, 20), r.Next(2) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(r.Next(24)))).ToList());
 
         private static EnRoutePhenomenonVolume Volume(Random r) =>
             new EnRoutePhenomenonVolume(

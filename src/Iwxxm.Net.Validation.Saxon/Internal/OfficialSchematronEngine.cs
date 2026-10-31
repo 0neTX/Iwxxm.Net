@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
-using System.Threading;
 using System.Xml;
 using Saxon.Api;
 
@@ -24,11 +23,12 @@ namespace Iwxxm.Net.Validation.Saxon.Internal
     /// </summary>
     internal sealed class OfficialSchematronEngine
     {
-        private static readonly Lazy<OfficialSchematronEngine> SharedInstance =
-            new Lazy<OfficialSchematronEngine>(() => new OfficialSchematronEngine(), LazyThreadSafetyMode.ExecutionAndPublication);
+        // A compile failure is not cached (AUD-L6): the next access retries the compilation.
+        private static readonly RetryOnFailureLazy<OfficialSchematronEngine> SharedInstance =
+            new RetryOnFailureLazy<OfficialSchematronEngine>(() => new OfficialSchematronEngine());
 
-        private readonly ConcurrentDictionary<string, Lazy<XdmNode>> _codelistTrees =
-            new ConcurrentDictionary<string, Lazy<XdmNode>>(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, RetryOnFailureLazy<XdmNode>> _codelistTrees =
+            new ConcurrentDictionary<string, RetryOnFailureLazy<XdmNode>>(StringComparer.Ordinal);
 
         private OfficialSchematronEngine()
         {
@@ -80,9 +80,9 @@ namespace Iwxxm.Net.Validation.Saxon.Internal
 
             if (uri.AbsoluteUri.EndsWith(".rdf", StringComparison.Ordinal))
             {
-                Lazy<XdmNode> tree = _codelistTrees.GetOrAdd(
+                RetryOnFailureLazy<XdmNode> tree = _codelistTrees.GetOrAdd(
                     uri.AbsoluteUri,
-                    _ => new Lazy<XdmNode>(() => BuildHardenedTree(uri), LazyThreadSafetyMode.ExecutionAndPublication));
+                    _ => new RetryOnFailureLazy<XdmNode>(() => BuildHardenedTree(uri)));
                 return new NodeResource(tree.Value);
             }
 

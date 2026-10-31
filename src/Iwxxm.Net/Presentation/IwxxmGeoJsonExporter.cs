@@ -10,9 +10,10 @@ namespace Iwxxm.Net
     /// </summary>
     /// <remarks>
     /// Instances are created by <see cref="IwxxmParserBuilder.BuildGeoJsonExporter"/> and depend only on the inbound
-    /// port <see cref="IGeoJsonExportService"/>. <see cref="ToGeoJson"/> is a convenience wrapper over <see cref="Default"/>.
+    /// port <see cref="IGeoJsonExportService"/>, exposed as <see cref="Service"/> (the facade does not implement it, HEX-02).
+    /// <see cref="ToGeoJson"/> is a convenience wrapper over <see cref="Default"/>.
     /// </remarks>
-    public sealed class IwxxmGeoJsonExporter : IGeoJsonExportService
+    public sealed class IwxxmGeoJsonExporter
     {
         private static readonly Lazy<IwxxmGeoJsonExporter> DefaultInstance =
             new Lazy<IwxxmGeoJsonExporter>(() => new IwxxmParserBuilder().BuildGeoJsonExporter(), isThreadSafe: true);
@@ -28,7 +29,10 @@ namespace Iwxxm.Net
         /// <summary>Gets the shared instance built with the default RFC 7946 exporter.</summary>
         public static IwxxmGeoJsonExporter Default => DefaultInstance.Value;
 
-        /// <inheritdoc />
+        /// <summary>Gets the inbound port (use-case contract) this facade delegates to.</summary>
+        public IGeoJsonExportService Service => _service;
+
+        /// <summary>Serializes <paramref name="document"/> to an RFC 7946 GeoJSON <c>FeatureCollection</c> (see <see cref="IGeoJsonExportService.Export"/>).</summary>
         public string Export(IwxxmDocument document, GeoJsonExportOptions? options = null)
         {
             if (document == null)

@@ -405,10 +405,7 @@ namespace Iwxxm.Net.Tests
 
         private static Result<IwxxmDocument> MapDirectly(string xml)
         {
-            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml)))
-            {
-                return new IwxxmSuiteMapper().Map(stream);
-            }
+            return new IwxxmSuiteMapper().Map(new Extensibility.IwxxmDocumentContext(Encoding.UTF8.GetBytes(xml)));
         }
 
         private static ReportStatus ExpectedStatus(string code) => code switch

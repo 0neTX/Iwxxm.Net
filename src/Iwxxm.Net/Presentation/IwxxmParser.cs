@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Text;
 using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net
@@ -17,6 +16,10 @@ namespace Iwxxm.Net
     /// <para>Instances are created by <see cref="IwxxmParserBuilder"/> (or directly from inbound ports) and depend only on
     /// the inbound ports <see cref="IIwxxmReportDispatcher"/> and <see cref="IGeoJsonExportService"/>. They are immutable
     /// and thread-safe; register one as a singleton.</para>
+    /// <para><b>Port contract versus convenience (HEX-02).</b> The facade does not implement the inbound port: the use-case
+    /// contract is <see cref="Dispatcher"/> (<see cref="IIwxxmReportDispatcher"/>: stream and text input); the members of
+    /// this class are convenience entry points over it (string, file, typed and GeoJSON variants, and the static
+    /// <c>Parse*</c> wrappers). Depend on <see cref="IIwxxmReportDispatcher"/> where only the pipeline is needed.</para>
     /// <para>The static <c>Parse*</c> members are convenience wrappers over <see cref="Default"/>, an instance built with
     /// the default adapters and <see cref="IwxxmParserOptions.Default"/>.</para>
     /// <para><b>Error contract.</b> Every member returning <see cref="Result{T}"/> reports I/O and adapter failures as
@@ -27,7 +30,7 @@ namespace Iwxxm.Net
     /// <see cref="ArgumentNullException"/> for a <c>null</c> stream and <see cref="ArgumentException"/> for a <c>null</c>,
     /// empty or whitespace file path.</para>
     /// </remarks>
-    public sealed class IwxxmParser : IIwxxmReportDispatcher
+    public sealed class IwxxmParser
     {
         private static readonly Lazy<IwxxmParser> DefaultInstance =
             new Lazy<IwxxmParser>(() => new IwxxmParserBuilder().Build(), isThreadSafe: true);
@@ -52,11 +55,14 @@ namespace Iwxxm.Net
         /// </summary>
         public static IwxxmParser Default => DefaultInstance.Value;
 
+        /// <summary>Gets the inbound port (use-case contract) this facade delegates to.</summary>
+        public IIwxxmReportDispatcher Dispatcher => _dispatcher;
+
         // =====================================================================
-        // Instance API (inbound ports)
+        // Instance convenience API (delegates to the inbound ports)
         // =====================================================================
 
-        /// <inheritdoc />
+        /// <summary>Validates and parses a stream containing any IWXXM 2025-2 report or bulletin (see <see cref="IIwxxmReportDispatcher.Process(Stream)"/>).</summary>
         public Result<IwxxmDocument> Process(Stream xmlStream)
         {
             if (xmlStream == null)
@@ -65,7 +71,7 @@ namespace Iwxxm.Net
             return _dispatcher.Process(xmlStream);
         }
 
-        /// <inheritdoc />
+        /// <summary>Validates and unwraps a <c>collect:MeteorologicalBulletin</c> stream (see <see cref="IIwxxmReportDispatcher.ProcessBulletin(Stream)"/>).</summary>
         public Result<MeteorologicalBulletin> ProcessBulletin(Stream xmlStream)
         {
             if (xmlStream == null)
@@ -74,9 +80,30 @@ namespace Iwxxm.Net
             return _dispatcher.ProcessBulletin(xmlStream);
         }
 
-        /// <summary>Validates and parses any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c> from an XML string.</summary>
+        /// <summary>Validates and parses already-decoded XML text (see <see cref="IIwxxmReportDispatcher.Process(TextReader)"/>).</summary>
+        public Result<IwxxmDocument> Process(TextReader xmlText)
+        {
+            if (xmlText == null)
+                throw new ArgumentNullException(nameof(xmlText));
+
+            return _dispatcher.Process(xmlText);
+        }
+
+        /// <summary>Validates and unwraps a bulletin from already-decoded XML text (see <see cref="IIwxxmReportDispatcher.ProcessBulletin(TextReader)"/>).</summary>
+        public Result<MeteorologicalBulletin> ProcessBulletin(TextReader xmlText)
+        {
+            if (xmlText == null)
+                throw new ArgumentNullException(nameof(xmlText));
+
+            return _dispatcher.ProcessBulletin(xmlText);
+        }
+
+        /// <summary>
+        /// Validates and parses any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c> from an XML string. The
+        /// string is read as text: its declared encoding (e.g. <c>UTF-16</c>, <c>ISO-8859-1</c>) is ignored.
+        /// </summary>
         public Result<IwxxmDocument> Process(string xmlContent) =>
-            WithUtf8Stream(xmlContent, Process);
+            WithTextReader(xmlContent, Process);
 
         /// <summary>Validates and parses any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c> XML file from disk.</summary>
         public Result<IwxxmDocument> ProcessFile(string filePath) =>
@@ -99,7 +126,7 @@ namespace Iwxxm.Net
 
         /// <summary>Validates and unwraps a SWIM / AMHS <c>collect:MeteorologicalBulletin</c> from an XML string.</summary>
         public Result<MeteorologicalBulletin> ProcessBulletin(string xmlContent) =>
-            WithUtf8Stream(xmlContent, ProcessBulletin);
+            WithTextReader(xmlContent, ProcessBulletin);
 
         /// <summary>Validates and unwraps a SWIM / AMHS <c>collect:MeteorologicalBulletin</c> XML file from disk.</summary>
         public Result<MeteorologicalBulletin> ProcessBulletinFile(string filePath) =>
@@ -196,7 +223,7 @@ namespace Iwxxm.Net
             }
         }
 
-        internal static Result<T> WithUtf8Stream<T>(string xmlContent, Func<Stream, Result<T>> process)
+        internal static Result<T> WithTextReader<T>(string xmlContent, Func<TextReader, Result<T>> process)
         {
             if (string.IsNullOrWhiteSpace(xmlContent))
             {
@@ -206,10 +233,9 @@ namespace Iwxxm.Net
                     ErrorCategory.MalformedInput);
             }
 
-            byte[] utf8Bytes = Encoding.UTF8.GetBytes(xmlContent);
-            using (var memoryStream = new MemoryStream(utf8Bytes, writable: false))
+            using (var reader = new StringReader(xmlContent))
             {
-                return process(memoryStream);
+                return process(reader);
             }
         }
 

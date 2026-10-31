@@ -39,6 +39,9 @@ namespace Iwxxm.Net.Tests
         public void VisibilityReductionCauseTable_MatchesTheOfficialRdf() => AssertTableMatchesOfficialRdf(CodeListTables.VisibilityReductionCauses);
 
         [Fact]
+        public void NilReasonTable_MatchesTheOfficialRdf() => AssertTableMatchesOfficialRdf(CodeListTables.NilReasons);
+
+        [Fact]
         public void AerodromeWeatherCodes_AreReadFromTheOfficialRdf()
         {
             Assert.Equal(AerodromeWeatherCodeList.RegisterUri, OfficialCodeListReader.ReadRegisterUri(AerodromeWeatherCodeList.ResourcePath));

@@ -45,9 +45,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping.CodeLists
 
             string? code = CodeListReference.TryGetCode(href!, RegisterUri);
             if (code == null)
-                return new CodeListValue<TCode>(default, href!);
+                return new CodeListValue<TCode>(CodeListValue<TCode>.UnknownCode, href!);
 
-            return new CodeListValue<TCode>(_codes.TryGetValue(code, out TCode member) ? member : default, code);
+            return new CodeListValue<TCode>(_codes.TryGetValue(code, out TCode member) ? member : CodeListValue<TCode>.UnknownCode, code);
         }
 
         /// <summary>Rebuilds the exact original reference of a translated value, or <c>null</c>.</summary>

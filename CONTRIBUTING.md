@@ -7,7 +7,7 @@ Thank you for contributing to the **Iwxxm** .NET library! This document outlines
 ## Prerequisites
 
 - **.NET 10 SDK** (configured in [`global.json`](global.json); native `.slnx` solution support).
-- `Iwxxm.Net` multi-targets **`netstandard2.0`** and **`netstandard2.1`**; the optional `Iwxxm.Net.Validation.Saxon` package and the test projects target **`net10.0`**.
+- `Iwxxm.Net` multi-targets **`netstandard2.0`** and **`netstandard2.1`**; the optional `Iwxxm.Net.Validation.Saxon` package and the test projects target **`net10.0`**. On Windows the core test project also targets **`net48`**, so `netstandard2.0` runs on .NET Framework (keep test code .NET Framework-compatible: no `string.Contains(string, StringComparison)`, span-only or .NET-only APIs). Golden-master comparisons run on .NET only (`#if !NETFRAMEWORK`).
 - The reference build is the container pipeline: `podman build --target test -t iwxxm-net-test .` (or `docker build`).
 - `tools/run-local-ci.sh` never publishes packages and never forwards `GITHUB_TOKEN`. Publishing belongs to the GitHub Actions workflow; a local publish needs the explicit `--publish` flag, `IWXXM_NUGET_PUBLISH_API_KEY`, an explicit `PACKAGE_VERSION` and a clean git tree (see README).
 
@@ -68,8 +68,8 @@ All contributions are verified automatically by IL-level tests in [`HexagonalArc
 
 Further rules:
 
-1. **Zero Runtime Dependencies**: Do not add runtime `<PackageReference>` items to `src/Iwxxm.Net/Iwxxm.Net.csproj`. Only build-time packages with `PrivateAssets="all"` (SourceLink) are permitted. The pack stage fails if the `Iwxxm.Net` nuspec declares a dependency. Optional engines go to separate adapter packages (e.g. `Iwxxm.Net.Validation.Saxon`) that implement a public outbound port.
-2. **Public API**: public types live only in `Iwxxm.Net`, `Iwxxm.Net.Reports` and `Iwxxm.Net.Extensibility`; consumers must never need a layer name in a `using` directive. Outbound ports use technology-neutral signatures (streams, `Result<T>`, `ValidationError`), never `System.Xml` types.
+1. **Zero Runtime Dependencies**: Do not add runtime `<PackageReference>` items to `src/Iwxxm.Net/Iwxxm.Net.csproj`. Only build-time packages with `PrivateAssets="all"` are permitted (SourceLink is provided by the .NET SDK and needs no package). The pack stage fails if the `Iwxxm.Net` nuspec declares a dependency. Optional engines go to separate adapter packages (e.g. `Iwxxm.Net.Validation.Saxon`) that implement a public outbound port.
+2. **Public API**: public types live only in `Iwxxm.Net`, `Iwxxm.Net.Reports` and `Iwxxm.Net.Extensibility`; consumers must never need a layer name in a `using` directive. Outbound ports receive the neutral `IwxxmDocumentContext` (HEX-01) and return `Result<T>` / `ValidationError`, never `System.Xml` types. Input documents are read in exactly one place, `Infrastructure/Xml/SecureXml` (hardened `XmlReaderSettings`, parse-once cache); the use case parses the document before any adapter runs (`HexagonalArchitectureTests.InputXmlReaderSettings_AreCreatedOnlyBySecureXml`). Facades do not implement inbound ports (HEX-02): they expose them (`Dispatcher`, `Processor`, `Service`) and add convenience members.
 3. **Error contract**: `ValidationError.Code` strings are the stable contract; `ErrorCategory` names stay technology-agnostic.
 4. **Coding Standards**: Follow [`.editorconfig`](.editorconfig) and write all XML documentation and code comments in **English**.
 

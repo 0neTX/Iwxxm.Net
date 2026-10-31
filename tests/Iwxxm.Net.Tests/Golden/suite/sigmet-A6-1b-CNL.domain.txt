@@ -21,8 +21,13 @@ Sigmet {
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Sigmet
   SequenceNumber = "3"
+  SupplementaryEvolvingConditions = []
+  SupplementaryForecastPositions = []
+  Translation = null
   TranslationFailedTac = null
   TropicalCycloneName = null
   ValidFromUtc = 2012-08-10T13:45:00.0000000+00:00
   ValidUntilUtc = 2012-08-10T16:00:00.0000000+00:00
+  VolcanicAshMovedToFirDesignator = null
+  VolcanicAshMovedToFirName = null
 }

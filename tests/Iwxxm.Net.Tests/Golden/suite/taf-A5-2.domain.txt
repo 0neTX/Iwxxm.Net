@@ -17,6 +17,7 @@ Taf {
   PermissibleUsageSupplementary = null
   ReportStatus = ReportStatus.Amendment
   ReportType = IwxxmReportType.Taf
+  Translation = null
   TranslationFailedTac = null
   ValidFromUtc = null
   ValidUntilUtc = null

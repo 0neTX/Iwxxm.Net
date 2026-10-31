@@ -30,6 +30,25 @@ namespace Iwxxm.Net.Infrastructure.Mapping.CodeLists
                 ["LYR"] = AerodromeCloudAmount.Layers
             });
 
+        /// <summary>WMO register <c>http://codes.wmo.int/common/nil</c> (<see cref="NilReason"/>), used by <c>@nilReason</c>.</summary>
+        internal static readonly CodeListTable<NilReason> NilReasons = new CodeListTable<NilReason>(
+            "http://codes.wmo.int/common/nil",
+            ResourceFolder + "codes.wmo.int-common-nil.rdf",
+            new Dictionary<string, NilReason>
+            {
+                ["inapplicable"] = NilReason.Inapplicable,
+                ["missing"] = NilReason.Missing,
+                ["template"] = NilReason.Template,
+                ["unknown"] = NilReason.ValueUnknown,
+                ["withheld"] = NilReason.Withheld,
+                ["nothingOfOperationalSignificance"] = NilReason.NothingOfOperationalSignificance,
+                ["notDetectedByAutoSystem"] = NilReason.NotDetectedByAutoSystem,
+                ["notObservable"] = NilReason.NotObservable,
+                ["noSignificantChange"] = NilReason.NoSignificantChange,
+                ["AboveDetectionRange"] = NilReason.AboveDetectionRange,
+                ["BelowDetectionRange"] = NilReason.BelowDetectionRange
+            });
+
         /// <summary>WMO code list <c>http://codes.wmo.int/49-2/SigConvectiveCloudType</c> (<see cref="ConvectiveCloudType"/>).</summary>
         internal static readonly CodeListTable<ConvectiveCloudType> ConvectiveCloudTypes = new CodeListTable<ConvectiveCloudType>(
             "http://codes.wmo.int/49-2/SigConvectiveCloudType",

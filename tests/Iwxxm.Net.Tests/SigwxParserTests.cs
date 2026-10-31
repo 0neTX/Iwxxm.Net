@@ -52,12 +52,10 @@ namespace Iwxxm.Net.Tests
             Assert.Single(report.Clouds);
             var cloud = report.Clouds[0];
             Assert.Equal("uuid.6f770e58-488b-4d89-b828-4c952b7d6a65", cloud.Id);
-            Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-20-008/10", cloud.CloudAmount);
-            Assert.Equal(CloudDistributionCode.Occasional, cloud.DistributionCode);
-            Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-20-012/9", cloud.CloudType);
-            Assert.Equal(CloudTypeCode.Cumulonimbus, cloud.TypeCode);
-            Assert.Equal(10, cloud.DistributionNumericCode);
-            Assert.Equal(9, cloud.TypeNumericCode);
+            Assert.Equal(new CodeListValue<CloudDistributionCode>(CloudDistributionCode.Occasional, "10"), cloud.Distribution);
+            Assert.Equal(new CodeListValue<CloudTypeCode>(CloudTypeCode.Cumulonimbus, "9"), cloud.CloudType);
+            Assert.Equal(10, (int)cloud.Distribution!.Code);
+            Assert.Equal(9, (int)cloud.CloudType!.Code);
             Assert.True(cloud.Base!.Value.IsNil); // lowerElevation has xsi:nil="true" nilReason=".../inapplicable"
             Assert.Equal(Vertical(12496.8, VerticalUnit.Meters, VerticalReference.Msl), cloud.Top); // kept as reported (MSL, not FL410)
             Assert.Equal(9, Assert.IsType<GeoPolygon>(cloud.Area).ExteriorRing.Count);
@@ -81,11 +79,10 @@ namespace Iwxxm.Net.Tests
             Assert.Single(report.Turbulences);
             var turbulence = report.Turbulences[0];
             Assert.Equal("uuid.aaaf9f38-dc4c-410d-b056-c130a049bde9", turbulence.Id);
-            Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-11-030/10", turbulence.RawDegreeReference);
+            Assert.Equal("10", turbulence.Degree!.Notation);
             // Official BUFR 0-11-030 code 10 = "Moderate, cloud/clear air not specified"
             // (the previous expectation, ModerateClearAir, encoded a wrong mapping).
-            Assert.Equal(TurbulenceDegreeCode.Moderate, turbulence.Degree);
-            Assert.Equal(10, turbulence.DegreeNumericCode);
+            Assert.Equal(TurbulenceDegreeCode.Moderate, turbulence.Degree.Code);
             Assert.Equal(Vertical(10363.2, VerticalUnit.Meters, VerticalReference.Msl), turbulence.Base);
             Assert.Equal(Vertical(12192.0, VerticalUnit.Meters, VerticalReference.Msl), turbulence.Top);
             Assert.Equal(17, Assert.IsType<GeoPolygon>(turbulence.Area).ExteriorRing.Count);
@@ -94,11 +91,11 @@ namespace Iwxxm.Net.Tests
             Assert.Single(report.AirframeIcings);
             var icing = report.AirframeIcings[0];
             Assert.Equal("uuid.48f96fb3-6534-4593-b760-9c65d0b9fa96", icing.Id);
-            Assert.Equal("http://codes.wmo.int/bufr4/codeflag/0-20-041/3", icing.RawDegreeReference);
+            Assert.Equal("3", icing.Degree!.Notation);
             // Official BUFR 0-20-041 code 3 = "Light icing in precipitation"
             // (the previous expectation, Moderate, encoded a wrong mapping).
-            Assert.Equal(IcingDegreeCode.LightInPrecipitation, icing.Degree);
-            Assert.Equal(3, icing.DegreeNumericCode);
+            Assert.Equal(IcingDegreeCode.LightInPrecipitation, icing.Degree.Code);
+            Assert.True(icing.Degree.IsKnown);
             Assert.Equal(Vertical(100, VerticalUnit.FlightLevel, VerticalReference.Msl), icing.Base);
             Assert.Equal(Vertical(240, VerticalUnit.FlightLevel, VerticalReference.Msl), icing.Top);
             Assert.Equal(21, Assert.IsType<GeoPolygon>(icing.Area).ExteriorRing.Count);
@@ -142,8 +139,8 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(Vertical(630, VerticalUnit.FlightLevel, null), report.UpperLimit);
             Assert.Single(report.JetStreams);
             Assert.Single(report.Clouds);
-            Assert.Equal(CloudDistributionCode.OccasionalEmbedded, report.Clouds[0].DistributionCode);
-            Assert.Equal(CloudTypeCode.Cumulonimbus, report.Clouds[0].TypeCode);
+            Assert.Equal(new CodeListValue<CloudDistributionCode>(CloudDistributionCode.OccasionalEmbedded, "OCNL_EMBD"), report.Clouds[0].Distribution);
+            Assert.Equal(new CodeListValue<CloudTypeCode>(CloudTypeCode.Cumulonimbus, "CB"), report.Clouds[0].CloudType);
             Assert.Single(report.Tropopauses);
             Assert.Single(report.Volcanoes);
         }

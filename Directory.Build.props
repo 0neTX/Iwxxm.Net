@@ -7,7 +7,8 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <Features>strict</Features>
-    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Fixed analyzer level (AUD-M18): a newer SDK does not silently add rules that would fail the warnings-as-errors build. -->
+    <AnalysisLevel>10.0</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
 
@@ -30,7 +31,7 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/0neTX/Iwxxm.Net.git</RepositoryUrl>
     <PackageProjectUrl>https://github.com/0neTX/Iwxxm.Net</PackageProjectUrl>
-    <PackageReleaseNotes>See CHANGELOG.md for 1.0.0-rc.1 release notes.</PackageReleaseNotes>
+    <PackageReleaseNotes>See CHANGELOG.md at $(PackageProjectUrl)/blob/main/CHANGELOG.md for the release notes of this version.</PackageReleaseNotes>
 
     <!-- Symbol Package (.snupkg) & SourceLink Best Practices -->
     <IncludeSymbols>true</IncludeSymbols>

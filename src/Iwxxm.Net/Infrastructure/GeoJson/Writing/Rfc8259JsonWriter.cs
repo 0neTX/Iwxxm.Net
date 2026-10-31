@@ -177,7 +177,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                     _needsComma = true;
                     _afterPropertyName = false;
                     break;
-                case IReadOnlyList<string> strList:
+                case IReadOnlyList<string?> strList:
                     WritePropertyName(name);
                     _sb.Append('[');
                     for (int idx = 0; idx < strList.Count; idx++)
@@ -266,7 +266,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             if (double.IsNaN(value) || double.IsInfinity(value))
                 throw new InvalidOperationException("RFC 8259 cannot represent the non-finite number " + value.ToString(CultureInfo.InvariantCulture) + " in a GeoJSON position.");
 
-            _sb.Append(value.ToString("G15", CultureInfo.InvariantCulture));
+            AppendRoundTrip(value);
         }
 
         /// <summary>Appends a property number; a non-finite value is written as <c>null</c> (RFC 8259 has no NaN/Infinity).</summary>
@@ -278,7 +278,27 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 return;
             }
 
-            _sb.Append(value.ToString("G15", CultureInfo.InvariantCulture));
+            AppendRoundTrip(value);
+        }
+
+        /// <summary>
+        /// Appends the shortest of <c>G15</c>, <c>G16</c> and <c>G17</c> that parses back to exactly <paramref name="value"/>
+        /// (AUD-L9; <c>G17</c> always round-trips). Unlike <c>"R"</c>, whose output differs between .NET Framework and .NET,
+        /// the result is the same on every target framework; <c>G15</c> alone lost up to two digits.
+        /// </summary>
+        private void AppendRoundTrip(double value)
+        {
+            string text = value.ToString("G15", CultureInfo.InvariantCulture);
+            if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+            {
+                text = value.ToString("G16", CultureInfo.InvariantCulture);
+                if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+                {
+                    text = value.ToString("G17", CultureInfo.InvariantCulture);
+                }
+            }
+
+            _sb.Append(text);
         }
 
         private void WriteIndent()
@@ -286,8 +306,15 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             _sb.Append(' ', _indentLevel * 2);
         }
 
-        private void WriteEscapedString(string value)
+        /// <summary>Writes a JSON string; <c>null</c> is written as the JSON <c>null</c> literal (AUD-L9).</summary>
+        private void WriteEscapedString(string? value)
         {
+            if (value == null)
+            {
+                _sb.Append("null");
+                return;
+            }
+
             _sb.Append('"');
             for (int i = 0; i < value.Length; i++)
             {
@@ -316,7 +343,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                         _sb.Append("\\t");
                         break;
                     default:
-                        if (c < 0x20)
+                        // Control characters, and U+2028/U+2029, which are valid in JSON but terminate lines in JavaScript.
+                        if (c < 0x20 || c == '\u2028' || c == '\u2029')
                         {
                             _sb.Append("\\u");
                             _sb.Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));

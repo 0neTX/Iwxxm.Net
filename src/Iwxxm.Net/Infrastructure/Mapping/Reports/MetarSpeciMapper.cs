@@ -14,6 +14,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// </summary>
     internal static class MetarSpeciMapper
     {
+        internal const string RvrTendencyInvalidCode = "ACL-RVR-TENDENCY-INVALID";
+
         /// <summary>Signature shared by <see cref="Metar.Create"/> and <see cref="Speci.Create"/>.</summary>
         internal delegate Result<TObservation> ObservationFactory<TObservation>(
             string id,
@@ -34,10 +36,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             double? dewpointTemperatureCelsius,
             double? qnhHpa,
             SurfaceWind? surfaceWind,
-            double? prevailingVisibilityMeters,
+            AerodromeHorizontalVisibility? visibility,
             IEnumerable<RunwayVisualRange>? runwayVisualRanges,
             IEnumerable<AerodromeWeather>? presentWeather,
-            IEnumerable<AerodromeCloudLayer>? cloudLayers,
+            CodeListValue<NilReason>? presentWeatherNilReason,
+            AerodromeCloud? cloud,
             IEnumerable<AerodromeForecastGroup>? trendForecasts,
             PermissibleUsageReason? permissibleUsageReason,
             string? permissibleUsageSupplementary)
@@ -74,10 +77,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             double? dewpoint = null;
             double? qnh = null;
             SurfaceWind? surfaceWind = null;
-            double? visibility = null;
+            AerodromeHorizontalVisibility? visibility = null;
             var rvrs = new List<RunwayVisualRange>();
             var presentWeather = new List<AerodromeWeather>();
-            var cloudLayers = new List<AerodromeCloudLayer>();
+            CodeListValue<NilReason>? presentWeatherNilReason = null;
+            AerodromeCloud? cloud = null;
 
             if (obsElem != null)
             {
@@ -86,17 +90,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 dewpoint = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "dewpointTemperature"), UcumUnits.Celsius, id, errors);
                 qnh = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "qnh"), UcumUnits.Hectopascal, id, errors);
                 surfaceWind = AerodromeConditionsReader.ReadSurfaceWind(obsElem.Element(IwxxmNs + "surfaceWind"), id, errors);
-                visibility = UomMeasureReader.ReadFixedUnit(
-                    obsElem.Element(IwxxmNs + "visibility")
-                        ?.Element(IwxxmNs + "AerodromeHorizontalVisibility")
-                        ?.Element(IwxxmNs + "prevailingVisibility"),
-                    UcumUnits.Meter,
-                    id,
-                    errors);
+                visibility = ReadVisibility(obsElem.Element(IwxxmNs + "visibility")?.Element(IwxxmNs + "AerodromeHorizontalVisibility"), id, errors);
 
                 ReadRunwayVisualRanges(obsElem, rvrs, id, errors);
                 presentWeather = AerodromeConditionsReader.ReadWeather(obsElem.Elements(IwxxmNs + "presentWeather"));
-                AerodromeConditionsReader.ReadCloudLayers(obsElem.Element(IwxxmNs + "cloud"), cloudLayers, id, errors);
+                if (presentWeather.Count == 0)
+                {
+                    presentWeatherNilReason = AerodromeConditionsReader.ReadFirstNilReason(obsElem.Elements(IwxxmNs + "presentWeather"));
+                }
+
+                cloud = AerodromeConditionsReader.ReadCloud(obsElem.Element(IwxxmNs + "cloud"), id, errors);
             }
 
             var trends = new List<AerodromeForecastGroup>();
@@ -136,10 +139,23 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 visibility,
                 rvrs,
                 presentWeather,
-                cloudLayers,
+                presentWeatherNilReason,
+                cloud,
                 trends,
                 header.Metadata.Reason,
                 header.Metadata.Supplementary);
+        }
+
+        private static AerodromeHorizontalVisibility? ReadVisibility(XElement? visibilityElem, string id, List<ValidationError> errors)
+        {
+            if (visibilityElem == null)
+                return null;
+
+            return new AerodromeHorizontalVisibility(
+                UomMeasureReader.ReadFixedUnit(visibilityElem.Element(IwxxmNs + "prevailingVisibility"), UcumUnits.Meter, id, errors),
+                AerodromeConditionsReader.ReadOperator(visibilityElem.Element(IwxxmNs + "prevailingVisibilityOperator"), id, errors),
+                UomMeasureReader.ReadFixedUnit(visibilityElem.Element(IwxxmNs + "minimumVisibility"), UcumUnits.Meter, id, errors),
+                UomMeasureReader.ReadFixedUnit(visibilityElem.Element(IwxxmNs + "minimumVisibilityDirection"), UcumUnits.Degree, id, errors));
         }
 
         private static void ReadRunwayVisualRanges(XElement obsElem, List<RunwayVisualRange> target, string id, List<ValidationError> errors)
@@ -155,8 +171,27 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                     ?.Element(AixmNs + "RunwayDirectionTimeSlice")
                     ?.Element(AixmNs + "designator"));
                 double? meanRvr = UomMeasureReader.ReadFixedUnit(rvrElem.Element(IwxxmNs + "meanRVR"), UcumUnits.Meter, id, errors);
-                string? tendency = rvrElem.Attribute("pastTendency")?.Value;
-                target.Add(new RunwayVisualRange(rwyDesig, meanRvr, tendency));
+                RunwayVisualRangeTendency? tendency = ReadTendency(rvrElem.Attribute("pastTendency")?.Value, id, errors);
+                RelationalOperator? meanRvrOperator = AerodromeConditionsReader.ReadOperator(rvrElem.Element(IwxxmNs + "meanRVROperator"), id, errors);
+                target.Add(new RunwayVisualRange(rwyDesig, meanRvr, tendency, meanRvrOperator));
+            }
+        }
+
+        private static RunwayVisualRangeTendency? ReadTendency(string? value, string id, List<ValidationError> errors)
+        {
+            switch (value)
+            {
+                case null:
+                    return null;
+                case "UPWARD":
+                    return RunwayVisualRangeTendency.Upward;
+                case "DOWNWARD":
+                    return RunwayVisualRangeTendency.Downward;
+                case "NO_CHANGE":
+                    return RunwayVisualRangeTendency.NoChange;
+                default:
+                    errors.Add(MappingErrors.Create(RvrTendencyInvalidCode, $"Unsupported RVR pastTendency '{value}' (expected UPWARD, DOWNWARD or NO_CHANGE).", id));
+                    return null;
             }
         }
     }

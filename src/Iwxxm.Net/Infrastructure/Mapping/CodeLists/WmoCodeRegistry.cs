@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Iwxxm.Net.Reports;
 
-namespace Iwxxm.Net.Reports
+namespace Iwxxm.Net.Infrastructure.Mapping.CodeLists
 {
     /// <summary>
-    /// Pure Domain resolver that translates WMO Code Registry URIs (<c>http://codes.wmo.int/bufr4/codeflag/...</c>),
-    /// bare numeric BUFR codes, and aeronautical TAC abbreviations into strongly-typed Domain enumerations.
+    /// Anti-Corruption Layer resolver of the WMO BUFR code tables used by SIGWX (moved from the Domain): translates WMO
+    /// Code Registry URIs (<c>http://codes.wmo.int/bufr4/codeflag/...</c>), bare numeric BUFR codes and aeronautical TAC
+    /// abbreviations into <see cref="CodeListValue{TCode}"/> Domain values (<see cref="BufrCodeTable{TCode}"/>).
     /// Numeric codes are resolved only when they belong to the expected table: a URI of another table, or a number
     /// that is not defined in the official table, resolves to <c>Unknown</c>.
     /// </summary>
@@ -15,7 +17,7 @@ namespace Iwxxm.Net.Reports
     /// the extra member <c>Unknown</c> has the value <see cref="UnknownCodeValue"/>. All four <c>Resolve*</c> methods share
     /// one algorithm (<see cref="Resolve{TCode}"/>): numeric code first, then the TAC abbreviation table of the code list.
     /// </remarks>
-    public static class WmoCodeRegistry
+    internal static class WmoCodeRegistry
     {
         public const string CloudDistributionTableUri = "http://codes.wmo.int/bufr4/codeflag/0-20-008";
         public const string CloudTypeTableUri = "http://codes.wmo.int/bufr4/codeflag/0-20-012";
@@ -101,6 +103,22 @@ namespace Iwxxm.Net.Reports
                 ["SEV"] = IcingDegreeCode.Severe,
                 ["SEVERE"] = IcingDegreeCode.Severe
             };
+
+        /// <summary>BUFR table 0 20 008 (cloud distribution).</summary>
+        public static readonly BufrCodeTable<CloudDistributionCode> CloudDistributions =
+            new BufrCodeTable<CloudDistributionCode>(CloudDistributionTableUri, ResolveCloudDistribution);
+
+        /// <summary>BUFR table 0 20 012 (cloud type).</summary>
+        public static readonly BufrCodeTable<CloudTypeCode> CloudTypes =
+            new BufrCodeTable<CloudTypeCode>(CloudTypeTableUri, ResolveCloudType);
+
+        /// <summary>BUFR table 0 11 030 (degree of turbulence).</summary>
+        public static readonly BufrCodeTable<TurbulenceDegreeCode> TurbulenceDegrees =
+            new BufrCodeTable<TurbulenceDegreeCode>(TurbulenceDegreeTableUri, ResolveTurbulenceDegree);
+
+        /// <summary>BUFR table 0 20 041 (airframe icing).</summary>
+        public static readonly BufrCodeTable<IcingDegreeCode> IcingDegrees =
+            new BufrCodeTable<IcingDegreeCode>(IcingDegreeTableUri, ResolveIcingDegree);
 
         public static CloudDistributionCode ResolveCloudDistribution(string? rawOrUri) =>
             Resolve(rawOrUri, CloudDistributionTableUri, CloudDistributionAbbreviations);

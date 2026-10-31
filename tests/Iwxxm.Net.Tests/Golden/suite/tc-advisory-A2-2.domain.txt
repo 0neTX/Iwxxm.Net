@@ -40,11 +40,15 @@ Tca {
   Forecasts = [
     TropicalCycloneTrackPoint {
       CentralPressureHpa = null
+      IntensityChange = null
       MaxSurfaceWindSpeed = Speed {
         Unit = SpeedUnit.MetersPerSecond
         UnitOfMeasure = "m/s"
         Value = 22
       }
+      Movement = null
+      MovementDirectionDegrees = null
+      MovementSpeed = null
       PhenomenonTimeUtc = 2004-09-25T22:00:00.0000000+00:00
       Position = GeoCoordinate {
         Lat = 27.8
@@ -53,11 +57,15 @@ Tca {
     }
     TropicalCycloneTrackPoint {
       CentralPressureHpa = null
+      IntensityChange = null
       MaxSurfaceWindSpeed = Speed {
         Unit = SpeedUnit.MetersPerSecond
         UnitOfMeasure = "m/s"
         Value = 22
       }
+      Movement = null
+      MovementDirectionDegrees = null
+      MovementSpeed = null
       PhenomenonTimeUtc = 2004-09-26T04:00:00.0000000+00:00
       Position = GeoCoordinate {
         Lat = 28.5
@@ -66,11 +74,15 @@ Tca {
     }
     TropicalCycloneTrackPoint {
       CentralPressureHpa = null
+      IntensityChange = null
       MaxSurfaceWindSpeed = Speed {
         Unit = SpeedUnit.MetersPerSecond
         UnitOfMeasure = "m/s"
         Value = 21
       }
+      Movement = null
+      MovementDirectionDegrees = null
+      MovementSpeed = null
       PhenomenonTimeUtc = 2004-09-26T10:00:00.0000000+00:00
       Position = GeoCoordinate {
         Lat = 28.86667
@@ -79,11 +91,15 @@ Tca {
     }
     TropicalCycloneTrackPoint {
       CentralPressureHpa = null
+      IntensityChange = null
       MaxSurfaceWindSpeed = Speed {
         Unit = SpeedUnit.MetersPerSecond
         UnitOfMeasure = "m/s"
         Value = 20
       }
+      Movement = null
+      MovementDirectionDegrees = null
+      MovementSpeed = null
       PhenomenonTimeUtc = 2004-09-26T16:00:00.0000000+00:00
       Position = GeoCoordinate {
         Lat = 29.2
@@ -98,10 +114,18 @@ Tca {
   NextAdvisoryTimeUtc = 2004-09-25T20:00:00.0000000+00:00
   Observation = TropicalCycloneTrackPoint {
     CentralPressureHpa = 965
+    IntensityChange = TropicalCycloneIntensityChange.Intensify
     MaxSurfaceWindSpeed = Speed {
       Unit = SpeedUnit.MetersPerSecond
       UnitOfMeasure = "m/s"
       Value = 22
+    }
+    Movement = TropicalCycloneMovement.Moving
+    MovementDirectionDegrees = 315
+    MovementSpeed = Speed {
+      Unit = SpeedUnit.KilometersPerHour
+      UnitOfMeasure = "km/h"
+      Value = 20
     }
     PhenomenonTimeUtc = 2004-09-25T18:00:00.0000000+00:00
     Position = GeoCoordinate {
@@ -115,5 +139,6 @@ Tca {
   Remarks = null
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.TropicalCycloneAdvisory
+  Translation = null
   TranslationFailedTac = null
 }

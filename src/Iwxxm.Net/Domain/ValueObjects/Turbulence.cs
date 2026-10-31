@@ -12,15 +12,12 @@ namespace Iwxxm.Net.Reports
     public sealed class Turbulence : IEquatable<Turbulence>
     {
         public string Id { get; }
-        /// <summary>Raw degree reference (code URI or value) as reported; <c>null</c> when absent or nil (never invented).</summary>
-        public string? RawDegreeReference { get; }
-        public TurbulenceDegreeCode Degree { get; }
-
         /// <summary>
-        /// Official WMO BUFR 0 11 030 code parsed from <see cref="RawDegreeReference"/> (bare number or code URI),
-        /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
+        /// Degree (WMO BUFR table 0 11 030) translated by the Anti-Corruption Layer: the Domain meaning plus the code as reported;
+        /// <c>null</c> when absent or nil (never invented).
         /// </summary>
-        public int? DegreeNumericCode => WmoCodeRegistry.TryGetNumericCode(RawDegreeReference, WmoCodeRegistry.TurbulenceDegreeTableUri);
+        public CodeListValue<TurbulenceDegreeCode>? Degree { get; }
+
         /// <summary>Lower limit as reported (value, unit, vertical reference or nil reason); <c>null</c> when not reported.</summary>
         public VerticalLimit? Base { get; }
         /// <summary>Upper limit as reported (value, unit, vertical reference or nil reason).</summary>
@@ -36,15 +33,13 @@ namespace Iwxxm.Net.Reports
 
         private Turbulence(
             string id,
-            string? rawDegreeReference,
-            TurbulenceDegreeCode degree,
+            CodeListValue<TurbulenceDegreeCode>? degree,
             VerticalLimit? baseLimit,
             VerticalLimit topLimit,
             GeoSurface area,
             IReadOnlyList<GeoSurface> areas)
         {
             Id = id;
-            RawDegreeReference = rawDegreeReference;
             Degree = degree;
             Base = baseLimit;
             Top = topLimit;
@@ -54,7 +49,7 @@ namespace Iwxxm.Net.Reports
 
         public static Result<Turbulence> Create(
             string id,
-            string? rawDegreeReference,
+            CodeListValue<TurbulenceDegreeCode>? degree,
             VerticalLimit? baseLimit,
             VerticalLimit topLimit,
             GeoSurface area,
@@ -86,11 +81,8 @@ namespace Iwxxm.Net.Reports
                     id);
             }
 
-            TurbulenceDegreeCode degree = WmoCodeRegistry.ResolveTurbulenceDegree(rawDegreeReference);
-
             return Result<Turbulence>.Success(new Turbulence(
                 id,
-                string.IsNullOrWhiteSpace(rawDegreeReference) ? null : rawDegreeReference!.Trim(),
                 degree,
                 baseLimit,
                 topLimit,
@@ -103,8 +95,7 @@ namespace Iwxxm.Net.Reports
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
             return Id == other.Id &&
-                   RawDegreeReference == other.RawDegreeReference &&
-                   Degree == other.Degree &&
+                   Equals(Degree, other.Degree) &&
                    Nullable.Equals(Base, other.Base) &&
                    Top == other.Top &&
                    Area.Equals(other.Area) &&
@@ -118,7 +109,7 @@ namespace Iwxxm.Net.Reports
             unchecked
             {
                 int hash = Id.GetHashCode();
-                hash = (hash * 397) ^ (RawDegreeReference == null ? 0 : RawDegreeReference.GetHashCode());
+                hash = (hash * 397) ^ (Degree == null ? 0 : Degree.GetHashCode());
                 hash = (hash * 397) ^ Top.GetHashCode();
                 return hash;
             }

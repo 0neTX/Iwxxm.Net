@@ -67,10 +67,16 @@ Sigwx {
         UnitOfMeasure = "FL"
         Value = 250
       }
-      CloudAmount = "OCNL_EMBD"
-      CloudType = "CB"
-      DistributionCode = CloudDistributionCode.OccasionalEmbedded
-      DistributionNumericCode = null
+      CloudType = CodeListValue<CloudTypeCode> {
+        Code = CloudTypeCode.Cumulonimbus
+        IsKnown = true
+        Notation = "CB"
+      }
+      Distribution = CodeListValue<CloudDistributionCode> {
+        Code = CloudDistributionCode.OccasionalEmbedded
+        IsKnown = true
+        Notation = "OCNL_EMBD"
+      }
       Id = "cb-biscay-01"
       Top = VerticalLimit {
         IsGround = false
@@ -85,8 +91,6 @@ Sigwx {
         UnitOfMeasure = "FL"
         Value = 420
       }
-      TypeCode = CloudTypeCode.Cumulonimbus
-      TypeNumericCode = null
     }
   ]
   FeatureErrors = []
@@ -207,6 +211,7 @@ Sigwx {
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.SignificantWeather
   Sandstorms = []
+  Translation = null
   TranslationFailedTac = null
   TropicalCyclones = []
   Tropopauses = [
@@ -255,6 +260,7 @@ Sigwx {
   ValidUntilUtc = 2026-10-29T06:00:00.0000000+00:00
   Volcanoes = [
     Volcano {
+      ActivityStatus = null
       EruptionTimeUtc = 2026-10-28T16:30:00.0000000+00:00
       Id = "volcano-etna-01"
       Name = "ETNA"
@@ -262,6 +268,7 @@ Sigwx {
         Lat = 37.73
         Lon = 15
       }
+      SourceElevation = null
       WmoNumber = "211060"
     }
   ]

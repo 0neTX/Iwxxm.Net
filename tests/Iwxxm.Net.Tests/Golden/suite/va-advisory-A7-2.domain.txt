@@ -478,8 +478,10 @@ Vaa {
     Value = 1536
   }
   StateOrRegion = "RUSSIA"
+  Translation = null
   TranslationFailedTac = null
   Volcano = Volcano {
+    ActivityStatus = null
     EruptionTimeUtc = null
     Id = "uuid.1b9ee023-c87d-4fa0-bf9b-bb1c7215286c"
     Name = "KARYMSKY 1000-13"
@@ -487,6 +489,7 @@ Vaa {
       Lat = 54.05
       Lon = 159.45
     }
+    SourceElevation = null
     WmoNumber = null
   }
 }

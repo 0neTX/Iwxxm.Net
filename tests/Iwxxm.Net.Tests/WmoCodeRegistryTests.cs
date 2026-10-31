@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 using Xunit;
 
@@ -233,6 +234,34 @@ namespace Iwxxm.Net.Tests
         public void ResolveCloudDistribution_NonOfficialOrForeignTableCode_ReturnsUnknown(string value)
         {
             Assert.Equal(CloudDistributionCode.Unknown, WmoCodeRegistry.ResolveCloudDistribution(value));
+        }
+
+        [Theory]
+        [InlineData("http://codes.wmo.int/bufr4/codeflag/0-11-030/10", TurbulenceDegreeCode.Moderate, "10", "http://codes.wmo.int/bufr4/codeflag/0-11-030/10", 10)]
+        [InlineData("10", TurbulenceDegreeCode.Moderate, "10", "http://codes.wmo.int/bufr4/codeflag/0-11-030/10", 10)]
+        [InlineData("MOD", TurbulenceDegreeCode.Moderate, "MOD", "MOD", null)]
+        [InlineData("http://codes.wmo.int/bufr4/codeflag/0-11-030/99", TurbulenceDegreeCode.Unknown, "99", "http://codes.wmo.int/bufr4/codeflag/0-11-030/99", 99)]
+        [InlineData("http://codes.wmo.int/bufr4/codeflag/0-20-041/3", TurbulenceDegreeCode.Unknown, "http://codes.wmo.int/bufr4/codeflag/0-20-041/3", "http://codes.wmo.int/bufr4/codeflag/0-20-041/3", null)]
+        [InlineData("http://codes.wmo.int/bufr4/codeflag/0-11-030/0", TurbulenceDegreeCode.NilInCloud, "0", "http://codes.wmo.int/bufr4/codeflag/0-11-030/0", 0)]
+        public void BufrTable_TranslatesIntoCodeListValues_AndRebuildsTheReference(
+            string reported, TurbulenceDegreeCode expected, string notation, string reference, int? numeric)
+        {
+            CodeListValue<TurbulenceDegreeCode>? value = WmoCodeRegistry.TurbulenceDegrees.Translate(reported);
+
+            Assert.NotNull(value);
+            Assert.Equal(expected, value!.Code);
+            Assert.Equal(expected != TurbulenceDegreeCode.Unknown, value.IsKnown);
+            Assert.Equal(notation, value.Notation);
+            Assert.Equal(reference, WmoCodeRegistry.TurbulenceDegrees.ToReference(value));
+            Assert.Equal(numeric, WmoCodeRegistry.TurbulenceDegrees.NumericCode(value));
+        }
+
+        [Fact]
+        public void BufrTable_AbsentReference_IsNull()
+        {
+            Assert.Null(WmoCodeRegistry.CloudDistributions.Translate(null));
+            Assert.Null(WmoCodeRegistry.CloudDistributions.Translate("  "));
+            Assert.Null(WmoCodeRegistry.CloudDistributions.ToReference(null));
         }
 
         [Fact]

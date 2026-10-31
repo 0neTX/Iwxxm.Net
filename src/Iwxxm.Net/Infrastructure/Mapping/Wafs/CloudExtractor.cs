@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 using Iwxxm20252.Generated;
 
@@ -28,8 +29,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
 
             return Cloud.Create(
                 id: feature.Id,
-                cloudAmount: cloudAmount,
-                cloudType: cloudType,
+                distribution: WmoCodeRegistry.CloudDistributions.Translate(cloudAmount),
+                cloudType: WmoCodeRegistry.CloudTypes.Translate(cloudType),
                 baseLimit: volumeRes.Value.Base,
                 topLimit: volumeRes.Value.Top,
                 area: volumeRes.Value.Areas[0],
@@ -66,8 +67,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
 
             return Cloud.Create(
                 id: dto.Id,
-                cloudAmount: dto.CloudAmount,
-                cloudType: dto.CloudType,
+                distribution: WmoCodeRegistry.CloudDistributions.Translate(dto.CloudAmount),
+                cloudType: WmoCodeRegistry.CloudTypes.Translate(dto.CloudType),
                 baseLimit: baseLimit,
                 topLimit: topLimit.Value,
                 area: surfaceResult.Value);

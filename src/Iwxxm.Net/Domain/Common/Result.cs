@@ -97,5 +97,72 @@ namespace Iwxxm.Net
         {
             return Failure(new ValidationError(code, message, category, ValidationSeverity.Error, location));
         }
+
+        /// <summary>Gets the value when the result succeeded.</summary>
+        /// <param name="value">The value on success; <c>default</c> on failure.</param>
+        /// <returns><c>true</c> when the result succeeded.</returns>
+        public bool TryGetValue(out T value)
+        {
+            value = IsSuccess ? _value! : default!;
+            return IsSuccess;
+        }
+
+        /// <summary>
+        /// Projects a successful value with <paramref name="map"/>; a failure is propagated with its errors.
+        /// The warnings of a successful result are kept.
+        /// </summary>
+        public Result<TResult> Map<TResult>(Func<T, TResult> map)
+        {
+            if (map == null)
+                throw new ArgumentNullException(nameof(map));
+
+            return IsSuccess
+                ? Result<TResult>.Success(map(_value!), Warnings)
+                : Result<TResult>.Failure(Errors);
+        }
+
+        /// <summary>
+        /// Chains an operation that can itself fail: on success runs <paramref name="bind"/> and returns its result with
+        /// the warnings of both results (this one first); a failure is propagated without running <paramref name="bind"/>.
+        /// </summary>
+        public Result<TResult> Bind<TResult>(Func<T, Result<TResult>> bind)
+        {
+            if (bind == null)
+                throw new ArgumentNullException(nameof(bind));
+
+            if (IsFailure)
+                return Result<TResult>.Failure(Errors);
+
+            Result<TResult> next = bind(_value!) ?? throw new InvalidOperationException("The bind function returned null.");
+            if (next.IsFailure || Warnings.Count == 0)
+                return next;
+
+            return Result<TResult>.Success(next._value!, Warnings.Concat(next.Warnings));
+        }
+
+        /// <summary>Reduces the result to a single value: <paramref name="onSuccess"/> or <paramref name="onFailure"/>.</summary>
+        public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<IReadOnlyList<ValidationError>, TResult> onFailure)
+        {
+            if (onSuccess == null)
+                throw new ArgumentNullException(nameof(onSuccess));
+            if (onFailure == null)
+                throw new ArgumentNullException(nameof(onFailure));
+
+            return IsSuccess ? onSuccess(_value!) : onFailure(Errors);
+        }
+
+        /// <summary>Runs <paramref name="onSuccess"/> or <paramref name="onFailure"/>.</summary>
+        public void Match(Action<T> onSuccess, Action<IReadOnlyList<ValidationError>> onFailure)
+        {
+            if (onSuccess == null)
+                throw new ArgumentNullException(nameof(onSuccess));
+            if (onFailure == null)
+                throw new ArgumentNullException(nameof(onFailure));
+
+            if (IsSuccess)
+                onSuccess(_value!);
+            else
+                onFailure(Errors);
+        }
     }
 }

@@ -6,6 +6,35 @@ Speci {
     Lon = -12.34
   }
   AirTemperatureCelsius = 25
+  Cloud = AerodromeCloud {
+    IsNoCloudDetected = false
+    IsNoSignificantCloud = false
+    Layers = [
+      AerodromeCloudLayer {
+        Amount = CodeListValue<AerodromeCloudAmount> {
+          Code = AerodromeCloudAmount.Broken
+          IsKnown = true
+          Notation = "BKN"
+        }
+        AmountNilReason = null
+        Base = Length {
+          Unit = LengthUnit.Feet
+          UnitOfMeasure = "[ft_i]"
+          Value = 500
+        }
+        BaseNilReason = null
+        CloudType = CodeListValue<ConvectiveCloudType> {
+          Code = ConvectiveCloudType.Cumulonimbus
+          IsKnown = true
+          Notation = "CB"
+        }
+        NilReason = null
+      }
+    ]
+    NilReason = null
+    VerticalVisibility = null
+    VerticalVisibilityNilReason = null
+  }
   CloudAndVisibilityOk = false
   CloudLayers = [
     AerodromeCloudLayer {
@@ -14,16 +43,19 @@ Speci {
         IsKnown = true
         Notation = "BKN"
       }
+      AmountNilReason = null
       Base = Length {
         Unit = LengthUnit.Feet
         UnitOfMeasure = "[ft_i]"
         Value = 500
       }
+      BaseNilReason = null
       CloudType = CodeListValue<ConvectiveCloudType> {
         Code = ConvectiveCloudType.Cumulonimbus
         IsKnown = true
         Notation = "CB"
       }
+      NilReason = null
     }
   ]
   DewpointTemperatureCelsius = 22
@@ -43,17 +75,21 @@ Speci {
       Notation = "+TSRA"
     }
   ]
+  PresentWeatherNilReason = null
   PrevailingVisibilityMeters = 3000
   QnhHpa = 1008
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Speci
   RunwayVisualRanges = []
   SurfaceWind = SurfaceWind {
+    ExtremeClockwiseDirectionDegrees = null
+    ExtremeCounterClockwiseDirectionDegrees = null
     GustSpeed = Speed {
       Unit = SpeedUnit.Knots
       UnitOfMeasure = "[kn_i]"
       Value = 37
     }
+    GustSpeedOperator = null
     IsVariableDirection = false
     MeanDirectionDegrees = 50
     MeanSpeed = Speed {
@@ -61,34 +97,65 @@ Speci {
       UnitOfMeasure = "[kn_i]"
       Value = 25
     }
+    MeanSpeedOperator = null
   }
+  Translation = null
   TranslationFailedTac = null
   TrendForecasts = [
     AerodromeForecastGroup {
       ChangeIndicator = "TEMPORARY_FLUCTUATIONS"
+      Cloud = null
       CloudAndVisibilityOk = false
       CloudLayers = []
       Id = "uuid.1fcd6178-2764-4b35-826a-4d167d37c558"
+      IsNoSignificantWeather = false
       PrevailingVisibilityMeters = 600
       PrevailingVisibilityOperator = null
       SurfaceWind = null
+      Temperatures = []
       TimeIndicator = TrendTimeIndicator.Until
       ValidFromUtc = 2012-08-15T11:15:00.0000000+00:00
       ValidUntilUtc = 2012-08-15T12:00:00.0000000+00:00
       Weather = []
+      WeatherNilReason = null
     }
     AerodromeForecastGroup {
       ChangeIndicator = "BECOMING"
+      Cloud = AerodromeCloud {
+        IsNoCloudDetected = false
+        IsNoSignificantCloud = true
+        Layers = []
+        NilReason = CodeListValue<NilReason> {
+          Code = NilReason.NothingOfOperationalSignificance
+          IsKnown = true
+          Notation = "nothingOfOperationalSignificance"
+        }
+        VerticalVisibility = null
+        VerticalVisibilityNilReason = null
+      }
       CloudAndVisibilityOk = false
       CloudLayers = []
       Id = "uuid.d3071042-2012-48c7-9e4e-df49ffc8a3b9"
+      IsNoSignificantWeather = true
       PrevailingVisibilityMeters = 8000
       PrevailingVisibilityOperator = null
       SurfaceWind = null
+      Temperatures = []
       TimeIndicator = TrendTimeIndicator.At
       ValidFromUtc = 2012-08-15T12:00:00.0000000+00:00
       ValidUntilUtc = null
       Weather = []
+      WeatherNilReason = CodeListValue<NilReason> {
+        Code = NilReason.NothingOfOperationalSignificance
+        IsKnown = true
+        Notation = "nothingOfOperationalSignificance"
+      }
     }
   ]
+  Visibility = AerodromeHorizontalVisibility {
+    MinimumDirectionDegrees = 45
+    MinimumMeters = 1200
+    PrevailingMeters = 3000
+    PrevailingOperator = null
+  }
 }

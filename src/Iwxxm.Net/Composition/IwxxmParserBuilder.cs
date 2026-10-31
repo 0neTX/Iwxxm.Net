@@ -4,6 +4,7 @@ using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.GeoJson;
 using Iwxxm.Net.Infrastructure.Mapping;
 using Iwxxm.Net.Infrastructure.Validation;
+using Iwxxm.Net.Infrastructure.Xml;
 
 namespace Iwxxm.Net
 {
@@ -108,11 +109,12 @@ namespace Iwxxm.Net
         /// <summary>Builds the full-suite parser facade (all IWXXM 2025-2 reports and COLLECT bulletins).</summary>
         public IwxxmParser Build()
         {
-            ISigwxDocumentMapper sigwxMapper = _sigwxDocumentMapper ?? new SigwxDocumentMapper(_options);
+            ISigwxDocumentMapper sigwxMapper = _sigwxDocumentMapper ?? new SigwxDocumentMapper();
             var dispatcher = new DispatchIwxxmReportUseCase(
                 schemaValidator: _schemaValidator ?? XsdValidator.CreateFullSuiteValidator(_options),
                 schematronValidator: CreateSchematronValidator(),
                 documentMapper: _documentMapper ?? new IwxxmSuiteMapper(sigwxMapper, _options),
+                parser: SecureXml.Parser,
                 options: _options);
 
             return new IwxxmParser(dispatcher, BuildGeoJsonService());
@@ -124,7 +126,8 @@ namespace Iwxxm.Net
             var processor = new ProcessSigwxReportUseCase(
                 schemaValidator: _schemaValidator ?? new XsdValidator(useFullSuite: false, options: _options),
                 schematronValidator: CreateSchematronValidator(),
-                documentMapper: _sigwxDocumentMapper ?? new SigwxDocumentMapper(_options),
+                documentMapper: _sigwxDocumentMapper ?? new SigwxDocumentMapper(),
+                parser: SecureXml.Parser,
                 options: _options);
 
             return new IwxxmSigwxParser(processor);

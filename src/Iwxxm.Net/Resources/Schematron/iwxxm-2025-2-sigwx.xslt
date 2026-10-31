@@ -71,14 +71,30 @@
   </xsl:template>
 
   <!-- =========================================================================
+       SVRL location (AUD-L8): an XPath of the context node with one positional step per
+       element, e.g. /iwxxm:WAFSSignificantWeatherForecast[1]/iwxxm:feature[3]/iwxxm:MeteorologicalFeature[1]
+       ========================================================================= -->
+  <xsl:template name="svrl-location">
+    <xsl:choose>
+      <xsl:when test="ancestor-or-self::*">
+        <xsl:for-each select="ancestor-or-self::*">
+          <xsl:variable name="step" select="name()"/>
+          <xsl:value-of select="concat('/', $step, '[', count(preceding-sibling::*[name() = $step]) + 1, ']')"/>
+        </xsl:for-each>
+      </xsl:when>
+      <xsl:otherwise>/</xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+
+  <!-- =========================================================================
        Common Helper: Validate Common.BasicReport-1 & Common.BasicReport-2
        ========================================================================= -->
   <xsl:template name="ValidateCommonReportAttributes">
     <xsl:if test="@permissibleUsage = 'NON-OPERATIONAL' and not(@permissibleUsageReason)">
       <svrl:failed-assert id="Common.BasicReport-1"
                           role="ERROR"
-                          location="{concat('/', name(.))}"
                           test="if (@permissibleUsage = 'NON-OPERATIONAL') then exists(@permissibleUsageReason) else true()">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>Common.BasicReport-1: Non-operational reports must include a permissibleUsageReason</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -86,8 +102,8 @@
     <xsl:if test="@permissibleUsage = 'OPERATIONAL' and @permissibleUsageReason">
       <svrl:failed-assert id="Common.BasicReport-2"
                           role="ERROR"
-                          location="{concat('/', name(.))}"
                           test="if (@permissibleUsage = 'OPERATIONAL') then empty(@permissibleUsageReason) else true()">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>Common.BasicReport-2: Operational reports should not include a permissibleUsageReason</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -137,8 +153,8 @@
           <xsl:when test="string-length($codeListFile) = 0 or not(contains($officialCodeLists, concat('|', $codeListFile, '|')))">
             <svrl:failed-assert id="IWXXM.RdfCodeListRegistry-1"
                                 role="ERROR"
-                                location="{concat('//', name(.))}"
                                 test="@xlink:href is a member of an official WMO code list">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
               <svrl:text>WMO code-list URI '<xsl:value-of select="$href"/>' on element '<xsl:value-of select="name(.)"/>' does not belong to any of the 20 official WMO RDF/SKOS code lists embedded in this library.</svrl:text>
             </svrl:failed-assert>
           </xsl:when>
@@ -148,8 +164,8 @@
             <xsl:if test="not($concept) or ($isVersioned and not($concept/owl:versionInfo[@rdf:resource = $iwxxmVersion]))">
               <svrl:failed-assert id="IWXXM.RdfCodeListRegistry-1"
                                   role="ERROR"
-                                  location="{concat('//', name(.))}"
                                   test="@xlink:href = document('{$codeListFile}')//skos:Concept/@rdf:about">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
                 <svrl:text>WMO code-list URI '<xsl:value-of select="$href"/>' on element '<xsl:value-of select="name(.)"/>' is not a member of the official WMO code list <xsl:value-of select="$codeListFile"/><xsl:if test="$isVersioned"> registered for IWXXM 2025-2</xsl:if>.</svrl:text>
               </svrl:failed-assert>
             </xsl:if>
@@ -170,8 +186,8 @@
     <xsl:if test="not(gml:identifier)">
       <svrl:failed-assert id="MeteorologicalFeature.MeteorologicalFeatureCollection-1"
                           role="ERROR"
-                          location="/iwxxm:WAFSSignificantWeatherForecast"
                           test="exists(gml:identifier)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>MeteorologicalFeature.MeteorologicalFeatureCollection-1: gml:identifier is mandatory</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -179,8 +195,8 @@
     <xsl:if test="string(iwxxm:phenomenonCategory) != 'weatherForecasts'">
       <svrl:failed-assert id="WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-1"
                           role="ERROR"
-                          location="/iwxxm:WAFSSignificantWeatherForecast/iwxxm:phenomenonCategory"
                           test="iwxxm:phenomenonCategory = 'weatherForecasts'">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-1: iwxxm:phenomenonCategory shall be equal to 'weatherForecasts'.</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -188,8 +204,8 @@
     <xsl:if test="not(iwxxm:phenomenonBaseTime)">
       <svrl:failed-assert id="WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-2"
                           role="ERROR"
-                          location="/iwxxm:WAFSSignificantWeatherForecast"
                           test="exists(iwxxm:phenomenonBaseTime)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-2: iwxxm:phenomenonBaseTime is mandatory</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -197,8 +213,8 @@
     <xsl:if test="not(iwxxm:originatingCentre/iwxxm:WorldAreaForecastCentre)">
       <svrl:failed-assert id="WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-3"
                           role="ERROR"
-                          location="/iwxxm:WAFSSignificantWeatherForecast/iwxxm:originatingCentre"
                           test="exists(iwxxm:originatingCentre/iwxxm:WorldAreaForecastCentre)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>WAFSSignificantWeatherForecast.WAFSSignificantWeatherForecast-3: iwxxm:originatingCentre must have a child element of iwxxm:WorldAreaForecastCentre</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -209,8 +225,8 @@
       <xsl:if test="$upperElev &lt;= $lowerElev">
         <svrl:failed-assert id="IWXXM-SIGWX-001"
                             role="ERROR"
-                            location="/iwxxm:WAFSSignificantWeatherForecast/iwxxm:boundingVolume/iwxxm:ElevatedEnvelope"
                             test="number(iwxxm:upperElevation) &gt; number(iwxxm:lowerElevation)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
           <svrl:text>[IWXXM-SIGWX-001] The upper elevation (<xsl:value-of select="$upperElev"/>) must be strictly greater than the lower elevation (<xsl:value-of select="$lowerElev"/>).</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -220,8 +236,8 @@
       <xsl:if test="not(gml:identifier)">
         <svrl:failed-assert id="MeteorologicalFeature.MeteorologicalFeature-1"
                             role="ERROR"
-                            location="/iwxxm:WAFSSignificantWeatherForecast/iwxxm:feature/iwxxm:MeteorologicalFeature[@gml:id='{@gml:id}']"
                             test="exists(gml:identifier)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
           <svrl:text>MeteorologicalFeature.MeteorologicalFeature-1: gml:identifier is mandatory</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -231,8 +247,8 @@
       <xsl:if test="not(@nilReason) and not(@xlink:href = $bufrCloudDistribution//skos:Concept/@rdf:about)">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.CloudDistribution"
                             role="ERROR"
-                            location="//iwxxm:CloudDistribution"
                             test="@xlink:href = document('codes.wmo.int-bufr4-codeflag-0-20-008.rdf')/rdf:RDF//skos:member/skos:Concept/@rdf:about or @nilReason">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
           <svrl:text>Element in iwxxm:CloudDistribution should be a member of code list http://codes.wmo.int/bufr4/codeflag/0-20-008</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -242,8 +258,8 @@
       <xsl:if test="not(@nilReason) and not(@xlink:href = $bufrCloudType//skos:Concept/@rdf:about)">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.CloudType"
                             role="ERROR"
-                            location="//iwxxm:CloudType"
                             test="@xlink:href = document('codes.wmo.int-bufr4-codeflag-0-20-012.rdf')/rdf:RDF//skos:member/skos:Concept/@rdf:about or @nilReason">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
           <svrl:text>Element in iwxxm:CloudType should be a member of code list http://codes.wmo.int/bufr4/codeflag/0-20-012</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -253,8 +269,8 @@
       <xsl:if test="not(@nilReason) and not(@xlink:href = $bufrTurbulence//skos:Concept/@rdf:about)">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.DegreeOfTurbulence"
                             role="ERROR"
-                            location="//iwxxm:DegreeOfTurbulence"
                             test="@xlink:href = document('codes.wmo.int-bufr4-codeflag-0-11-030.rdf')/rdf:RDF//skos:member/skos:Concept/@rdf:about or @nilReason">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
           <svrl:text>Element in iwxxm:DegreeOfTurbulence should be a member of code list http://codes.wmo.int/bufr4/codeflag/0-11-030</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -264,8 +280,8 @@
       <xsl:if test="not(@nilReason) and not(@xlink:href = $bufrIcing//skos:Concept/@rdf:about)">
         <svrl:failed-assert id="WAFSSignificantWeatherForecast.DegreeOfIcing"
                             role="ERROR"
-                            location="//iwxxm:DegreeOfIcing"
                             test="@xlink:href = document('codes.wmo.int-bufr4-codeflag-0-20-041.rdf')/rdf:RDF//skos:member/skos:Concept/@rdf:about or @nilReason">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
           <svrl:text>Element in iwxxm:DegreeOfIcing should be a member of code list http://codes.wmo.int/bufr4/codeflag/0-20-041</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -274,12 +290,12 @@
     <xsl:for-each select="iwxxm:feature/iwxxm:MeteorologicalFeature/iwxxm:phenomenonProperty/iwxxm:WAFSJetStreamWindSymbol">
       <xsl:variable name="speed" select="number(iwxxm:windSpeed)"/>
       <xsl:variable name="uom" select="string(iwxxm:windSpeed/@uom)"/>
-      <xsl:if test="($uom = '[kn_i]' and $speed &lt; 80) or ($uom = 'm/s' and $speed &lt; 41.0)">
+      <xsl:if test="($uom = '[kn_i]' and $speed &lt; 80) or ($uom = 'm/s' and $speed &lt; 41.15552)">
         <svrl:failed-assert id="IWXXM-SIGWX-002"
                             role="ERROR"
-                            location="//iwxxm:WAFSJetStreamWindSymbol[@gml:id='{@gml:id}']"
-                            test="windSpeed &gt;= 80 kt (or 41.1 m/s)">
-          <svrl:text>[IWXXM-SIGWX-002] WAFSJetStreamWindSymbol '<xsl:value-of select="@gml:id"/>' has wind speed <xsl:value-of select="$speed"/> (<xsl:value-of select="$uom"/>), below the ICAO Annex 3 minimum threshold of 80 kt (41.1 m/s).</svrl:text>
+                            test="windSpeed &gt;= 80 kt (or 41.15552 m/s)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
+          <svrl:text>[IWXXM-SIGWX-002] WAFSJetStreamWindSymbol '<xsl:value-of select="@gml:id"/>' has wind speed <xsl:value-of select="$speed"/> (<xsl:value-of select="$uom"/>), below the ICAO Annex 3 minimum threshold of 80 kt (41.15552 m/s).</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
     </xsl:for-each>
@@ -297,8 +313,8 @@
     <xsl:if test="$upperFl &lt;= $lowerFl">
       <svrl:failed-assert id="IWXXM-SIGWX-001"
                           role="ERROR"
-                          location="/iwxxm:SIGWXReport"
                           test="number(iwxxm:upperLimit) &gt; number(iwxxm:lowerLimit)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>[IWXXM-SIGWX-001] The SIGWX report upper vertical limit (<xsl:value-of select="$upperFl"/>) must be strictly greater than the lower vertical limit (<xsl:value-of select="$lowerFl"/>).</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -306,12 +322,12 @@
     <xsl:for-each select="iwxxm:jetStream">
       <xsl:variable name="windSpeed" select="number(iwxxm:windSpeed)"/>
       <xsl:variable name="windUom" select="string(iwxxm:windSpeed/@uom)"/>
-      <xsl:if test="($windUom = '[kn_i]' and $windSpeed &lt; 80) or ($windUom = 'm/s' and $windSpeed &lt; 41.0)">
+      <xsl:if test="($windUom = '[kn_i]' and $windSpeed &lt; 80) or ($windUom = 'm/s' and $windSpeed &lt; 41.15552)">
         <svrl:failed-assert id="IWXXM-SIGWX-002"
                             role="ERROR"
-                            location="/iwxxm:SIGWXReport/iwxxm:jetStream[@gml:id='{@gml:id}']"
                             test="number(iwxxm:windSpeed) &gt;= 80">
-          <svrl:text>[IWXXM-SIGWX-002] JetStream '<xsl:value-of select="@gml:id"/>' has maximum wind speed <xsl:value-of select="$windSpeed"/> kt, below the ICAO minimum threshold of 80 kt.</svrl:text>
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
+          <svrl:text>[IWXXM-SIGWX-002] JetStream '<xsl:value-of select="@gml:id"/>' has maximum wind speed <xsl:value-of select="$windSpeed"/> (<xsl:value-of select="$windUom"/>), below the ICAO minimum threshold of 80 kt (41.15552 m/s).</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
     </xsl:for-each>
@@ -323,8 +339,8 @@
         <xsl:if test="$topFl &lt;= $baseFl">
           <svrl:failed-assert id="IWXXM-SIGWX-003"
                               role="ERROR"
-                              location="/iwxxm:SIGWXReport/iwxxm:cloud[@gml:id='{@gml:id}']"
                               test="number(iwxxm:top) &gt; number(iwxxm:base)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
             <svrl:text>[IWXXM-SIGWX-003] Cloud distribution '<xsl:value-of select="@gml:id"/>' has a top flight level (<xsl:value-of select="$topFl"/>) less than or equal to its base (<xsl:value-of select="$baseFl"/>).</svrl:text>
           </svrl:failed-assert>
         </xsl:if>
@@ -335,8 +351,8 @@
       <xsl:if test="@uom != 'FL'">
         <svrl:failed-assert id="IWXXM-SIGWX-004"
                             role="ERROR"
-                            location="{name(.)}"
                             test="@uom = 'FL'">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
           <svrl:text>[IWXXM-SIGWX-004] Element '<xsl:value-of select="name(.)"/>' must use unit of measure 'FL' (Flight Level), but found '<xsl:value-of select="@uom"/>'.</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -354,8 +370,8 @@
     <xsl:if test="not(@translationFailedTAC) and string(iwxxm:phenomenonCategory) != 'volcanicObservations'">
       <svrl:failed-assert id="VONA.VONA-1"
                           role="ERROR"
-                          location="/iwxxm:VolcanoObservatoryNoticeForAviation/iwxxm:phenomenonCategory"
                           test="iwxxm:phenomenonCategory = 'volcanicObservations'">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>VONA.VONA-1: iwxxm:phenomenonCategory in VolcanoObservatoryNoticeForAviation shall be 'volcanicObservations'.</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -369,8 +385,8 @@
     <xsl:if test="not(@translationFailedTAC) and string(iwxxm:phenomenonCategory) != 'volcanicForecasts'">
       <svrl:failed-assert id="QVACI.QVACI-1"
                           role="ERROR"
-                          location="/iwxxm:QuantitativeVolcanicAshConcentrationInformation/iwxxm:phenomenonCategory"
                           test="iwxxm:phenomenonCategory = 'volcanicForecasts'">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>QVACI.QVACI-1: iwxxm:phenomenonCategory in QuantitativeVolcanicAshConcentrationInformation shall be 'volcanicForecasts'.</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -379,8 +395,8 @@
       <xsl:if test="number(.) &lt;= 0">
         <svrl:failed-assert id="QVACI.AshDensity-1"
                             role="ERROR"
-                            location="//iwxxm:ashDensityEqualsOrExceeds"
                             test="number(.) &gt; 0">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
           <svrl:text>QVACI.AshDensity-1: Ash concentration density must be strictly positive (mg/m3).</svrl:text>
         </svrl:failed-assert>
       </xsl:if>
@@ -398,8 +414,8 @@
     <xsl:if test="not(@translationFailedTAC) and not(iwxxm:observation)">
       <svrl:failed-assert id="METAR_SPECI.ObservationMandatory-1"
                           role="ERROR"
-                          location="{concat('/', name(.))}"
                           test="exists(iwxxm:observation) or exists(@translationFailedTAC)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>METAR_SPECI.ObservationMandatory-1: iwxxm:observation is required when report is not a failed TAC translation.</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -413,8 +429,8 @@
     <xsl:if test="not(@translationFailedTAC) and not(@isCancelReport = 'true') and not(iwxxm:baseForecast)">
       <svrl:failed-assert id="TAF.BaseForecastMandatory-1"
                           role="ERROR"
-                          location="/iwxxm:TAF"
                           test="exists(iwxxm:baseForecast) or @isCancelReport = 'true' or exists(@translationFailedTAC)">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>TAF.BaseForecastMandatory-1: iwxxm:baseForecast is required unless isCancelReport is true or translationFailedTAC is present.</svrl:text>
       </svrl:failed-assert>
     </xsl:if>
@@ -434,8 +450,8 @@
     <xsl:if test="string-length(normalize-space(collect:bulletinIdentifier)) = 0">
       <svrl:failed-assert id="COLLECT.BulletinIdentifier-1"
                           role="ERROR"
-                          location="/collect:MeteorologicalBulletin/collect:bulletinIdentifier"
                           test="string-length(normalize-space(collect:bulletinIdentifier)) &gt; 0">
+        <xsl:attribute name="location"><xsl:call-template name="svrl-location"/></xsl:attribute>
         <svrl:text>COLLECT.BulletinIdentifier-1: collect:bulletinIdentifier must not be empty.</svrl:text>
       </svrl:failed-assert>
     </xsl:if>

@@ -34,19 +34,25 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
 
             if (feature.PhenomenonGeometry?.Polygon != null)
             {
-                var ringCoordsRes = SigwxGeometryReader.ReadRingCoordinates(
-                    feature.PhenomenonGeometry.Polygon.Exterior,
-                    context,
-                    SigwxGeometryReader.SrsAttributes.From(
-                        feature.PhenomenonGeometry.Polygon.SrsName,
-                        feature.PhenomenonGeometry.Polygon.AxisLabels,
-                        feature.PhenomenonGeometry.Polygon.SrsDimensionSpecified,
-                        feature.PhenomenonGeometry.Polygon.SrsDimension));
+                PolygonType polygon = feature.PhenomenonGeometry.Polygon;
+                SigwxGeometryReader.SrsAttributes srs = SigwxGeometryReader.SrsAttributes.From(
+                    polygon.SrsName, polygon.AxisLabels, polygon.SrsDimensionSpecified, polygon.SrsDimension);
 
+                var ringCoordsRes = SigwxGeometryReader.ReadRingCoordinates(polygon.Exterior, context, srs);
                 if (ringCoordsRes.IsFailure)
                     return Result<Tropopause>.Failure(ringCoordsRes.Errors);
 
-                var polyRes = GeoPolygon.Create(ringCoordsRes.Value, context);
+                // Interior rings (holes) of the contour are kept (AUD-L4).
+                var holes = new List<IEnumerable<GeoCoordinate>>();
+                for (int h = 0; h < polygon.Interiors.Count; h++)
+                {
+                    var holeRes = SigwxGeometryReader.ReadRingCoordinates(polygon.Interiors[h], $"{context}/interior[{h + 1}]", srs);
+                    if (holeRes.IsFailure)
+                        return Result<Tropopause>.Failure(holeRes.Errors);
+                    holes.Add(holeRes.Value);
+                }
+
+                var polyRes = GeoPolygon.Create(ringCoordsRes.Value, holes, context);
                 if (polyRes.IsFailure)
                     return Result<Tropopause>.Failure(polyRes.Errors);
 

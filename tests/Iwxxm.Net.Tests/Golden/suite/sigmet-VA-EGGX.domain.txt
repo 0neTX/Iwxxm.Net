@@ -5,6 +5,7 @@ Sigmet {
   CancelledReportValidFromUtc = null
   CancelledReportValidUntilUtc = null
   EruptingVolcano = Volcano {
+    ActivityStatus = null
     EruptionTimeUtc = null
     Id = "uuid.99646618-9ec7-47c0-8b50-daba5b6b1da9"
     Name = "MT HEKLA"
@@ -12,6 +13,7 @@ Sigmet {
       Lat = 63.98
       Lon = -19.67
     }
+    SourceElevation = null
     WmoNumber = null
   }
   EvolvingConditions = [
@@ -124,8 +126,13 @@ Sigmet {
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.VolcanicAshSigmet
   SequenceNumber = "4"
+  SupplementaryEvolvingConditions = []
+  SupplementaryForecastPositions = []
+  Translation = null
   TranslationFailedTac = null
   TropicalCycloneName = null
   ValidFromUtc = 2018-07-25T16:00:00.0000000+00:00
   ValidUntilUtc = 2018-07-25T22:00:00.0000000+00:00
+  VolcanicAshMovedToFirDesignator = null
+  VolcanicAshMovedToFirName = null
 }

@@ -16,5 +16,12 @@ namespace Iwxxm.Net
         /// <param name="xmlStream">Readable stream containing the IWXXM 2025-2 SIGWX document.</param>
         /// <returns>A <see cref="Result{Sigwx}"/> containing either the aggregate root or validation errors.</returns>
         Result<Sigwx> Process(Stream xmlStream);
+
+        /// <summary>
+        /// Processes already-decoded XML text containing an IWXXM 2025-2 SIGWX document; the encoding named by the XML
+        /// declaration does not apply to text and is ignored.
+        /// </summary>
+        /// <param name="xmlText">Reader positioned at the start of the document (not closed).</param>
+        Result<Sigwx> Process(TextReader xmlText);
     }
 }

@@ -39,10 +39,11 @@ namespace Iwxxm.Net.Reports
             DewpointTemperatureCelsius = content.DewpointTemperatureCelsius;
             QnhHpa = content.QnhHpa;
             SurfaceWind = content.SurfaceWind;
-            PrevailingVisibilityMeters = content.PrevailingVisibilityMeters;
+            Visibility = content.Visibility;
             RunwayVisualRanges = content.RunwayVisualRanges;
             PresentWeather = content.PresentWeather;
-            CloudLayers = content.CloudLayers;
+            PresentWeatherNilReason = content.PresentWeatherNilReason;
+            Cloud = content.Cloud;
             TrendForecasts = content.TrendForecasts;
         }
 
@@ -71,12 +72,29 @@ namespace Iwxxm.Net.Reports
         public double? DewpointTemperatureCelsius { get; }
         public double? QnhHpa { get; }
         public SurfaceWind? SurfaceWind { get; }
-        public double? PrevailingVisibilityMeters { get; }
+
+        /// <summary>Horizontal visibility (prevailing with operator, minimum with direction); <c>null</c> when not reported.</summary>
+        public AerodromeHorizontalVisibility? Visibility { get; }
+
+        /// <summary>Prevailing visibility in metres (<see cref="AerodromeHorizontalVisibility.PrevailingMeters"/> of <see cref="Visibility"/>).</summary>
+        public double? PrevailingVisibilityMeters => Visibility?.PrevailingMeters;
+
         public IReadOnlyList<RunwayVisualRange> RunwayVisualRanges { get; }
 
         /// <summary>Present weather codes (WMO code list <c>AerodromePresentOrForecastWeather</c>), in document order.</summary>
         public IReadOnlyList<AerodromeWeather> PresentWeather { get; }
-        public IReadOnlyList<AerodromeCloudLayer> CloudLayers { get; }
+
+        /// <summary>
+        /// Reason why present weather is nil (e.g. <see cref="NilReason.NotObservable"/> for TAC <c>//</c>); <c>null</c> when
+        /// weather codes are given or present weather is not reported.
+        /// </summary>
+        public CodeListValue<NilReason>? PresentWeatherNilReason { get; }
+
+        /// <summary>Cloud group (layers, vertical visibility, <c>NSC</c>/<c>NCD</c>); <c>null</c> when not reported.</summary>
+        public AerodromeCloud? Cloud { get; }
+
+        /// <summary>Cloud layers of <see cref="Cloud"/> (empty when no cloud group is reported).</summary>
+        public IReadOnlyList<AerodromeCloudLayer> CloudLayers => Cloud?.Layers ?? Array.Empty<AerodromeCloudLayer>();
         public IReadOnlyList<AerodromeForecastGroup> TrendForecasts { get; }
 
         /// <summary>
@@ -103,10 +121,11 @@ namespace Iwxxm.Net.Reports
             double? dewpointTemperatureCelsius,
             double? qnhHpa,
             SurfaceWind? surfaceWind,
-            double? prevailingVisibilityMeters,
+            AerodromeHorizontalVisibility? visibility,
             IEnumerable<RunwayVisualRange>? runwayVisualRanges,
             IEnumerable<AerodromeWeather>? presentWeather,
-            IEnumerable<AerodromeCloudLayer>? cloudLayers,
+            CodeListValue<NilReason>? presentWeatherNilReason,
+            AerodromeCloud? cloud,
             IEnumerable<AerodromeForecastGroup>? trendForecasts,
             PermissibleUsageReason? permissibleUsageReason,
             string? permissibleUsageSupplementary)
@@ -122,7 +141,8 @@ namespace Iwxxm.Net.Reports
             invariants.RequireIssueTime(issueTimeUtc);
             invariants.RequireUtc(observationTimeUtc, "observation time");
             invariants.Check(surfaceWind, "surface wind");
-            invariants.RequireNonNegative(prevailingVisibilityMeters, DomainErrorCodes.NegativeVisibility, "prevailing visibility");
+            invariants.Check(visibility);
+            invariants.Check(cloud, "cloud");
             foreach (RunwayVisualRange rvr in rvrList)
             {
                 invariants.RequireNonNegative(rvr?.MeanRvrMeters, DomainErrorCodes.NegativeRvr, $"mean RVR of runway '{rvr?.RunwayDesignator}'");
@@ -160,10 +180,11 @@ namespace Iwxxm.Net.Reports
                 DewpointTemperatureCelsius = dewpointTemperatureCelsius,
                 QnhHpa = qnhHpa,
                 SurfaceWind = surfaceWind,
-                PrevailingVisibilityMeters = prevailingVisibilityMeters,
+                Visibility = visibility,
                 RunwayVisualRanges = new ReadOnlyCollection<RunwayVisualRange>(rvrList),
                 PresentWeather = new ReadOnlyCollection<AerodromeWeather>(presentWeather?.ToList() ?? new List<AerodromeWeather>(0)),
-                CloudLayers = new ReadOnlyCollection<AerodromeCloudLayer>(cloudLayers?.ToList() ?? new List<AerodromeCloudLayer>(0)),
+                PresentWeatherNilReason = presentWeatherNilReason,
+                Cloud = cloud,
                 TrendForecasts = new ReadOnlyCollection<AerodromeForecastGroup>(trendList)
             }));
         }
@@ -191,10 +212,11 @@ namespace Iwxxm.Net.Reports
             internal double? DewpointTemperatureCelsius;
             internal double? QnhHpa;
             internal SurfaceWind? SurfaceWind;
-            internal double? PrevailingVisibilityMeters;
+            internal AerodromeHorizontalVisibility? Visibility;
             internal IReadOnlyList<RunwayVisualRange> RunwayVisualRanges = Array.Empty<RunwayVisualRange>();
             internal IReadOnlyList<AerodromeWeather> PresentWeather = Array.Empty<AerodromeWeather>();
-            internal IReadOnlyList<AerodromeCloudLayer> CloudLayers = Array.Empty<AerodromeCloudLayer>();
+            internal CodeListValue<NilReason>? PresentWeatherNilReason;
+            internal AerodromeCloud? Cloud;
             internal IReadOnlyList<AerodromeForecastGroup> TrendForecasts = Array.Empty<AerodromeForecastGroup>();
         }
     }

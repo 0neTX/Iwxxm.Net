@@ -14,5 +14,12 @@ SpaceWx {
   ReplacedAdvisoryNumbers = []
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.SpaceWeatherAdvisory
+  Translation = TranslationMetadata {
+    TranslatedBulletinId = "TTAAiiCCCYYGGgg"
+    TranslatedBulletinReceptionTimeUtc = 2014-05-15T15:29:00.0000000+00:00
+    TranslationCentreDesignator = "YUZZ"
+    TranslationCentreName = "Fictional translation centre"
+    TranslationTimeUtc = 2014-05-15T15:30:00.0000000+00:00
+  }
   TranslationFailedTac = "FVFE01 RJTD 230130     SWX ADVISORY     DTG:                20161108/0100Z      SWXC:               DONLON     ADVISORY NR:        2016/1     INVALID INVALID INVALID"
 }

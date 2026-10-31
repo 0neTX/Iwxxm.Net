@@ -6,6 +6,47 @@ Metar {
     Lon = -12.34
   }
   AirTemperatureCelsius = 17
+  Cloud = AerodromeCloud {
+    IsNoCloudDetected = false
+    IsNoSignificantCloud = false
+    Layers = [
+      AerodromeCloudLayer {
+        Amount = CodeListValue<AerodromeCloudAmount> {
+          Code = AerodromeCloudAmount.Scattered
+          IsKnown = true
+          Notation = "SCT"
+        }
+        AmountNilReason = null
+        Base = Length {
+          Unit = LengthUnit.Feet
+          UnitOfMeasure = "[ft_i]"
+          Value = 1000
+        }
+        BaseNilReason = null
+        CloudType = null
+        NilReason = null
+      }
+      AerodromeCloudLayer {
+        Amount = CodeListValue<AerodromeCloudAmount> {
+          Code = AerodromeCloudAmount.Overcast
+          IsKnown = true
+          Notation = "OVC"
+        }
+        AmountNilReason = null
+        Base = Length {
+          Unit = LengthUnit.Feet
+          UnitOfMeasure = "[ft_i]"
+          Value = 2000
+        }
+        BaseNilReason = null
+        CloudType = null
+        NilReason = null
+      }
+    ]
+    NilReason = null
+    VerticalVisibility = null
+    VerticalVisibilityNilReason = null
+  }
   CloudAndVisibilityOk = false
   CloudLayers = [
     AerodromeCloudLayer {
@@ -14,12 +55,15 @@ Metar {
         IsKnown = true
         Notation = "SCT"
       }
+      AmountNilReason = null
       Base = Length {
         Unit = LengthUnit.Feet
         UnitOfMeasure = "[ft_i]"
         Value = 1000
       }
+      BaseNilReason = null
       CloudType = null
+      NilReason = null
     }
     AerodromeCloudLayer {
       Amount = CodeListValue<AerodromeCloudAmount> {
@@ -27,12 +71,15 @@ Metar {
         IsKnown = true
         Notation = "OVC"
       }
+      AmountNilReason = null
       Base = Length {
         Unit = LengthUnit.Feet
         UnitOfMeasure = "[ft_i]"
         Value = 2000
       }
+      BaseNilReason = null
       CloudType = null
+      NilReason = null
     }
   ]
   DewpointTemperatureCelsius = 16
@@ -56,6 +103,7 @@ Metar {
       Notation = "FG"
     }
   ]
+  PresentWeatherNilReason = null
   PrevailingVisibilityMeters = 600
   QnhHpa = 1018
   ReportStatus = ReportStatus.Normal
@@ -63,12 +111,16 @@ Metar {
   RunwayVisualRanges = [
     RunwayVisualRange {
       MeanRvrMeters = 1000
-      PastTendency = "UPWARD"
+      MeanRvrOperator = null
+      PastTendency = RunwayVisualRangeTendency.Upward
       RunwayDesignator = "12"
     }
   ]
   SurfaceWind = SurfaceWind {
+    ExtremeClockwiseDirectionDegrees = null
+    ExtremeCounterClockwiseDirectionDegrees = null
     GustSpeed = null
+    GustSpeedOperator = null
     IsVariableDirection = false
     MeanDirectionDegrees = 240
     MeanSpeed = Speed {
@@ -76,17 +128,22 @@ Metar {
       UnitOfMeasure = "m/s"
       Value = 4
     }
+    MeanSpeedOperator = null
   }
+  Translation = null
   TranslationFailedTac = null
   TrendForecasts = [
     AerodromeForecastGroup {
       ChangeIndicator = "BECOMING"
+      Cloud = null
       CloudAndVisibilityOk = false
       CloudLayers = []
       Id = "uuid.46584004-93bf-4638-a8be-86a61bc85e0f"
+      IsNoSignificantWeather = false
       PrevailingVisibilityMeters = 800
       PrevailingVisibilityOperator = null
       SurfaceWind = null
+      Temperatures = []
       TimeIndicator = TrendTimeIndicator.Until
       ValidFromUtc = 2012-08-22T16:30:00.0000000+00:00
       ValidUntilUtc = 2012-08-22T17:00:00.0000000+00:00
@@ -96,19 +153,34 @@ Metar {
           Notation = "FG"
         }
       ]
+      WeatherNilReason = null
     }
     AerodromeForecastGroup {
       ChangeIndicator = "BECOMING"
+      Cloud = null
       CloudAndVisibilityOk = false
       CloudLayers = []
       Id = "uuid.be66f283-6aae-4a84-bc84-3831c9b2e7ef"
+      IsNoSignificantWeather = true
       PrevailingVisibilityMeters = 10000
-      PrevailingVisibilityOperator = "ABOVE"
+      PrevailingVisibilityOperator = RelationalOperator.Above
       SurfaceWind = null
+      Temperatures = []
       TimeIndicator = TrendTimeIndicator.At
       ValidFromUtc = 2012-08-22T18:00:00.0000000+00:00
       ValidUntilUtc = null
       Weather = []
+      WeatherNilReason = CodeListValue<NilReason> {
+        Code = NilReason.NothingOfOperationalSignificance
+        IsKnown = true
+        Notation = "nothingOfOperationalSignificance"
+      }
     }
   ]
+  Visibility = AerodromeHorizontalVisibility {
+    MinimumDirectionDegrees = null
+    MinimumMeters = null
+    PrevailingMeters = 600
+    PrevailingOperator = null
+  }
 }

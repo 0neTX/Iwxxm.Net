@@ -70,18 +70,27 @@ namespace Iwxxm.Net.Reports
             var holes = new List<IReadOnlyList<GeoCoordinate>>();
             if (interiorRings != null)
             {
+                // A hole is a closed ring of at least 4 positions (RFC 7946 §3.1.6, GML LinearRing); a degenerate hole is an
+                // error instead of being dropped or written as an invalid ring (AUD-L9).
                 foreach (var hole in interiorRings)
                 {
                     if (hole == null) continue;
                     var holeVertices = hole.ToList();
-                    if (holeVertices.Count >= 3)
+                    if (holeVertices.Count > 0 && holeVertices[0] != holeVertices[holeVertices.Count - 1])
                     {
-                        if (holeVertices[0] != holeVertices[holeVertices.Count - 1])
-                        {
-                            holeVertices.Add(holeVertices[0]);
-                        }
-                        holes.Add(new ReadOnlyCollection<GeoCoordinate>(holeVertices));
+                        holeVertices.Add(holeVertices[0]);
                     }
+
+                    if (holeVertices.Count < 4)
+                    {
+                        return Result<GeoPolygon>.Failure(
+                            "GEO-POLYGON-HOLE-DEGENERATE",
+                            $"A polygon interior ring must contain at least 4 positions including the closing vertex (received {holeVertices.Count}).",
+                            ErrorCategory.DomainMapping,
+                            location);
+                    }
+
+                    holes.Add(new ReadOnlyCollection<GeoCoordinate>(holeVertices));
                 }
             }
 

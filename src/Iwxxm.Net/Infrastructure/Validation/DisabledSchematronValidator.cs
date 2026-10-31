@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using Iwxxm.Net.Extensibility;
 
 namespace Iwxxm.Net.Infrastructure.Validation
@@ -19,7 +18,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
         {
         }
 
-        public IReadOnlyList<ValidationError> Validate(Stream document)
+        public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));

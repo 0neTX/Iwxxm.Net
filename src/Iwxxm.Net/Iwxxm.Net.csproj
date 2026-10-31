@@ -8,7 +8,6 @@
 
     <!-- NuGet Packaging Configuration (inherits version 1.0.0-rc.1 and metadata from Directory.Build.props) -->
     <IsPackable>true</IsPackable>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Iwxxm.Net</PackageId>
     <Title>Iwxxm.Net — ICAO/WMO IWXXM Aeronautical Meteorology Processor for .NET</Title>
     <Product>Iwxxm.Net</Product>
@@ -21,13 +20,12 @@
   <!-- 
     =========================================================================
     ARCHITECTURAL CONSTRAINT: VANILLA C# AT RUNTIME
-    Zero third-party runtime dependencies are included. Microsoft.SourceLink.GitHub
-    is marked with PrivateAssets="all" so it only runs at build time for PDB
-    source linking without adding any runtime NuGet dependency to the package.
+    Zero third-party runtime dependencies are included. SourceLink is provided by the
+    .NET SDK itself (no package reference): the PDBs in the .snupkg map to the GitHub
+    sources at build time without adding any NuGet dependency to the package.
     =========================================================================
   -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
     <InternalsVisibleTo Include="Iwxxm.Net.Tests" />
     <InternalsVisibleTo Include="Iwxxm.Net.Benchmarks" />
   </ItemGroup>

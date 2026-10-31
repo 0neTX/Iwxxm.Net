@@ -1,4 +1,3 @@
-using System.IO;
 using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Extensibility
@@ -10,7 +9,7 @@ namespace Iwxxm.Net.Extensibility
     public interface ISigwxDocumentMapper
     {
         /// <summary>Maps the validated SIGWX document into a <see cref="Sigwx"/>.</summary>
-        /// <param name="validatedDocument">Seekable stream positioned at the start of a document that passed validation.</param>
-        Result<Sigwx> Map(Stream validatedDocument);
+        /// <param name="validatedDocument">Sanitized context of a document that passed validation.</param>
+        Result<Sigwx> Map(IwxxmDocumentContext validatedDocument);
     }
 }

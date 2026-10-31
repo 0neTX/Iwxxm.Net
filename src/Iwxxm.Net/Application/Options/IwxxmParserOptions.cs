@@ -32,10 +32,26 @@ namespace Iwxxm.Net
         /// </summary>
         public long MaxCharactersFromEntities { get; }
 
+        /// <summary>
+        /// Maximum number of findings a validator reports for one document (applies to the XSD and the Schematron
+        /// validators). When a document produces more, the first findings are kept and a final
+        /// <c>XSD-TOO-MANY-ERRORS</c> / <c>SCHEMATRON-TOO-MANY-ERRORS</c> sentinel is appended. Defaults to <c>100</c>.
+        /// </summary>
+        public int MaxValidationErrors { get; }
+
+        /// <summary>
+        /// Maximum size in bytes of the SVRL report a Schematron validator may produce for one document. Larger reports
+        /// stop the rule evaluation with <c>SCHEMATRON-REPORT-SIZE-LIMIT</c> (a business-rule error, not malformed input).
+        /// Defaults to 4 MB (<c>4,194,304</c> bytes).
+        /// </summary>
+        public long MaxRuleReportBytes { get; }
+
         public IwxxmParserOptions(
             long maxDocumentBytes = 10L * 1024L * 1024L,
             long maxCharactersInDocument = 10_485_760L,
-            long maxCharactersFromEntities = 1024L)
+            long maxCharactersFromEntities = 1024L,
+            int maxValidationErrors = 100,
+            long maxRuleReportBytes = 4L * 1024L * 1024L)
         {
             if (maxDocumentBytes <= 0)
                 throw new ArgumentOutOfRangeException(nameof(maxDocumentBytes), "Maximum document byte limit must be positive.");
@@ -43,10 +59,16 @@ namespace Iwxxm.Net
                 throw new ArgumentOutOfRangeException(nameof(maxCharactersInDocument), "Maximum characters in document must be positive.");
             if (maxCharactersFromEntities < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxCharactersFromEntities), "Maximum characters from entities cannot be negative.");
+            if (maxValidationErrors <= 0)
+                throw new ArgumentOutOfRangeException(nameof(maxValidationErrors), "Maximum validation errors must be positive.");
+            if (maxRuleReportBytes <= 0)
+                throw new ArgumentOutOfRangeException(nameof(maxRuleReportBytes), "Maximum rule report size must be positive.");
 
             MaxDocumentBytes = maxDocumentBytes;
             MaxCharactersInDocument = maxCharactersInDocument;
             MaxCharactersFromEntities = maxCharactersFromEntities;
+            MaxValidationErrors = maxValidationErrors;
+            MaxRuleReportBytes = maxRuleReportBytes;
         }
     }
 }

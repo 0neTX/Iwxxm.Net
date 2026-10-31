@@ -1,4 +1,3 @@
-using System.IO;
 using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Extensibility
@@ -10,7 +9,7 @@ namespace Iwxxm.Net.Extensibility
     public interface IIwxxmDocumentMapper
     {
         /// <summary>Maps the validated document into a Domain Aggregate Root.</summary>
-        /// <param name="validatedDocument">Seekable stream positioned at the start of a document that passed validation.</param>
-        Result<IwxxmDocument> Map(Stream validatedDocument);
+        /// <param name="validatedDocument">Sanitized context of a document that passed validation.</param>
+        Result<IwxxmDocument> Map(IwxxmDocumentContext validatedDocument);
     }
 }

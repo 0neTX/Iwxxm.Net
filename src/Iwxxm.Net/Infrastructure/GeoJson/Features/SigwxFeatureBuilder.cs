@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.GeoJson.GeoJsonProperties;
 
@@ -33,12 +34,13 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             foreach (var cloud in sigwx.Clouds)
             {
                 var props = CreateBase(sigwx, "CLOUD", bulletinId);
-                props.Add(("cloudAmountUri", cloud.CloudAmount));
-                props.Add(("distributionCode", cloud.DistributionCode.ToString()));
-                props.Add(("distributionNumericCode", cloud.DistributionNumericCode));
-                props.Add(("cloudTypeUri", cloud.CloudType));
-                props.Add(("typeCode", cloud.TypeCode.ToString()));
-                props.Add(("typeNumericCode", cloud.TypeNumericCode));
+                // Linked-Data output: the reported references are rebuilt from the Domain values (ACL tables).
+                props.Add(("cloudAmountUri", WmoCodeRegistry.CloudDistributions.ToReference(cloud.Distribution)));
+                props.Add(("distributionCode", CodeName(cloud.Distribution)));
+                props.Add(("distributionNumericCode", WmoCodeRegistry.CloudDistributions.NumericCode(cloud.Distribution)));
+                props.Add(("cloudTypeUri", WmoCodeRegistry.CloudTypes.ToReference(cloud.CloudType)));
+                props.Add(("typeCode", CodeName(cloud.CloudType)));
+                props.Add(("typeNumericCode", WmoCodeRegistry.CloudTypes.NumericCode(cloud.CloudType)));
                 AddVerticalLimit(props, "base", cloud.Base);
                 AddVerticalLimit(props, "top", cloud.Top);
                 features.Add(GeoJsonFeature.ForSurfaces(cloud.Id, cloud.Areas, props));
@@ -47,9 +49,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             foreach (var turb in sigwx.Turbulences)
             {
                 var props = CreateBase(sigwx, "TURBULENCE", bulletinId);
-                props.Add(("degreeUri", turb.RawDegreeReference));
-                props.Add(("degree", turb.Degree.ToString()));
-                props.Add(("degreeNumericCode", turb.DegreeNumericCode));
+                props.Add(("degreeUri", WmoCodeRegistry.TurbulenceDegrees.ToReference(turb.Degree)));
+                props.Add(("degree", CodeName(turb.Degree)));
+                props.Add(("degreeNumericCode", WmoCodeRegistry.TurbulenceDegrees.NumericCode(turb.Degree)));
                 AddVerticalLimit(props, "base", turb.Base);
                 AddVerticalLimit(props, "top", turb.Top);
                 features.Add(GeoJsonFeature.ForSurfaces(turb.Id, turb.Areas, props));
@@ -58,9 +60,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             foreach (var icing in sigwx.AirframeIcings)
             {
                 var props = CreateBase(sigwx, "AIRFRAME_ICING", bulletinId);
-                props.Add(("degreeUri", icing.RawDegreeReference));
-                props.Add(("degree", icing.Degree.ToString()));
-                props.Add(("degreeNumericCode", icing.DegreeNumericCode));
+                props.Add(("degreeUri", WmoCodeRegistry.IcingDegrees.ToReference(icing.Degree)));
+                props.Add(("degree", CodeName(icing.Degree)));
+                props.Add(("degreeNumericCode", WmoCodeRegistry.IcingDegrees.NumericCode(icing.Degree)));
                 AddVerticalLimit(props, "base", icing.Base);
                 AddVerticalLimit(props, "top", icing.Top);
                 features.Add(GeoJsonFeature.ForSurfaces(icing.Id, icing.Areas, props));
@@ -113,5 +115,10 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 features.Add(GeoJsonFeature.ForPoint(rad.Id, rad.Position, props));
             }
         }
+
+        /// <summary>Name of the Domain code, or <c>Unknown</c> when the value is not reported (unchanged GeoJSON contract).</summary>
+        private static string CodeName<TCode>(CodeListValue<TCode>? value)
+            where TCode : struct, System.Enum =>
+            value == null ? "Unknown" : value.Code.ToString();
     }
 }

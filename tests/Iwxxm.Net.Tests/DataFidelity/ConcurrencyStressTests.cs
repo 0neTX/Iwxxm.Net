@@ -56,23 +56,15 @@ namespace Iwxxm.Net.Tests.DataFidelity
         public void XsdValidator_SharedSchemaSets_AreDeterministicUnderParallelLoad()
         {
             XsdValidator validator = XsdValidator.CreateFullSuiteValidator();
-            AssertParallelMatchesSequential(bytes =>
-            {
-                using var stream = new MemoryStream(bytes);
-                return Signature(validator.Validate(stream));
-            });
-            Assert.Contains(Inputs().Select(b => { using var s = new MemoryStream(b); return validator.Validate(s).Count; }), c => c > 0);
+            AssertParallelMatchesSequential(bytes => Signature(validator.Validate(new Extensibility.IwxxmDocumentContext(bytes))));
+            Assert.Contains(Inputs().Select(b => validator.Validate(new Extensibility.IwxxmDocumentContext(b)).Count), c => c > 0);
         }
 
         [Fact]
         public void XsltSchematronValidator_IsDeterministicUnderParallelLoad()
         {
             var validator = new XsltSchematronValidator();
-            AssertParallelMatchesSequential(bytes =>
-            {
-                using var stream = new MemoryStream(bytes);
-                return Signature(validator.Validate(stream));
-            });
+            AssertParallelMatchesSequential(bytes => Signature(validator.Validate(new Extensibility.IwxxmDocumentContext(bytes))));
         }
 
         [Fact]

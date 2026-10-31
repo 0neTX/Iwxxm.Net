@@ -8,30 +8,18 @@ namespace Iwxxm.Net.Reports
     /// <summary>
     /// Value Object representing a significant cloud distribution (e.g., ISOL/OCNL/FRQ CB)
     /// bounded by a geographic polygon in a SIGWX report.
-    /// Exposes the strongly-typed WMO BUFR code enums together with the original raw/URI code strings
-    /// (<see cref="CloudAmount"/>, <see cref="CloudType"/>) and the parsed official numeric codes.
+    /// <see cref="Distribution"/> (WMO BUFR table 0 20 008) and <see cref="CloudType"/> (0 20 012) are translated by the
+    /// Anti-Corruption Layer into <see cref="CodeListValue{TCode}"/> values: the Domain meaning plus the code as reported
+    /// (the numeric code of a code URI, or the TAC abbreviation of the compact report); <c>null</c> when not reported.
     /// </summary>
     public sealed class Cloud : IEquatable<Cloud>
     {
         public string Id { get; }
-        /// <summary>Raw cloud distribution reference as reported; <c>null</c> when absent or nil (never invented).</summary>
-        public string? CloudAmount { get; }
-        public CloudDistributionCode DistributionCode { get; }
-        /// <summary>Raw cloud type reference as reported; <c>null</c> when absent or nil (never invented).</summary>
-        public string? CloudType { get; }
-        public CloudTypeCode TypeCode { get; }
+        /// <summary>Cloud distribution (BUFR 0 20 008); <c>null</c> when absent or nil (never invented).</summary>
+        public CodeListValue<CloudDistributionCode>? Distribution { get; }
 
-        /// <summary>
-        /// Official WMO BUFR 0 20 008 code parsed from <see cref="CloudAmount"/> (bare number or code URI),
-        /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
-        /// </summary>
-        public int? DistributionNumericCode => WmoCodeRegistry.TryGetNumericCode(CloudAmount, WmoCodeRegistry.CloudDistributionTableUri);
-
-        /// <summary>
-        /// Official WMO BUFR 0 20 012 code parsed from <see cref="CloudType"/> (bare number or code URI),
-        /// or <c>null</c> when the raw value is a TAC abbreviation or does not belong to that table.
-        /// </summary>
-        public int? TypeNumericCode => WmoCodeRegistry.TryGetNumericCode(CloudType, WmoCodeRegistry.CloudTypeTableUri);
+        /// <summary>Cloud type (BUFR 0 20 012); <c>null</c> when absent or nil (never invented).</summary>
+        public CodeListValue<CloudTypeCode>? CloudType { get; }
         /// <summary>Lower limit as reported (value, unit, vertical reference or nil reason); <c>null</c> when not reported.</summary>
         public VerticalLimit? Base { get; }
         /// <summary>Upper limit as reported (value, unit, vertical reference or nil reason).</summary>
@@ -47,20 +35,16 @@ namespace Iwxxm.Net.Reports
 
         private Cloud(
             string id,
-            string? cloudAmount,
-            CloudDistributionCode distributionCode,
-            string? cloudType,
-            CloudTypeCode typeCode,
+            CodeListValue<CloudDistributionCode>? distribution,
+            CodeListValue<CloudTypeCode>? cloudType,
             VerticalLimit? baseLimit,
             VerticalLimit topLimit,
             GeoSurface area,
             IReadOnlyList<GeoSurface> areas)
         {
             Id = id;
-            CloudAmount = cloudAmount;
-            DistributionCode = distributionCode;
+            Distribution = distribution;
             CloudType = cloudType;
-            TypeCode = typeCode;
             Base = baseLimit;
             Top = topLimit;
             Area = area;
@@ -69,8 +53,8 @@ namespace Iwxxm.Net.Reports
 
         public static Result<Cloud> Create(
             string id,
-            string? cloudAmount,
-            string? cloudType,
+            CodeListValue<CloudDistributionCode>? distribution,
+            CodeListValue<CloudTypeCode>? cloudType,
             VerticalLimit? baseLimit,
             VerticalLimit topLimit,
             GeoSurface area,
@@ -102,15 +86,10 @@ namespace Iwxxm.Net.Reports
                     id);
             }
 
-            CloudDistributionCode distCode = WmoCodeRegistry.ResolveCloudDistribution(cloudAmount);
-            CloudTypeCode typeCode = WmoCodeRegistry.ResolveCloudType(cloudType);
-
             return Result<Cloud>.Success(new Cloud(
                 id,
-                string.IsNullOrWhiteSpace(cloudAmount) ? null : cloudAmount!.Trim(),
-                distCode,
-                string.IsNullOrWhiteSpace(cloudType) ? null : cloudType!.Trim(),
-                typeCode,
+                distribution,
+                cloudType,
                 baseLimit,
                 topLimit,
                 area,
@@ -122,8 +101,8 @@ namespace Iwxxm.Net.Reports
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
             return Id == other.Id &&
-                   CloudAmount == other.CloudAmount &&
-                   CloudType == other.CloudType &&
+                   Equals(Distribution, other.Distribution) &&
+                   Equals(CloudType, other.CloudType) &&
                    Nullable.Equals(Base, other.Base) &&
                    Top == other.Top &&
                    Area.Equals(other.Area) &&
@@ -137,7 +116,7 @@ namespace Iwxxm.Net.Reports
             unchecked
             {
                 int hash = Id.GetHashCode();
-                hash = (hash * 397) ^ (CloudAmount == null ? 0 : CloudAmount.GetHashCode());
+                hash = (hash * 397) ^ (Distribution == null ? 0 : Distribution.GetHashCode());
                 hash = (hash * 397) ^ (CloudType == null ? 0 : CloudType.GetHashCode());
                 hash = (hash * 397) ^ Top.GetHashCode();
                 return hash;

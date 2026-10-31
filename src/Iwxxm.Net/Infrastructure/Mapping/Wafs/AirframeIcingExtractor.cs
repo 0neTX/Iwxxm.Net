@@ -1,4 +1,5 @@
 using System.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 using Iwxxm20252.Generated;
 
@@ -20,7 +21,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
 
             return AirframeIcing.Create(
                 id: feature.Id,
-                rawDegreeReference: degreeHref,
+                degree: WmoCodeRegistry.IcingDegrees.Translate(degreeHref),
                 baseLimit: volumeRes.Value.Base,
                 topLimit: volumeRes.Value.Top,
                 area: volumeRes.Value.Areas[0],

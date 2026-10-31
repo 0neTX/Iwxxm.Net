@@ -7,8 +7,9 @@ namespace Iwxxm.Net.Reports
     /// the Linked Data reference of the document (<c>xlink:href</c>) into a Domain enumeration.
     /// </summary>
     /// <typeparam name="TCode">
-    /// Domain enumeration of the code list. By convention its <c>Unknown</c> member is the default value (<c>0</c>),
-    /// and every other member stands for exactly one official code.
+    /// Domain enumeration of the code list. Its member named <c>Unknown</c> stands for a value that is not an official code
+    /// (the default value <c>0</c> for the WMO 49-2 / common lists; <c>-1</c> for the WMO BUFR tables, whose member values
+    /// equal the official codes, including <c>0</c>); every other member stands for exactly one official code.
     /// </typeparam>
     /// <remarks>
     /// <para>The Domain never stores a code-list URI as its model of a code: <see cref="Code"/> carries the meaning and
@@ -45,8 +46,12 @@ namespace Iwxxm.Net.Reports
         /// <summary>Gets the code as reported (official notation, or the raw reference for a foreign register).</summary>
         public string Notation { get; }
 
-        /// <summary>Gets a value indicating whether <see cref="Code"/> is an official code (not the default <c>Unknown</c> member).</summary>
-        public bool IsKnown => !Code.Equals(default(TCode));
+        /// <summary>Gets a value indicating whether <see cref="Code"/> is an official code (not the <c>Unknown</c> member).</summary>
+        public bool IsKnown => !Code.Equals(UnknownCode);
+
+        /// <summary>The <c>Unknown</c> member of <typeparamref name="TCode"/> (its default value when it declares none).</summary>
+        internal static readonly TCode UnknownCode =
+            Enum.IsDefined(typeof(TCode), "Unknown") ? (TCode)Enum.Parse(typeof(TCode), "Unknown") : default;
 
         public bool Equals(CodeListValue<TCode>? other)
         {

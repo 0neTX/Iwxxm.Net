@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Iwxxm.Net.Application.UseCases
 {
@@ -86,7 +88,100 @@ namespace Iwxxm.Net.Application.UseCases
             return Result<byte[]>.Success(payload);
         }
 
-        /// <summary>Opens a fresh read-only, seekable view over the buffered document.</summary>
-        public static MemoryStream OpenView(byte[] payload) => new MemoryStream(payload, writable: false);
+        /// <summary>
+        /// Reads already-decoded XML text (AUD-M5) into the same size-bounded UTF-8 buffer as <see cref="Read"/>.
+        /// </summary>
+        /// <remarks>
+        /// Text is not bytes: like an <c>XmlReader</c> over a <see cref="StringReader"/>, the encoding named by the XML
+        /// declaration does not apply to it. The text is therefore encoded as UTF-8 and the <c>encoding</c> pseudo-attribute
+        /// of its declaration (if any) is rewritten to <c>UTF-8</c>, so a string declared <c>UTF-16</c> or <c>ISO-8859-1</c>
+        /// reaches every pipeline stage with exactly its characters (previously the UTF-8 bytes were decoded with the
+        /// declared encoding: <c>UTF-16</c> failed, <c>ISO-8859-1</c> produced mojibake). A leading byte-order mark
+        /// character is dropped. <see cref="IwxxmParserOptions.MaxDocumentBytes"/> applies to the UTF-8 payload and is
+        /// enforced while reading.
+        /// </remarks>
+        public static Result<byte[]> ReadText(TextReader input, IwxxmParserOptions options, string emptyCode)
+        {
+            if (input == null)
+                throw new ArgumentNullException(nameof(input));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
+
+            var text = new StringBuilder();
+            try
+            {
+                var chunk = new char[ChunkSize];
+                int read;
+                while ((read = input.Read(chunk, 0, chunk.Length)) > 0)
+                {
+                    // Every character takes at least one UTF-8 byte: stop as soon as the byte limit is certainly exceeded.
+                    if (text.Length + read > options.MaxDocumentBytes)
+                    {
+                        return SizeLimitExceeded(options);
+                    }
+
+                    text.Append(chunk, 0, read);
+                }
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
+            {
+                return Result<byte[]>.Failure(
+                    "STREAM-READ-ERROR",
+                    $"Failed to read the input XML text: {ex.Message}",
+                    ErrorCategory.MalformedInput);
+            }
+
+            string normalized = DeclareUtf8(text.ToString());
+            if (normalized.Trim().Length == 0)
+            {
+                return Result<byte[]>.Failure(
+                    emptyCode,
+                    "The provided XML text is empty.",
+                    ErrorCategory.MalformedInput);
+            }
+
+            byte[] payload = Utf8WithoutBom.GetBytes(normalized);
+            return payload.LongLength > options.MaxDocumentBytes
+                ? SizeLimitExceeded(options)
+                : Result<byte[]>.Success(payload);
+        }
+
+        private static readonly UTF8Encoding Utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+        // encoding pseudo-attribute of an XML declaration (XML 1.0 EncName production).
+        private static readonly Regex EncodingDeclaration =
+            new Regex("(\\bencoding\\s*=\\s*)([\"'])[A-Za-z][A-Za-z0-9._-]*\\2", RegexOptions.CultureInvariant);
+
+        /// <summary>Drops a leading BOM character and rewrites the declared encoding of the XML declaration to UTF-8.</summary>
+        internal static string DeclareUtf8(string xml)
+        {
+            if (xml.Length > 0 && xml[0] == '\uFEFF')
+            {
+                xml = xml.Substring(1);
+            }
+
+            if (!xml.StartsWith("<?xml", StringComparison.Ordinal) || xml.Length < 6 || !IsXmlWhitespace(xml[5]))
+            {
+                return xml;
+            }
+
+            int end = xml.IndexOf("?>", StringComparison.Ordinal);
+            if (end < 0)
+            {
+                return xml;
+            }
+
+            string declaration = xml.Substring(0, end);
+            string rewritten = EncodingDeclaration.Replace(declaration, match => match.Groups[1].Value + match.Groups[2].Value + "UTF-8" + match.Groups[2].Value, 1);
+            return ReferenceEquals(rewritten, declaration) || rewritten == declaration ? xml : rewritten + xml.Substring(end);
+        }
+
+        private static bool IsXmlWhitespace(char c) => c == ' ' || c == '\t' || c == '\r' || c == '\n';
+
+        private static Result<byte[]> SizeLimitExceeded(IwxxmParserOptions options) =>
+            Result<byte[]>.Failure(
+                "XML-SIZE-LIMIT",
+                $"The input XML text exceeds the maximum allowed limit of {options.MaxDocumentBytes} bytes (UTF-8).",
+                ErrorCategory.MalformedInput);
     }
 }

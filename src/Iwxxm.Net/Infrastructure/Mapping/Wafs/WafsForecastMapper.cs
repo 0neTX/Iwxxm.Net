@@ -12,6 +12,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
     /// </summary>
     internal static class WafsForecastMapper
     {
+        internal const string FeatureByReferenceCode = "ACL-SIGWX-FEATURE-BY-REFERENCE";
+        internal const string PhenomenonUnsupportedCode = "ACL-SIGWX-PHENOMENON-UNSUPPORTED";
+
         private delegate void FeatureExtraction(MeteorologicalFeatureType feature, SigwxFeatureSet set, List<ValidationError> errors);
 
         /// <summary>Phenomenon code suffix to extractor, evaluated in order (closed WAFS phenomenon catalog).</summary>
@@ -54,29 +57,40 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             // Partial results (AUD-M12): a feature that cannot be mapped is reported as a feature error of the chart,
             // which keeps every other feature. Chart-level content (metadata, times, bounding volume) stays mandatory, and
             // a chart whose features all fail is a failure.
+            // Nothing is skipped silently (AUD-L4): a feature given only by reference (not resolved by this version) and a
+            // feature whose phenomenon is outside the WAFS catalog are feature errors too.
             var features = new SigwxFeatureSet();
             var featureErrors = new List<ItemMappingError>();
-            int inlineFeatureCount = 0;
-            if (dto.Features != null)
+            int featureCount = dto.Features?.Count ?? 0;
+            for (int index = 0; index < featureCount; index++)
             {
-                for (int index = 0; index < dto.Features.Count; index++)
+                MeteorologicalFeaturePropertyType entry = dto.Features![index];
+                MeteorologicalFeatureType? feature = entry.MeteorologicalFeature;
+                if (feature == null)
                 {
-                    // An external xlink:href feature reference without inline payload is skipped.
-                    MeteorologicalFeatureType? feature = dto.Features[index].MeteorologicalFeature;
-                    if (feature == null)
-                        continue;
-
-                    inlineFeatureCount++;
-                    var itemErrors = new List<ValidationError>();
-                    Extract(feature, features, itemErrors);
-                    if (itemErrors.Count > 0)
+                    featureErrors.Add(new ItemMappingError(index, null, new[]
                     {
-                        featureErrors.Add(new ItemMappingError(index, feature.Id, itemErrors));
-                    }
+                        new ValidationError(
+                            FeatureByReferenceCode,
+                            string.IsNullOrWhiteSpace(entry.Href)
+                                ? "The feature has neither inline content nor a reference."
+                                : $"The feature is given only by the reference '{entry.Href}', which this version does not resolve.",
+                            ErrorCategory.DomainMapping,
+                            ValidationSeverity.Error,
+                            dto.Id)
+                    }));
+                    continue;
+                }
+
+                var itemErrors = new List<ValidationError>();
+                Extract(feature, features, itemErrors);
+                if (itemErrors.Count > 0)
+                {
+                    featureErrors.Add(new ItemMappingError(index, feature.Id, itemErrors));
                 }
             }
 
-            if (inlineFeatureCount > 0 && featureErrors.Count == inlineFeatureCount)
+            if (featureCount > 0 && featureErrors.Count == featureCount)
             {
                 errors.AddRange(featureErrors.SelectMany(e => e.Errors));
                 errors.Add(new ValidationError(
@@ -116,7 +130,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 featureErrors: featureErrors);
         }
 
-        /// <summary>Dispatches a feature to the first extractor whose suffix matches; unknown phenomena are ignored.</summary>
+        /// <summary>Dispatches a feature to the first extractor whose suffix matches; an unknown phenomenon is a feature error.</summary>
         private static void Extract(MeteorologicalFeatureType feature, SigwxFeatureSet features, List<ValidationError> errors)
         {
             string phenomenonHref = feature.Phenomenon?.Href ?? string.Empty;
@@ -128,6 +142,15 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                     return;
                 }
             }
+
+            errors.Add(new ValidationError(
+                PhenomenonUnsupportedCode,
+                phenomenonHref.Length == 0
+                    ? $"Feature '{feature.Id}' reports no phenomenon."
+                    : $"Feature '{feature.Id}' reports the phenomenon '{phenomenonHref}', which is not a WAFS SIGWX phenomenon supported by this version.",
+                ErrorCategory.DomainMapping,
+                ValidationSeverity.Error,
+                feature.Id));
         }
 
         private static KeyValuePair<string, FeatureExtraction> Entry(string suffix, FeatureExtraction extraction) =>

@@ -52,6 +52,21 @@ namespace Iwxxm.Net.Reports
         public IReadOnlyList<EnRoutePhenomenonVolume> EvolvingConditions { get; }
         public IReadOnlyList<EnRoutePhenomenonVolume> ForecastPositions { get; }
 
+        /// <summary>
+        /// Evolving conditions of the TC SIGMET <c>supplementaryAnalysisCollection</c> entries (CB areas analysed in addition to
+        /// the main analysis), in document order; empty otherwise.
+        /// </summary>
+        public IReadOnlyList<EnRoutePhenomenonVolume> SupplementaryEvolvingConditions { get; }
+
+        /// <summary>Forecast positions of the TC SIGMET <c>supplementaryAnalysisCollection</c> entries; empty otherwise.</summary>
+        public IReadOnlyList<EnRoutePhenomenonVolume> SupplementaryForecastPositions { get; }
+
+        /// <summary>Designator of the FIR into which the volcanic ash is forecast to move (VA SIGMET <c>volcanicAshMovedToFIR</c>).</summary>
+        public string? VolcanicAshMovedToFirDesignator { get; }
+
+        /// <summary>Name of the FIR into which the volcanic ash is forecast to move.</summary>
+        public string? VolcanicAshMovedToFirName { get; }
+
         private Sigmet(
             string id,
             IwxxmReportType reportType,
@@ -78,7 +93,11 @@ namespace Iwxxm.Net.Reports
             Volcano? eruptingVolcano,
             string? tropicalCycloneName,
             IReadOnlyList<EnRoutePhenomenonVolume> evolvingConditions,
-            IReadOnlyList<EnRoutePhenomenonVolume> forecastPositions)
+            IReadOnlyList<EnRoutePhenomenonVolume> forecastPositions,
+            IReadOnlyList<EnRoutePhenomenonVolume> supplementaryEvolvingConditions,
+            IReadOnlyList<EnRoutePhenomenonVolume> supplementaryForecastPositions,
+            string? volcanicAshMovedToFirDesignator,
+            string? volcanicAshMovedToFirName)
         {
             Id = id;
             ReportType = reportType;
@@ -106,6 +125,10 @@ namespace Iwxxm.Net.Reports
             TropicalCycloneName = tropicalCycloneName;
             EvolvingConditions = evolvingConditions;
             ForecastPositions = forecastPositions;
+            SupplementaryEvolvingConditions = supplementaryEvolvingConditions;
+            SupplementaryForecastPositions = supplementaryForecastPositions;
+            VolcanicAshMovedToFirDesignator = volcanicAshMovedToFirDesignator;
+            VolcanicAshMovedToFirName = volcanicAshMovedToFirName;
         }
 
         public static Result<Sigmet> Create(
@@ -134,10 +157,16 @@ namespace Iwxxm.Net.Reports
             PermissibleUsageReason? permissibleUsageReason = null,
             string? permissibleUsageSupplementary = null,
             DateTimeOffset? cancelledReportValidFromUtc = null,
-            DateTimeOffset? cancelledReportValidUntilUtc = null)
+            DateTimeOffset? cancelledReportValidUntilUtc = null,
+            IEnumerable<EnRoutePhenomenonVolume>? supplementaryEvolvingConditions = null,
+            IEnumerable<EnRoutePhenomenonVolume>? supplementaryForecastPositions = null,
+            string? volcanicAshMovedToFirDesignator = null,
+            string? volcanicAshMovedToFirName = null)
         {
             var evolving = evolvingConditions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
             var positions = forecastPositions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
+            var supplementaryEvolving = supplementaryEvolvingConditions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
+            var supplementaryPositions = supplementaryForecastPositions?.ToList() ?? new List<EnRoutePhenomenonVolume>(0);
 
             var invariants = new DomainInvariants(id);
             invariants.RequireText(id, "DOMAIN-SIGMET-ID", "The SIGMET report gml:id identifier is required.");
@@ -146,7 +175,7 @@ namespace Iwxxm.Net.Reports
             invariants.RequireIssueTime(issueTimeUtc);
             invariants.RequireOrderedPeriod(validFromUtc, validUntilUtc, "DOMAIN-SIGMET-VALID-PERIOD", "SIGMET validity period");
             invariants.RequireOrderedPeriod(cancelledReportValidFromUtc, cancelledReportValidUntilUtc, "DOMAIN-SIGMET-CANCELLED-VALID-PERIOD", "cancelled SIGMET validity period");
-            foreach (EnRoutePhenomenonVolume volume in evolving.Concat(positions))
+            foreach (EnRoutePhenomenonVolume volume in evolving.Concat(positions).Concat(supplementaryEvolving).Concat(supplementaryPositions))
             {
                 invariants.Check(volume);
             }
@@ -182,7 +211,11 @@ namespace Iwxxm.Net.Reports
                 eruptingVolcano,
                 tropicalCycloneName,
                 new ReadOnlyCollection<EnRoutePhenomenonVolume>(evolving),
-                new ReadOnlyCollection<EnRoutePhenomenonVolume>(positions)));
+                new ReadOnlyCollection<EnRoutePhenomenonVolume>(positions),
+                new ReadOnlyCollection<EnRoutePhenomenonVolume>(supplementaryEvolving),
+                new ReadOnlyCollection<EnRoutePhenomenonVolume>(supplementaryPositions),
+                volcanicAshMovedToFirDesignator,
+                volcanicAshMovedToFirName));
         }
     }
 }

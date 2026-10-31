@@ -34,10 +34,21 @@ MeteorologicalBulletin {
         ReportStatus = ReportStatus.Normal
         ReportType = IwxxmReportType.Sigmet
         SequenceNumber = null
+        SupplementaryEvolvingConditions = []
+        SupplementaryForecastPositions = []
+        Translation = TranslationMetadata {
+          TranslatedBulletinId = "WSYU31 YUSO 101000"
+          TranslatedBulletinReceptionTimeUtc = 2012-08-10T10:05:00.0000000+00:00
+          TranslationCentreDesignator = "YUZZ"
+          TranslationCentreName = "Fictional translation centre"
+          TranslationTimeUtc = 2012-08-10T10:05:00.0000000+00:00
+        }
         TranslationFailedTac = "YUDD SIGMET 2 VALID 101200/101600 YUSO-                                   YUDD SHANLON FIR INVALID TS"
         TropicalCycloneName = null
         ValidFromUtc = 2012-08-10T12:00:00.0000000+00:00
         ValidUntilUtc = 2012-08-10T16:00:00.0000000+00:00
+        VolcanicAshMovedToFirDesignator = null
+        VolcanicAshMovedToFirName = null
       }
       Warnings = []
     }
@@ -68,10 +79,21 @@ MeteorologicalBulletin {
       ReportStatus = ReportStatus.Normal
       ReportType = IwxxmReportType.Sigmet
       SequenceNumber = null
+      SupplementaryEvolvingConditions = []
+      SupplementaryForecastPositions = []
+      Translation = TranslationMetadata {
+        TranslatedBulletinId = "WSYU31 YUSO 101000"
+        TranslatedBulletinReceptionTimeUtc = 2012-08-10T10:05:00.0000000+00:00
+        TranslationCentreDesignator = "YUZZ"
+        TranslationCentreName = "Fictional translation centre"
+        TranslationTimeUtc = 2012-08-10T10:05:00.0000000+00:00
+      }
       TranslationFailedTac = "YUDD SIGMET 2 VALID 101200/101600 YUSO-                                   YUDD SHANLON FIR INVALID TS"
       TropicalCycloneName = null
       ValidFromUtc = 2012-08-10T12:00:00.0000000+00:00
       ValidUntilUtc = 2012-08-10T16:00:00.0000000+00:00
+      VolcanicAshMovedToFirDesignator = null
+      VolcanicAshMovedToFirName = null
     }
   ]
 }

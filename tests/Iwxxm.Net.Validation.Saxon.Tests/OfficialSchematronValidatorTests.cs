@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Reports;
 using Iwxxm.Net.Validation.Saxon.Internal;
 using Xunit;
@@ -165,6 +166,62 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
         }
 
         [Fact]
+        public void Findings_AreCapped_WithATooManyErrorsSentinel()
+        {
+            string invalid = ReadExample("metar-A3-1.xml")
+                .Replace("CloudAmountReportedAtAerodrome/SCT", "CloudAmountReportedAtAerodrome/XYZ", StringComparison.Ordinal)
+                .Replace("CloudAmountReportedAtAerodrome/OVC", "CloudAmountReportedAtAerodrome/XYZ", StringComparison.Ordinal);
+            var capped = new OfficialSchematronValidator(new IwxxmParserOptions(maxValidationErrors: 1));
+
+            IReadOnlyList<ValidationError> findings;
+            findings = capped.Validate(new IwxxmDocumentContext(Encoding.UTF8.GetBytes(invalid)));
+
+            Assert.Equal(2, findings.Count);
+            Assert.Equal("Common.CloudLayer.amount", findings[0].Code);
+            Assert.Equal(OfficialSchematronValidator.TooManyErrorsCode, findings[1].Code);
+            Assert.Equal(ValidationSeverity.Error, findings[1].Severity);
+        }
+
+        [Fact]
+        public void ReportLargerThanTheLimit_IsABusinessRuleError_NotMalformedInput()
+        {
+            var tiny = new OfficialSchematronValidator(new IwxxmParserOptions(maxRuleReportBytes: 64));
+
+            IReadOnlyList<ValidationError> findings;
+            findings = tiny.Validate(new IwxxmDocumentContext(Encoding.UTF8.GetBytes(ReadExample("metar-A3-1.xml"))));
+
+            ValidationError error = Assert.Single(findings);
+            Assert.Equal(OfficialSchematronValidator.ReportSizeLimitCode, error.Code);
+            Assert.Equal(ErrorCategory.BusinessRuleViolation, error.Category);
+        }
+
+        [Fact]
+        public void SvrlReader_MapsRolesAndSuccessfulReports_ToWarnings()
+        {
+            const string svrl =
+                "<svrl:schematron-output xmlns:svrl=\"http://purl.oclc.org/dsdl/svrl\">" +
+                "<svrl:active-pattern id=\"P-1\"/>" +
+                "<svrl:failed-assert test=\"a\" location=\"/x\"><svrl:text>assert</svrl:text></svrl:failed-assert>" +
+                "<svrl:failed-assert test=\"b\" role=\"warning\"><svrl:text>warn</svrl:text></svrl:failed-assert>" +
+                "<svrl:successful-report test=\"c\"><svrl:text>report</svrl:text></svrl:successful-report>" +
+                "<svrl:successful-report test=\"d\" role=\"error\" id=\"R-ERR\"><svrl:text>report error</svrl:text></svrl:successful-report>" +
+                "</svrl:schematron-output>";
+
+            List<ValidationError> findings;
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(svrl)))
+            {
+                findings = SvrlReportReader.Read(stream, 100, 1_000_000);
+            }
+
+            Assert.Equal(new[] { "P-1", "P-1", "P-1", "R-ERR" }, findings.Select(f => f.Code));
+            Assert.Equal(
+                new[] { ValidationSeverity.Error, ValidationSeverity.Warning, ValidationSeverity.Warning, ValidationSeverity.Error },
+                findings.Select(f => f.Severity));
+            Assert.Equal("/x", findings[0].Location);
+            Assert.Equal("report", findings[2].Message);
+        }
+
+        [Fact]
         public void MalformedInput_IsReportedAsMalformedInput()
         {
             IReadOnlyList<ValidationError> findings = Validate("<iwxxm:METAR xmlns:iwxxm=\"http://icao.int/iwxxm/2025-2\">");
@@ -264,33 +321,31 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
         [Fact]
         public void UseOfficialSchematron_PassesBuilderOptionsToTheValidator()
         {
-            // A character quota below the size of the example makes the validator itself reject the document.
-            var options = new IwxxmParserOptions(maxCharactersInDocument: 64);
+            // A finding cap of 1 shows that the validator received the builder options (report limits).
+            var options = new IwxxmParserOptions(maxValidationErrors: 1);
             IwxxmParser parser = new IwxxmParserBuilder()
                 .WithOptions(options)
                 .UseSchemaValidator(new NoSchemaFindings())
                 .UseOfficialSchematron()
                 .Build();
+            string invalid = ReadExample("metar-A3-1.xml")
+                .Replace("CloudAmountReportedAtAerodrome/SCT", "CloudAmountReportedAtAerodrome/XYZ", StringComparison.Ordinal)
+                .Replace("CloudAmountReportedAtAerodrome/OVC", "CloudAmountReportedAtAerodrome/XYZ", StringComparison.Ordinal);
 
-            Result<IwxxmDocument> result = parser.ProcessFile(Path.Combine(ExamplesDirectory, "metar-A3-1.xml"));
+            Result<IwxxmDocument> result = parser.Process(invalid);
 
-            Assert.Contains(result.Errors, e => e.Code == OfficialSchematronValidator.MalformedInputCode);
+            Assert.Equal(2, result.Errors.Count);
+            Assert.Equal(OfficialSchematronValidator.TooManyErrorsCode, result.Errors[1].Code);
         }
 
         private static IReadOnlyList<ValidationError> ValidateFile(string fileName)
         {
-            using (FileStream stream = File.OpenRead(Path.Combine(ExamplesDirectory, fileName)))
-            {
-                return Validator.Validate(stream);
-            }
+            return Validator.Validate(new IwxxmDocumentContext(File.ReadAllBytes(Path.Combine(ExamplesDirectory, fileName))));
         }
 
         private static IReadOnlyList<ValidationError> Validate(string xml)
         {
-            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml), writable: false))
-            {
-                return Validator.Validate(stream);
-            }
+            return Validator.Validate(new IwxxmDocumentContext(Encoding.UTF8.GetBytes(xml)));
         }
 
         private static string ReadExample(string fileName) => File.ReadAllText(Path.Combine(ExamplesDirectory, fileName));
@@ -304,7 +359,7 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
 
         private sealed class NoSchemaFindings : Iwxxm.Net.Extensibility.ISchemaValidator
         {
-            public IReadOnlyList<ValidationError> Validate(Stream document) => Array.Empty<ValidationError>();
+            public IReadOnlyList<ValidationError> Validate(Iwxxm.Net.Extensibility.IwxxmDocumentContext document) => Array.Empty<ValidationError>();
         }
     }
 }

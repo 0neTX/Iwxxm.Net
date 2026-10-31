@@ -18,6 +18,13 @@ Vaa {
   ReportType = IwxxmReportType.VolcanicAshAdvisory
   SourceElevation = null
   StateOrRegion = null
+  Translation = TranslationMetadata {
+    TranslatedBulletinId = "TTAAiiCCCYYGGgg"
+    TranslatedBulletinReceptionTimeUtc = 2014-05-15T15:29:00.0000000+00:00
+    TranslationCentreDesignator = "YUZZ"
+    TranslationCentreName = "Fictional translation centre"
+    TranslationTimeUtc = 2014-05-15T15:30:00.0000000+00:00
+  }
   TranslationFailedTac = "FVFE01 RJTD 230130 VA ADVISORY    DTG:                        20080923/0130Z VAAC:                       TOKYO VOLCANO:                    KARYMSKY 1000-13 PSN:                        N5403 E15927 INVALID INVALID INVALID"
   Volcano = null
 }

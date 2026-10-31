@@ -17,6 +17,13 @@ Taf {
   PermissibleUsageSupplementary = null
   ReportStatus = ReportStatus.Normal
   ReportType = IwxxmReportType.Taf
+  Translation = TranslationMetadata {
+    TranslatedBulletinId = "TTAAiiCCCYYGGgg"
+    TranslatedBulletinReceptionTimeUtc = 2014-05-15T15:29:00.0000000+00:00
+    TranslationCentreDesignator = "YUZZ"
+    TranslationCentreName = "Fictional translation centre"
+    TranslationTimeUtc = 2014-05-15T15:30:00.0000000+00:00
+  }
   TranslationFailedTac = "TAF YUDO 151800Z 1600/1618 INVALID"
   ValidFromUtc = 2012-08-16T00:00:00.0000000+00:00
   ValidUntilUtc = 2012-08-16T18:00:00.0000000+00:00
