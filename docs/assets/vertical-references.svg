@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 480" width="860" height="480" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title id="t">Vertical references: SFC, MSL and STD</title>
+<desc id="d">An aircraft over a hill measured three ways: height above the surface (SFC), altitude above mean sea level (MSL) and pressure altitude above the 1013.25 hectopascal surface (STD, used for flight levels). The three numbers differ for the same position.</desc>
+<rect x="0" y="0" width="860" height="480" rx="10" fill="#e9eef4" stroke="#7b8794" stroke-width="1"/>
+<text x="24" y="32" font-size="16" font-weight="700" fill="#1f2933">One aircraft, three different vertical numbers</text>
+<text x="24" y="52" font-size="12" fill="#52606d">Illustrative values on a low-pressure day, not to scale. VerticalLimit stores number, unit and reference together.</text>
+<path d="M40,410 L40,310.0 L160,270.0 L300,180.0 L330,150.0 L430,150.0 L520,230.0 L700,300.0 L820,320.0 L820,410 Z" fill="#c9b8a0" stroke="#8a7560" stroke-width="1.5"/>
+<line x1="40" y1="340" x2="820" y2="340" stroke="#2b6cb0" stroke-width="1.8" stroke-dasharray="7 5"/><text x="52" y="356" font-size="12" font-weight="700" fill="#1e4e8c">mean sea level (MSL)</text>
+<line x1="40" y1="366" x2="820" y2="366" stroke="#b5382c" stroke-width="1.8" stroke-dasharray="2 5"/><text x="52" y="382" font-size="12" font-weight="700" fill="#8f2a20">1013.25 hPa surface (STD datum, 120 m below MSL today)</text>
+<line x1="320" y1="100" x2="710" y2="100" stroke="#52606d" stroke-width="1" stroke-dasharray="2 4"/>
+<path d="M354,100 L406,100 M380,86 L380,110 M368,106 L392,106" stroke="#1f2933" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="380" cy="100" r="4" fill="#1f2933"/>
+<line x1="380" y1="104" x2="380" y2="150" stroke="#1f6b6c" stroke-width="2.2"/><path d="M380,150 l-5,-9 l10,0 z" fill="#1f6b6c"/><text x="370" y="123.0" text-anchor="end" font-size="13" font-weight="700" fill="#1f6b6c">SFC: 300 m</text><text x="370" y="139.0" text-anchor="end" font-size="11" fill="#1f2933">above the ground</text>
+<line x1="510" y1="104" x2="510" y2="340" stroke="#1e4e8c" stroke-width="2.2"/><path d="M510,340 l-5,-9 l10,0 z" fill="#1e4e8c"/><text x="520" y="218.0" text-anchor="start" font-size="13" font-weight="700" fill="#1e4e8c">MSL: 1200 m</text><text x="520" y="234.0" text-anchor="start" font-size="11" fill="#1f2933">above mean sea level</text>
+<line x1="680" y1="104" x2="680" y2="366" stroke="#8f2a20" stroke-width="2.2"/><path d="M680,366 l-5,-9 l10,0 z" fill="#8f2a20"/><text x="690" y="231.0" text-anchor="start" font-size="13" font-weight="700" fill="#8f2a20">STD: 1320 m</text><text x="690" y="247.0" text-anchor="start" font-size="11" fill="#1f2933">about FL043</text>
+<text x="24" y="432" font-size="11.5" fill="#1f2933">VerticalLimit.Create(300, Meters, Sfc)  |  Create(1200, Meters, Msl)  |  Create(43, FlightLevel, Std)</text>
+<text x="24" y="450" font-size="11.5" fill="#52606d">Only the STD value converts to a FlightLevel (AsFlightLevel). "15 km AMSL" is not FL492, and the ground (GND) is not FL000.</text>
+</svg>

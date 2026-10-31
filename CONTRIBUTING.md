@@ -1,6 +1,6 @@
-# Contributing to Iwxxm
+# Contributing to Iwxxm.Net
 
-Thank you for contributing to the **Iwxxm** .NET library! This document outlines the development setup, architectural guidelines, and build/packaging workflows.
+Thank you for contributing to **Iwxxm.Net**, the ICAO/WMO IWXXM 2025-2 library for .NET! This document outlines the development setup, architectural guidelines, documentation checks and build/packaging workflows. For a map of the documentation itself, see [docs/README.md](docs/README.md).
 
 ---
 
@@ -35,6 +35,32 @@ Thank you for contributing to the **Iwxxm** .NET library! This document outlines
    dotnet pack src/Iwxxm.Net/Iwxxm.Net.csproj -c Release -o ./artifacts
    dotnet pack src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj -c Release -o ./artifacts
    ```
+
+---
+
+## Documentation
+
+The guide ([docs/GUIDE.md](docs/GUIDE.md)), the reference ([docs/REFERENCE.md](docs/REFERENCE.md)) and the README contain runnable C# snippets. They must keep compiling against the public API, so when you change a public member or a behaviour that a snippet shows, update the docs in the same change.
+
+Conventions:
+
+- A ` ```csharp ` block is a self-contained snippet (explicit `using` directives, top-level statements). A block that only declares types (for example `Levels` or `DescribeVisitor`) is shared with the snippets that follow it.
+- A ` ```output ` block directly after a snippet is its real output. Shorten long outputs with a line that contains only `...`; every other line must appear, in order, in the actual output.
+- Paths such as `samples/metar-A3-1.xml` refer to the official examples under `tests/Iwxxm.Net.Tests/Samples/` copied into the snippet project's `samples/` folder.
+- Diagrams are Mermaid blocks (rendered by GitHub) or hand-written SVG files in `docs/assets/` with an explicit neutral background rect (they must read well in light and dark themes). Do not commit third-party images; link to the original page and state its licence.
+- Documentation is written in English. (`docs/ARCHITECTURE_ANALYSIS.md` is a historical audit in Spanish.)
+
+To verify the snippets, pack the library and compile them in a throwaway project outside the repository, ideally inside a container so that nothing depends on your local SDK:
+
+```bash
+podman build --target pack -t iwxxm-net-pack .
+podman run --rm -v "$PWD/artifacts:/out:Z" iwxxm-net-pack sh -c 'cp /workspace/artifacts/*.nupkg /out/'
+# Create a net10.0 console project in a temporary folder, add a nuget.config pointing at ./artifacts,
+# reference Iwxxm.Net and Iwxxm.Net.Validation.Saxon, wrap each snippet in a method, and run it from a
+# folder that contains the samples/ directory. Compare the printed text with the output block.
+```
+
+Before committing, also check that every relative link and anchor in the Markdown files resolves, that the SVG files are well-formed XML (for example with `python3 -c "import xml.dom.minidom,sys; xml.dom.minidom.parse(sys.argv[1])" file.svg`) and that the Mermaid blocks render (for example with `mermaid-cli`).
 
 ---
 

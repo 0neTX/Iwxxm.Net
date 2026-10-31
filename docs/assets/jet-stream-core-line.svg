@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 500" width="860" height="500" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title id="t">Jet stream axis with core points</title>
+<desc id="d">Latitude and longitude frame over the central United States showing the 11-point axis of the jet stream from the official WAFS example and its five core points with wind speeds in metres per second and knots.</desc>
+<rect x="0" y="0" width="860" height="500" rx="10" fill="#e9eef4" stroke="#7b8794" stroke-width="1"/>
+<text x="24" y="32" font-size="16" font-weight="700" fill="#1f2933">A jet stream as data: one axis, five wind symbols</text>
+<text x="24" y="52" font-size="12" fill="#52606d">Official WAFS example (WMO). Speeds as reported (m/s), converted with Speed.ToKnots().</text>
+<text x="24" y="69" font-size="12" fill="#52606d">Levels are metres above mean sea level; the axis is a gml:Curve.</text>
+<rect x="70" y="96" width="750" height="304" fill="#f7f9fb" stroke="#7b8794"/>
+<line x1="118.4" y1="96" x2="118.4" y2="400" stroke="#cbd5e0" stroke-width="1"/>
+<text x="118.4" y="418" text-anchor="middle" font-size="11" fill="#52606d">105W</text>
+<line x1="239.4" y1="96" x2="239.4" y2="400" stroke="#cbd5e0" stroke-width="1"/>
+<text x="239.4" y="418" text-anchor="middle" font-size="11" fill="#52606d">100W</text>
+<line x1="360.3" y1="96" x2="360.3" y2="400" stroke="#cbd5e0" stroke-width="1"/>
+<text x="360.3" y="418" text-anchor="middle" font-size="11" fill="#52606d">95W</text>
+<line x1="481.3" y1="96" x2="481.3" y2="400" stroke="#cbd5e0" stroke-width="1"/>
+<text x="481.3" y="418" text-anchor="middle" font-size="11" fill="#52606d">90W</text>
+<line x1="602.3" y1="96" x2="602.3" y2="400" stroke="#cbd5e0" stroke-width="1"/>
+<text x="602.3" y="418" text-anchor="middle" font-size="11" fill="#52606d">85W</text>
+<line x1="723.2" y1="96" x2="723.2" y2="400" stroke="#cbd5e0" stroke-width="1"/>
+<text x="723.2" y="418" text-anchor="middle" font-size="11" fill="#52606d">80W</text>
+<line x1="70" y1="347.1" x2="820" y2="347.1" stroke="#cbd5e0" stroke-width="1"/>
+<text x="62" y="351.1" text-anchor="end" font-size="11" fill="#52606d">35N</text>
+<line x1="70" y1="215.0" x2="820" y2="215.0" stroke="#cbd5e0" stroke-width="1"/>
+<text x="62" y="219.0" text-anchor="end" font-size="11" fill="#52606d">40N</text>
+<polyline points="125.6,336.6 200.6,318.1 249.0,304.8 295.0,296.9 362.7,283.7 425.6,259.9 474.0,236.1 527.3,196.5 570.8,175.3 657.9,162.1 749.8,164.7" fill="none" stroke="#2b6cb0" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="125.6" cy="336.6" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="200.6" cy="318.1" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="249.0" cy="304.8" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="295.0" cy="296.9" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="362.7" cy="283.7" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="425.6" cy="259.9" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="474.0" cy="236.1" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="527.3" cy="196.5" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="570.8" cy="175.3" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="657.9" cy="162.1" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<circle cx="749.8" cy="164.7" r="2.6" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.2"/>
+<path d="M753.8,164.7 l-12,-6 l0,12 z" fill="#2b6cb0"/>
+<text x="753.8" y="188.7" text-anchor="end" font-size="11.5" font-style="italic" fill="#2b6cb0">wind blows west to east</text>
+<circle cx="200.6" cy="318.1" r="7" fill="#c05621" stroke="#f7f9fb" stroke-width="2"/>
+<text x="170.6" y="284.1" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2933">51.5 m/s = 100 kt</text>
+<text x="170.6" y="298.1" text-anchor="middle" font-size="11" font-weight="400" fill="#52606d">FL350~ (10668 m MSL)</text>
+<circle cx="295.0" cy="296.9" r="9" fill="#b5382c" stroke="#f7f9fb" stroke-width="2"/>
+<text x="309.0" y="336.9" text-anchor="start" font-size="12" font-weight="700" fill="#1f2933">61.8 m/s = 120 kt</text>
+<text x="309.0" y="350.9" text-anchor="start" font-size="11" font-weight="400" fill="#52606d">FL500~ (15240 m MSL)</text>
+<text x="309.0" y="364.9" text-anchor="start" font-size="11" font-weight="400" fill="#52606d">isotach FL450~ to FL500~</text>
+<circle cx="425.6" cy="259.9" r="7" fill="#c05621" stroke="#f7f9fb" stroke-width="2"/>
+<text x="439.6" y="293.9" text-anchor="start" font-size="12" font-weight="700" fill="#1f2933">51.5 m/s = 100 kt</text>
+<text x="439.6" y="307.9" text-anchor="start" font-size="11" font-weight="400" fill="#52606d">FL500~ (15240 m MSL)</text>
+<circle cx="527.3" cy="196.5" r="9" fill="#b5382c" stroke="#f7f9fb" stroke-width="2"/>
+<text x="511.3" y="160.5" text-anchor="end" font-size="12" font-weight="700" fill="#1f2933">61.8 m/s = 120 kt</text>
+<text x="511.3" y="174.5" text-anchor="end" font-size="11" font-weight="400" fill="#52606d">FL500~ (15240 m MSL)</text>
+<text x="511.3" y="188.5" text-anchor="end" font-size="11" font-weight="400" fill="#52606d">isotach FL470~ to FL530~</text>
+<circle cx="657.9" cy="162.1" r="7" fill="#c05621" stroke="#f7f9fb" stroke-width="2"/>
+<text x="657.9" y="138.1" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2933">51.5 m/s = 100 kt</text>
+<text x="657.9" y="152.1" text-anchor="middle" font-size="11" font-weight="400" fill="#52606d">FL300~ (9144 m MSL)</text>
+<line x1="70" y1="442" x2="104" y2="442" stroke="#2b6cb0" stroke-width="3.5"/><text x="112" y="446" font-size="11.5" fill="#1f2933">axis (AxisTrajectory, 11 points)</text>
+<circle cx="340" cy="442" r="9" fill="#b5382c"/><text x="356" y="446" font-size="11.5" fill="#1f2933">core point, 120 kt</text>
+<circle cx="510" cy="442" r="7" fill="#c05621"/><text x="524" y="446" font-size="11.5" fill="#1f2933">core point, 100 kt</text>
+<text x="70" y="466" font-size="11" fill="#52606d">~ marks an approximate flight level derived from metres (standard atmosphere); the library keeps the reported value.</text>
+<text x="70" y="480" font-size="11" fill="#52606d">The axis is drawn as straight segments; the source geometry is a cubic spline.</text>
+</svg>

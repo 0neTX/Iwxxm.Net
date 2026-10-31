@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 956 250" width="956" height="250" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title id="t">Iwxxm.Net processing pipeline</title>
+<desc id="d">XML input flows through bounded read and safe parse, XSD validation, business rules and mapping into the domain model, which can be exported as GeoJSON. Each failing stage returns a categorized error.</desc>
+<rect x="0" y="0" width="956" height="250" rx="10" fill="#e9eef4" stroke="#7b8794" stroke-width="1"/>
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#52606d"/></marker></defs>
+<rect x="22" y="70" width="108" height="78" rx="8" fill="#dbe8f6" stroke="#2b6cb0" stroke-width="1.5"/>
+<text x="76.0" y="98" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2933">XML</text>
+<text x="76.0" y="118" text-anchor="middle" font-size="11.5" fill="#52606d">text or stream</text>
+<line x1="132" y1="109.0" x2="153" y2="109.0" stroke="#52606d" stroke-width="1.8" marker-end="url(#ar)"/>
+<rect x="156" y="70" width="108" height="78" rx="8" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.5"/>
+<text x="210.0" y="98" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2933">Read</text>
+<text x="210.0" y="118" text-anchor="middle" font-size="11.5" fill="#52606d">size limits,</text>
+<text x="210.0" y="133" text-anchor="middle" font-size="11.5" fill="#52606d">safe XML parse</text>
+<line x1="266" y1="109.0" x2="287" y2="109.0" stroke="#52606d" stroke-width="1.8" marker-end="url(#ar)"/>
+<line x1="210.0" y1="148" x2="210.0" y2="182" stroke="#b5382c" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+<rect x="148.0" y="184" width="124" height="26" rx="6" fill="#f6e3e0" stroke="#b5382c" stroke-width="1"/>
+<text x="210.0" y="201" text-anchor="middle" font-size="10.5" fill="#b5382c">MalformedInput</text>
+<rect x="290" y="70" width="108" height="78" rx="8" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.5"/>
+<text x="344.0" y="98" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2933">XSD</text>
+<text x="344.0" y="118" text-anchor="middle" font-size="11.5" fill="#52606d">official WMO</text>
+<text x="344.0" y="133" text-anchor="middle" font-size="11.5" fill="#52606d">schemas, embedded</text>
+<line x1="400" y1="109.0" x2="421" y2="109.0" stroke="#52606d" stroke-width="1.8" marker-end="url(#ar)"/>
+<line x1="344.0" y1="148" x2="344.0" y2="182" stroke="#b5382c" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+<rect x="282.0" y="184" width="124" height="26" rx="6" fill="#f6e3e0" stroke="#b5382c" stroke-width="1"/>
+<text x="344.0" y="201" text-anchor="middle" font-size="10.5" fill="#b5382c">SchemaViolation</text>
+<rect x="424" y="70" width="108" height="78" rx="8" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.5"/>
+<text x="478.0" y="98" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2933">Rules</text>
+<text x="478.0" y="118" text-anchor="middle" font-size="11.5" fill="#52606d">subset or official</text>
+<text x="478.0" y="133" text-anchor="middle" font-size="11.5" fill="#52606d">Schematron</text>
+<line x1="534" y1="109.0" x2="555" y2="109.0" stroke="#52606d" stroke-width="1.8" marker-end="url(#ar)"/>
+<line x1="478.0" y1="148" x2="478.0" y2="182" stroke="#b5382c" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+<rect x="416.0" y="184" width="124" height="26" rx="6" fill="#f6e3e0" stroke="#b5382c" stroke-width="1"/>
+<text x="478.0" y="201" text-anchor="middle" font-size="10.5" fill="#b5382c">BusinessRuleViolation</text>
+<rect x="558" y="70" width="108" height="78" rx="8" fill="#f7f9fb" stroke="#2b6cb0" stroke-width="1.5"/>
+<text x="612.0" y="98" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2933">Mapping</text>
+<text x="612.0" y="118" text-anchor="middle" font-size="11.5" fill="#52606d">anti-corruption</text>
+<text x="612.0" y="133" text-anchor="middle" font-size="11.5" fill="#52606d">layer, code lists</text>
+<line x1="668" y1="109.0" x2="689" y2="109.0" stroke="#52606d" stroke-width="1.8" marker-end="url(#ar)"/>
+<line x1="612.0" y1="148" x2="612.0" y2="182" stroke="#b5382c" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+<rect x="550.0" y="184" width="124" height="26" rx="6" fill="#f6e3e0" stroke="#b5382c" stroke-width="1"/>
+<text x="612.0" y="201" text-anchor="middle" font-size="10.5" fill="#b5382c">DomainMapping</text>
+<rect x="692" y="70" width="108" height="78" rx="8" fill="#dbe8f6" stroke="#2b6cb0" stroke-width="1.5"/>
+<text x="746.0" y="98" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2933">Domain</text>
+<text x="746.0" y="118" text-anchor="middle" font-size="11.5" fill="#52606d">IwxxmDocument</text>
+<text x="746.0" y="133" text-anchor="middle" font-size="11.5" fill="#52606d">immutable values</text>
+<line x1="802" y1="109.0" x2="823" y2="109.0" stroke="#52606d" stroke-width="1.8" marker-end="url(#ar)"/>
+<rect x="826" y="70" width="108" height="78" rx="8" fill="#dbe8f6" stroke="#2b6cb0" stroke-width="1.5"/>
+<text x="880.0" y="98" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2933">GeoJSON</text>
+<text x="880.0" y="118" text-anchor="middle" font-size="11.5" fill="#52606d">RFC 7946</text>
+<text x="880.0" y="133" text-anchor="middle" font-size="11.5" fill="#52606d">lon, lat order</text>
+<text x="22" y="38" font-size="15" font-weight="700" fill="#1f2933">From XML to domain objects: every gate can say no, and says why</text>
+<text x="22" y="236" font-size="11.5" fill="#52606d">Red: a failed Result with the shown ErrorCategory. The pipeline stops at the first failing gate; mapping of bulletins and SIGWX features is partial.</text>
+</svg>
