@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Reports;
 using Iwxxm.Net.Validation.Saxon.Internal;
@@ -83,7 +84,7 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
             Assert.Equal(ErrorCategory.BusinessRuleViolation, error.Category);
             Assert.Equal(ValidationSeverity.Error, error.Severity);
             Assert.StartsWith("METAR_SPECI.MeteorologicalAerodromeObservation-5: qnh shall be reported in hectopascals", error.Message, StringComparison.Ordinal);
-            Assert.Contains("MeteorologicalAerodromeObservation[1]", error.Location, StringComparison.Ordinal);
+            LocationAssert.SelectsExactlyOneNode(invalid, error, "MeteorologicalAerodromeObservation");
         }
 
         [Fact]
@@ -104,7 +105,8 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
 
             IReadOnlyList<ValidationError> findings = Validate(invalid);
 
-            Assert.Contains(findings, e => e.Code == "SIGMET.SIGMET-3" && e.Message.Contains("'CANCELLATION' report", StringComparison.Ordinal));
+            ValidationError error = Assert.Single(findings, e => e.Code == "SIGMET.SIGMET-3" && e.Message.Contains("'CANCELLATION' report", StringComparison.Ordinal));
+            LocationAssert.SelectsExactlyOneNode(invalid, error, "SIGMET");
         }
 
         [Fact]
@@ -118,7 +120,8 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
 
             IReadOnlyList<ValidationError> findings = Validate(invalid);
 
-            Assert.Contains(findings, e => e.Code == "TAF.TAF-6");
+            ValidationError error = Assert.Single(findings, e => e.Code == "TAF.TAF-6");
+            LocationAssert.SelectsExactlyOneNode(invalid, error, "TAF");
         }
 
         [Fact]
@@ -132,7 +135,8 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
 
             IReadOnlyList<ValidationError> findings = Validate(invalid);
 
-            Assert.Contains(findings, e => e.Code == "TAF.TAF-7");
+            ValidationError error = Assert.Single(findings, e => e.Code == "TAF.TAF-7");
+            LocationAssert.SelectsExactlyOneNode(invalid, error, "TAF");
         }
 
         [Fact]
@@ -163,6 +167,8 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
             ValidationError error = Assert.Single(findings);
             Assert.Equal("Common.CloudLayer.amount", error.Code);
             Assert.Contains("http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome", error.Message, StringComparison.Ordinal);
+            XElement offending = LocationAssert.SelectsExactlyOneNode(invalid, error, "amount");
+            Assert.Equal("http://codes.wmo.int/49-2/CloudAmountReportedAtAerodrome/XYZ", (string?)offending.Attribute(XNamespace.Get("http://www.w3.org/1999/xlink") + "href"));
         }
 
         [Fact]

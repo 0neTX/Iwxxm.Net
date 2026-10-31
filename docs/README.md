@@ -10,6 +10,7 @@ Where to look, depending on what you want to do.
 | **Understand why the code is shaped this way** (hexagonal architecture, DDD, the debt catalogue) | [ARCHITECTURE_ANALYSIS.md](ARCHITECTURE_ANALYSIS.md) (in Spanish) |
 | **See what is known, fixed and still open** | [../TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md) |
 | **Change the code** (setup, layer rules, adding a report family, golden masters, documentation checks) | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
+| **Report a vulnerability or harden a deployment** (supported versions, private reporting, scope, secure usage) | [../SECURITY.md](../SECURITY.md) |
 | **See what changed between releases** | [../CHANGELOG.md](../CHANGELOG.md) |
 
 ## Illustrations

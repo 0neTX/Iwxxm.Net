@@ -23,7 +23,10 @@ namespace Iwxxm.Net.Validation.Saxon
     /// (<see cref="IwxxmParserOptions.MaxRuleReportBytes"/>, <see cref="IwxxmParserOptions.MaxValidationErrors"/>) are those
     /// of the options given to the constructor.</item>
     /// <item>SVRL findings are mapped to <see cref="ValidationError"/> with <see cref="ErrorCategory.BusinessRuleViolation"/>
-    /// and the official rule (pattern) identifier as <see cref="ValidationError.Code"/>.</item>
+    /// and the official rule (pattern) identifier as <see cref="ValidationError.Code"/>. <see cref="ValidationError.Location"/>
+    /// is an absolute, namespace-independent XPath 1.0 that selects the offending element, for example
+    /// <c>/*[namespace-uri()='http://icao.int/iwxxm/2025-2' and local-name()='METAR'][1]/...</c> (the SchXslt
+    /// <c>Q{namespace}local[n]</c> steps are rewritten because most XPath engines cannot parse them).</item>
     /// </list>
     /// Uses Saxon-HE capabilities only (<c>new Processor(false)</c>): no Saxonica license key is requested or required.
     /// </remarks>

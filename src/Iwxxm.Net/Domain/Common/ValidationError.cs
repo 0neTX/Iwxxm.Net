@@ -11,6 +11,12 @@ namespace Iwxxm.Net
         public string Message { get; }
         public ErrorCategory Category { get; }
         public ValidationSeverity Severity { get; }
+
+        /// <summary>
+        /// Where the finding is, when known. Schematron findings (built-in and official rules) carry an absolute XPath of the
+        /// offending element; schema findings carry the source URI or the root element name. The exact forms are listed in
+        /// the reference documentation ("Locations of findings").
+        /// </summary>
         public string? Location { get; }
         public int? LineNumber { get; }
         public int? LinePosition { get; }

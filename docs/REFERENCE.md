@@ -517,7 +517,7 @@ The official `iwxxm.sch` declares `queryBinding="xslt2"`, which the .NET base li
 
 - The **byte-identical official `iwxxm.sch`** (165 rule patterns, no rewriting) is compiled once per process to XSLT with the vendored SchXslt 1.10.1 compiler (MIT) and cached as an immutable, thread-safe Saxon executable. The first compilation takes roughly a second.
 - It is **air-gapped**: the `document('codes.wmo.int-*.rdf')` code-list lookups resolve to the official WMO RDF files embedded in `Iwxxm.Net`; every other URI (network, file system) is refused.
-- SVRL `failed-assert` and `successful-report` findings become `ValidationError`s with `ErrorCategory.BusinessRuleViolation`, the **official rule (pattern) id** as `Code` (for example `METAR_SPECI.MeteorologicalAerodromeObservation-5`), the official message, the SVRL XPath as `Location`, and a `Severity` taken from `@role` / `@flag` (the official rules declare none, so every failed assertion is an `Error`; a fired `successful-report` without an error role is a `Warning`). The SVRL report is streamed from a size-bounded buffer and findings are capped.
+- SVRL `failed-assert` and `successful-report` findings become `ValidationError`s with `ErrorCategory.BusinessRuleViolation`, the **official rule (pattern) id** as `Code` (for example `METAR_SPECI.MeteorologicalAerodromeObservation-5`), the official message, an absolute XPath as `Location` (see [Locations of findings](#locations-of-findings)), and a `Severity` taken from `@role` / `@flag` (the official rules declare none, so every failed assertion is an `Error`; a fired `successful-report` without an error role is a `Warning`). The SVRL report is streamed from a size-bounded buffer and findings are capped.
 - All 29 official WMO examples pass. The official rules are not exhaustive: for example, an ordinary TAF whose `iwxxm:baseForecast` is entirely absent is not reported by `TAF.TAF-5` (its test compares an empty attribute sequence).
 - It needs a `net10.0` application. No Saxonica licence key is needed: the package only requests Saxon-HE capabilities (`new Processor(false)`), which the package tests verify in CI.
 
@@ -577,6 +577,69 @@ official rules accept the sample METAR: True
 | `DOMAIN-CLOUD-VERTICAL-EXTENT` | `DomainMapping` | A cloud whose top is not above its base. |
 | `DOMAIN-AIRMET-ATS-UNIT`, `DOMAIN-REPORT-STATUS-INVALID`, `DOMAIN-PERMISSIBLE-USAGE-INVALID`, `DOMAIN-BULLETIN-EMPTY`, `DOMAIN-VERTICAL-LIMIT-INVALID` | `DomainMapping` | Structural invariants of the aggregate factories. |
 | `GEO-POLYGON-MIN-VERTICES`, `GEO-POLYGON-HOLE-DEGENERATE`, `GEO-CIRCLE-RADIUS-INVALID` | `DomainMapping` | Degenerate geometry. |
+
+### Locations of findings
+
+`ValidationError.Location` is `null` when a finding has no position. When it is set, it has one of these forms:
+
+| Source | Form | Example |
+| :--- | :--- | :--- |
+| Malformed input (`XML-MALFORMED`) | none; `LineNumber` / `LinePosition` | |
+| XSD findings | `/` plus the local name of the root element for root-element findings (`XSD-UNKNOWN-ROOT-ELEMENT`); otherwise the source URI of the schema exception when there is one (usually none for in-memory input: use `LineNumber` / `LinePosition`) | `/Unknown` |
+| Built-in rules (XSLT 1.0 subset) | absolute XPath that uses **the prefixes of the instance**, one positional step per element | `/iwxxm:METAR[1]/iwxxm:observation[1]/iwxxm:MeteorologicalAerodromeObservation[1]/iwxxm:presentWeather[1]` |
+| Official Schematron (`Iwxxm.Net.Validation.Saxon`) | absolute **namespace-independent XPath 1.0**, one positional step per element | see below |
+
+The official Schematron form does not depend on the prefixes or the default namespace of the document, so it can be evaluated by any XPath engine without namespace bindings:
+
+```text
+/*[namespace-uri()='http://def.wmo.int/collect/2014' and local-name()='MeteorologicalBulletin'][1]/*[namespace-uri()='http://def.wmo.int/collect/2014' and local-name()='meteorologicalInformation'][2]/*[namespace-uri()='http://icao.int/iwxxm/2025-2' and local-name()='METAR'][1]/...
+```
+
+The `[n]` predicate is the position among the siblings with the same expanded name (the second `collect:meteorologicalInformation` above). Attribute steps look like `@*[namespace-uri()='ns' and local-name()='name']`. Namespace URIs come from the input, so they are always emitted as correctly quoted XPath literals.
+
+The compiled official rules (SchXslt 1.10.1, vendored unchanged) write the same path as `/Q{http://icao.int/iwxxm/2025-2}METAR[1]/...`, the XPath 3.0 braced-URI syntax, which `System.Xml.XPath` and other XPath 1.0 / 2.0 engines cannot parse. The adapter therefore rewrites each `Q{ns}name[n]` step while it reads the SVRL report (`Internal/SvrlLocation.cs`); the rewrite is purely syntactic and the positions keep their meaning. Evaluating a location against the instance selects exactly the offending element:
+
+```csharp
+using System;
+using System.Linq;
+using System.Xml.Linq;
+using System.Xml.XPath;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
+using Iwxxm.Net.Validation.Saxon;
+
+string xml = System.IO.File.ReadAllText("samples/metar-A3-1.xml")
+    .Replace("<iwxxm:qnh uom=\"hPa\">", "<iwxxm:qnh uom=\"mbar\">");
+
+Result<IwxxmDocument> result = new IwxxmParserBuilder().UseOfficialSchematron().Build().Process(xml);
+ValidationError error = result.Errors.Single();
+
+XElement offending = XDocument.Parse(xml).XPathSelectElements(error.Location!).Single();
+Console.WriteLine(error.Code);
+Console.WriteLine(offending.Name.LocalName);
+```
+```output
+METAR_SPECI.MeteorologicalAerodromeObservation-5
+MeteorologicalAerodromeObservation
+```
+
+---
+
+## Performance notes
+
+Indicative numbers, not guarantees. They were measured with the BenchmarkDotNet project `tests/Iwxxm.Net.Benchmarks` (`--job short`, three iterations, so the error margins are wide) inside the repository's container on an AMD Ryzen 5 6600H limited to 2 logical cores, .NET 10.0.14, Linux. Expect different absolute values on other hardware; compare the ratios and the allocated bytes, which are stable.
+
+| Benchmark | Mean | Allocated | What it shows |
+| :--- | ---: | ---: | :--- |
+| SIGWX report, standalone (`IwxxmSigwxParser`) | 1.48 ms | 613 KB | Baseline. |
+| The same SIGWX report inside a SWIM bulletin (`ParseBulletin`) | 1.49 ms | 652 KB | Within noise of the baseline (BenchmarkDotNet ratio 1.05, RatioSD 0.38; +6% memory): the embedded report is mapped from the already parsed element, it is not serialized and parsed again. |
+| METAR, repeated call through the default facade | 0.33 ms | 210 KB | Steady state: compiled schemas and rules, cached code lists. |
+| Code list read from the shared resolver | 31 ns | 40 B | One cached `XPathDocument` per code list and process. |
+| The same code list parsed on every call | 3.0 ms | 1.1 MB | What a per-transform parse would cost: about nine METAR parses for one code list. |
+| First METAR parse in a fresh process | 307 ms | n/a | One-time cost: XSD set and rule compilation plus the first code-list parses (five launches, 288 to 325 ms confidence interval). Call a parser once at start-up to move it out of the first request. |
+| All 29 official examples through the default facade | 16 ms | 6.2 MB | Baseline for the whole pipeline (about 0.55 ms per document). |
+
+Reproduce them with `dotnet run --project tests/Iwxxm.Net.Benchmarks -c Release -- --filter "*SigwxInBulletin*" --job short` (and `*ValidationCache*`, `*FullSuiteBaseline*`; `*FirstCall*` must run without `--job`). The unit test `RuleCacheReuseTests` guards the code-list cache without timing: the number of parses is bounded by the number of embedded lists, not by the number of validations.
 
 ---
 

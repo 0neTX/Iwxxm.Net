@@ -16,7 +16,8 @@ namespace Iwxxm.Net.Validation.Saxon.Internal
     /// <c>information</c> maps to <see cref="ValidationSeverity.Warning"/>, <c>error</c>/<c>fatal</c> to
     /// <see cref="ValidationSeverity.Error"/>; without a role a failed assertion is an error (the case for every official
     /// assertion) and a successful report is a warning.</item>
-    /// <item><b>Location</b>: <c>@location</c> (an XPath with <c>Q{namespace}local</c> steps).</item>
+    /// <item><b>Location</b>: <c>@location</c>, rewritten by <see cref="SvrlLocation"/> from the SchXslt <c>Q{namespace}local[n]</c>
+    /// steps into an absolute, namespace-independent XPath 1.0 (<c>/*[namespace-uri()=...][n]</c>).</item>
     /// <item><b>Message</b>: <c>svrl:text</c>.</item>
     /// <item><b>Cap</b>: at most <c>maxFindings</c> findings; then a single <see cref="TooManyErrorsCode"/> sentinel.</item>
     /// </list>
@@ -96,7 +97,7 @@ namespace Iwxxm.Net.Validation.Saxon.Internal
             string code = NullIfEmpty(reader.GetAttribute("id")) ?? patternId ?? FallbackCode;
             string? test = reader.GetAttribute("test");
             string? role = reader.GetAttribute("role") ?? reader.GetAttribute("flag");
-            string? location = NullIfEmpty(reader.GetAttribute("location"));
+            string? location = SvrlLocation.ToXPath(NullIfEmpty(reader.GetAttribute("location")));
 
             string? text = null;
             using (XmlReader subtree = reader.ReadSubtree())

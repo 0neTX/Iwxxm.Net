@@ -136,6 +136,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | [Architecture analysis](docs/ARCHITECTURE_ANALYSIS.md) | Hexagonal and DDD design decisions and the prioritised debt catalogue (written in Spanish). |
 | [Technical debt](TECHNICAL_DEBT.md) | The audit findings, their status and the open backlog. |
 | [Contributing](CONTRIBUTING.md) | Local setup, architecture rules, how to add a report family, golden-master tests. |
+| [Security policy](SECURITY.md) | Supported versions, how to report a vulnerability privately, scope and secure-usage guidance. |
 | [Changelog](CHANGELOG.md) | Release notes. |
 
 ## Public namespaces
@@ -171,7 +172,7 @@ The local pipeline **never publishes**: the `ci` image only copies the artifacts
 IWXXM_NUGET_PUBLISH_API_KEY=... PACKAGE_VERSION=1.2.3 bash tools/run-local-ci.sh --publish
 ```
 
-Benchmarks (BenchmarkDotNet):
+Benchmarks (BenchmarkDotNet; indicative numbers in the [performance notes](docs/REFERENCE.md#performance-notes)):
 
 ```bash
 dotnet run --project tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj --configuration Release -- --filter "*"

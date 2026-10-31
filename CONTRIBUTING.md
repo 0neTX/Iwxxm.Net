@@ -38,6 +38,21 @@ Thank you for contributing to **Iwxxm.Net**, the ICAO/WMO IWXXM 2025-2 library f
 
 ---
 
+## Benchmarks
+
+`tests/Iwxxm.Net.Benchmarks` holds the BenchmarkDotNet suites (`[MemoryDiagnoser]`): the parser micro-benchmarks and `PipelineBenchmarks.cs` (SIGWX in a bulletin versus standalone, repeated and first call of the validation path with the cached RDF code lists, full-suite baseline). Run them in the container image so that the numbers are comparable, and label any number you publish as indicative with the hardware:
+
+```bash
+podman build --target build -t iwxxm-net-build .
+podman run --rm iwxxm-net-build dotnet run --project tests/Iwxxm.Net.Benchmarks -c Release --no-build -- --filter "*SigwxInBulletin*" --job short
+# FirstCallBenchmarks uses its own cold-start job: run it without --job
+podman run --rm iwxxm-net-build dotnet run --project tests/Iwxxm.Net.Benchmarks -c Release --no-build -- --filter "*FirstCall*"
+```
+
+Timings are never asserted in tests. Regressions that matter are guarded by deterministic tests instead (for example `RuleCacheReuseTests` counts code-list parses).
+
+---
+
 ## Documentation
 
 The guide ([docs/GUIDE.md](docs/GUIDE.md)), the reference ([docs/REFERENCE.md](docs/REFERENCE.md)) and the README contain runnable C# snippets. They must keep compiling against the public API, so when you change a public member or a behaviour that a snippet shows, update the docs in the same change.

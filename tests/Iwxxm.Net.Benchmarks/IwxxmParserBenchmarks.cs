@@ -30,9 +30,9 @@ namespace Iwxxm.Net.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            _wafsSigwxPayload = File.ReadAllBytes("Samples/wmo-examples/WAFS-Example.xml");
-            _qvaciPayload = File.ReadAllBytes("Samples/wmo-examples/qvaci-Example.xml");
-            _collectBulletinPayload = File.ReadAllBytes("Samples/wmo-examples/metar-NIL-collect.xml");
+            _wafsSigwxPayload = SampleFiles.Read("Samples/wmo-examples/WAFS-Example.xml");
+            _qvaciPayload = SampleFiles.Read("Samples/wmo-examples/qvaci-Example.xml");
+            _collectBulletinPayload = SampleFiles.Read("Samples/wmo-examples/metar-NIL-collect.xml");
             _samplePosList =
                 "35.4 -104.7 36.2 -101.5 37.8 -98.1 39.0 -94.6 40.1 -91.2 " +
                 "40.9 -88.0 41.3 -85.1 41.6 -82.4 41.8 -80.2 41.9 -78.9 " +
