@@ -16,10 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Opt-in `net48` test target outside Windows (AUD-M17)**: `IWXXM_TEST_NET48=true` adds `net48` to the core test project on Linux/macOS (reference assemblies from `Microsoft.NETFramework.ReferenceAssemblies`), and the optional Dockerfile stages `net48-compile` and `net48-test` (Mono) compile and run it in a container. The default build is unchanged.
 - **Legacy unit alias `kn_i` (AUD-R5)**: the speed readers accept `kn_i` (not UCUM) as `[kn_i]` and always report one aggregated warning per document and field, `ACL-MEASURE-UOM-NON-UCUM-ALIAS` (field, alias, UCUM code, count). The XSD and official Schematron results are unchanged.
 
 ### Fixed
 
+- **Windows CI / `net48` test target (AUD-M17)**: the `net48` target of the core test project had never been compiled and failed to build on the Windows job (`System.Text.Json` is not part of .NET Framework). It now references the test-only `System.Text.Json` package for `net48`, the few .NET-only APIs used by the tests (`double.IsNegative`, `ReferenceEqualityComparer`) have portable equivalents, and the tokenizer bit-exactness check no longer breaks on the sign of `-0.0` (which .NET Framework's `double.Parse` drops). The core package is unchanged and still has zero runtime dependencies.
 - **No vertex lost in polar caps and multi-lobe rings (AUD-R1)**: a ring that goes around a pole is repeated every 360 degrees, clipped to [-180, 180] and closed along the antimeridian and the pole, so a lobe across the antimeridian keeps every source vertex (three south polar tropopause contours of the Met Office bulletin lost 23 vertices); a ring that crosses the antimeridian more than twice gives separate pieces instead of pieces joined by a zero-width bridge.
 - **Bulletin entries are isolated**: an exception thrown by the mapper of one `collect:meteorologicalInformation` entry (for example a custom mapper) becomes a `MAPPER-ERROR` item error of that entry and the remaining entries are still mapped; `OutOfMemoryException` is not swallowed. The warnings of successfully mapped entries are now carried into the bulletin result's `Warnings` (previously only item-error warnings were).
 - **Polar caps keep their holes**: a polygon enclosing a pole keeps its interior rings that lie inside the cap as holes of the written polygon. An interior ring that cannot be represented is reported by the new feature property `droppedInteriorRings` instead of being lost silently.

@@ -18,6 +18,9 @@
     <!-- IL-level architecture rules (test-only; never referenced by a packable project) -->
     <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
 
+    <!-- net48 test target only (AUD-M17): System.Text.Json is not part of .NET Framework -->
+    <PackageVersion Include="System.Text.Json" Version="9.0.10" />
+
     <!-- Benchmark suite dependencies -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>

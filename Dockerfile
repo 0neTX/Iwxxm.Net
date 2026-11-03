@@ -97,6 +97,34 @@ FROM scratch AS artifacts
 COPY --from=pack /workspace/artifacts/ /
 
 # ==============================================================================
+# Optional stages (AUD-M17): the net48 target of the core test project.
+# Not part of the default build. `net48-compile` compiles it against the reference assemblies
+# (Microsoft.NETFramework.ReferenceAssemblies); `net48-test` also runs it under Mono with the xunit console runner
+# (a Mono approximation of .NET Framework; the Windows CI job is the real .NET Framework run).
+# Usage: podman build --target net48-compile .   |   podman build --target net48-test .
+# These stages sit before `ci` so that the default (last) stage is unchanged.
+# ==============================================================================
+FROM restore AS net48-compile
+COPY . .
+RUN dotnet restore tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj -p:IWXXM_TEST_NET48=true && \
+    dotnet build tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj \
+        --configuration Release \
+        --no-restore \
+        --framework net48 \
+        -p:IWXXM_TEST_NET48=true \
+        -p:ContinuousIntegrationBuild=true
+
+FROM net48-compile AS net48-test
+ARG XUNIT_RUNNER_CONSOLE_VERSION=2.9.3
+RUN apt-get update -qq && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends mono-complete unzip curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    curl -sSfL -o /tmp/xunit-runner.zip "https://www.nuget.org/api/v2/package/xunit.runner.console/${XUNIT_RUNNER_CONSOLE_VERSION}" && \
+    unzip -q /tmp/xunit-runner.zip -d /opt/xunit-runner
+WORKDIR /workspace/tests/Iwxxm.Net.Tests/bin/Release/net48
+RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Tests.dll -nologo -parallel none
+
+# ==============================================================================
 # Stage 6: ci — Default runtime stage (exports artifacts only; never publishes)
 # Publishing happens exclusively in the GitHub Actions workflow. A deliberate local
 # publish requires `tools/run-local-ci.sh --publish` (see README); this image never

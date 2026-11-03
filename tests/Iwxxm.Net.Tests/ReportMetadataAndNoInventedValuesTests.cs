@@ -33,6 +33,16 @@ namespace Iwxxm.Net.Tests
     /// </remarks>
     public sealed class ReportMetadataAndNoInventedValuesTests
     {
+        // System.Collections.Generic.ReferenceEqualityComparer does not exist on .NET Framework (net48 test target).
+        private sealed class ReferenceComparer : IEqualityComparer<object>
+        {
+            public static readonly ReferenceComparer Instance = new ReferenceComparer();
+
+            bool IEqualityComparer<object>.Equals(object? x, object? y) => ReferenceEquals(x, y);
+
+            int IEqualityComparer<object>.GetHashCode(object obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+        }
+
         private static readonly XNamespace Iwxxm = "http://icao.int/iwxxm/2025-2";
         private static readonly XNamespace Gml = "http://www.opengis.net/gml/3.2";
         private static readonly XNamespace Collect = "http://def.wmo.int/collect/2014";
@@ -81,7 +91,7 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
 
             var offenders = new List<string>();
-            Inspect(result.Value, "report", offenders, new HashSet<object>(ReferenceEqualityComparer.Instance), 0);
+            Inspect(result.Value, "report", offenders, new HashSet<object>(ReferenceComparer.Instance), 0);
 
             Assert.True(offenders.Count == 0, "Invented values found: " + string.Join(", ", offenders));
         }

@@ -109,9 +109,13 @@ namespace Iwxxm.Net.Tests
             Assert.True(GmlCoordinateTokenizer.TryReadNextDouble(text, ref index, text.Length, out double actual), token);
             double expected = double.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture);
 #if NETFRAMEWORK
-            // .NET Framework's double.Parse is not always correctly rounded (fixed in .NET Core 3.0): allow one ulp there.
+            // .NET Framework's double.Parse is not always correctly rounded and drops the sign of "-0.0" (both fixed in
+            // .NET Core 3.0): compare zeros by value and allow one ulp otherwise. The tokenizer itself keeps the IEEE sign.
+            long expectedBits = BitConverter.DoubleToInt64Bits(expected);
+            long actualBits = BitConverter.DoubleToInt64Bits(actual);
+            bool sameZero = expected == 0.0 && actual == 0.0;
             Assert.True(
-                Math.Abs(BitConverter.DoubleToInt64Bits(expected) - BitConverter.DoubleToInt64Bits(actual)) <= 1,
+                sameZero || (expectedBits >= 0) == (actualBits >= 0) && Math.Abs(expectedBits - actualBits) <= 1,
                 $"'{token}': expected {expected:R}, got {actual:R}");
 #else
             Assert.True(

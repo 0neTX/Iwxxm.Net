@@ -60,11 +60,14 @@ namespace Iwxxm.Net.Tests
             var coordinate = new GeoCoordinate(input, input);
             var zero = new GeoCoordinate(0.0, 0.0);
 
-            Assert.False(double.IsNegative(coordinate.Lat));
-            Assert.False(double.IsNegative(coordinate.Lon));
+            Assert.False(IsNegative(coordinate.Lat));
+            Assert.False(IsNegative(coordinate.Lon));
             Assert.Equal(zero, coordinate);
             Assert.Equal(zero.GetHashCode(), coordinate.GetHashCode());
         }
+
+        // double.IsNegative does not exist on .NET Framework; the sign bit also distinguishes -0.0.
+        private static bool IsNegative(double value) => BitConverter.DoubleToInt64Bits(value) < 0;
 
         [Fact]
         public void Quantization_IsIdempotent_Symmetric_AndKeepsEqualsAndHashCodeInAgreement()
