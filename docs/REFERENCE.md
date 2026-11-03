@@ -347,6 +347,53 @@ VAAC TOKYO #2024/4: 2 observed clouds at 2024-09-23T01:00:00.0000000+00:00
 
 Partial-result behaviour, `ReportResults` and `ItemErrors` are explained with a runnable example in the [guide](GUIDE.md#bulletins-many-reports-one-envelope). A bulletin succeeds as long as one report maps; each skipped report is also a warning in `Result.Warnings`. The same applies per feature to WAFS charts (`Sigwx.FeatureErrors`). Schema and rule validation remain document-level.
 
+### Real-world sample: Met Office WAFS SIGWX
+
+`tests/Iwxxm.Net.Tests/Samples/external/metoffice/` holds an unmodified operational WAFS SIGWX package published by the UK Met Office (2026-08-26 06:00Z, T+06 to T+48): one `collect:MeteorologicalBulletin` with 15 `iwxxm:WAFSSignificantWeatherForecast` reports and 4252 features, 14.2 MB. Its [README](../tests/Iwxxm.Net.Tests/Samples/external/metoffice/README.md) gives the origin, the SHA-256 and the licence caveat. It is larger than the default 10 MB limit, so the limits must be raised:
+
+```csharp
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
+
+string path = "samples/NEW(2025-2)SIGWX-260826T0600-06-48.xml";
+
+// Default limits: the 14.2 MB product exceeds the 10 MB cap and is refused before it is buffered.
+var refused = IwxxmParser.ParseBulletinFile(path);
+Console.WriteLine($"{refused.Errors[0].Code}: {refused.Errors[0].Message}");
+
+// Raised limits: the whole pipeline runs.
+var options = new IwxxmParserOptions(
+    maxDocumentBytes: 32L * 1024 * 1024,
+    maxCharactersInDocument: 32L * 1024 * 1024);
+var parser = new IwxxmParserBuilder().WithOptions(options).Build();
+
+Result<MeteorologicalBulletin> result = parser.ProcessBulletinFile(path);
+Console.WriteLine($"success: {result.IsSuccess}, errors: {result.Errors.Count}");
+foreach (var group in result.Errors.GroupBy(e => e.Code))
+{
+    Console.WriteLine($"{group.Key} x{group.Count()}");
+}
+
+ValidationError first = result.Errors[0];
+Console.WriteLine($"{first.Message} (line {first.LineNumber}, position {first.LinePosition})");
+```
+
+```output
+XML-SIZE-LIMIT: The input XML stream length (14227220 bytes) exceeds the maximum allowed limit of 10485760 bytes.
+success: False, errors: 30
+XSD-SCHEMA-VIOLATION x30
+The required attribute 'http://www.opengis.net/gml/3.2:id' is missing. (line 4, position 10)
+```
+
+What the file shows (library 1.0.0-rc.1, official XSD, built-in Schematron subset, `Iwxxm.Net.Validation.Saxon`, measured in a container with the SDK 10.0.403 image):
+
+- **The product as published is not valid IWXXM 2025-2.** The 30 XSD violations are the missing mandatory `gml:id` on each of the 15 reports (`line:10`) and on each of the 15 `gml:TimePeriod` elements (`line:18`). The official Schematron (165 rules) reports no finding on it. This is a defect of the data, not of the library; the library rightly refuses it.
+- **With only those ids added** (done in memory by the tests) the XSD and the Schematron pass, but all 15 reports are then rejected by `DOMAIN-SIGWX-VALID-PERIOD`: the product publishes each chart as an instant (`beginPosition == endPosition`), while the domain rule requires the end to be after the start (AUD-R2 in `TECHNICAL_DEBT.md`).
+- **With a one second validity period as well**, the bulletin maps: 15 reports, no item errors, and per feature type 574 jet streams (1850 core points), 733 clouds, 585 turbulence areas, 1903 airframe icing areas, 301 tropopause contours, 135 volcanoes and 21 tropical cyclones, equal to an independent count of the XML. `RADIATION` is listed in `phenomenaList` but the product contains no radiation feature.
+- **The wind speed unit is `kn_i`, not the UCUM `[kn_i]`.** Neither the XSD nor the official Schematron checks it. The mapper assumes no unit, so each of the 574 jet streams is a feature error (`ACL-MEASURE-UOM-UNSUPPORTED`, also a warning) and every other phenomenon is still mapped. With `[kn_i]` all 574 jet streams are mapped.
+- **GeoJSON**: 16,717 features (4252 phenomena, 1850 jet stream core points and 10,615 tropopause spot heights, one per contour vertex), about 10 MB of valid JSON; positions are `[longitude, latitude]`, rings are closed and counter-clockwise, and the 580 antimeridian crossings of the source are split at 180. Three polar tropopause contours lose 23 source vertices (AUD-R1) and the `bbox` of this global collection wraps the antimeridian (`[52.45, -90, 52.38, 90]`, valid per RFC 7946 but not what a map client expects; AUD-R4).
+- **Cost** (container with 2 cores, one process, indicative; not a benchmark): parsing and mapping about 0.5 s, the XSD about 0.4 s and the built-in Schematron about 0.3 s on top, the GeoJSON export about 0.4 s; about 1.5 s for the first complete run and 0.7 to 1.0 s once warm, about 200 MB peak working set and 300 MB allocated per run. The official Schematron through `Iwxxm.Net.Validation.Saxon` needs about 4.5 s for the first run and 1.7 s warm (about 1.7 GB allocated). The deepest element nesting is 16 levels, so AUD-N1 (nesting depth) is not a concern for this product.
+
 ---
 
 ## GeoJSON export in detail

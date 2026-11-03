@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\Iwxxm.Net.Tests\Samples\**\*.xml" Link="Samples\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Iwxxm.Net.Tests\Samples\**\*.xml" Exclude="..\Iwxxm.Net.Tests\Samples\external\**" Link="Samples\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
