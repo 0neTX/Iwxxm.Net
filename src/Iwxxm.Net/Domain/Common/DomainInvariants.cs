@@ -76,16 +76,21 @@ namespace Iwxxm.Net.Reports
             }
         }
 
-        /// <summary>When both bounds are present the end must be strictly after the start.</summary>
-        internal void RequireOrderedPeriod(DateTimeOffset? from, DateTimeOffset? until, string code, string field)
+        /// <summary>
+        /// When both bounds are present the end must be after the start; with <paramref name="allowInstant"/> an end equal
+        /// to the start (a <c>gml:TimePeriod</c> that describes a single instant, which the schema allows) is accepted too.
+        /// An end before the start is always an error.
+        /// </summary>
+        internal void RequireOrderedPeriod(DateTimeOffset? from, DateTimeOffset? until, string code, string field, bool allowInstant = false)
         {
             RequireUtc(from, field + " start");
             RequireUtc(until, field + " end");
 
-            if (from.HasValue && until.HasValue && until.Value <= from.Value)
+            if (from.HasValue && until.HasValue && (allowInstant ? until.Value < from.Value : until.Value <= from.Value))
             {
+                string relation = allowInstant ? "must not be before" : "must be strictly after";
                 Add(code,
-                    $"The {field} end ({until.Value.ToString("O", CultureInfo.InvariantCulture)}) must be strictly after its start ({from.Value.ToString("O", CultureInfo.InvariantCulture)}).");
+                    $"The {field} end ({until.Value.ToString("O", CultureInfo.InvariantCulture)}) {relation} its start ({from.Value.ToString("O", CultureInfo.InvariantCulture)}).");
             }
         }
 
@@ -129,7 +134,7 @@ namespace Iwxxm.Net.Reports
             if (group == null)
                 return;
 
-            RequireOrderedPeriod(group.ValidFromUtc, group.ValidUntilUtc, DomainErrorCodes.ForecastGroupPeriod, $"forecast group '{group.Id}' period");
+            RequireOrderedPeriod(group.ValidFromUtc, group.ValidUntilUtc, DomainErrorCodes.ForecastGroupPeriod, $"forecast group '{group.Id}' period", allowInstant: true);
             RequireNonNegative(group.PrevailingVisibilityMeters, DomainErrorCodes.NegativeVisibility, $"forecast group '{group.Id}' prevailing visibility");
             Check(group.SurfaceWind, $"forecast group '{group.Id}' surface wind");
             Check(group.Cloud, $"forecast group '{group.Id}' cloud");

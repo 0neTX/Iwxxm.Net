@@ -148,11 +148,13 @@ namespace Iwxxm.Net.Reports
                     id));
             }
 
-            if (validUntilUtc <= validFromUtc)
+            // A chart may be valid at a single instant (begin == end, as the operational WAFS products publish them);
+            // only an end before the start is an error.
+            if (validUntilUtc < validFromUtc)
             {
                 errors.Add(new ValidationError(
                     "DOMAIN-SIGWX-VALID-PERIOD",
-                    $"Validity end time ({validUntilUtc:O}) must be strictly after validity start time ({validFromUtc:O}).",
+                    $"Validity end time ({validUntilUtc:O}) must not be before validity start time ({validFromUtc:O}).",
                     ErrorCategory.DomainMapping,
                     ValidationSeverity.Error,
                     id));

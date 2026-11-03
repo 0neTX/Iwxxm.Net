@@ -7,10 +7,18 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
     /// <summary>
     /// Computes the RFC 7946 <c>bbox</c> (<c>[west, south, east, north]</c>) of a set of features. When a geometry crosses
     /// the antimeridian (RFC 7946 §5.2), the longitude extent is the smallest arc that contains every position, so
-    /// <c>west</c> may be greater than <c>east</c>; otherwise it is the plain minimum / maximum.
+    /// <c>west</c> may be greater than <c>east</c>; otherwise it is the plain minimum / maximum. A wrapping box is only
+    /// written when that arc is at most <see cref="MaxWrappingWidth"/> degrees wide: features that are spread over the
+    /// whole longitude range (a global chart, a polar cap) have no meaningful smaller box, and a <c>west &gt; east</c> box
+    /// that spans almost 360 degrees would look empty to a client that expects <c>west &lt;= east</c>, so the plain extent
+    /// (<c>-180</c> to <c>180</c> for a chart that reaches both sides) is written instead. The latitude extent is always the
+    /// plain minimum / maximum of the positions, so a pole is only reported when a position reaches it.
     /// </summary>
     internal sealed class GeoJsonBoundingBox
     {
+        /// <summary>Widest longitude arc (degrees) that is still written as a wrapping box (<c>west &gt; east</c>).</summary>
+        public const double MaxWrappingWidth = 180.0;
+
         public bool HasCoordinates { get; private set; }
         public double MinLon { get; private set; } = double.MaxValue;
         public double MinLat { get; private set; } = double.MaxValue;
@@ -52,7 +60,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
         }
 
         /// <summary>
-        /// Replaces the longitude extent by the complement of the largest empty longitude gap. -180 and +180 are the same
+        /// Replaces the longitude extent by the complement of the largest empty longitude gap when that is a narrow wrapping box (see the class remarks). -180 and +180 are the same
         /// meridian, so split pieces touching the antimeridian from both sides join across it.
         /// </summary>
         private void UseSmallestLongitudeArc(List<double> longitudes)
@@ -75,8 +83,12 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 }
             }
 
-            MinLon = west;
-            MaxLon = east;
+            // The arc outside the largest gap is 360 - gap wide; the seam gap (west <= east) is the plain extent.
+            if (west > east && 360.0 - largestGap <= MaxWrappingWidth)
+            {
+                MinLon = west;
+                MaxLon = east;
+            }
         }
     }
 }

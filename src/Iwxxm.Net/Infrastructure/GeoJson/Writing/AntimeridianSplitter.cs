@@ -8,10 +8,14 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
     /// RFC 7946 §3.1.9 antimeridian handling for output geometries. Two consecutive positions whose longitudes differ by
     /// more than 180 degrees are joined by the short way, across the antimeridian. Such lines are cut at ±180 into a
     /// <c>MultiLineString</c>; such polygons are unwrapped and clipped into the [-180, 180] longitude strips, giving a
-    /// <c>MultiPolygon</c>. A ring that wraps the whole globe (it encloses a pole) is written as the polygon bounded by the
-    /// ring from longitude -180 to +180 and by the pole on the side of its mean latitude. Interior rings that lie entirely
-    /// inside that cap are kept as its holes; an interior ring that cannot be represented that way (it crosses the
-    /// antimeridian, or is not inside the cap) is dropped and counted, so the caller can report it explicitly.
+    /// <c>MultiPolygon</c>. A ring that wraps the whole globe (its unwrapped longitudes advance by a full turn: it
+    /// encloses a pole) is written as the region between the ring and the pole on the side of its mean latitude: the
+    /// ring is repeated every 360 degrees, clipped to the [-180, 180] strip and closed along the antimeridian and the
+    /// pole, so a ring that leaves the strip and comes back (a lobe across the antimeridian) loses no vertex and may give
+    /// several polygons. A ring that crosses a strip border more than twice is clipped the same way, so its pieces are
+    /// never joined by a zero-width bridge. Interior rings that lie entirely inside a cap are kept as its holes; an
+    /// interior ring that cannot be represented that way (it crosses the antimeridian, or is not inside the cap) is
+    /// dropped and counted, so the caller can report it explicitly.
     /// </summary>
     internal static class AntimeridianSplitter
     {
@@ -77,26 +81,60 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 // The ring goes once around the globe: it encloses a pole.
                 isPolarCap = true;
                 double meanLat = exterior.Average(p => p.Lat);
-                var cap = PolarCap(unwrapped, exterior.Select(p => p.Lat).ToList(), meanLat >= 0 ? 90.0 : -90.0);
-                var capRings = new List<List<GeoJsonPosition>> { cap };
+                List<List<GeoJsonPosition>> caps = PolarCaps(exterior, unwrapped, meanLat >= 0 ? 90.0 : -90.0);
+                var polygons = new List<List<List<GeoJsonPosition>>>(caps.Count);
+                foreach (List<GeoJsonPosition> cap in caps)
+                    polygons.Add(new List<List<GeoJsonPosition>> { cap });
+
                 foreach (List<GeoJsonPosition> hole in holes)
                 {
-                    if (hole.Count >= 4 && !Crosses(hole) && hole.All(p => IsInside(cap, p)))
-                        capRings.Add(hole);
+                    List<List<GeoJsonPosition>>? owner = null;
+                    if (hole.Count >= 4 && !Crosses(hole))
+                        owner = polygons.FirstOrDefault(p => hole.All(v => IsInside(p[0], v)));
+
+                    if (owner != null)
+                        owner.Add(hole);
                     else
                         droppedInteriorRings++;
                 }
 
-                return new List<List<List<GeoJsonPosition>>> { capRings };
+                return polygons;
             }
 
             double min = unwrapped.Min();
             double max = unwrapped.Max();
             var pieces = new List<List<List<GeoJsonPosition>>>();
+            List<StripClipper.Node> ringNodes = RingNodes(exterior, unwrapped);
             for (int k = (int)Math.Floor((min + 180.0) / 360.0); k <= (int)Math.Floor((max + 180.0) / 360.0); k++)
             {
                 double west = -180.0 + (360.0 * k);
                 double east = west + 360.0;
+
+                // More than one piece inside the strip: assemble them properly (Sutherland-Hodgman would join them
+                // with zero-width bridges along the strip border).
+                List<List<GeoJsonPosition>> separate = ClipSeparatePieces(ringNodes, exterior, west, east, -360.0 * k);
+                if (separate.Count > 1)
+                {
+                    var multi = separate.Select(r => new List<List<GeoJsonPosition>> { r }).ToList();
+                    foreach (List<GeoJsonPosition> hole in holes)
+                    {
+                        List<double> holeLons = Unwrap(hole);
+                        double holeShift = 360.0 * Math.Round(((min + max) / 2.0 - holeLons.Average()) / 360.0);
+                        List<GeoJsonPosition>? clippedHole = Clip(hole, holeLons.Select(l => l + holeShift).ToList(), west, east, -360.0 * k);
+                        if (clippedHole == null)
+                            continue;
+
+                        List<List<GeoJsonPosition>>? owner = multi.FirstOrDefault(p => IsInside(p[0], clippedHole[0]));
+                        if (owner != null)
+                            owner.Add(clippedHole);
+                        else
+                            droppedInteriorRings++;
+                    }
+
+                    pieces.AddRange(multi);
+                    continue;
+                }
+
                 List<GeoJsonPosition>? clipped = Clip(exterior, unwrapped, west, east, -360.0 * k);
                 if (clipped == null)
                     continue;
@@ -116,6 +154,80 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
 
             return pieces;
+        }
+
+        /// <summary>Nodes of a closed ring at their unwrapped longitudes (the closing vertex is not repeated).</summary>
+        private static List<StripClipper.Node> RingNodes(IReadOnlyList<GeoJsonPosition> ring, IReadOnlyList<double> unwrapped)
+        {
+            int count = ring.Count > 1 && ring[0].Equals(ring[ring.Count - 1]) ? ring.Count - 1 : ring.Count;
+            var nodes = new List<StripClipper.Node>(count);
+            for (int i = 0; i < count; i++)
+                nodes.Add(new StripClipper.Node(unwrapped[i], ring[i].Lat, i));
+
+            return nodes;
+        }
+
+        /// <summary>
+        /// The pieces of an unwrapped closed ring inside the strip [west, east], assembled so that the region stays on the left
+        /// of the boundary (a clockwise ring is traversed backwards).
+        /// </summary>
+        private static List<List<GeoJsonPosition>> ClipSeparatePieces(List<StripClipper.Node> nodes, IReadOnlyList<GeoJsonPosition> source, double west, double east, double shift)
+        {
+            double area = 0.0;
+            for (int i = 0, j = nodes.Count - 1; i < nodes.Count; j = i++)
+                area += (nodes[j].X * nodes[i].Y) - (nodes[i].X * nodes[j].Y);
+
+            var ordered = new List<StripClipper.Node>(nodes);
+            if (area < 0.0)
+                ordered.Reverse();
+
+            // Start at a vertex outside the strip so that every piece is a complete arc.
+            int start = ordered.FindIndex(n => n.X < west || n.X > east);
+            if (start < 0)
+                return new List<List<GeoJsonPosition>>();
+
+            var chain = new List<StripClipper.Node>(ordered.Count + 1);
+            for (int i = 0; i <= ordered.Count; i++)
+                chain.Add(ordered[(start + i) % ordered.Count]);
+
+            return StripClipper.Clip(chain, source, west, east, shift);
+        }
+
+        /// <summary>
+        /// The polygons of the region between a pole-enclosing ring and the pole: the unwrapped ring is repeated every 360
+        /// degrees, clipped to [-180, 180] and closed along the antimeridian and the pole. Every vertex of the ring is kept.
+        /// </summary>
+        private static List<List<GeoJsonPosition>> PolarCaps(IReadOnlyList<GeoJsonPosition> ring, IReadOnlyList<double> unwrapped, double poleLat)
+        {
+            List<StripClipper.Node> nodes = RingNodes(ring, unwrapped);
+            double turn = unwrapped[unwrapped.Count - 1] - unwrapped[0];
+            double period = turn > 0 ? 360.0 : -360.0;
+            double minLon = nodes.Min(n => n.X);
+            double maxLon = nodes.Max(n => n.X);
+
+            // Repetitions (shift = j * period) that reach the strip, plus one on each side so that the chain starts and ends outside it.
+            int low = (int)Math.Ceiling((-180.0 - maxLon) / 360.0) - 1;
+            int high = (int)Math.Floor((180.0 - minLon) / 360.0) + 1;
+            var chain = new List<StripClipper.Node>(nodes.Count * (high - low + 1));
+            for (int j = turn > 0 ? low : -high; j <= (turn > 0 ? high : -low); j++)
+            {
+                double shift = j * period;
+                foreach (StripClipper.Node node in nodes)
+                    chain.Add(new StripClipper.Node(node.X + shift, node.Y, node.Index));
+            }
+
+            // The region (towards the pole) must be on the left of the direction of travel: east with the north pole, west with the south pole.
+            if ((poleLat > 0) != (turn > 0))
+                chain.Reverse();
+
+            List<List<GeoJsonPosition>> caps = StripClipper.Clip(chain, ring, -180.0, 180.0, 0.0);
+            if (caps.Count == 0)
+            {
+                // Degenerate input (for example every vertex on the antimeridian): fall back to the single-turn cap.
+                caps.Add(PolarCap(unwrapped, ring.Select(p => p.Lat).ToList(), poleLat));
+            }
+
+            return caps;
         }
 
         /// <summary>Builds the ring of a pole-enclosing boundary from its unwrapped longitudes.</summary>
@@ -187,16 +299,19 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
         private static List<double> Unwrap(IReadOnlyList<GeoJsonPosition> ring)
         {
+            // Longitude plus a whole number of turns, so a position on the antimeridian stays exactly at ±180 (+ k * 360).
             var lons = new List<double>(ring.Count) { ring[0].Lon };
+            int turns = 0;
             for (int i = 1; i < ring.Count; i++)
             {
-                double delta = ring[i].Lon - ring[i - 1].Lon;
                 if (IsCrossing(ring[i - 1], ring[i]))
                 {
-                    while (delta > 180.0) delta -= 360.0;
-                    while (delta < -180.0) delta += 360.0;
+                    double delta = ring[i].Lon - ring[i - 1].Lon;
+                    while (delta > 180.0) { delta -= 360.0; turns--; }
+                    while (delta < -180.0) { delta += 360.0; turns++; }
                 }
-                lons.Add(lons[i - 1] + delta);
+
+                lons.Add(ring[i].Lon + (360.0 * turns));
             }
 
             return lons;

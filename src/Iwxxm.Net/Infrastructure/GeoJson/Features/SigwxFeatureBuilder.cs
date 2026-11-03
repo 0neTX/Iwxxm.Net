@@ -74,6 +74,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 {
                     var props = CreateBase(sigwx, "TROPOPAUSE_CONTOUR", bulletinId);
                     props.Add(("levelModification", trop.LevelType));
+                    AddVerticalLimit(props, "level", trop.ContourLevel);
                     features.Add(GeoJsonFeature.ForPolygon(trop.Id, trop.ContourPolygon, props));
                 }
 

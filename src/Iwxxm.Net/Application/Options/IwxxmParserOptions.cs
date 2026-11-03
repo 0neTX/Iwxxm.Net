@@ -10,19 +10,22 @@ namespace Iwxxm.Net
     public sealed class IwxxmParserOptions
     {
         /// <summary>
-        /// Default production-hardened parser options (10 MB maximum stream payload, 10M maximum XML characters, 1024 entity character cap).
+        /// Default production-hardened parser options (50 MiB maximum stream payload, 52,428,800 maximum XML characters, 1024 entity character cap).
         /// </summary>
         public static readonly IwxxmParserOptions Default = new IwxxmParserOptions();
 
         /// <summary>
         /// Maximum allowed input XML stream length in bytes before buffering is aborted with <c>XML-SIZE-LIMIT</c>.
-        /// Defaults to 10 MB (<c>10,485,760</c> bytes).
+        /// Defaults to 50 MiB (<c>52,428,800</c> bytes). The buffered payload costs up to about three times its size
+        /// while it is read; the DOM built from it costs several times more (see <c>docs/SECURITY.md</c>).
         /// </summary>
         public long MaxDocumentBytes { get; }
 
         /// <summary>
         /// Maximum allowed character count in an XML document enforced by <c>XmlReaderSettings.MaxCharactersInDocument</c>.
-        /// Defaults to <c>10,485,760</c> characters.
+        /// Defaults to <c>52,428,800</c> characters, the same number as <see cref="MaxDocumentBytes"/>: every character
+        /// takes at least one byte of UTF-8 (and two of UTF-16), so a document that passes the byte limit never exceeds
+        /// this quota whatever its encoding.
         /// </summary>
         public long MaxCharactersInDocument { get; }
 
@@ -47,8 +50,8 @@ namespace Iwxxm.Net
         public long MaxRuleReportBytes { get; }
 
         public IwxxmParserOptions(
-            long maxDocumentBytes = 10L * 1024L * 1024L,
-            long maxCharactersInDocument = 10_485_760L,
+            long maxDocumentBytes = 50L * 1024L * 1024L,
+            long maxCharactersInDocument = 52_428_800L,
             long maxCharactersFromEntities = 1024L,
             int maxValidationErrors = 100,
             long maxRuleReportBytes = 4L * 1024L * 1024L)

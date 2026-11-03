@@ -34,7 +34,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
 
         /// <summary>
         /// Reads a mandatory wind speed keeping its reported unit (<c>m/s</c>, <c>[kn_i]</c> or <c>km/h</c>).
-        /// A nil/missing value, a missing <c>@uom</c> or an unknown unit is a mapping error (never assumed).
+        /// A nil/missing value, a missing <c>@uom</c> or an unknown unit is a mapping error (never assumed); the legacy spelling
+        /// <c>kn_i</c> is read as <c>[kn_i]</c> and reported by the document-level alias warning (AUD-R5).
         /// </summary>
         public static Result<Speed> ReadRequiredSpeed(MeasureType? speedMeasure, string location)
         {

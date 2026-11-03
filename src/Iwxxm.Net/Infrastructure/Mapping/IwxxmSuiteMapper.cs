@@ -41,6 +41,15 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
 
+            // Legacy unit aliases are reported once per document (AUD-R5): this call owns the scope of the whole mapping.
+            using (UomAliasScope aliases = UomAliasScope.Begin())
+            {
+                return aliases.Attach(MapDocument(document));
+            }
+        }
+
+        private Result<IwxxmDocument> MapDocument(IwxxmDocumentContext document)
+        {
             // The document was parsed once by the use case (shared tree); a direct call parses it here.
             XElement root;
             try

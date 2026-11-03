@@ -513,8 +513,8 @@ IWXXM arrives from networks, so the parser enforces limits *before* it allocates
 
 | Option | Default | Meaning |
 | :--- | :--- | :--- |
-| `MaxDocumentBytes` | 10 MiB | Largest accepted input; larger streams fail with `XML-SIZE-LIMIT`. |
-| `MaxCharactersInDocument` | 10,485,760 | Character cap enforced by the `XmlReader`. |
+| `MaxDocumentBytes` | 50 MiB (52,428,800) | Largest accepted input; larger streams fail with `XML-SIZE-LIMIT`. |
+| `MaxCharactersInDocument` | 52,428,800 | Character cap enforced by the `XmlReader` (never lower than the byte limit needs: a character takes at least one byte). |
 | `MaxCharactersFromEntities` | 1,024 | Cap on entity expansion. |
 | `MaxValidationErrors` | 100 | Findings reported per validator, then a `...-TOO-MANY-ERRORS` sentinel. |
 | `MaxRuleReportBytes` | 4 MiB | Size cap of the Schematron SVRL report. |

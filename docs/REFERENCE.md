@@ -262,10 +262,12 @@ foreach (AirframeIcing icing in sigwx.AirframeIcings)
     Console.WriteLine($"Icing: {icing.Degree?.Code} ({icing.Base} to {icing.Top})");
 }
 
-// 5. Tropopause contours and spot heights
+// 5. Tropopause: a contour is one polygon with ONE level; spot heights are isolated points with their own level
 foreach (Tropopause tropo in sigwx.Tropopauses)
 {
-    Console.WriteLine($"Tropopause: {tropo.SpotHeights.Count} spot heights");
+    Console.WriteLine(tropo.ContourPolygon != null
+        ? $"Tropopause contour at {tropo.ContourLevel}"
+        : $"Tropopause: {tropo.SpotHeights.Count} spot heights");
 }
 
 // 6. Point phenomena: volcanoes, tropical cyclones, sandstorms, radiation incidents
@@ -349,7 +351,7 @@ Partial-result behaviour, `ReportResults` and `ItemErrors` are explained with a 
 
 ### Real-world sample: Met Office WAFS SIGWX
 
-`tests/Iwxxm.Net.Tests/Samples/external/metoffice/` holds an unmodified operational WAFS SIGWX package published by the UK Met Office (2026-08-26 06:00Z, T+06 to T+48): one `collect:MeteorologicalBulletin` with 15 `iwxxm:WAFSSignificantWeatherForecast` reports and 4252 features, 14.2 MB. Its [README](../tests/Iwxxm.Net.Tests/Samples/external/metoffice/README.md) gives the origin, the SHA-256 and the licence caveat. It is larger than the default 10 MB limit, so the limits must be raised:
+`tests/Iwxxm.Net.Tests/Samples/external/metoffice/` holds an unmodified operational WAFS SIGWX package published by the UK Met Office (2026-08-26 06:00Z, T+06 to T+48): one `collect:MeteorologicalBulletin` with 15 `iwxxm:WAFSSignificantWeatherForecast` reports and 4252 features, 14.2 MB. Its [README](../tests/Iwxxm.Net.Tests/Samples/external/metoffice/README.md) gives the origin, the SHA-256, the known data defects and the licence caveat. It is below the default 50 MiB size limit, so the default parser processes it:
 
 ```csharp
 using Iwxxm.Net;
@@ -357,17 +359,7 @@ using Iwxxm.Net.Reports;
 
 string path = "samples/NEW(2025-2)SIGWX-260826T0600-06-48.xml";
 
-// Default limits: the 14.2 MB product exceeds the 10 MB cap and is refused before it is buffered.
-var refused = IwxxmParser.ParseBulletinFile(path);
-Console.WriteLine($"{refused.Errors[0].Code}: {refused.Errors[0].Message}");
-
-// Raised limits: the whole pipeline runs.
-var options = new IwxxmParserOptions(
-    maxDocumentBytes: 32L * 1024 * 1024,
-    maxCharactersInDocument: 32L * 1024 * 1024);
-var parser = new IwxxmParserBuilder().WithOptions(options).Build();
-
-Result<MeteorologicalBulletin> result = parser.ProcessBulletinFile(path);
+Result<MeteorologicalBulletin> result = IwxxmParser.ParseBulletinFile(path);
 Console.WriteLine($"success: {result.IsSuccess}, errors: {result.Errors.Count}");
 foreach (var group in result.Errors.GroupBy(e => e.Code))
 {
@@ -379,7 +371,6 @@ Console.WriteLine($"{first.Message} (line {first.LineNumber}, position {first.Li
 ```
 
 ```output
-XML-SIZE-LIMIT: The input XML stream length (14227220 bytes) exceeds the maximum allowed limit of 10485760 bytes.
 success: False, errors: 30
 XSD-SCHEMA-VIOLATION x30
 The required attribute 'http://www.opengis.net/gml/3.2:id' is missing. (line 4, position 10)
@@ -387,12 +378,12 @@ The required attribute 'http://www.opengis.net/gml/3.2:id' is missing. (line 4, 
 
 What the file shows (library 1.0.0-rc.1, official XSD, built-in Schematron subset, `Iwxxm.Net.Validation.Saxon`, measured in a container with the SDK 10.0.403 image):
 
-- **The product as published is not valid IWXXM 2025-2.** The 30 XSD violations are the missing mandatory `gml:id` on each of the 15 reports (`line:10`) and on each of the 15 `gml:TimePeriod` elements (`line:18`). The official Schematron (165 rules) reports no finding on it. This is a defect of the data, not of the library; the library rightly refuses it.
-- **With only those ids added** (done in memory by the tests) the XSD and the Schematron pass, but all 15 reports are then rejected by `DOMAIN-SIGWX-VALID-PERIOD`: the product publishes each chart as an instant (`beginPosition == endPosition`), while the domain rule requires the end to be after the start (AUD-R2 in `TECHNICAL_DEBT.md`).
-- **With a one second validity period as well**, the bulletin maps: 15 reports, no item errors, and per feature type 574 jet streams (1850 core points), 733 clouds, 585 turbulence areas, 1903 airframe icing areas, 301 tropopause contours, 135 volcanoes and 21 tropical cyclones, equal to an independent count of the XML. `RADIATION` is listed in `phenomenaList` but the product contains no radiation feature.
-- **The wind speed unit is `kn_i`, not the UCUM `[kn_i]`.** Neither the XSD nor the official Schematron checks it. The mapper assumes no unit, so each of the 574 jet streams is a feature error (`ACL-MEASURE-UOM-UNSUPPORTED`, also a warning) and every other phenomenon is still mapped. With `[kn_i]` all 574 jet streams are mapped.
-- **GeoJSON**: 16,717 features (4252 phenomena, 1850 jet stream core points and 10,615 tropopause spot heights, one per contour vertex), about 10 MB of valid JSON; positions are `[longitude, latitude]`, rings are closed and counter-clockwise, and the 580 antimeridian crossings of the source are split at 180. Three polar tropopause contours lose 23 source vertices (AUD-R1) and the `bbox` of this global collection wraps the antimeridian (`[52.45, -90, 52.38, 90]`, valid per RFC 7946 but not what a map client expects; AUD-R4).
-- **Cost** (container with 2 cores, one process, indicative; not a benchmark): parsing and mapping about 0.5 s, the XSD about 0.4 s and the built-in Schematron about 0.3 s on top, the GeoJSON export about 0.4 s; about 1.5 s for the first complete run and 0.7 to 1.0 s once warm, about 200 MB peak working set and 300 MB allocated per run. The official Schematron through `Iwxxm.Net.Validation.Saxon` needs about 4.5 s for the first run and 1.7 s warm (about 1.7 GB allocated). The deepest element nesting is 16 levels, so AUD-N1 (nesting depth) is not a concern for this product.
+- **The product as published is not valid IWXXM 2025-2.** The 30 XSD violations are the missing mandatory `gml:id` on each of the 15 reports (`line:10`) and on each of the 15 `gml:TimePeriod` elements (`line:18`). The official Schematron (165 rules) reports no finding on it. This is a defect of the data, not of the library; the library rightly refuses it, and the default pipeline therefore cannot process the file unmodified.
+- **With only those ids added** (done in memory by the tests) the XSD and the Schematron pass and the bulletin maps: 15 reports, no item errors, and per feature type 574 jet streams (1850 core points), 733 clouds, 585 turbulence areas, 1903 airframe icing areas, 301 tropopause contours, 135 volcanoes and 21 tropical cyclones, equal to an independent count of the XML. `RADIATION` is listed in `phenomenaList` but the product contains no radiation feature.
+- **Each chart is an instant** (`gml:TimePeriod` with `beginPosition == endPosition`, equal to `phenomenonTime`). The schema allows it and so does the SIGWX domain (`ValidFromUtc == ValidUntilUtc`); only an end before the start is `DOMAIN-SIGWX-VALID-PERIOD`. Forecast groups of aerodrome reports accept an instant too; the validity period of a SIGMET, AIRMET or TAF must still end after it starts.
+- **The wind speed unit is `kn_i`, not the UCUM `[kn_i]`.** Neither the XSD nor the official Schematron checks it. The unit readers accept `kn_i` as a recognised legacy alias of `[kn_i]` (knots) and always report it: the whole bulletin gets one `ACL-MEASURE-UOM-NON-UCUM-ALIAS` warning in `Result.Warnings` that names the field (`windSpeed`), the alias, the UCUM code and the count (1850). All 574 jet streams map.
+- **GeoJSON**: 6,102 features (4252 phenomena and 1850 jet stream core points), valid JSON; positions are `[longitude, latitude]`, rings are closed and counter-clockwise, and the antimeridian crossings of the source are split at 180 without losing a vertex (the three south polar tropopause contours whose ring has a lobe across 180 keep all their vertices). Each tropopause contour is one polygon that carries its level; the `bbox` of this global collection is `[-180, south, 180, north]`.
+- **Cost** (container with 2 cores, one process, indicative; not a benchmark): parsing and mapping about 0.5 s, the XSD about 0.4 s and the built-in Schematron about 0.3 s on top, the GeoJSON export about 0.3 s; about 1.5 s for the first complete run and 0.7 to 1.0 s once warm, about 155 MiB above the process baseline at peak. The official Schematron through `Iwxxm.Net.Validation.Saxon` needs about 4.5 s for the first run and 1.7 s warm (about 1.7 GB allocated). The deepest element nesting is 16 levels, so AUD-N1 (nesting depth) is not a concern for this product. A synthetic 49.7 MiB bulletin built from the same content (the largest document the default accepts) takes about 3.8 s and peaks at about 545 MiB of working set; see [SECURITY.md](../SECURITY.md#memory-cost-of-the-default-size-limit).
 
 ---
 
@@ -402,8 +393,8 @@ What the file shows (library 1.0.0-rc.1, official XSD, built-in Schematron subse
 
 - GML `[latitude, longitude]` is swapped to RFC 7946 section 3.1.1 `[longitude, latitude]`.
 - Polygon interior holes (`GeoPolygon.InteriorRings`) are written as additional linear rings.
-- The global `bbox` is `[west, south, east, north]`; when a geometry crosses the antimeridian, `west` is greater than `east` (section 5.2).
-- Exterior rings are counter-clockwise and holes clockwise (right-hand rule); geometries that cross +-180 degrees are split into `MultiLineString` or `MultiPolygon` (section 3.1.9); rings around a pole become polar caps: interior rings entirely inside the cap are kept as its holes, and an interior ring that cannot be represented (it crosses the antimeridian or is not inside the cap) is left out and counted in the feature property `droppedInteriorRings` (omitted when 0), never dropped silently. A surface with several `gml:PolygonPatch` is a `MultiPolygon` with the property `patchCount` (space weather regions); the other report types hold one surface and report `ACL-GML-MULTI-PATCH-UNSUPPORTED` for several patches. The domain model keeps the source order.
+- The global `bbox` is `[west, south, east, north]`. When a geometry crosses the antimeridian the longitude extent is the smallest arc that contains every position, so `west` is greater than `east` (section 5.2), but only when that arc is at most 180 degrees wide. Features spread over the whole longitude range (a global chart, a polar cap, features on both sides of the antimeridian with no narrower wrapping arc) have no meaningful smaller box and a wrapping box that spans almost 360 degrees looks empty to a client that expects `west <= east`, so the plain extent is written (`-180` and `180` when the content reaches both sides). The latitudes are always the plain minimum and maximum of the positions: a pole (`-90` or `90`) appears only when a position reaches it.
+- Exterior rings are counter-clockwise and holes clockwise (right-hand rule); geometries that cross +-180 degrees are split into `MultiLineString` or `MultiPolygon` (section 3.1.9); rings around a pole become polar caps (the ring is repeated every 360 degrees, clipped to [-180, 180] and closed along the antimeridian and the pole, so a ring with a lobe that leaves the strip and returns keeps every vertex and may give several polygons; a ring that crosses the antimeridian more than twice is clipped the same way, giving separate pieces instead of pieces joined by a zero-width bridge): interior rings entirely inside a cap are kept as its holes, and an interior ring that cannot be represented (it crosses the antimeridian or is not inside the cap) is left out and counted in the feature property `droppedInteriorRings` (omitted when 0), never dropped silently. A surface with several `gml:PolygonPatch` is a `MultiPolygon` with the property `patchCount` (space weather regions); the other report types hold one surface and report `ACL-GML-MULTI-PATCH-UNSUPPORTED` for several patches. The domain model keeps the source order.
 - Circles (`GeoCircle`) are written as a 64-segment polygon (geodesic points on the IUGG mean sphere) plus the properties `center` (`[lon, lat]`), `radius`, `radiusUom` and `circleSegments`, from which a consumer can rebuild the exact circle.
 - `NaN` and `Infinity` are never written; a non-finite property is written as `null`.
 - A `Tca` gets a synthesized `TC_TRACK` `LineString` joining the observed and forecast cyclone positions.
@@ -614,7 +605,7 @@ official rules accept the sample METAR: True
 | `STREAM-EMPTY` | The input stream has zero bytes. | The upstream read returned nothing, or the stream was already consumed (rewind it). |
 | `STREAM-UNREADABLE` | The stream does not support reading. | Pass a readable stream (not a write-only one). |
 | `STREAM-READ-ERROR` | Reading the stream threw an I/O error. | Transient transport failure; retry. An `OutOfMemoryException` is never converted into this code. |
-| `XML-SIZE-LIMIT` | The input exceeds `IwxxmParserOptions.MaxDocumentBytes`. | Raise the limit deliberately or reject the oversized message. |
+| `XML-SIZE-LIMIT` | The input exceeds `IwxxmParserOptions.MaxDocumentBytes` (default 50 MiB = 52,428,800 bytes). | Raise the limit deliberately (mind the memory cost in [SECURITY.md](../SECURITY.md)) or reject the oversized message. |
 | `XML-MALFORMED` | Not well-formed XML, or a DTD was found (DTDs are always refused). | Fix the producer; do not enable DTD processing. |
 | `XML-NO-ROOT-ELEMENT` | The XML has no root element. | An empty or truncated document. |
 
@@ -672,6 +663,7 @@ official rules accept the sample METAR: True
 | `ACL-ISSUE-TIME-MISSING`, `ACL-OBSERVATION-TIME-MISSING`, `ACL-VALID-PERIOD-MISSING` | Mandatory time absent (an `issueTime` given only by `xlink:href` is also reported). | Supply the time inline. |
 | `ACL-TIME-INVALID`, `ACL-TIME-INDICATOR-INVALID` | A time value, or the time indicator, cannot be parsed. | Use ISO 8601 / the official indicator codes. |
 | `ACL-MISSING-TIME-INSTANT`, `ACL-MISSING-TIME-PERIOD` | A mandatory SIGWX time instant / validity period is missing. | Supply the element. |
+| `ACL-MEASURE-UOM-NON-UCUM-ALIAS` | Warning, not an error: a speed carries the legacy spelling `kn_i` instead of the UCUM code `[kn_i]`. It is read as knots, and one warning per document and field reports the alias, the UCUM code and the number of values. | Ask the producer to write the UCUM code. |
 | `ACL-MEASURE-UOM-MISSING`, `ACL-MEASURE-UOM-UNSUPPORTED`, `ACL-MEASURE-UOM-MISMATCH`, `ACL-MEASURE-UOM-NOT-ALLOWED` | A quantity has no `@uom`, an unknown one, a unit other than its single allowed unit (`hPa`, `Cel`, `deg`, `m`...), or a unit outside the allowed subset. | Correct the unit; no unit is assumed. |
 | `ACL-MEASURE-VALUE-INVALID` | A measure value is not a finite number. | Correct the value. |
 | `ACL-VERTICAL-UOM-UNSUPPORTED`, `ACL-VERTICAL-REFERENCE-UNSUPPORTED` | Vertical unit or reference outside the AIXM / UCUM codes. | Use `FL`, `M`, `[ft_i]`... with `STD`, `MSL`, `SFC`... |
@@ -711,12 +703,12 @@ official rules accept the sample METAR: True
 | `ACL-TROPOPAUSE-MISSING-FL`, `ACL-WAFS-TROPO-MISSING-LEVEL` | A tropopause spot height / feature misses its level. | Supply the level. |
 | `ACL-WAFS-MISSING-VOLUME`, `ACL-WAFS-MISSING-UPPER-ELEV`, `ACL-CLOUD-MISSING-TOP` | A feature misses its volume, the mandatory upper elevation, or a cloud its top. | Supply the elements. |
 | `ACL-VOLCANO-ACTIVITY-INVALID` | A volcano `activityStatus` outside the official set. | Correct the value. |
-| `DOMAIN-SIGWX-ID`, `DOMAIN-SIGWX-CENTRE`, `DOMAIN-SIGWX-VALID-PERIOD`, `DOMAIN-SIGWX-VERTICAL-LIMITS`, `DOMAIN-SIGWX-NO-FEATURE` | The chart misses its identifier, centre, validity or vertical limits, or has no mapped feature. | Supply the content. |
+| `DOMAIN-SIGWX-ID`, `DOMAIN-SIGWX-CENTRE`, `DOMAIN-SIGWX-VALID-PERIOD`, `DOMAIN-SIGWX-VERTICAL-LIMITS`, `DOMAIN-SIGWX-NO-FEATURE` | The chart misses its identifier or centre, its validity ends before it starts (an instant, `ValidFromUtc == ValidUntilUtc`, is valid), its vertical limits are not ordered, or it has no mapped feature. | Supply the content. |
 | `DOMAIN-CLOUD-ID`, `DOMAIN-CLOUD-AREA`, `DOMAIN-CLOUD-VERTICAL-EXTENT` | Cloud feature without id / area, or whose top is not above its base. | Correct the feature. |
 | `DOMAIN-ICING-ID`, `DOMAIN-ICING-AREA`, `DOMAIN-ICING-VERTICAL-EXTENT` | Same checks for icing. | Correct the feature. |
 | `DOMAIN-TURBULENCE-ID`, `DOMAIN-TURBULENCE-AREA`, `DOMAIN-TURBULENCE-VERTICAL-EXTENT` | Same checks for turbulence. | Correct the feature. |
 | `DOMAIN-JETSTREAM-ID`, `DOMAIN-JETSTREAM-TRAJECTORY`, `DOMAIN-JETSTREAM-SPEED` | Jet stream without id / trajectory, or below the 80 kt ICAO threshold. | Correct the feature. |
-| `DOMAIN-TROPOPAUSE-ID`, `DOMAIN-TROPOPAUSE-EMPTY` | Tropopause feature without id or content. | Correct the feature. |
+| `DOMAIN-TROPOPAUSE-ID`, `DOMAIN-TROPOPAUSE-EMPTY`, `DOMAIN-TROPOPAUSE-CONTOUR-LEVEL` | Tropopause feature without id, without a contour or spot height, or a contour without its level. | Correct the feature. |
 | `DOMAIN-RADIATION-ID`, `DOMAIN-SANDSTORM-ID` | Point feature without id. | Supply `gml:id`. |
 
 ### Aggregates and value objects (`DomainMapping`)
@@ -724,7 +716,7 @@ official rules accept the sample METAR: True
 | Code | Meaning | Typical cause and remediation |
 | :--- | :--- | :--- |
 | `DOMAIN-METAR-ID`, `DOMAIN-METAR-AERODROME`, `DOMAIN-TAF-ID`, `DOMAIN-TAF-AERODROME` | Aerodrome report without id or aerodrome designator. | Supply the element. |
-| `DOMAIN-TAF-VALID-PERIOD`, `DOMAIN-TAF-CANCELLED-VALID-PERIOD`, `DOMAIN-FORECAST-GROUP-PERIOD` | End of a period not strictly after its start. | Correct the period. |
+| `DOMAIN-TAF-VALID-PERIOD`, `DOMAIN-TAF-CANCELLED-VALID-PERIOD`, `DOMAIN-FORECAST-GROUP-PERIOD` | End of a period not strictly after its start (for a forecast group, before its start: an instant is accepted). | Correct the period. |
 | `DOMAIN-SIGMET-ID`, `DOMAIN-SIGMET-ATS-UNIT`, `DOMAIN-SIGMET-VALID-PERIOD`, `DOMAIN-SIGMET-CANCELLED-VALID-PERIOD` | SIGMET without id / ATS unit, or with an invalid period. | Correct the report. |
 | `DOMAIN-AIRMET-ID`, `DOMAIN-AIRMET-ATS-UNIT`, `DOMAIN-AIRMET-VALID-PERIOD`, `DOMAIN-AIRMET-CANCELLED-VALID-PERIOD`, `DOMAIN-AIRMET-CANCEL-CONTENT`, `DOMAIN-AIRMET-CONDITION-NULL` | AIRMET without id / ATS unit, with an invalid period, content in a cancellation, or a null condition. | Correct the report. |
 | `DOMAIN-VAA-ID`, `DOMAIN-VAA-CONDITIONS-NULL`, `DOMAIN-VOLCANO-ID`, `DOMAIN-VONA-ID`, `DOMAIN-QVACI-ID` | Volcanic ash products without id or with null conditions. | Correct the report. |

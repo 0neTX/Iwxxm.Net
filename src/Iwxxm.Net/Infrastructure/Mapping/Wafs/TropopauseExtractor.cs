@@ -5,7 +5,7 @@ using Iwxxm20252.Generated;
 
 namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
 {
-    /// <summary>Extracts <see cref="Tropopause"/> heights from WAFS <c>TROPOPAUSE</c> features and compact <c>tropopause</c> elements.</summary>
+    /// <summary>Extracts <see cref="Tropopause"/> contours, spot heights from WAFS <c>TROPOPAUSE</c> features and compact <c>tropopause</c> elements.</summary>
     internal static class TropopauseExtractor
     {
         public static Result<Tropopause> FromWafsFeature(MeteorologicalFeatureType feature)
@@ -56,11 +56,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 if (polyRes.IsFailure)
                     return Result<Tropopause>.Failure(polyRes.Errors);
 
+                // A contour has one level for the whole polygon (not one spot height per vertex, AUD-R3).
                 contourPolygon = polyRes.Value;
-                foreach (GeoCoordinate vertex in ringCoordsRes.Value)
-                {
-                    spotHeights.Add(new TropopauseSpotHeight(vertex, level.Value));
-                }
             }
             else if (feature.PhenomenonGeometry?.Point != null)
             {
@@ -72,7 +69,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             }
 
             // WAFSSignificantWeatherForecast does not report a level type: none is invented.
-            return Tropopause.Create(feature.Id, null, spotHeights, contourPolygon);
+            return Tropopause.Create(feature.Id, null, spotHeights, contourPolygon, level);
         }
 
         public static Result<Tropopause> FromCompact(TropopauseType dto)

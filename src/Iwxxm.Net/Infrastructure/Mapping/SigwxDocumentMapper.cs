@@ -20,9 +20,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                 throw new ArgumentNullException(nameof(validatedDocument));
 
             var transport = SigwxXmlDeserializer.Deserialize(validatedDocument);
-            return transport.IsSuccess
-                ? _mapper.MapToDomain(transport.Value)
-                : Result<Sigwx>.Failure(transport.Errors);
+            if (!transport.IsSuccess)
+                return Result<Sigwx>.Failure(transport.Errors);
+
+            // Legacy unit aliases are reported once per document: the outermost mapping call owns the scope.
+            using (UomAliasScope aliases = UomAliasScope.Begin())
+            {
+                return aliases.Attach(_mapper.MapToDomain(transport.Value));
+            }
         }
     }
 }

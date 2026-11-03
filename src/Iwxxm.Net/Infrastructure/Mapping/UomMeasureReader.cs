@@ -27,6 +27,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         internal const string ValueInvalidCode = "ACL-MEASURE-VALUE-INVALID";
         internal const string UomNotAllowedCode = "ACL-MEASURE-UOM-NOT-ALLOWED";
 
+        /// <summary>Warning: a recognised legacy spelling of a UCUM unit (for example <c>kn_i</c> for <c>[kn_i]</c>) was accepted (AUD-R5).</summary>
+        internal const string NonUcumAliasCode = "ACL-MEASURE-UOM-NON-UCUM-ALIAS";
+
         /// <summary>
         /// Per-field unit subsets of the official rules (<c>IWXXM/rule/iwxxm.sch</c>): a unit valid in general but not
         /// allowed for the field is a mapping error naming the field.
@@ -137,6 +140,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping
                     return true;
             }
 
+            // A recognised legacy spelling of an allowed unit is accepted (and reported by the reader as a warning).
+            if (UomAliasScope.IsActiveAlias(uom, out string canonical) && allowedUoms.Contains(canonical))
+                return true;
+
             errors.Add(Error(UomNotAllowedCode,
                 $"Unit of measure '{uom}' is not allowed for '{measureElem.Name.LocalName}' at '{location}'; IWXXM 2025-2 (iwxxm.sch) allows {string.Join(" or ", allowedUoms.Select(u => "'" + u + "'"))}.",
                 location));
@@ -160,7 +167,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (!TryReadValueAndUom(rawValue!, uom, location, errors, out double value, out string unitCode))
                 return null;
 
-            if (!TryParseSpeedUnit(unitCode, out SpeedUnit unit))
+            // A recognised legacy spelling ("kn_i") is accepted while a mapping scope can report it as a warning.
+            SpeedUnit unit;
+            if (!TryParseSpeedUnit(unitCode, out unit) &&
+                UomAliasScope.IsActiveAlias(unitCode, out _) &&
+                TryParseSpeedUnit(UomAliasScope.Accept(unitCode, location), out unit))
+            {
+                return new Speed(value, unit);
+            }
+
+            if (!TryParseSpeedUnit(unitCode, out unit))
             {
                 errors.Add(Error(UomUnsupportedCode,
                     $"Unsupported speed unit of measure '{unitCode}' at '{location}'. Expected 'm/s', '[kn_i]' or 'km/h'.",

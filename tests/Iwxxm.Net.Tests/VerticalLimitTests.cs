@@ -318,7 +318,7 @@ namespace Iwxxm.Net.Tests
 
             JetStream jet = report.JetStreams[0];
             Assert.Equal(VerticalLimit.Create(15240, VerticalUnit.Meters, VerticalReference.Msl).Value, jet.CoreLevel);
-            Assert.Equal(VerticalLimit.Create(14020, VerticalUnit.Meters, VerticalReference.Msl).Value, report.Tropopauses[0].SpotHeights[0].Level);
+            Assert.Equal(VerticalLimit.Create(14020, VerticalUnit.Meters, VerticalReference.Msl).Value, report.Tropopauses[0].ContourLevel);
         }
 
         [Fact]

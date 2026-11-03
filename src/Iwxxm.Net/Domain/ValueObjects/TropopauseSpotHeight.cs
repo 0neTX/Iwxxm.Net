@@ -3,7 +3,7 @@ using System;
 namespace Iwxxm.Net.Reports
 {
     /// <summary>
-    /// Discrete Tropopause height measurement point (Spot Height, High, Low, or Contour vertex).
+    /// Discrete Tropopause height measurement point (Spot Height, High or Low). A contour is not a set of spot heights: its single level is <see cref="Tropopause.ContourLevel"/>.
     /// </summary>
     public sealed class TropopauseSpotHeight : IEquatable<TropopauseSpotHeight>
     {

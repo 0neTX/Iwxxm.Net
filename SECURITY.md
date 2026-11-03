@@ -61,15 +61,29 @@ Out of scope:
 The details and defaults are in the [guide](docs/GUIDE.md#6-options-and-security-limits) and the [reference](docs/REFERENCE.md#official-wmo-schematron):
 
 - DTDs are always prohibited and no external resource is ever resolved (`XML-MALFORMED`); the XSD, XSLT and Schematron resolvers only serve resources embedded in the assemblies, so there is no network or file-system access during validation;
-- configurable limits in `IwxxmParserOptions`: `MaxDocumentBytes` (10 MiB), `MaxCharactersInDocument` (10,485,760), `MaxCharactersFromEntities` (1,024), `MaxValidationErrors` (100) and `MaxRuleReportBytes` (4 MiB, `SCHEMATRON-REPORT-SIZE-LIMIT`); the input is read once with these limits before any adapter sees it. There is no separate nesting-depth limit: depth is bounded only by the character quota;
+- configurable limits in `IwxxmParserOptions`: `MaxDocumentBytes` (50 MiB = 52,428,800 bytes), `MaxCharactersInDocument` (52,428,800), `MaxCharactersFromEntities` (1,024), `MaxValidationErrors` (100) and `MaxRuleReportBytes` (4 MiB, `SCHEMATRON-REPORT-SIZE-LIMIT`); the input is read once with these limits before any adapter sees it. The two size defaults are the same number on purpose: a character takes at least one byte of UTF-8 (two of UTF-16), so a document that passes the byte limit never exceeds the character quota whatever its encoding. **There is no separate element-nesting depth limit** (depth is bounded only by the character quota; open item AUD-N1), and raising the size cap from 10 MiB to 50 MiB enlarges that exposure fivefold, so lower both limits if your feeds are small;
 - the core package `Iwxxm.Net` has **zero runtime dependencies**; the optional Saxon package only requests Saxon-HE capabilities and runs air-gapped;
 - the official schemas, code lists and Schematron are embedded byte for byte and checked by tests (for example the SHA-256 of `iwxxm.sch`);
 - expected failures (malformed input, limits, rule violations) are returned as `Result<T>` values with stable error codes, and GeoJSON strings are escaped by a dedicated writer.
 
+### Memory cost of the default size limit
+
+The default limit (50 MiB) is sized for large operational products (the Met Office WAFS SIGWX bulletin is 14.2 MB and a global product can be several times larger). The numbers below were measured in a container (.NET 10, 2 cores, one process, indicative, not a benchmark) and show what one request can cost at the cap:
+
+| Stage | Cost at the cap |
+| :--- | :--- |
+| Buffering a non-seekable 50 MiB stream (`BoundedDocumentBuffer`: a growing `MemoryStream` of up to 64 MiB, then the final array) | peak about 160 MiB above the payload source, up to about 3 times the payload while it is read; a seekable stream longer than the limit is refused without reading it |
+| Full pipeline (XSD, built-in Schematron, `XDocument` DOM, mapping) of a valid 49.7 MiB bulletin | about 3.8 s, about 350 MiB above the process baseline (peak working set about 545 MiB, about 1.2 GiB allocated), roughly 11 times the input |
+| The same plus the GeoJSON export (18 MB of JSON) | peak working set about 670 MiB |
+| 14.2 MB real bulletin, full pipeline | about 1.5 s, about 155 MiB above baseline |
+| SVRL report of the Schematron stage | bounded by `MaxRuleReportBytes` (4 MiB) and `MaxValidationErrors`, independent of the input size |
+
+Plan roughly 12 times the largest accepted document per concurrent request (about 600 MB at 50 MiB, plus about 25 percent when you export GeoJSON), or lower `MaxDocumentBytes` and `MaxCharactersInDocument` together to what your feeds need. The DOM and the buffered payload are held for the duration of the call only.
+
 ## Secure usage guidance
 
 - Treat every input document as **untrusted**, including documents from "internal" feeds.
-- Keep the default `IwxxmParserOptions` limits, or lower them for your traffic; do not raise them without a reason, and still bound the size of what you read from the network before you hand it to the parser.
+- Keep the default `IwxxmParserOptions` limits, or lower them for your traffic (the default size cap is already 50 MiB); do not raise them without a reason, and still bound the size of what you read from the network before you hand it to the parser.
 - **Never disable the DTD prohibition** and do not replace the built-in adapters with ones that resolve external resources or relax the reader settings.
 - Run the parser with the least privileges your platform allows, with a request timeout and a memory limit around it.
 - Do not evaluate `ValidationError.Location` or other values taken from input in contexts that interpret them (for example concatenating them into a query) without escaping.

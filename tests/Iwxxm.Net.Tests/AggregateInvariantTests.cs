@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Iwxxm.Net.Reports;
 using Xunit;
 
@@ -15,7 +16,7 @@ namespace Iwxxm.Net.Tests
         private static readonly DateTimeOffset T1 = T0.AddHours(4);
 
         // ---------------------------------------------------------------------
-        // Validity periods: ValidUntil > ValidFrom when both are present
+        // Validity periods: ValidUntil > ValidFrom when both are present (a forecast group and a SIGWX chart may be an instant)
         // ---------------------------------------------------------------------
 
         [Fact]
@@ -46,6 +47,27 @@ namespace Iwxxm.Net.Tests
         {
             AssertError(Taf.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, validFromUtc: T1, validUntilUtc: T0), "DOMAIN-TAF-VALID-PERIOD");
             AssertError(Taf.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, isCancelReport: true, cancelledReportValidFromUtc: T1, cancelledReportValidUntilUtc: T0), "DOMAIN-TAF-CANCELLED-VALID-PERIOD");
+        }
+
+        [Fact]
+        public void ForecastGroup_InstantPeriod_IsAccepted_AudR2()
+        {
+            // A trend or change group valid at a single instant (gml:TimePeriod with begin == end) is allowed by the schema.
+            var instant = new AerodromeForecastGroup("g1", "BECOMING", false, T0, T0, null, null, null);
+
+            Assert.True(Taf.Create("t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "YUDO", null, null, baseForecast: instant).IsSuccess);
+            Assert.True(CreateMetar(trend: instant).IsSuccess);
+        }
+
+        [Fact]
+        public void Sigwx_InstantValidity_IsAccepted_ButAnInvertedOneIsRejected_AudR2()
+        {
+            Assert.True(CreateSigwx(T0, T0).IsSuccess);
+            Assert.True(CreateSigwx(T0, T1).IsSuccess);
+
+            Result<Sigwx> inverted = CreateSigwx(T1, T0);
+            AssertError(inverted, "DOMAIN-SIGWX-VALID-PERIOD");
+            Assert.Contains("must not be before", inverted.Errors.First(e => e.Code == "DOMAIN-SIGWX-VALID-PERIOD").Message);
         }
 
         [Fact]
@@ -174,6 +196,16 @@ namespace Iwxxm.Net.Tests
                 visibility: visibility.HasValue ? new AerodromeHorizontalVisibility(visibility) : null,
                 runwayVisualRanges: rvr == null ? null : new[] { rvr },
                 trendForecasts: trend == null ? null : new[] { trend });
+        }
+
+        private static Result<Sigwx> CreateSigwx(DateTimeOffset validFrom, DateTimeOffset validUntil)
+        {
+            var spot = new TropopauseSpotHeight(new GeoCoordinate(10, 20), VerticalLimit.Create(350, VerticalUnit.FlightLevel, VerticalReference.Std).Value);
+            return Sigwx.Create(
+                "w1", "London", ReportStatus.Normal, PermissibleUsage.Operational, T0, validFrom, validUntil,
+                VerticalLimit.Create(100, VerticalUnit.FlightLevel, VerticalReference.Std).Value,
+                VerticalLimit.Create(600, VerticalUnit.FlightLevel, VerticalReference.Std).Value,
+                tropopauses: new[] { Tropopause.Create("t1", null, new[] { spot }).Value });
         }
 
         private static Result<Sigmet> CreateSigmet(DateTimeOffset? validFrom, DateTimeOffset? validUntil, string atsUnit = "YUDD", EnRoutePhenomenonVolume? volume = null)

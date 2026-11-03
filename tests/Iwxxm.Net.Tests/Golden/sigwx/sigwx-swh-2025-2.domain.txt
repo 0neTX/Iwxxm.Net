@@ -216,6 +216,7 @@ Sigwx {
   TropicalCyclones = []
   Tropopauses = [
     Tropopause {
+      ContourLevel = null
       ContourPolygon = null
       Id = "tropo-spot-01"
       LevelType = "HIGH"

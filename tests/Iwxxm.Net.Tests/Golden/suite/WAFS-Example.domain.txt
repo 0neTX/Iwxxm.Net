@@ -662,6 +662,19 @@ Sigwx {
   ]
   Tropopauses = [
     Tropopause {
+      ContourLevel = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.Meters
+        UnitOfMeasure = "M"
+        Value = 14020
+      }
       ContourPolygon = GeoPolygon {
         ExteriorRing = [
           GeoCoordinate {
@@ -705,179 +718,7 @@ Sigwx {
       }
       Id = "uuid.4cefc622-5784-49db-9d3d-7463c7a05dc6"
       LevelType = null
-      SpotHeights = [
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 26.7
-            Lon = -84.7
-          }
-        }
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 24.2
-            Lon = -84.2
-          }
-        }
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 19
-            Lon = -79.6
-          }
-        }
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 19.6
-            Lon = -74.9
-          }
-        }
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 23
-            Lon = -72.2
-          }
-        }
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 28.2
-            Lon = -72.2
-          }
-        }
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 31.7
-            Lon = -77.9
-          }
-        }
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 28.6
-            Lon = -85.1
-          }
-        }
-        TropopauseSpotHeight {
-          Level = VerticalLimit {
-            IsGround = false
-            IsNil = false
-            IsUnlimited = false
-            NilReason = null
-            Reference = VerticalReference.Msl
-            ReferenceCode = "MSL"
-            SpecialValue = VerticalSpecialValue.None
-            SpecialValueCode = null
-            Unit = VerticalUnit.Meters
-            UnitOfMeasure = "M"
-            Value = 14020
-          }
-          Location = GeoCoordinate {
-            Lat = 26.7
-            Lon = -84.7
-          }
-        }
-      ]
+      SpotHeights = []
     }
   ]
   Turbulences = [

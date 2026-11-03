@@ -14,12 +14,14 @@ namespace Iwxxm.Net.Tests
     /// <summary>
     /// Real-world test data: an unmodified operational WAFS SIGWX update package published by the UK Met Office
     /// (<c>Samples/external/metoffice</c>, see the README there). It is a <c>collect:MeteorologicalBulletin</c> with 15
-    /// <c>iwxxm:WAFSSignificantWeatherForecast</c> reports (T+06 to T+48) and 14.2 MB, so it exceeds the default 10 MB limit.
+    /// <c>iwxxm:WAFSSignificantWeatherForecast</c> reports (T+06 to T+48) and 14.2 MB; it is well below the default 50 MiB size limit.
     /// <para>
     /// The file as published is NOT valid IWXXM 2025-2: it omits the mandatory <c>gml:id</c> of every report and of every
     /// <c>gml:TimePeriod</c>, so the XSD stage rejects it (a defect of the product, not of the library). To exercise the
-    /// rest of the pipeline (Schematron, mapping, domain, GeoJSON) on the real content, the tests repair a copy in memory
-    /// (see <see cref="Repair"/>); the file on disk is never modified.
+    /// rest of the pipeline (Schematron, mapping, domain, GeoJSON) on the real content, the tests add the missing ids to a
+    /// copy in memory (see <see cref="AddMissingIds"/>); the file on disk is never modified. The product also writes the
+    /// non-UCUM wind speed unit <c>kn_i</c> (accepted with a warning, AUD-R5) and publishes each chart as an instant
+    /// (accepted, AUD-R2).
     /// </para>
     /// </summary>
     public sealed class ExternalSigwxMetOfficeTests
@@ -28,14 +30,6 @@ namespace Iwxxm.Net.Tests
         private const string FilePath = SampleDirectory + "/NEW(2025-2)SIGWX-260826T0600-06-48.xml";
         private const string ExpectedSha256 = "70d84973a7a2ef67b0f24eaa647ffa327ff786aff6f534d32f0aba3fdc6c6490";
         private const long ExpectedLength = 14227220;
-        private const string ZeroLengthPeriodSkip =
-            "AUD-R2: the product publishes each chart as an instant (gml:TimePeriod with beginPosition == endPosition) and " +
-            "the SIGWX domain rule DOMAIN-SIGWX-VALID-PERIOD requires end > begin, so every report is rejected. Enable when " +
-            "the rule accepts a zero-length validity period (TECHNICAL_DEBT.md).";
-        private const string VertexLossSkip =
-            "AUD-R1: three south-polar TROPOPAUSE contours lose 6, 8 and 9 source vertices in the GeoJSON export " +
-            "(lobes across the antimeridian are cut off). Enable when the polar-cap polygon keeps every source vertex " +
-            "(TECHNICAL_DEBT.md).";
 
         private static readonly XNamespace Iwxxm = "http://icao.int/iwxxm/2025-2";
         private static readonly XNamespace Gml = "http://www.opengis.net/gml/3.2";
@@ -55,29 +49,40 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void DefaultLimits_RejectTheBulletinAndTheSigwxEntryPoint_WithXmlSizeLimit()
+        public void DefaultLimits_DoNotRejectTheBulletinBySize()
         {
-            var bulletin = IwxxmParser.ParseBulletinFile(FilePath);
-            var sigwx = IwxxmSigwxParser.ParseFile(FilePath);
+            // 14.2 MB is below the default 50 MiB cap: the product is judged on its content (it fails the XSD on gml:id).
+            var result = IwxxmParser.ParseBulletinFile(FilePath);
 
-            foreach (ValidationError error in new[] { Assert.Single(bulletin.Errors), Assert.Single(sigwx.Errors) })
-            {
-                Assert.Equal("XML-SIZE-LIMIT", error.Code);
-                Assert.Equal(ErrorCategory.MalformedInput, error.Category);
-                Assert.Contains("14227220", error.Message);
-            }
+            Assert.True(ExpectedLength < IwxxmParserOptions.Default.MaxDocumentBytes);
+            Assert.DoesNotContain(result.Errors, e => e.Code == "XML-SIZE-LIMIT");
+            Assert.All(result.Errors, e => Assert.Equal("XSD-SCHEMA-VIOLATION", e.Code));
         }
 
         [Fact]
-        public void DefaultLimits_OnANonSeekableStream_StopReadingJustAfterTheCap()
+        public void ALowerLimit_RejectsTheBulletinAndTheSigwxEntryPoint_WithXmlSizeLimit()
         {
+            // A deployment can still lower the cap: the real file is then refused before it is buffered.
+            var options = new IwxxmParserOptions(maxDocumentBytes: 10L * 1024 * 1024);
+            var bulletin = new IwxxmParserBuilder().WithOptions(options).Build().ProcessBulletinFile(FilePath);
+
+            ValidationError error = Assert.Single(bulletin.Errors);
+            Assert.Equal("XML-SIZE-LIMIT", error.Code);
+            Assert.Equal(ErrorCategory.MalformedInput, error.Category);
+            Assert.Contains("14227220", error.Message);
+            Assert.Contains("10485760", error.Message);
+        }
+
+        [Fact]
+        public void ALowerLimit_OnANonSeekableStream_StopsReadingJustAfterTheCap()
+        {
+            var options = new IwxxmParserOptions(maxDocumentBytes: 10L * 1024 * 1024);
             using (var counting = new NonSeekableCountingStream(File.OpenRead(FilePath)))
             {
-                var result = IwxxmParser.Parse(counting);
+                var result = new IwxxmParserBuilder().WithOptions(options).Build().Process(counting);
 
                 Assert.Equal("XML-SIZE-LIMIT", Assert.Single(result.Errors).Code);
-                long cap = IwxxmParserOptions.Default.MaxDocumentBytes;
-                Assert.InRange(counting.BytesRead, cap + 1, cap + 8192);
+                Assert.InRange(counting.BytesRead, options.MaxDocumentBytes + 1, options.MaxDocumentBytes + 8192);
             }
         }
 
@@ -86,23 +91,16 @@ namespace Iwxxm.Net.Tests
         // in total) and parse it three times: that does not fit comfortably in a 32-bit net48 test host, so they run on
         // .NET only (the Windows job still runs the integrity and size-limit tests above on net48).
 
-        private static readonly IwxxmParserOptions RaisedLimits =
-            new IwxxmParserOptions(maxDocumentBytes: 32L * 1024 * 1024, maxCharactersInDocument: 32L * 1024 * 1024);
-
         private static readonly Lazy<string> OriginalText = new Lazy<string>(() => File.ReadAllText(FilePath, Encoding.UTF8));
         private static readonly Lazy<XDocument> Source = new Lazy<XDocument>(() => XDocument.Parse(OriginalText.Value));
 
-        // The product with only the gml:id values added.
-        private static readonly Lazy<Result<MeteorologicalBulletin>> WithIdsOnly = new Lazy<Result<MeteorologicalBulletin>>(
-            () => Process(Repair(OriginalText.Value, extendPeriods: false, bracketKnots: false)));
+        // The product with only the gml:id values added: kn_i and the instant validity are kept as published.
+        private static readonly Lazy<Result<MeteorologicalBulletin>> IdsOnly = new Lazy<Result<MeteorologicalBulletin>>(
+            () => Process(AddMissingIds(OriginalText.Value, bracketKnots: false)));
 
-        // The product with gml:id values, a one second validity period and the UCUM knot unit "[kn_i]" (fully valid).
+        // The same with the UCUM knot unit "[kn_i]": fully valid, no warning.
         private static readonly Lazy<Result<MeteorologicalBulletin>> Repaired = new Lazy<Result<MeteorologicalBulletin>>(
-            () => Process(Repair(OriginalText.Value, extendPeriods: true, bracketKnots: true)));
-
-        // The same, but the non-UCUM unit "kn_i" published by the Met Office is left as is.
-        private static readonly Lazy<Result<MeteorologicalBulletin>> RepairedKeepingKnI = new Lazy<Result<MeteorologicalBulletin>>(
-            () => Process(Repair(OriginalText.Value, extendPeriods: true, bracketKnots: false)));
+            () => Process(AddMissingIds(OriginalText.Value, bracketKnots: true)));
 
         private static readonly Lazy<string> RepairedGeoJson = new Lazy<string>(() =>
         {
@@ -111,10 +109,10 @@ namespace Iwxxm.Net.Tests
         });
 
         [Fact]
-        public void RaisedLimits_TheProductAsPublished_IsRejectedByTheXsdBecauseGmlIdIsMissing()
+        public void TheProductAsPublished_IsRejectedByTheXsdBecauseGmlIdIsMissing()
         {
             // Defect of the product: gml:id is mandatory on every feature/GML object (and the official WAFS example has them).
-            var result = new IwxxmParserBuilder().WithOptions(RaisedLimits).Build().ProcessBulletinFile(FilePath);
+            var result = IwxxmParser.ParseBulletinFile(FilePath);
 
             Assert.True(result.IsFailure);
             Assert.Equal(30, result.Errors.Count); // 15 reports + 15 time periods, below MaxValidationErrors (100)
@@ -142,34 +140,25 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void RaisedLimits_WithTheIdsAdded_PassesTheXsdAndTheBuiltInSchematronSubset()
+        public void WithTheIdsAdded_PassesTheXsdAndTheBuiltInSchematronSubset()
         {
-            // With the gml:id values added, the XSD and the built-in Schematron subset report nothing: the only remaining
-            // failure comes from the mapping stage (AUD-R2 tests below).
-            var result = WithIdsOnly.Value;
+            // With the gml:id values added, the XSD and the built-in Schematron subset report nothing (the non-UCUM kn_i unit
+            // is a warning of the mapping stage, see the AUD-R5 test below).
+            var result = IdsOnly.Value;
 
             Assert.DoesNotContain(result.Errors, e => e.Category == ErrorCategory.SchemaViolation);
             Assert.DoesNotContain(result.Errors, e => e.Category == ErrorCategory.BusinessRuleViolation);
         }
 
         [Fact]
-        public void RaisedLimits_WithOnlyTheIdsAdded_CurrentlyFailsEveryReportOnTheZeroLengthValidityPeriod_AudR2()
+        public void WithOnlyTheIdsAdded_MapsAll15Reports_EvenThoughEveryChartIsAnInstant_AudR2()
         {
-            // Current behaviour, pinned until AUD-R2 is decided: begin == end is rejected.
-            var result = WithIdsOnly.Value;
-
-            Assert.True(result.IsFailure);
-            Assert.Equal(15, result.Errors.Count(e => e.Code == "DOMAIN-SIGWX-VALID-PERIOD"));
-            Assert.Contains(result.Errors, e => e.Code == "DOMAIN-BULLETIN-EMPTY");
-        }
-
-        [Fact(Skip = ZeroLengthPeriodSkip)]
-        public void RaisedLimits_WithOnlyTheIdsAdded_MapsAll15Reports()
-        {
-            var result = WithIdsOnly.Value;
+            var result = IdsOnly.Value;
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors.Take(3)));
             Assert.Equal(15, result.Value.Reports.Count);
+            Assert.Empty(result.Value.ItemErrors);
+            Assert.All(result.Value.Reports.Cast<Sigwx>(), r => Assert.Equal(r.ValidFromUtc, r.ValidUntilUtc));
         }
 
         [Fact]
@@ -200,7 +189,7 @@ namespace Iwxxm.Net.Tests
                 Assert.Equal(PermissibleUsage.Operational, sigwx.PermissibleUsage);
                 Assert.Equal(issue, sigwx.IssueTimeUtc);
                 Assert.Equal(firstValid.AddHours(3 * i), sigwx.ValidFromUtc);
-                Assert.Equal(sigwx.ValidFromUtc.AddSeconds(1), sigwx.ValidUntilUtc); // the repair's one second
+                Assert.Equal(sigwx.ValidFromUtc, sigwx.ValidUntilUtc); // an instant, as published
                 Assert.Equal(lower, sigwx.LowerLimit);
                 Assert.Equal(upper, sigwx.UpperLimit);
                 Assert.Empty(sigwx.FeatureErrors);
@@ -248,19 +237,31 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void KeepingTheNonUcumUnitKnI_EveryJetStreamIsSkippedWithAFeatureErrorAndAWarning()
+        public void TheNonUcumUnitKnI_IsAcceptedAsKnots_WithOneAggregatedWarning_AudR5()
         {
-            // The Met Office writes uom="kn_i"; UCUM (and the library) require "[kn_i]". The library assumes no unit, so each
-            // of the 574 jet streams is a per-feature error (and a warning) while all other phenomena are still mapped.
-            var result = RepairedKeepingKnI.Value;
+            // The Met Office writes uom="kn_i" on 1850 wind symbols; UCUM requires "[kn_i]". The alias is accepted, so all
+            // 574 jet streams map, and the non-conformance stays visible as ONE warning for the whole bulletin.
+            var result = IdsOnly.Value;
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors.Take(3)));
             var reports = result.Value.Reports.Cast<Sigwx>().ToList();
-            Assert.Equal(0, reports.Sum(s => s.JetStreams.Count));
-            Assert.Equal(574, reports.Sum(s => s.FeatureErrors.Count));
-            Assert.All(reports.SelectMany(s => s.FeatureErrors).SelectMany(f => f.Errors), e => Assert.Equal("ACL-MEASURE-UOM-UNSUPPORTED", e.Code));
-            Assert.Equal(574, result.Warnings.Count(w => w.Code == "ACL-MEASURE-UOM-UNSUPPORTED"));
-            Assert.Equal(4252 - 574, reports.Sum(CountFeatures));
+            Assert.Equal(574, reports.Sum(s => s.JetStreams.Count));
+            Assert.Empty(reports.SelectMany(s => s.FeatureErrors));
+            Assert.Equal(4252, reports.Sum(CountFeatures));
+
+            ValidationError warning = Assert.Single(result.Warnings);
+            Assert.Equal("ACL-MEASURE-UOM-NON-UCUM-ALIAS", warning.Code);
+            Assert.Equal(ValidationSeverity.Warning, warning.Severity);
+            Assert.Equal(ErrorCategory.DomainMapping, warning.Category);
+            Assert.Contains("'kn_i'", warning.Message);
+            Assert.Contains("'[kn_i]'", warning.Message);
+            Assert.Contains("1850", warning.Message);
+            Assert.Contains("'windSpeed'", warning.Message);
+
+            // The values are the same as with the UCUM spelling.
+            var ucum = Repaired.Value.Value.Reports.Cast<Sigwx>().ToList();
+            Assert.Equal(ucum.SelectMany(s => s.JetStreams).Select(j => j.MaxWindSpeed), reports.SelectMany(s => s.JetStreams).Select(j => j.MaxWindSpeed));
+            Assert.All(reports.SelectMany(s => s.JetStreams).SelectMany(j => j.CorePoints), p => Assert.Equal(SpeedUnit.Knots, p.WindSpeed.Unit));
         }
 
         [Fact]
@@ -299,21 +300,52 @@ namespace Iwxxm.Net.Tests
                     .GroupBy(f => f.GetProperty("properties").GetProperty("featureType").GetString()!)
                     .ToDictionary(g => g.Key, g => g.Count());
 
-                // 4252 source features + 1850 jet stream core points + one spot height per tropopause contour vertex.
-                int tropopauseVertices = Source.Value.Descendants(Iwxxm + "MeteorologicalFeature")
-                    .Where(f => ((string)f.Element(Iwxxm + "phenomenon")!.Attribute(Xlink + "href")!).EndsWith("/TROPOPAUSE", StringComparison.Ordinal))
-                    .Sum(f => f.Descendants(Gml + "posList").Sum(p => p.Value.Split((char[])null!, StringSplitOptions.RemoveEmptyEntries).Length / 2));
-
+                // 4252 source features + 1850 jet stream core points; a tropopause contour is ONE polygon that carries its
+                // level (no spot height per vertex, AUD-R3) and the product has no isolated tropopause spot heights.
                 Assert.Equal(574, byType["JETSTREAM"]);
                 Assert.Equal(1850, byType["JETSTREAM_CORE_POINT"]);
                 Assert.Equal(733, byType["CLOUD"]);
                 Assert.Equal(585, byType["TURBULENCE"]);
                 Assert.Equal(1903, byType["AIRFRAME_ICING"]);
                 Assert.Equal(301, byType["TROPOPAUSE_CONTOUR"]);
-                Assert.Equal(tropopauseVertices, byType["TROPOPAUSE_SPOT_HEIGHT"]);
+                Assert.False(byType.ContainsKey("TROPOPAUSE_SPOT_HEIGHT"));
                 Assert.Equal(135, byType["VOLCANO"]);
                 Assert.Equal(21, byType["TROPICAL_CYCLONE"]);
-                Assert.Equal(4252 + 1850 + tropopauseVertices, features.Count);
+                Assert.Equal(4252 + 1850, features.Count);
+
+                var contours = features.Where(f => f.GetProperty("properties").GetProperty("featureType").GetString() == "TROPOPAUSE_CONTOUR").ToList();
+                Assert.All(contours, f =>
+                {
+                    var properties = f.GetProperty("properties");
+                    Assert.False(string.IsNullOrEmpty(properties.GetProperty("levelUom").GetString()));
+                    Assert.True(properties.GetProperty("level").GetDouble() > 0);
+                });
+            }
+        }
+
+        [Fact]
+        public void Repaired_GeoJsonExport_HasASaneGlobalBoundingBox_AudR4()
+        {
+            // The features cover every longitude (polar caps): the box is the plain [-180, 180] extent, not a near-empty
+            // west > east box such as [52.45, -90, 52.38, 90].
+            using (var doc = System.Text.Json.JsonDocument.Parse(RepairedGeoJson.Value))
+            {
+                double[] bbox = doc.RootElement.GetProperty("bbox").EnumerateArray().Select(e => e.GetDouble()).ToArray();
+
+                Assert.Equal(4, bbox.Length);
+                Assert.Equal(-180.0, bbox[0]);
+                Assert.Equal(180.0, bbox[2]);
+                Assert.True(bbox[1] >= -90.0 && bbox[1] < -60.0, "south " + bbox[1]);
+                Assert.True(bbox[3] <= 90.0 && bbox[3] > 60.0, "north " + bbox[3]);
+
+                foreach (var feature in doc.RootElement.GetProperty("features").EnumerateArray())
+                {
+                    foreach (var position in Flatten(feature.GetProperty("geometry").GetProperty("coordinates")))
+                    {
+                        Assert.InRange(position[0], bbox[0], bbox[2]);
+                        Assert.InRange(position[1], bbox[1], bbox[3]);
+                    }
+                }
             }
         }
 
@@ -348,18 +380,37 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void Repaired_GeoJsonExport_KeepsEverySourceVertex_ExceptThreePolarContours_AudR1()
-        {
-            // Current behaviour, pinned until AUD-R1 is fixed: exactly three TROPOPAUSE contours lose vertices.
-            var missing = MissingVerticesPerFeature();
-
-            Assert.Equal(new[] { 6, 8, 9 }, missing.Values.OrderBy(v => v).ToArray());
-        }
-
-        [Fact(Skip = VertexLossSkip)]
         public void Repaired_GeoJsonExport_KeepsEverySourceVertex()
         {
             Assert.Empty(MissingVerticesPerFeature());
+        }
+
+        [Theory]
+        [InlineData("uuid.b67b3dc1-9bc4-4811-b77e-cc52264c2374")]
+        [InlineData("uuid.e05967c0-dd5c-4df1-aa77-f3f4ffa8fa11")]
+        [InlineData("uuid.7a143d01-b79b-498c-afc6-f2ee92fb87b7")]
+        public void Repaired_SouthPolarContoursWithALobeAcrossTheAntimeridian_KeepAllVerticesAndStayValidPolygons_AudR1(string featureId)
+        {
+            Assert.DoesNotContain(featureId, MissingVerticesPerFeature().Keys);
+
+            using (var doc = System.Text.Json.JsonDocument.Parse(RepairedGeoJson.Value))
+            {
+                var feature = doc.RootElement.GetProperty("features").EnumerateArray().Single(f => f.GetProperty("id").GetString() == featureId);
+                var geometry = feature.GetProperty("geometry");
+                string type = geometry.GetProperty("type").GetString()!;
+                Assert.Contains(type, new[] { "Polygon", "MultiPolygon" });
+
+                var rings = Rings(type, geometry.GetProperty("coordinates")).ToList();
+                Assert.NotEmpty(rings);
+                foreach (var ring in rings)
+                {
+                    Assert.Equal(ring[0], ring[ring.Count - 1]);
+                    Assert.All(ring, p => Assert.InRange(p.Item1, -180.0, 180.0));
+                }
+
+                // The region is the one between the contour and the south pole: it reaches latitude -90.
+                Assert.Contains(rings.SelectMany(r => r), p => p.Item2 == -90.0);
+            }
         }
 
         private static Dictionary<string, int> MissingVerticesPerFeature()
@@ -434,14 +485,14 @@ namespace Iwxxm.Net.Tests
             + s.Volcanoes.Count + s.TropicalCyclones.Count + s.Sandstorms.Count + s.RadiationIncidents.Count;
 
         private static Result<MeteorologicalBulletin> Process(string xml) =>
-            new IwxxmParserBuilder().WithOptions(RaisedLimits).Build().ProcessBulletin(xml);
+            IwxxmParser.ParseBulletin(xml);
 
         /// <summary>
-        /// Repairs a copy of the product in memory: adds the missing <c>gml:id</c> values (UUID-shaped, as the official
-        /// Schematron rule Common.BasicReport-3 requires), optionally extends each zero-length validity period by one second
-        /// and optionally replaces the non-UCUM unit <c>kn_i</c> with <c>[kn_i]</c>. Nothing else is touched.
+        /// Adds the missing <c>gml:id</c> values to a copy of the product in memory (UUID-shaped, as the official Schematron
+        /// rule Common.BasicReport-3 requires) and optionally replaces the non-UCUM unit <c>kn_i</c> with <c>[kn_i]</c>.
+        /// Nothing else is touched: the instant validity periods stay as published.
         /// </summary>
-        private static string Repair(string xml, bool extendPeriods, bool bracketKnots)
+        private static string AddMissingIds(string xml, bool bracketKnots)
         {
             int report = 0;
             xml = Regex.Replace(xml, "<iwxxm:WAFSSignificantWeatherForecast reportStatus",
@@ -449,8 +500,6 @@ namespace Iwxxm.Net.Tests
             int period = 0;
             xml = Regex.Replace(xml, "<gml:TimePeriod>", m => $"<gml:TimePeriod gml:id=\"uuid.00000000-0000-4000-8001-{++period:D12}\">");
 
-            if (extendPeriods)
-                xml = Regex.Replace(xml, @"<gml:endPosition>\s*[^<]*</gml:endPosition>", m => m.Value.Replace(":00:00Z", ":00:01Z"));
             if (bracketKnots)
                 xml = xml.Replace("uom=\"kn_i\"", "uom=\"[kn_i]\"");
 

@@ -65,7 +65,7 @@ namespace Iwxxm.Net.Tests
             var tropopause = report.Tropopauses[0];
             Assert.Equal("uuid.4cefc622-5784-49db-9d3d-7463c7a05dc6", tropopause.Id);
             Assert.NotNull(tropopause.ContourPolygon);
-            Assert.Equal(Vertical(14020, VerticalUnit.Meters, VerticalReference.Msl), tropopause.SpotHeights[0].Level);
+            Assert.Equal(Vertical(14020, VerticalUnit.Meters, VerticalReference.Msl), tropopause.ContourLevel);
             Assert.Null(tropopause.LevelType); // not reported by WAFSSignificantWeatherForecast: not invented
 
             // 4. Verify Volcano mapped from MeteorologicalFeature (ETNA at 37.7, 15.0)
