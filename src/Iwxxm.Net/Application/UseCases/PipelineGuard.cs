@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Application.UseCases
 {
@@ -12,7 +13,6 @@ namespace Iwxxm.Net.Application.UseCases
     {
         internal const string SchemaValidatorErrorCode = "SCHEMA-VALIDATOR-ERROR";
         internal const string RuleValidatorErrorCode = "RULE-VALIDATOR-ERROR";
-        internal const string MapperErrorCode = "MAPPER-ERROR";
 
         public static IReadOnlyList<ValidationError> Validate(
             Func<IReadOnlyList<ValidationError>> validate,
@@ -35,11 +35,11 @@ namespace Iwxxm.Net.Application.UseCases
         {
             try
             {
-                return map() ?? Result<T>.Failure(Failure(MapperErrorCode, ErrorCategory.DomainMapping, "The document mapper returned no result."));
+                return map() ?? Result<T>.Failure(Failure(SharedErrorCodes.MapperError, ErrorCategory.DomainMapping, "The document mapper returned no result."));
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                return Result<T>.Failure(Failure(MapperErrorCode, ErrorCategory.DomainMapping, $"The document mapper failed: {ex.Message}"));
+                return Result<T>.Failure(Failure(SharedErrorCodes.MapperError, ErrorCategory.DomainMapping, $"The document mapper failed: {ex.Message}"));
             }
         }
 

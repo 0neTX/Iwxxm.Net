@@ -34,6 +34,31 @@ SpaceWx {
               ]
               InteriorRings = []
             }
+            GeoPolygon {
+              ExteriorRing = [
+                GeoCoordinate {
+                  Lat = -60
+                  Lon = 180
+                }
+                GeoCoordinate {
+                  Lat = -60
+                  Lon = -180
+                }
+                GeoCoordinate {
+                  Lat = -90
+                  Lon = -180
+                }
+                GeoCoordinate {
+                  Lat = -90
+                  Lon = 180
+                }
+                GeoCoordinate {
+                  Lat = -60
+                  Lon = 180
+                }
+              ]
+              InteriorRings = []
+            }
           ]
           Id = "uuid.c264db5c-3f0b-4444-ab5e-71f48a514644"
           Intensity = "MOD"
@@ -81,6 +106,31 @@ SpaceWx {
                 }
                 GeoCoordinate {
                   Lat = 60
+                  Lon = 180
+                }
+              ]
+              InteriorRings = []
+            }
+            GeoPolygon {
+              ExteriorRing = [
+                GeoCoordinate {
+                  Lat = -60
+                  Lon = 180
+                }
+                GeoCoordinate {
+                  Lat = -60
+                  Lon = -180
+                }
+                GeoCoordinate {
+                  Lat = -90
+                  Lon = -180
+                }
+                GeoCoordinate {
+                  Lat = -90
+                  Lon = 180
+                }
+                GeoCoordinate {
+                  Lat = -60
                   Lon = 180
                 }
               ]

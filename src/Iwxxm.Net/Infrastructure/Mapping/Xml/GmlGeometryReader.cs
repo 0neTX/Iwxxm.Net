@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Linq;
 using Iwxxm.Net.Reports;
 using static Iwxxm.Net.Infrastructure.Mapping.Xml.IwxxmXmlNames;
@@ -35,7 +36,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
         }
 
         /// <summary>
-        /// Reads the first <c>gml:PolygonPatch</c> of a <c>gml:patches</c> element as a polygon. A patch whose exterior is
+        /// Reads the single <c>gml:PolygonPatch</c> of a <c>gml:patches</c> element as a polygon. A patch whose exterior is
         /// a <c>gml:CircleByCenterPoint</c> is not a polygon: use <see cref="ReadPatchesSurface"/> for surfaces that may be
         /// circles.
         /// </summary>
@@ -43,17 +44,56 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             ReadPatchesSurface(patchesElem, contextLocation, errors) as GeoPolygon;
 
         /// <summary>
-        /// Reads the first <c>gml:PolygonPatch</c> of a <c>gml:patches</c> element as a <see cref="GeoSurface"/>: a
+        /// Reads the single <c>gml:PolygonPatch</c> of a <c>gml:patches</c> element as a <see cref="GeoSurface"/>: a
         /// <see cref="GeoCircle"/> when the exterior ring is a single <c>gml:CircleByCenterPoint</c>, otherwise a
         /// <see cref="GeoPolygon"/>. Returns <c>null</c> when there is no patch, or when the circle centre is the
         /// unspecified placeholder position <c>9999 9999</c> (official space weather NIGHTSIDE example).
         /// </summary>
+        /// <remarks>
+        /// For consumers whose Domain model holds one surface (an en-route volume, an ash cloud contour). A
+        /// <c>gml:patches</c> element with several patches is reported as <see cref="MappingErrors.MultiPatchUnsupportedCode"/> instead of
+        /// silently keeping the first patch; use <see cref="ReadPatchesSurfaces"/> where the Domain holds several surfaces.
+        /// </remarks>
         public static GeoSurface? ReadPatchesSurface(XElement? patchesElem, string contextLocation, List<ValidationError> errors)
         {
-            XElement? patch = patchesElem?.Element(GmlNs + "PolygonPatch");
-            if (patch == null)
+            if (patchesElem == null)
                 return null;
 
+            List<XElement> patches = patchesElem.Elements(GmlNs + "PolygonPatch").ToList();
+            if (patches.Count > 1)
+            {
+                errors.Add(MappingErrors.Create(
+                    MappingErrors.MultiPatchUnsupportedCode,
+                    $"The surface at '{contextLocation}' has {patches.Count} gml:PolygonPatch elements, but a single surface is expected here; the patches are not merged or truncated.",
+                    contextLocation));
+                return null;
+            }
+
+            return patches.Count == 1 ? ReadPatch(patches[0], contextLocation, errors) : null;
+        }
+
+        /// <summary>
+        /// Reads every <c>gml:PolygonPatch</c> of a <c>gml:patches</c> element, in document order (a patch that is the
+        /// unspecified circle placeholder is skipped). For Domain models that hold several surfaces (space weather regions).
+        /// </summary>
+        public static IReadOnlyList<GeoSurface> ReadPatchesSurfaces(XElement? patchesElem, string contextLocation, List<ValidationError> errors)
+        {
+            var surfaces = new List<GeoSurface>();
+            if (patchesElem == null)
+                return surfaces;
+
+            foreach (XElement patch in patchesElem.Elements(GmlNs + "PolygonPatch"))
+            {
+                GeoSurface? surface = ReadPatch(patch, contextLocation, errors);
+                if (surface != null)
+                    surfaces.Add(surface);
+            }
+
+            return surfaces;
+        }
+
+        private static GeoSurface? ReadPatch(XElement patch, string contextLocation, List<ValidationError> errors)
+        {
             XElement? extRing = patch.Element(GmlNs + "exterior");
             XElement? circle = GetSingleCircleSegment(extRing);
             if (circle != null)
@@ -68,11 +108,25 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             var interiorRings = new List<IReadOnlyList<GeoCoordinate>>();
             foreach (XElement intRing in patch.Elements(GmlNs + "interior"))
             {
+                int errorsBefore = errors.Count;
                 List<GeoCoordinate>? holeCoords = ReadRingCoordinates(intRing, contextLocation, errors);
-                if (holeCoords != null && holeCoords.Count >= 3)
+                if (holeCoords == null || holeCoords.Count == 0)
                 {
-                    interiorRings.Add(holeCoords);
+                    // An interior ring that cannot be read is an error, never a silently dropped hole. The reading
+                    // problem, when there is one, is already reported by the ring reader.
+                    if (errors.Count == errorsBefore)
+                    {
+                        errors.Add(MappingErrors.Create(
+                            MappingErrors.InteriorRingUnreadableCode,
+                            $"A gml:interior ring at '{contextLocation}' has no readable positions; the hole is not dropped silently.",
+                            contextLocation));
+                    }
+
+                    return null;
                 }
+
+                // Rings with too few positions are rejected by GeoPolygon.Create (GEO-POLYGON-HOLE-DEGENERATE).
+                interiorRings.Add(holeCoords);
             }
 
             var polyRes = GeoPolygon.Create(extCoords, interiorRings, contextLocation);
@@ -99,7 +153,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
             XElement? radiusElem = circleElem.Element(GmlNs + "radius");
             if (radiusElem == null || string.IsNullOrWhiteSpace(radiusElem.Value))
             {
-                errors.Add(MappingErrors.Create(CircleRadiusMissingCode, $"The circle at '{location}' has no gml:radius; no radius is assumed.", location));
+                errors.Add(MappingErrors.Create(MappingErrors.CircleRadiusMissingCode, $"The circle at '{location}' has no gml:radius; no radius is assumed.", location));
                 return null;
             }
 
@@ -116,9 +170,6 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
 
             return circle.Value;
         }
-
-        internal const string CircleRadiusMissingCode = "ACL-CIRCLE-RADIUS-MISSING";
-        internal const string UnsupportedSegmentCode = "ACL-GEOMETRY-SEGMENT-UNSUPPORTED";
 
         /// <summary>
         /// Returns the <c>gml:CircleByCenterPoint</c> of a ring made of exactly one curve segment, or <c>null</c>.
@@ -194,7 +245,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Xml
                         if (!IsLinearSegment(seg))
                         {
                             errors.Add(MappingErrors.Create(
-                                UnsupportedSegmentCode,
+                                MappingErrors.UnsupportedSegmentCode,
                                 $"The curve segment 'gml:{seg.Name.LocalName}' at '{contextLocation}' cannot be combined with other segments of a ring; the ring is not approximated.",
                                 contextLocation));
                             return null;

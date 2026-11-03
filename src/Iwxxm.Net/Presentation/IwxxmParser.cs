@@ -205,7 +205,7 @@ namespace Iwxxm.Net
                 if (json == null)
                 {
                     return Result<string>.Failure(
-                        "GEOJSON-EXPORT-ERROR",
+                        SharedErrorCodes.GeoJsonExportError,
                         "The GeoJSON exporter returned no document.",
                         ErrorCategory.DomainMapping,
                         result.Value.Id);
@@ -216,7 +216,7 @@ namespace Iwxxm.Net
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
                 return Result<string>.Failure(
-                    "GEOJSON-EXPORT-ERROR",
+                    SharedErrorCodes.GeoJsonExportError,
                     $"The GeoJSON export failed: {ex.Message}",
                     ErrorCategory.DomainMapping,
                     result.Value.Id);
@@ -228,7 +228,7 @@ namespace Iwxxm.Net
             if (string.IsNullOrWhiteSpace(xmlContent))
             {
                 return Result<T>.Failure(
-                    "XML-EMPTY-STRING",
+                    SharedErrorCodes.XmlEmptyString,
                     "The provided XML string is null or empty.",
                     ErrorCategory.MalformedInput);
             }

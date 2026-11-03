@@ -146,6 +146,143 @@ SpaceWx {
               ]
               InteriorRings = []
             }
+            GeoPolygon {
+              ExteriorRing = [
+                GeoCoordinate {
+                  Lat = 56.3
+                  Lon = 97
+                }
+                GeoCoordinate {
+                  Lat = 60
+                  Lon = 101.5
+                }
+                GeoCoordinate {
+                  Lat = 60
+                  Lon = 180
+                }
+                GeoCoordinate {
+                  Lat = -60
+                  Lon = 180
+                }
+                GeoCoordinate {
+                  Lat = -60
+                  Lon = 39.8
+                }
+                GeoCoordinate {
+                  Lat = -56.1
+                  Lon = 44.6
+                }
+                GeoCoordinate {
+                  Lat = -51.8
+                  Lon = 48.7
+                }
+                GeoCoordinate {
+                  Lat = -47.3
+                  Lon = 52.1
+                }
+                GeoCoordinate {
+                  Lat = -42.7
+                  Lon = 55
+                }
+                GeoCoordinate {
+                  Lat = -38.1
+                  Lon = 57.5
+                }
+                GeoCoordinate {
+                  Lat = -33.4
+                  Lon = 59.6
+                }
+                GeoCoordinate {
+                  Lat = -30
+                  Lon = 61
+                }
+                GeoCoordinate {
+                  Lat = -28.6
+                  Lon = 61.6
+                }
+                GeoCoordinate {
+                  Lat = -23.9
+                  Lon = 63.4
+                }
+                GeoCoordinate {
+                  Lat = -19.1
+                  Lon = 65
+                }
+                GeoCoordinate {
+                  Lat = -14.3
+                  Lon = 66.6
+                }
+                GeoCoordinate {
+                  Lat = -9.5
+                  Lon = 68
+                }
+                GeoCoordinate {
+                  Lat = -4.7
+                  Lon = 69.5
+                }
+                GeoCoordinate {
+                  Lat = 0
+                  Lon = 70.9
+                }
+                GeoCoordinate {
+                  Lat = 0.1
+                  Lon = 70.9
+                }
+                GeoCoordinate {
+                  Lat = 4.9
+                  Lon = 72.3
+                }
+                GeoCoordinate {
+                  Lat = 9.7
+                  Lon = 73.8
+                }
+                GeoCoordinate {
+                  Lat = 14.5
+                  Lon = 75.3
+                }
+                GeoCoordinate {
+                  Lat = 19.3
+                  Lon = 76.8
+                }
+                GeoCoordinate {
+                  Lat = 24.1
+                  Lon = 78.4
+                }
+                GeoCoordinate {
+                  Lat = 28.8
+                  Lon = 80.2
+                }
+                GeoCoordinate {
+                  Lat = 30
+                  Lon = 80.7
+                }
+                GeoCoordinate {
+                  Lat = 33.5
+                  Lon = 82.1
+                }
+                GeoCoordinate {
+                  Lat = 38.2
+                  Lon = 84.3
+                }
+                GeoCoordinate {
+                  Lat = 42.9
+                  Lon = 86.7
+                }
+                GeoCoordinate {
+                  Lat = 47.4
+                  Lon = 89.5
+                }
+                GeoCoordinate {
+                  Lat = 51.9
+                  Lon = 92.9
+                }
+                GeoCoordinate {
+                  Lat = 56.3
+                  Lon = 97
+                }
+              ]
+              InteriorRings = []
+            }
           ]
           Id = "uuid.34415dca-6fab-45e4-8225-c45960b1e9d2"
           Intensity = "SEV"

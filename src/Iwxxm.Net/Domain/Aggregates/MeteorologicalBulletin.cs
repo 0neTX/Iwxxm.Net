@@ -81,7 +81,7 @@ namespace Iwxxm.Net.Reports
 
         /// <summary>
         /// Creates a bulletin from the per-entry mapping results. Failed entries become <see cref="ItemErrors"/> and the
-        /// result succeeds with one <see cref="ValidationSeverity.Warning"/> per item error, as long as at least one
+        /// result succeeds with one <see cref="ValidationSeverity.Warning"/> per item error plus the warnings of the mapped reports, as long as at least one
         /// report mapped; with no mapped report the result fails with <c>DOMAIN-BULLETIN-EMPTY</c> and the entry errors.
         /// </summary>
         /// <param name="id">Bulletin <c>gml:id</c>.</param>
@@ -118,12 +118,20 @@ namespace Iwxxm.Net.Reports
                 .ToList();
 
             var itemErrors = new List<ItemMappingError>();
+            var warnings = new List<ValidationError>();
             for (int i = 0; i < resultsList.Count; i++)
             {
                 if (resultsList[i].IsFailure)
                 {
                     string? itemId = itemIds != null && i < itemIds.Count ? itemIds[i] : null;
-                    itemErrors.Add(new ItemMappingError(i, itemId, resultsList[i].Errors));
+                    var itemError = new ItemMappingError(i, itemId, resultsList[i].Errors);
+                    itemErrors.Add(itemError);
+                    warnings.AddRange(itemError.ToWarnings("Report"));
+                }
+                else
+                {
+                    // Warnings of a successfully mapped report are not lost at the envelope.
+                    warnings.AddRange(resultsList[i].Warnings);
                 }
             }
 
@@ -159,7 +167,7 @@ namespace Iwxxm.Net.Reports
                 new ReadOnlyCollection<IwxxmReport>(validReports),
                 new ReadOnlyCollection<Result<IwxxmReport>>(resultsList),
                 new ReadOnlyCollection<ItemMappingError>(itemErrors)),
-                itemErrors.SelectMany(e => e.ToWarnings("Report")));
+                warnings);
         }
     }
 }

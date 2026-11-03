@@ -7,6 +7,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
     /// <summary>Extracts <see cref="JetStream"/> phenomena from WAFS <c>JETSTREAM</c> features and compact <c>jetStream</c> elements.</summary>
     internal static class JetStreamExtractor
     {
+        private const string CoreFlightLevelMissingCode = "ACL-JS-CORE-FL";
+
         public static Result<JetStream> FromWafsFeature(MeteorologicalFeatureType feature)
         {
             string context = $"MeteorologicalFeature[@gml:id='{feature.Id}']";
@@ -138,7 +140,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 return Result<JetStreamCorePoint>.Failure(ptResult.Errors);
 
             if (cpDto.FlightLevel == null)
-                return Result<JetStreamCorePoint>.Failure("ACL-JS-CORE-FL", "Missing flightLevel in corePoint.", ErrorCategory.DomainMapping, context);
+                return Result<JetStreamCorePoint>.Failure(CoreFlightLevelMissingCode, "Missing flightLevel in corePoint.", ErrorCategory.DomainMapping, context);
 
             var cpErrors = new List<ValidationError>();
             VerticalLimit? cpLevel = SigwxMeasureReader.ReadVertical(cpDto.FlightLevel, null, $"{context}/corePoint/flightLevel", cpErrors);
@@ -147,7 +149,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             if (cpErrors.Count > 0 || !cpLevel.HasValue)
                 return Result<JetStreamCorePoint>.Failure(cpErrors.Count > 0
                     ? cpErrors
-                    : new List<ValidationError> { new ValidationError("ACL-JS-CORE-FL", "Missing flightLevel in corePoint.", ErrorCategory.DomainMapping, ValidationSeverity.Error, context) });
+                    : new List<ValidationError> { new ValidationError(CoreFlightLevelMissingCode, "Missing flightLevel in corePoint.", ErrorCategory.DomainMapping, ValidationSeverity.Error, context) });
 
             Speed coreSpeed = jetStreamSpeed;
             if (cpDto.WindSpeed != null)

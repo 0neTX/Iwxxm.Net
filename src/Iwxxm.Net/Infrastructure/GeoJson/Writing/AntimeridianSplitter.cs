@@ -9,7 +9,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
     /// more than 180 degrees are joined by the short way, across the antimeridian. Such lines are cut at ±180 into a
     /// <c>MultiLineString</c>; such polygons are unwrapped and clipped into the [-180, 180] longitude strips, giving a
     /// <c>MultiPolygon</c>. A ring that wraps the whole globe (it encloses a pole) is written as the polygon bounded by the
-    /// ring from longitude -180 to +180 and by the pole on the side of its mean latitude.
+    /// ring from longitude -180 to +180 and by the pole on the side of its mean latitude. Interior rings that lie entirely
+    /// inside that cap are kept as its holes; an interior ring that cannot be represented that way (it crosses the
+    /// antimeridian, or is not inside the cap) is dropped and counted, so the caller can report it explicitly.
     /// </summary>
     internal static class AntimeridianSplitter
     {
@@ -64,9 +66,10 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         }
 
         /// <summary>Splits a polygon (exterior plus holes) that crosses the antimeridian into polygons inside [-180, 180].</summary>
-        public static List<List<List<GeoJsonPosition>>> SplitPolygon(List<GeoJsonPosition> exterior, List<List<GeoJsonPosition>> holes, out bool isPolarCap)
+        public static List<List<List<GeoJsonPosition>>> SplitPolygon(List<GeoJsonPosition> exterior, List<List<GeoJsonPosition>> holes, out bool isPolarCap, out int droppedInteriorRings)
         {
             isPolarCap = false;
+            droppedInteriorRings = 0;
             List<double> unwrapped = Unwrap(exterior);
             double wrap = unwrapped[unwrapped.Count - 1] - unwrapped[0];
             if (Math.Abs(wrap) > 180.0)
@@ -75,7 +78,16 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 isPolarCap = true;
                 double meanLat = exterior.Average(p => p.Lat);
                 var cap = PolarCap(unwrapped, exterior.Select(p => p.Lat).ToList(), meanLat >= 0 ? 90.0 : -90.0);
-                return new List<List<List<GeoJsonPosition>>> { new List<List<GeoJsonPosition>> { cap } };
+                var capRings = new List<List<GeoJsonPosition>> { cap };
+                foreach (List<GeoJsonPosition> hole in holes)
+                {
+                    if (hole.Count >= 4 && !Crosses(hole) && hole.All(p => IsInside(cap, p)))
+                        capRings.Add(hole);
+                    else
+                        droppedInteriorRings++;
+                }
+
+                return new List<List<List<GeoJsonPosition>>> { capRings };
             }
 
             double min = unwrapped.Min();
@@ -153,6 +165,24 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             ring.Add(new GeoJsonPosition(-180.0, poleLat));
             ring.Add(ring[0]);
             return ring;
+        }
+
+        /// <summary>Even-odd point-in-ring test in the longitude/latitude plane.</summary>
+        private static bool IsInside(IReadOnlyList<GeoJsonPosition> ring, GeoJsonPosition point)
+        {
+            bool inside = false;
+            for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
+            {
+                GeoJsonPosition a = ring[i];
+                GeoJsonPosition b = ring[j];
+                if ((a.Lat > point.Lat) != (b.Lat > point.Lat) &&
+                    point.Lon < ((b.Lon - a.Lon) * (point.Lat - a.Lat) / (b.Lat - a.Lat)) + a.Lon)
+                {
+                    inside = !inside;
+                }
+            }
+
+            return inside;
         }
 
         private static List<double> Unwrap(IReadOnlyList<GeoJsonPosition> ring)

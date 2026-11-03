@@ -16,6 +16,7 @@ namespace Iwxxm.Net.Reports
         internal const string NegativeSpeed = "DOMAIN-NEGATIVE-SPEED";
         internal const string NegativeVisibility = "DOMAIN-NEGATIVE-VISIBILITY";
         internal const string NegativeRvr = "DOMAIN-NEGATIVE-RVR";
+        internal const string VerticalLimitInvalid = "DOMAIN-VERTICAL-LIMIT-INVALID";
         internal const string ForecastGroupPeriod = "DOMAIN-FORECAST-GROUP-PERIOD";
     }
 }

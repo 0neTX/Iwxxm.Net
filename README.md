@@ -131,7 +131,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | Document | What is in it |
 | :--- | :--- |
 | [Getting started guide](docs/GUIDE.md) | A didactic tour: pipeline, `Result<T>`, document types, validation, value objects, and worked SIGWX (jet streams, clouds), METAR/TAF and SIGMET examples. |
-| [Reference](docs/REFERENCE.md) | One example per product family, the composition root and ports, the full error-code table, value-object catalogue and namespace map. |
+| [Reference](docs/REFERENCE.md) | One example per product family, the composition root and ports, the complete error-code table (every stable code, checked against the source by a test), value-object catalogue and namespace map. |
 | [Documentation index](docs/README.md) | The map of everything under `docs/`. |
 | [Architecture analysis](docs/ARCHITECTURE_ANALYSIS.md) | Hexagonal and DDD design decisions and the prioritised debt catalogue (written in Spanish). |
 | [Technical debt](TECHNICAL_DEBT.md) | The audit findings, their status and the open backlog. |

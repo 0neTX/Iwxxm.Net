@@ -128,5 +128,50 @@ namespace Iwxxm.Net.Tests.DataFidelity
             Assert.Equal(180.0, ring.Max(p => p[0]));
             Assert.True(CircleGeometryTests.SignedArea(ring) > 0);
         }
+
+        private static GeoPolygon PolarPolygon(params (double Lat, double Lon)[][] holes)
+        {
+            var exterior = new[] { (60.0, 0.0), (60.0, 90.0), (60.0, 180.0), (60.0, -90.0), (60.0, 0.0) };
+            var result = GeoPolygon.Create(
+                exterior.Select(v => new GeoCoordinate(v.Item1, v.Item2)),
+                holes.Select(h => h.Select(v => new GeoCoordinate(v.Lat, v.Lon))));
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            return result.Value;
+        }
+
+        [Fact]
+        public void PolarCap_KeepsAnInteriorRingInsideTheCap_AsAClockwiseHole()
+        {
+            Sigmet sigmet = SigmetWith(PolarPolygon(new[] { (80.0, 10.0), (80.0, 40.0), (85.0, 40.0), (85.0, 10.0), (80.0, 10.0) }));
+
+            JsonElement root = Export(sigmet, out JsonDocument json);
+            using (json)
+            {
+                JsonElement feature = root.GetProperty("features")[0];
+                JsonElement rings = feature.GetProperty("geometry").GetProperty("coordinates");
+                Assert.Equal(2, rings.GetArrayLength());
+                double[][] hole = CircleGeometryTests.Ring(rings[1]);
+                Assert.True(CircleGeometryTests.SignedArea(hole) < 0);
+                Assert.All(hole, p => Assert.InRange(p[1], 80.0, 85.0));
+                Assert.False(feature.GetProperty("properties").TryGetProperty("droppedInteriorRings", out _));
+            }
+        }
+
+        [Fact]
+        public void PolarCap_ReportsAnInteriorRingItCannotRepresent()
+        {
+            // The second ring lies outside the cap (south of the 60N boundary), the first inside it.
+            Sigmet sigmet = SigmetWith(PolarPolygon(
+                new[] { (80.0, 10.0), (80.0, 40.0), (85.0, 40.0), (85.0, 10.0), (80.0, 10.0) },
+                new[] { (30.0, 10.0), (30.0, 40.0), (35.0, 40.0), (35.0, 10.0), (30.0, 10.0) }));
+
+            JsonElement root = Export(sigmet, out JsonDocument json);
+            using (json)
+            {
+                JsonElement feature = root.GetProperty("features")[0];
+                Assert.Equal(2, feature.GetProperty("geometry").GetProperty("coordinates").GetArrayLength());
+                Assert.Equal(1, feature.GetProperty("properties").GetProperty("droppedInteriorRings").GetInt32());
+            }
+        }
     }
 }

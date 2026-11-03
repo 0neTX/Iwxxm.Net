@@ -104,11 +104,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
                     if (patches != null)
                     {
-                        GeoSurface? area = GmlGeometryReader.ReadPatchesSurface(patches, GetGmlId(regElem), errors);
-                        if (area != null)
-                        {
-                            areas.Add(area);
-                        }
+                        areas.AddRange(GmlGeometryReader.ReadPatchesSurfaces(patches, GetGmlId(regElem), errors));
                     }
                 }
 

@@ -65,7 +65,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
 
             var polygons = new List<IReadOnlyList<IReadOnlyList<GeoJsonPosition>>>();
-            List<List<List<GeoJsonPosition>>> pieces = AntimeridianSplitter.SplitPolygon(exterior, holes, out bool isPolarCap);
+            List<List<List<GeoJsonPosition>>> pieces = AntimeridianSplitter.SplitPolygon(exterior, holes, out bool isPolarCap, out int dropped);
             foreach (List<List<GeoJsonPosition>> piece in pieces)
             {
                 var rings = new List<IReadOnlyList<GeoJsonPosition>>(piece.Count) { Oriented(piece[0], counterclockwise: true) };
@@ -75,7 +75,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
 
             // A polar cap is already laid out from -180 to +180 (bbox spans every longitude, RFC 7946 §5.3).
-            return GeoJsonGeometry.ForPolygons(polygons, !isPolarCap);
+            return GeoJsonGeometry.ForPolygons(polygons, !isPolarCap).WithDroppedInteriorRings(dropped);
         }
 
         /// <summary>Reverses <paramref name="ring"/> when its orientation (signed area on longitude/latitude) is not the requested one.</summary>

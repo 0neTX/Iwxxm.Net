@@ -84,7 +84,7 @@ namespace Iwxxm.Net.Reports
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
                 return Result<VerticalLimit>.Failure(
-                    "DOMAIN-VERTICAL-LIMIT-INVALID",
+                    DomainErrorCodes.VerticalLimitInvalid,
                     "A vertical limit value must be a finite number.",
                     ErrorCategory.DomainMapping,
                     location);
@@ -93,7 +93,7 @@ namespace Iwxxm.Net.Reports
             if (!Enum.IsDefined(typeof(VerticalUnit), unit) || (reference.HasValue && !Enum.IsDefined(typeof(VerticalReference), reference.Value)))
             {
                 return Result<VerticalLimit>.Failure(
-                    "DOMAIN-VERTICAL-LIMIT-INVALID",
+                    DomainErrorCodes.VerticalLimitInvalid,
                     "The vertical unit or reference is not defined.",
                     ErrorCategory.DomainMapping,
                     location);
@@ -102,7 +102,7 @@ namespace Iwxxm.Net.Reports
             if (unit == VerticalUnit.FlightLevel && value < 0)
             {
                 return Result<VerticalLimit>.Failure(
-                    "DOMAIN-VERTICAL-LIMIT-INVALID",
+                    DomainErrorCodes.VerticalLimitInvalid,
                     string.Format(CultureInfo.InvariantCulture, "Flight level {0} cannot be negative.", value),
                     ErrorCategory.DomainMapping,
                     location);

@@ -356,7 +356,7 @@ Partial-result behaviour, `ReportResults` and `ItemErrors` are explained with a 
 - GML `[latitude, longitude]` is swapped to RFC 7946 section 3.1.1 `[longitude, latitude]`.
 - Polygon interior holes (`GeoPolygon.InteriorRings`) are written as additional linear rings.
 - The global `bbox` is `[west, south, east, north]`; when a geometry crosses the antimeridian, `west` is greater than `east` (section 5.2).
-- Exterior rings are counter-clockwise and holes clockwise (right-hand rule); geometries that cross +-180 degrees are split into `MultiLineString` or `MultiPolygon` (section 3.1.9); rings around a pole become polar caps. The domain model keeps the source order.
+- Exterior rings are counter-clockwise and holes clockwise (right-hand rule); geometries that cross +-180 degrees are split into `MultiLineString` or `MultiPolygon` (section 3.1.9); rings around a pole become polar caps: interior rings entirely inside the cap are kept as its holes, and an interior ring that cannot be represented (it crosses the antimeridian or is not inside the cap) is left out and counted in the feature property `droppedInteriorRings` (omitted when 0), never dropped silently. A surface with several `gml:PolygonPatch` is a `MultiPolygon` with the property `patchCount` (space weather regions); the other report types hold one surface and report `ACL-GML-MULTI-PATCH-UNSUPPORTED` for several patches. The domain model keeps the source order.
 - Circles (`GeoCircle`) are written as a 64-segment polygon (geodesic points on the IUGG mean sphere) plus the properties `center` (`[lon, lat]`), `radius`, `radiusUom` and `circleSegments`, from which a consumer can rebuild the exact circle.
 - `NaN` and `Infinity` are never written; a non-finite property is written as `null`.
 - A `Tca` gets a synthesized `TC_TRACK` `LineString` joining the observed and forecast cyclone positions.
@@ -548,35 +548,143 @@ official rules accept the sample METAR: True
 
 `ValidationError.Code` strings are the stable contract; messages may be reworded; `ErrorCategory` names stay technology-agnostic. Only the first findings of a validator are reported (`MaxValidationErrors`).
 
-| Code | Category | Meaning |
+**What is stable.** Every code listed below, written exactly as shown, is part of the contract: it is not renamed or removed without a CHANGELOG entry. Three kinds of code are *families* rather than a closed list:
+
+- **Official Schematron rule ids** (`Code` of a `BusinessRuleViolation`, for example `METAR_SPECI.MeteorologicalAerodromeObservation-5`): defined by the WMO rules, one per failed assertion.
+- **`GML-*` coordinate codes**: raised by the GML position readers; the codes listed in [Geometry](#geometry) are the current members, and new `GML-*` members may appear when a new malformed-coordinate shape is rejected.
+- **`ACL-*` and `DOMAIN-*` codes**: new mandatory-content or invariant checks add new members; the `ACL-` / `DOMAIN-` prefix and the `DomainMapping` category are stable.
+
+`tests/Iwxxm.Net.Tests/ErrorCodeDocumentationTests.cs` fails when a code literal emitted by `src/` is missing from the tables below, or when a table row names a code that no longer exists, so this list cannot drift from the code. Where the same condition can be reached from two entry points (the SIGWX and the general parser), both report the same code (for example `STREAM-EMPTY`).
+
+### Input, files and streams (`MalformedInput`)
+
+| Code | Meaning | Typical cause and remediation |
 | :--- | :--- | :--- |
-| `FILE-NOT-FOUND` | `MalformedInput` | The file or its directory does not exist. |
-| `ACCESS-DENIED` | `MalformedInput` | Permission denied (or the path is a directory). |
-| `FILE-READ-ERROR` | `MalformedInput` | Sharing violation, path too long, malformed path or other I/O error. |
-| `XML-EMPTY-STRING` | `MalformedInput` | The XML string is null, empty or whitespace. |
-| `XML-SIZE-LIMIT`, `XML-MALFORMED`, `STREAM-*` | `MalformedInput` | Size limits, malformed XML or a DTD (checked once by the use case before any adapter), unreadable or empty stream. |
-| `XSD-UNKNOWN-ROOT-ELEMENT` | `SchemaViolation` | The root element is not declared by the official IWXXM / COLLECT schemas. |
-| `XSD-TOO-MANY-ERRORS`, `SCHEMATRON-TOO-MANY-ERRORS` | `SchemaViolation` / `BusinessRuleViolation` | More findings than `IwxxmParserOptions.MaxValidationErrors`; only the first are reported. |
-| `SCHEMATRON-REPORT-SIZE-LIMIT`, `SCHEMATRON-UNAVAILABLE` | `BusinessRuleViolation` | The SVRL report exceeds `MaxRuleReportBytes` / the rules could not be compiled (retried on the next validation). |
-| `XSD-*`, `SCHEMA-VALIDATOR-ERROR` | `SchemaViolation` | Schema violation / the schema validator threw or returned nothing. |
-| official rule ids, `RULE-VALIDATOR-ERROR` | `BusinessRuleViolation` | Schematron or code-list rule / the rule validator threw or returned nothing. |
-| `DISPATCH-NOT-A-BULLETIN`, `XML-UNSUPPORTED-ROOT`, `XML-UNSUPPORTED-REPORT`, `COLLECT-NESTED-BULLETIN`, `XML-DESERIALIZATION-ERROR` | `Deserialization` | The document cannot be routed to the requested entry point or a mapper. |
-| `IWXXM-UNEXPECTED-REPORT-TYPE` | `DomainMapping` | `ParseAs<T>` parsed a different document type. |
-| `MAPPER-ERROR` | `DomainMapping` | The document mapper threw or returned nothing. |
-| `GEOJSON-EXPORT-ERROR` | `DomainMapping` | The GeoJSON exporter threw (`*ToGeoJson` members). |
-| `ACL-REPORT-STATUS-MISSING` / `-INVALID`, `ACL-PERMISSIBLE-USAGE-MISSING` / `-INVALID`, `ACL-PERMISSIBLE-USAGE-REASON-INVALID` | `DomainMapping` | Required metadata absent or not an official code (never defaulted to `NORMAL` / `OPERATIONAL`). |
-| `ACL-ISSUE-TIME-MISSING`, `ACL-OBSERVATION-TIME-MISSING`, `ACL-VALID-PERIOD-MISSING`, `ACL-TIME-INVALID` | `DomainMapping` | Mandatory time absent (an `issueTime` given only by `xlink:href` is also reported) or unparseable. |
-| `ACL-MEASURE-UOM-MISMATCH` | `DomainMapping` | A single-unit quantity (`hPa`, `Cel`, `deg`, `m`...) reported in another unit; a missing or unknown `@uom` is also a mapping error. |
-| `ACL-ASH-DENSITY-MISSING`, `ACL-VOLCANO-NAME-MISSING` | `DomainMapping` | Mandatory QVACI density / volcano name element absent. |
-| `ACL-VERTICAL-UOM-UNSUPPORTED`, `ACL-VERTICAL-REFERENCE-UNSUPPORTED` | `DomainMapping` | Vertical unit or reference outside the AIXM / UCUM codes. |
-| `ACL-SIGWX-FEATURE-BY-REFERENCE` | `DomainMapping` (warning) | A WAFS feature given only by a reference to an external resource was skipped. |
-| `DOMAIN-<REPORT>-VALID-PERIOD`, `DOMAIN-TAF-CANCELLED-VALID-PERIOD`, `DOMAIN-FORECAST-GROUP-PERIOD` | `DomainMapping` | End of a period not strictly after its start. |
-| `DOMAIN-TIME-NOT-UTC`, `DOMAIN-ISSUE-TIME-MISSING` | `DomainMapping` | A `*Utc` value with a non-zero offset / a default issue time. |
-| `DOMAIN-DIRECTION-OUT-OF-RANGE`, `DOMAIN-NEGATIVE-SPEED`, `DOMAIN-NEGATIVE-VISIBILITY`, `DOMAIN-NEGATIVE-RVR` | `DomainMapping` | Physical ranges: direction within [0, 360] degrees, non-negative magnitudes. |
-| `DOMAIN-JETSTREAM-SPEED` | `DomainMapping` | A WAFS jet stream below the 80 kt ICAO threshold. |
-| `DOMAIN-CLOUD-VERTICAL-EXTENT` | `DomainMapping` | A cloud whose top is not above its base. |
-| `DOMAIN-AIRMET-ATS-UNIT`, `DOMAIN-REPORT-STATUS-INVALID`, `DOMAIN-PERMISSIBLE-USAGE-INVALID`, `DOMAIN-BULLETIN-EMPTY`, `DOMAIN-VERTICAL-LIMIT-INVALID` | `DomainMapping` | Structural invariants of the aggregate factories. |
-| `GEO-POLYGON-MIN-VERTICES`, `GEO-POLYGON-HOLE-DEGENERATE`, `GEO-CIRCLE-RADIUS-INVALID` | `DomainMapping` | Degenerate geometry. |
+| `FILE-NOT-FOUND` | The file or its directory does not exist. | Wrong path; check the path and working directory. |
+| `ACCESS-DENIED` | Permission denied (or the path is a directory). | Fix file permissions or pass a file, not a directory. |
+| `FILE-READ-ERROR` | Sharing violation, path too long, malformed path or other I/O error. | Close the other process holding the file, shorten the path. |
+| `XML-EMPTY-STRING` | The XML string, reader or file content is null, empty or whitespace. | Nothing was read upstream; check the producer. |
+| `STREAM-EMPTY` | The input stream has zero bytes. | The upstream read returned nothing, or the stream was already consumed (rewind it). |
+| `STREAM-UNREADABLE` | The stream does not support reading. | Pass a readable stream (not a write-only one). |
+| `STREAM-READ-ERROR` | Reading the stream threw an I/O error. | Transient transport failure; retry. An `OutOfMemoryException` is never converted into this code. |
+| `XML-SIZE-LIMIT` | The input exceeds `IwxxmParserOptions.MaxDocumentBytes`. | Raise the limit deliberately or reject the oversized message. |
+| `XML-MALFORMED` | Not well-formed XML, or a DTD was found (DTDs are always refused). | Fix the producer; do not enable DTD processing. |
+| `XML-NO-ROOT-ELEMENT` | The XML has no root element. | An empty or truncated document. |
+
+### Schema validation (`SchemaViolation`)
+
+| Code | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- |
+| `XSD-SCHEMA-VIOLATION` | The document violates the official IWXXM / COLLECT XSD (one finding per violation, with line and position). | Fix the document at the reported position. |
+| `XSD-FATAL-ERROR` | The XSD validator stopped with a fatal schema exception. | Usually a structurally broken instance; see the message. |
+| `XSD-UNKNOWN-ROOT-ELEMENT` | The root element is not declared by the official IWXXM / COLLECT schemas. | Wrong namespace or element name. |
+| `XSD-UNEXPECTED-ROOT-ELEMENT` | The SIGWX entry point received a root element that is not a SIGWX document. | Use `IwxxmParser` for non-SIGWX reports. |
+| `XSD-SCHEMA-SET-UNAVAILABLE` | The embedded schema set could not be compiled (retried on the next validation). | Resource pressure (for example memory); retry. |
+| `XSD-TOO-MANY-ERRORS` | More findings than `MaxValidationErrors`; only the first are reported. | Fix the first findings, then re-validate. |
+| `SCHEMA-VALIDATOR-ERROR` | A custom or built-in schema validator threw or returned nothing. | Bug in a custom `IIwxxmSchemaValidator` adapter. |
+
+### Business rules (`BusinessRuleViolation`)
+
+| Code | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- |
+| official rule ids | A failed assertion of the official IWXXM Schematron (or of the built-in XSLT 1.0 subset / code-list rules); `Code` is the rule id. | Fix the content named by `Message` and `Location`. |
+| `SCHEMATRON-ASSERT-FAILED` | A failed assertion that carries no rule id (fallback code). | Read `Message` and `Location`. |
+| `SCHEMATRON-TOO-MANY-ERRORS` | More findings than `MaxValidationErrors`; only the first are reported. | Fix the first findings, then re-validate. |
+| `SCHEMATRON-REPORT-SIZE-LIMIT` | The SVRL report exceeds `MaxRuleReportBytes`. | Heavily non-conforming document; fix it or raise the limit. |
+| `SCHEMATRON-REPORT-INVALID` | The SVRL report produced by the rules could not be read. | Internal rule failure; report it as a bug. |
+| `SCHEMATRON-EXECUTION-ERROR` | The rule transform failed while running. | See `Message`; retried on the next validation. |
+| `SCHEMATRON-UNAVAILABLE` | The rules could not be compiled (retried on the next validation). | Resource pressure; for the Saxon package, check the `net10.0` runtime. |
+| `RULE-VALIDATOR-ERROR` | A custom or built-in rule validator threw or returned nothing. | Bug in a custom `IIwxxmRuleValidator` adapter. |
+
+### Routing and deserialization (`Deserialization`)
+
+| Code | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- |
+| `DISPATCH-NOT-A-BULLETIN` | `ProcessBulletin` received a document that is not a `collect:MeteorologicalBulletin`. | Use `Process` for single reports. |
+| `XML-UNSUPPORTED-ROOT` | The SIGWX entry point cannot deserialize this root element. | Not a SIGWX document. |
+| `XML-UNSUPPORTED-REPORT` | The IWXXM root element is not a supported 2025-2 report. | Another IWXXM version, or an element that is not a report. |
+| `XML-UNSUPPORTED-NAMESPACE` | The root element is not in the IWXXM 2025-2 namespace. | Wrong namespace (for example IWXXM 3.0 or 2023-1). |
+| `COLLECT-NESTED-BULLETIN` | A bulletin entry is itself a bulletin. | Entries must be IWXXM reports. |
+| `XML-DESERIALIZATION-ERROR` | The SIGWX transport model could not be deserialized. | Structure that passed the schema but not the transport model; see `Message`. |
+
+### Pipeline and facade (`DomainMapping`)
+
+| Code | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- |
+| `IWXXM-UNEXPECTED-REPORT-TYPE` | `ParseAs<T>` parsed a different document type than `T`. | Ask for the right type or use `Parse`. |
+| `MAPPER-ERROR` | A document mapper threw or returned nothing. For a bulletin, the code is reported as the item error of that one entry and the other entries are kept. | Bug in a custom `ISigwxDocumentMapper` or report mapper. |
+| `GEOJSON-EXPORT-ERROR` | The GeoJSON exporter threw (`*ToGeoJson` members). | Bug in a custom exporter. |
+| `ACL-EMPTY-ENVELOPE` | The deserialized SIGWX envelope holds no report instance. | Empty `iwxxm:report` wrapper. |
+
+### Metadata, time and measures (`DomainMapping`)
+
+| Code | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- |
+| `ACL-REPORT-STATUS-MISSING`, `ACL-REPORT-STATUS-INVALID` | `reportStatus` absent or not an official code (never defaulted to `NORMAL`). | Producer omitted or misspelled the status. |
+| `ACL-PERMISSIBLE-USAGE-MISSING`, `ACL-PERMISSIBLE-USAGE-INVALID`, `ACL-PERMISSIBLE-USAGE-REASON-INVALID` | Permissible usage (or its reason) absent or not an official code (never defaulted to `OPERATIONAL`). | Producer omitted or misspelled it. |
+| `ACL-ISSUE-TIME-MISSING`, `ACL-OBSERVATION-TIME-MISSING`, `ACL-VALID-PERIOD-MISSING` | Mandatory time absent (an `issueTime` given only by `xlink:href` is also reported). | Supply the time inline. |
+| `ACL-TIME-INVALID`, `ACL-TIME-INDICATOR-INVALID` | A time value, or the time indicator, cannot be parsed. | Use ISO 8601 / the official indicator codes. |
+| `ACL-MISSING-TIME-INSTANT`, `ACL-MISSING-TIME-PERIOD` | A mandatory SIGWX time instant / validity period is missing. | Supply the element. |
+| `ACL-MEASURE-UOM-MISSING`, `ACL-MEASURE-UOM-UNSUPPORTED`, `ACL-MEASURE-UOM-MISMATCH`, `ACL-MEASURE-UOM-NOT-ALLOWED` | A quantity has no `@uom`, an unknown one, a unit other than its single allowed unit (`hPa`, `Cel`, `deg`, `m`...), or a unit outside the allowed subset. | Correct the unit; no unit is assumed. |
+| `ACL-MEASURE-VALUE-INVALID` | A measure value is not a finite number. | Correct the value. |
+| `ACL-VERTICAL-UOM-UNSUPPORTED`, `ACL-VERTICAL-REFERENCE-UNSUPPORTED` | Vertical unit or reference outside the AIXM / UCUM codes. | Use `FL`, `M`, `[ft_i]`... with `STD`, `MSL`, `SFC`... |
+| `ACL-OPERATOR-INVALID` | A relational operator other than `ABOVE` / `BELOW`. | Correct the value. |
+| `ACL-RVR-TENDENCY-INVALID` | An RVR tendency that is not an official code. | Correct the value. |
+| `ACL-ASH-DENSITY-MISSING`, `ACL-VOLCANO-NAME-MISSING` | Mandatory QVACI density / volcano name absent. | Supply the element. |
+| `ACL-VAA-STATUS-INVALID`, `ACL-TCA-VALUE-INVALID` | A VAA conditions status / TCA trend value outside the official set. | Correct the value. |
+| `DOMAIN-ISSUE-TIME-MISSING`, `DOMAIN-TIME-NOT-UTC` | A default issue time was supplied / a `*Utc` value has a non-zero offset. | Pass a real UTC time. |
+| `DOMAIN-REPORT-STATUS-INVALID`, `DOMAIN-PERMISSIBLE-USAGE-INVALID`, `DOMAIN-PERMISSIBLE-USAGE-REASON-INVALID` | An undefined enumeration value reached an aggregate factory. | Use the defined enum members. |
+
+### Geometry
+
+| Code | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- |
+| `GML-EMPTY-POS`, `GML-EMPTY-POSLIST`, `GML-POINT-EMPTY`, `GML-POSLIST-EMPTY` | A `gml:pos` / `gml:posList` / point is empty. | Supply coordinates. |
+| `GML-INVALID-COORD-NUMBER` | A coordinate is not a valid number. | Correct the token. |
+| `GML-UNBALANCED-POSLIST` | The number of values is not a multiple of the dimension. | Correct the list. |
+| `GML-INVALID-POINT` | A point does not have the expected number of values. | Correct the position. |
+| `GML-UNSUPPORTED-SRSDIM` | An `srsDimension` other than 2 or 3. | Use 2 or 3. |
+| `ACL-CRS-UNSUPPORTED`, `ACL-CRS-AXIS-LABELS-UNSUPPORTED`, `ACL-CRS-DIMENSION-UNSUPPORTED` | A CRS, axis-label set or dimension other than the supported WGS84 forms; axes are never guessed. | Use `CRS84` / `EPSG:4326` with a supported axis order. |
+| `ACL-CIRCLE-RADIUS-MISSING` | A `gml:CircleByCenterPoint` has no radius. | Supply `gml:radius`. |
+| `ACL-GEOMETRY-SEGMENT-UNSUPPORTED` | A curve segment that is not a sequence of positions (for example an arc) in a ring; it is not approximated. | Use `LineStringSegment`. |
+| `ACL-GML-MULTI-PATCH-UNSUPPORTED` | A surface with several `gml:PolygonPatch` where the report holds a single surface (en-route volumes, ash cloud contours). The first patch is not silently used. Space weather regions keep every patch. | Send one patch per volume. |
+| `ACL-GML-INTERIOR-RING-UNREADABLE` | A `gml:interior` ring without readable positions; the hole is not dropped silently. | Correct or remove the ring. |
+| `ACL-RING-EMPTY`, `ACL-CURVE-EMPTY`, `ACL-CURVE-NO-SEGMENTS`, `ACL-VOLUME-NO-PATCH` | A SIGWX ring, curve or volume without geometry. | Supply the geometry. |
+| `GEO-INVALID-LAT`, `GEO-INVALID-LON` | A coordinate outside [-90, 90] / [-180, 180] or not finite. | Correct the value. |
+| `GEO-POLYGON-MIN-VERTICES`, `GEO-POLYGON-DEGENERATE`, `GEO-POLYGON-HOLE-DEGENERATE`, `GEO-CIRCLE-RADIUS-INVALID` | Degenerate polygon, hole or circle. | Provide at least 4 closed positions per ring and a positive radius. |
+
+### SIGWX / WAFS content (`DomainMapping`)
+
+| Code | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- |
+| `ACL-SIGWX-FEATURE-BY-REFERENCE` | A feature given only by a reference to an external resource was skipped (warning). | Inline the feature. |
+| `ACL-SIGWX-PHENOMENON-UNSUPPORTED` | A phenomenon type the SIGWX mapper does not know (warning, feature skipped). | Not an IWXXM 2025-2 WAFS phenomenon. |
+| `ACL-MISSING-FLIGHT-LEVEL`, `ACL-MISSING-WIND-SPEED` | A required vertical limit / wind speed is missing. | Supply the element. |
+| `ACL-JETSTREAM-MISSING-FL`, `ACL-JS-CORE-FL`, `ACL-WAFS-JS-MISSING-ELEVATION`, `ACL-WAFS-JS-NO-WIND-SYMBOLS` | A jet stream, its core point or a wind symbol misses a level, elevation or wind symbols. | Supply the elements. |
+| `ACL-TROPOPAUSE-MISSING-FL`, `ACL-WAFS-TROPO-MISSING-LEVEL` | A tropopause spot height / feature misses its level. | Supply the level. |
+| `ACL-WAFS-MISSING-VOLUME`, `ACL-WAFS-MISSING-UPPER-ELEV`, `ACL-CLOUD-MISSING-TOP` | A feature misses its volume, the mandatory upper elevation, or a cloud its top. | Supply the elements. |
+| `ACL-VOLCANO-ACTIVITY-INVALID` | A volcano `activityStatus` outside the official set. | Correct the value. |
+| `DOMAIN-SIGWX-ID`, `DOMAIN-SIGWX-CENTRE`, `DOMAIN-SIGWX-VALID-PERIOD`, `DOMAIN-SIGWX-VERTICAL-LIMITS`, `DOMAIN-SIGWX-NO-FEATURE` | The chart misses its identifier, centre, validity or vertical limits, or has no mapped feature. | Supply the content. |
+| `DOMAIN-CLOUD-ID`, `DOMAIN-CLOUD-AREA`, `DOMAIN-CLOUD-VERTICAL-EXTENT` | Cloud feature without id / area, or whose top is not above its base. | Correct the feature. |
+| `DOMAIN-ICING-ID`, `DOMAIN-ICING-AREA`, `DOMAIN-ICING-VERTICAL-EXTENT` | Same checks for icing. | Correct the feature. |
+| `DOMAIN-TURBULENCE-ID`, `DOMAIN-TURBULENCE-AREA`, `DOMAIN-TURBULENCE-VERTICAL-EXTENT` | Same checks for turbulence. | Correct the feature. |
+| `DOMAIN-JETSTREAM-ID`, `DOMAIN-JETSTREAM-TRAJECTORY`, `DOMAIN-JETSTREAM-SPEED` | Jet stream without id / trajectory, or below the 80 kt ICAO threshold. | Correct the feature. |
+| `DOMAIN-TROPOPAUSE-ID`, `DOMAIN-TROPOPAUSE-EMPTY` | Tropopause feature without id or content. | Correct the feature. |
+| `DOMAIN-RADIATION-ID`, `DOMAIN-SANDSTORM-ID` | Point feature without id. | Supply `gml:id`. |
+
+### Aggregates and value objects (`DomainMapping`)
+
+| Code | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- |
+| `DOMAIN-METAR-ID`, `DOMAIN-METAR-AERODROME`, `DOMAIN-TAF-ID`, `DOMAIN-TAF-AERODROME` | Aerodrome report without id or aerodrome designator. | Supply the element. |
+| `DOMAIN-TAF-VALID-PERIOD`, `DOMAIN-TAF-CANCELLED-VALID-PERIOD`, `DOMAIN-FORECAST-GROUP-PERIOD` | End of a period not strictly after its start. | Correct the period. |
+| `DOMAIN-SIGMET-ID`, `DOMAIN-SIGMET-ATS-UNIT`, `DOMAIN-SIGMET-VALID-PERIOD`, `DOMAIN-SIGMET-CANCELLED-VALID-PERIOD` | SIGMET without id / ATS unit, or with an invalid period. | Correct the report. |
+| `DOMAIN-AIRMET-ID`, `DOMAIN-AIRMET-ATS-UNIT`, `DOMAIN-AIRMET-VALID-PERIOD`, `DOMAIN-AIRMET-CANCELLED-VALID-PERIOD`, `DOMAIN-AIRMET-CANCEL-CONTENT`, `DOMAIN-AIRMET-CONDITION-NULL` | AIRMET without id / ATS unit, with an invalid period, content in a cancellation, or a null condition. | Correct the report. |
+| `DOMAIN-VAA-ID`, `DOMAIN-VAA-CONDITIONS-NULL`, `DOMAIN-VOLCANO-ID`, `DOMAIN-VONA-ID`, `DOMAIN-QVACI-ID` | Volcanic ash products without id or with null conditions. | Correct the report. |
+| `DOMAIN-TC-ID`, `DOMAIN-TC-NAME`, `DOMAIN-TCA-ID`, `DOMAIN-SWX-ID` | Tropical cyclone / space weather products without id or name. | Correct the report. |
+| `DOMAIN-BULLETIN-ID`, `DOMAIN-BULLETIN-IDENTIFIER`, `DOMAIN-BULLETIN-EMPTY` | Bulletin without `gml:id` / `bulletinIdentifier`, or with no successfully mapped report. | Correct the envelope; the entry errors are returned together with this code. |
+| `DOMAIN-DIRECTION-OUT-OF-RANGE`, `DOMAIN-NEGATIVE-SPEED`, `DOMAIN-NEGATIVE-VISIBILITY`, `DOMAIN-NEGATIVE-RVR` | Physical ranges: direction within [0, 360] degrees, non-negative magnitudes. | Correct the value. |
+| `DOMAIN-FL-INVALID-UOM`, `DOMAIN-FL-MISSING-UOM`, `DOMAIN-FL-OUT-OF-RANGE`, `DOMAIN-VERTICAL-LIMIT-INVALID` | Flight level or vertical limit with an invalid unit or value (non-finite, negative flight level...). | Correct the value. |
 
 ### Locations of findings
 

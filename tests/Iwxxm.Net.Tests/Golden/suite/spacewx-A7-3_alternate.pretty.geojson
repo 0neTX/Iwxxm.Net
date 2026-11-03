@@ -33,6 +33,28 @@
     },
     {
       "type": "Feature",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.34415dca-6fab-45e4-8225-c45960b1e9d2#poly-2",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[97, 56.3], [92.9, 51.9], [89.5, 47.4], [86.7, 42.9], [84.3, 38.2], [82.1, 33.5], [80.7, 30], [80.2, 28.8], [78.4, 24.1], [76.8, 19.3], [75.3, 14.5], [73.8, 9.7], [72.3, 4.9], [70.9, 0.1], [70.9, 0], [69.5, -4.7], [68, -9.5], [66.6, -14.3], [65, -19.1], [63.4, -23.9], [61.6, -28.6], [61, -30], [59.6, -33.4], [57.5, -38.1], [55, -42.7], [52.1, -47.3], [48.7, -51.8], [44.6, -56.1], [39.8, -60], [180, -60], [180, 60], [101.5, 60], [97, 56.3]]
+        ]
+      },
+      "properties": {
+        "featureType": "SPACE_WEATHER_REGION",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/1",
+        "timeIndicator": "OBSERVATION",
+        "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "intensity": "SEV",
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH", "http://codes.wmo.int/49-2/SpaceWxLocation/EQN", "http://codes.wmo.int/49-2/SpaceWxLocation/EQS", "http://codes.wmo.int/49-2/SpaceWxLocation/MSH", "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"]
+      }
+    },
+    {
+      "type": "Feature",
       "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.c1bfa3fa-9728-4d82-b629-059d6d340267#poly-1",
       "geometry": {
         "type": "Polygon",

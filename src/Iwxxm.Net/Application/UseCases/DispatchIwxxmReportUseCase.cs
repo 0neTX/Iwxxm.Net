@@ -39,7 +39,7 @@ namespace Iwxxm.Net.Application.UseCases
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
 
-            return ProcessBuffered(BoundedDocumentBuffer.Read(xmlStream, _options, emptyCode: "STREAM-EMPTY", unreadableCode: "STREAM-UNREADABLE"));
+            return ProcessBuffered(BoundedDocumentBuffer.Read(xmlStream, _options));
         }
 
         public Result<IwxxmDocument> Process(TextReader xmlText)
@@ -47,7 +47,7 @@ namespace Iwxxm.Net.Application.UseCases
             if (xmlText == null)
                 throw new ArgumentNullException(nameof(xmlText));
 
-            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: "XML-EMPTY-STRING"));
+            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: SharedErrorCodes.XmlEmptyString));
         }
 
         private Result<IwxxmDocument> ProcessBuffered(Result<byte[]> buffered)

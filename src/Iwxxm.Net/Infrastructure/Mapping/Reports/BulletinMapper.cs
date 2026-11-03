@@ -30,11 +30,35 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 if (reportElem == null)
                     continue;
 
-                childResults.Add(mapReport(reportElem));
-                itemIds.Add(reportElem.Attribute(GmlNs + "id")?.Value);
+                string? itemId = reportElem.Attribute(GmlNs + "id")?.Value;
+                childResults.Add(MapIsolated(mapReport, reportElem, itemIds.Count, itemId));
+                itemIds.Add(itemId);
             }
 
             return MeteorologicalBulletin.Create(id, bulletinIdentifier, childResults, itemIds);
         }
+
+        /// <summary>
+        /// Maps one entry so that an exception thrown by a report mapper (including a custom one) becomes a
+        /// <c>MAPPER-ERROR</c> of that entry only. <see cref="OutOfMemoryException"/> is not a mapping outcome and is rethrown.
+        /// </summary>
+        private static Result<IwxxmReport> MapIsolated(Func<XElement, Result<IwxxmReport>> mapReport, XElement reportElem, int index, string? itemId)
+        {
+            try
+            {
+                return mapReport(reportElem) ?? Fail(index, itemId, "The report mapper returned no result.");
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
+            {
+                return Fail(index, itemId, "The report mapper threw " + ex.GetType().Name + ": " + ex.Message);
+            }
+        }
+
+        private static Result<IwxxmReport> Fail(int index, string? itemId, string detail) =>
+            Result<IwxxmReport>.Failure(
+                SharedErrorCodes.MapperError,
+                "The report of entry #" + index + (itemId == null ? string.Empty : " ('" + itemId + "')") + " could not be mapped. " + detail,
+                ErrorCategory.DomainMapping,
+                itemId);
     }
 }

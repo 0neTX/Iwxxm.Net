@@ -236,7 +236,15 @@ namespace Iwxxm.Net.Infrastructure.Validation
             }
 
             XmlSchemaSet official = CompiledOfficialSchemaSet.Value;
-            if (!official.GlobalElements.Contains(rootName))
+            // GlobalElements reads the shared set, which XmlSchemaSet does not guarantee to be thread-safe: read it under
+            // the same per-set lock that serialises validation (see ValidateAgainst).
+            bool declared;
+            lock (official)
+            {
+                declared = official.GlobalElements.Contains(rootName);
+            }
+
+            if (!declared)
             {
                 errors.Add(new ValidationError(
                     code: "XSD-UNKNOWN-ROOT-ELEMENT",

@@ -8,6 +8,10 @@ namespace Iwxxm.Net.Validation.Saxon.Internal
     /// destination of the Schematron transform so that a document producing a huge report cannot exhaust memory: the
     /// write that crosses the limit throws <see cref="OutputLimitExceededException"/> and the transform is abandoned.
     /// </summary>
+    /// <remarks>
+    /// Intentional copy: this type exists twice, here and in <c>Iwxxm.Net/Infrastructure/Validation/BoundedOutputStream.cs</c>. The Saxon package references only the public API of the core and its internals are not visible to it (and must stay non-public), so it carries its own copy.
+    /// Keep both copies in sync when changing either one.
+    /// </remarks>
     internal sealed class BoundedOutputStream : Stream
     {
         private readonly MemoryStream _buffer = new MemoryStream();

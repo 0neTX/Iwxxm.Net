@@ -9,7 +9,7 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     /// <remarks>
     /// Latitude and longitude are quantized <b>once</b>, at construction, to <see cref="Precision"/> (7 decimal
-    /// degrees, about 1.1 cm at the equator; rounding is half away from zero and negative zero is normalized).
+    /// degrees, about 1.1 cm at the equator; rounding is half away from zero, computed with runtime-independent IEEE 754 arithmetic, and negative zero is normalized).
     /// Equality then compares the stored values exactly, so <see cref="Equals(GeoCoordinate)"/> is reflexive,
     /// symmetric and transitive and always agrees with <see cref="GetHashCode"/>.
     /// </remarks>
@@ -78,10 +78,22 @@ namespace Iwxxm.Net.Reports
             }
         }
 
-        private static double Quantize(double degrees)
+        /// <summary>
+        /// Rounds to <see cref="DecimalPlaces"/> decimals, half away from zero, using only IEEE 754 multiplication,
+        /// addition, <see cref="Math.Floor(double)"/> and division. These operations are exactly specified, so the result
+        /// is identical on .NET Framework and .NET Core/.NET (<c>Math.Round(double, int, MidpointRounding)</c> is not: its
+        /// algorithm differs between runtimes at exact midpoints). The input is range-checked by the caller (|x| &lt;= 180),
+        /// so the scaled value stays below 2^31 and adding 0.5 is exact.
+        /// </summary>
+        internal static double Quantize(double degrees)
         {
-            double rounded = Math.Round(degrees, DecimalPlaces, MidpointRounding.AwayFromZero);
-            return rounded == 0.0 ? 0.0 : rounded; // normalize negative zero so that Equals and GetHashCode agree
+            const double Scale = 1e7; // 10^DecimalPlaces
+            double scaled = Math.Floor((Math.Abs(degrees) * Scale) + 0.5);
+            if (scaled == 0.0)
+                return 0.0; // also normalizes negative zero so that Equals and GetHashCode agree
+
+            double magnitude = scaled / Scale;
+            return degrees < 0.0 ? -magnitude : magnitude;
         }
 
         public static bool operator ==(GeoCoordinate left, GeoCoordinate right) => left.Equals(right);

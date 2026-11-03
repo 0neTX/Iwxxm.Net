@@ -136,7 +136,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                         break;
                     default:
                         return Result<List<GeoCoordinate>>.Failure(
-                            "ACL-GEOMETRY-SEGMENT-UNSUPPORTED",
+                            Xml.MappingErrors.UnsupportedSegmentCode,
                             $"Curve at '{context}' contains a '{segment.GetType().Name}' segment, which is not a sequence of positions; it is not approximated.",
                             ErrorCategory.DomainMapping,
                             context);
@@ -274,7 +274,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             if (!radius.HasValue)
             {
                 return Result<GeoCircle>.Failure(
-                    "ACL-CIRCLE-RADIUS-MISSING",
+                    Xml.MappingErrors.CircleRadiusMissingCode,
                     $"The circle at '{context}' has no gml:radius; no radius is assumed.",
                     ErrorCategory.DomainMapping,
                     context);

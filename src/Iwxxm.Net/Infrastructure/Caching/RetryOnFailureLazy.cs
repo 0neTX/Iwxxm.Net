@@ -12,6 +12,10 @@ namespace Iwxxm.Net.Infrastructure.Caching
     /// when it throws, the exception propagates to that caller and the next access runs the factory again.
     /// </para>
     /// </summary>
+    /// <remarks>
+    /// Intentional copy: this type exists twice, here and in <c>Iwxxm.Net.Validation.Saxon/Internal/RetryOnFailureLazy.cs</c>. The core package has zero runtime dependencies and the Saxon package must not rely on the core's internals, and the types must not become public API, so neither project can reference the other's copy.
+    /// Keep both copies in sync when changing either one.
+    /// </remarks>
     /// <typeparam name="T">Type of the cached value.</typeparam>
     internal sealed class RetryOnFailureLazy<T>
         where T : class

@@ -552,7 +552,7 @@ MalformedInput: XML-MALFORMED
 
 | `ErrorCategory` | Typical codes | What happened |
 | :--- | :--- | :--- |
-| `MalformedInput` | `FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, `XML-EMPTY-STRING`, `XML-SIZE-LIMIT`, `XML-MALFORMED`, `STREAM-*` | The bytes never became a usable XML document. |
+| `MalformedInput` | `FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, `XML-EMPTY-STRING`, `XML-SIZE-LIMIT`, `XML-MALFORMED`, `STREAM-EMPTY`, `STREAM-UNREADABLE`, `STREAM-READ-ERROR` | The bytes never became a usable XML document. |
 | `SchemaViolation` | `XSD-UNKNOWN-ROOT-ELEMENT`, `XSD-*`, `XSD-TOO-MANY-ERRORS` | Well-formed XML that breaks the official schema. |
 | `BusinessRuleViolation` | official rule ids such as `METAR_SPECI.MeteorologicalAerodromeObservation-1`, `SCHEMATRON-UNAVAILABLE`, `SCHEMATRON-REPORT-SIZE-LIMIT` | A Schematron or code-list rule failed. |
 | `Deserialization` | `DISPATCH-NOT-A-BULLETIN`, `XML-UNSUPPORTED-ROOT`, `XML-UNSUPPORTED-REPORT`, `XML-DESERIALIZATION-ERROR`, `COLLECT-NESTED-BULLETIN` | Valid document, but of a shape the requested entry point or mapper does not handle. |
@@ -588,7 +588,7 @@ XML-MALFORMED              -> reject the message: the sender sent garbage
 XSD-UNKNOWN-ROOT-ELEMENT   -> reject the message: it is not valid IWXXM 2025-2
 ```
 
-The complete table of codes is in the [reference](REFERENCE.md#error-codes).
+The complete table of codes, with meaning, typical cause and remediation, is in the [reference](REFERENCE.md#error-codes); a test fails if a code emitted by the library is missing from it.
 
 ## 8. GeoJSON export
 

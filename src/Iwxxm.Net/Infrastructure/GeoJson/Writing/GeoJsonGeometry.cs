@@ -21,9 +21,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
         /// <summary>Rounds a computed position to the <see cref="GeoCoordinate.Precision"/> grid used by the Domain.</summary>
         public static GeoJsonPosition Computed(double lon, double lat) =>
-            new GeoJsonPosition(
-                Math.Round(lon, GeoCoordinate.DecimalPlaces, MidpointRounding.AwayFromZero) + 0.0,
-                Math.Round(lat, GeoCoordinate.DecimalPlaces, MidpointRounding.AwayFromZero) + 0.0);
+            new GeoJsonPosition(GeoCoordinate.Quantize(lon), GeoCoordinate.Quantize(lat));
 
         public bool Equals(GeoJsonPosition other) => Lon.Equals(other.Lon) && Lat.Equals(other.Lat);
 
@@ -75,6 +73,19 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
         /// <summary>Gets a value indicating whether the source geometry crossed the antimeridian (RFC 7946 §3.1.9).</summary>
         public bool CrossesAntimeridian { get; }
+
+        /// <summary>
+        /// Number of source interior rings that could not be represented and were left out (a hole of a polygon that
+        /// encloses a pole but is not entirely inside the written polar cap). Written as the feature property
+        /// <c>droppedInteriorRings</c> when positive.
+        /// </summary>
+        public int DroppedInteriorRings { get; private set; }
+
+        public GeoJsonGeometry WithDroppedInteriorRings(int count)
+        {
+            DroppedInteriorRings = count;
+            return this;
+        }
 
         public string TypeName => Type.ToString();
 

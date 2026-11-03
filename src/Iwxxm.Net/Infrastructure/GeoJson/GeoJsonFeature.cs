@@ -16,6 +16,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             Id = id;
             Geometry = geometry;
             Properties = properties;
+            if (geometry != null && geometry.DroppedInteriorRings > 0)
+                properties.Add(("droppedInteriorRings", geometry.DroppedInteriorRings));
         }
 
         public string Id { get; }
@@ -61,15 +63,17 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
 
             var polygons = new List<IReadOnlyList<IReadOnlyList<GeoJsonPosition>>>();
             bool crosses = false;
+            int dropped = 0;
             foreach (GeoSurface surface in surfaces)
             {
                 GeoJsonGeometry geometry = GeoJsonGeometryFactory.Surface(surface);
                 polygons.AddRange(geometry.Polygons!);
                 crosses |= geometry.CrossesAntimeridian;
+                dropped += geometry.DroppedInteriorRings;
             }
 
             properties.Add(("patchCount", surfaces.Count));
-            return new GeoJsonFeature(id, GeoJsonGeometry.ForPolygons(polygons, crosses), properties);
+            return new GeoJsonFeature(id, GeoJsonGeometry.ForPolygons(polygons, crosses).WithDroppedInteriorRings(dropped), properties);
         }
 
         public static GeoJsonFeature WithoutGeometry(string id, List<(string Key, object? Value)> properties) =>
