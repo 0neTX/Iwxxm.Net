@@ -4,24 +4,24 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
   workflow_dispatch:
 
+# Least privilege (AUD-M19): read-only by default; only the publish job may write packages.
 permissions:
   contents: read
-  packages: write
 
 env:
+  # Version of untagged builds (pull requests, main): prerelease artifacts that are never published.
   VERSION_PREFIX: '1.0.0'
-  PACKAGE_VERSION: '1.0.0-rc.${{ github.run_number }}'
-  FILE_VERSION: '1.0.0.${{ github.run_number }}'
-  DOTNET_ROLL_FORWARD: 'Major'
 
 jobs:
   build-and-test:
-    name: Build & Test (${{ matrix.os }}) — v1.0.0-rc.${{ github.run_number }}
+    name: Build & Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -40,8 +40,24 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Restore local .NET tools
-        run: dotnet tool restore
+      # Tag-based versioning without extra dependencies (AUD-M19): a tag vX.Y.Z[-suffix] is the package version;
+      # any other build is the prerelease VERSION_PREFIX-ci.<run_number>.<attempt> (built and tested, never published).
+      - name: Compute package version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            version="${GITHUB_REF#refs/tags/v}"
+            if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::Tag '${GITHUB_REF#refs/tags/}' is not a semantic version (vMAJOR.MINOR.PATCH[-PRERELEASE])"
+              exit 1
+            fi
+          else
+            version="${VERSION_PREFIX}-ci.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          fi
+          core="${version%%-*}"
+          echo "PACKAGE_VERSION=${version}" >> "$GITHUB_ENV"
+          echo "FILE_VERSION=${core}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "Package version: ${version}"
 
       - name: Restore NuGet dependencies
         run: dotnet restore Iwxxm.Net.slnx
@@ -106,9 +122,10 @@ jobs:
           if-no-files-found: error
 
   publish-github-packages:
-    name: Publish v1.0.0-rc.${{ github.run_number }} to GitHub Packages
+    name: Publish to GitHub Packages
     needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Publish only release tags (vX.Y.Z) or a deliberate manual run; pushes to main and pull requests never publish.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -133,4 +150,3 @@ jobs:
           dotnet nuget push "./artifacts/*.nupkg"
           --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
           --api-key "$GITHUB_TOKEN"
-          --skip-duplicate
