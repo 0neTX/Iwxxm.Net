@@ -344,6 +344,26 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
             Assert.Equal(OfficialSchematronValidator.TooManyErrorsCode, result.Errors[1].Code);
         }
 
+        [Fact]
+        public void DeepNesting_InvokedDirectly_IsRejectedByTheDepthLimit_BeforeSaxonBuildsATree()
+        {
+            const string open = "<c:M><c:B>";
+            const string close = "</c:B></c:M>";
+            var deep = new StringBuilder("<c:B xmlns:c=\"http://def.wmo.int/collect/2014\">");
+            for (int i = 0; i < 100000; i++)
+                deep.Append(open);
+            for (int i = 0; i < 100000; i++)
+                deep.Append(close);
+            deep.Append("</c:B>");
+
+            ValidationError error = Assert.Single(Validate(deep.ToString()));
+
+            Assert.Equal("XML-DEPTH-LIMIT", error.Code);
+            Assert.Equal(ErrorCategory.MalformedInput, error.Category);
+            Assert.Contains("128", error.Message, StringComparison.Ordinal);
+            Assert.True(error.LineNumber > 0);
+        }
+
         private static IReadOnlyList<ValidationError> ValidateFile(string fileName)
         {
             return Validator.Validate(new IwxxmDocumentContext(File.ReadAllBytes(Path.Combine(ExamplesDirectory, fileName))));

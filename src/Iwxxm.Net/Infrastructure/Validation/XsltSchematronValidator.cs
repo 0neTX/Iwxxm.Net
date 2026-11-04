@@ -100,7 +100,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 try
                 {
                     using (Stream input = document.OpenRead())
-                    using (XmlReader inputReader = XmlReader.Create(input, SecureXml.InputSettings(document.Options)))
+                    using (XmlReader inputReader = SecureXml.CreateReader(input, document.Options))
                     using (XmlWriter svrlWriter = XmlWriter.Create(svrlOutput, compiled.OutputSettings))
                     {
                         compiled.Transform(inputReader, null, svrlWriter, SharedRuleDocuments);
@@ -117,14 +117,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
                 }
                 catch (XmlException ex)
                 {
-                    errors.Add(new ValidationError(
-                        code: "XML-MALFORMED",
-                        message: ex.Message,
-                        category: ErrorCategory.MalformedInput,
-                        severity: ValidationSeverity.Error,
-                        location: null,
-                        lineNumber: ex.LineNumber,
-                        linePosition: ex.LinePosition));
+                    errors.Add(SecureXml.Malformed(ex));
                     return errors;
                 }
                 catch (XsltException ex)

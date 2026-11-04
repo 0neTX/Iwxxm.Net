@@ -10,7 +10,7 @@ namespace Iwxxm.Net
     public sealed class IwxxmParserOptions
     {
         /// <summary>
-        /// Default production-hardened parser options (50 MiB maximum stream payload, 52,428,800 maximum XML characters, 1024 entity character cap).
+        /// Default production-hardened parser options (50 MiB maximum stream payload, 52,428,800 maximum XML characters, 1024 entity character cap, 128 element depth).
         /// </summary>
         public static readonly IwxxmParserOptions Default = new IwxxmParserOptions();
 
@@ -49,12 +49,23 @@ namespace Iwxxm.Net
         /// </summary>
         public long MaxRuleReportBytes { get; }
 
+        /// <summary>
+        /// Maximum element nesting depth of an input document; the root element has depth 1. A document that nests deeper is
+        /// rejected with <c>XML-DEPTH-LIMIT</c> by a streaming check of the single read, before any tree is built or
+        /// validated. Defaults to <c>128</c>: real IWXXM products nest at most about 20 levels (the largest sample, a 14 MB
+        /// SIGWX product, reaches 16), so the default leaves a margin of more than six times, while the .NET XML tree
+        /// validation overflows the stack (an uncatchable process crash) at about 24,500 levels of a schema-valid nested
+        /// <c>collect:MeteorologicalBulletin</c>. Raise it consciously for legitimate deeper documents (see <c>docs/SECURITY.md</c>).
+        /// </summary>
+        public int MaxElementDepth { get; }
+
         public IwxxmParserOptions(
             long maxDocumentBytes = 50L * 1024L * 1024L,
             long maxCharactersInDocument = 52_428_800L,
             long maxCharactersFromEntities = 1024L,
             int maxValidationErrors = 100,
-            long maxRuleReportBytes = 4L * 1024L * 1024L)
+            long maxRuleReportBytes = 4L * 1024L * 1024L,
+            int maxElementDepth = 128)
         {
             if (maxDocumentBytes <= 0)
                 throw new ArgumentOutOfRangeException(nameof(maxDocumentBytes), "Maximum document byte limit must be positive.");
@@ -66,12 +77,15 @@ namespace Iwxxm.Net
                 throw new ArgumentOutOfRangeException(nameof(maxValidationErrors), "Maximum validation errors must be positive.");
             if (maxRuleReportBytes <= 0)
                 throw new ArgumentOutOfRangeException(nameof(maxRuleReportBytes), "Maximum rule report size must be positive.");
+            if (maxElementDepth <= 0)
+                throw new ArgumentOutOfRangeException(nameof(maxElementDepth), "Maximum element depth must be positive.");
 
             MaxDocumentBytes = maxDocumentBytes;
             MaxCharactersInDocument = maxCharactersInDocument;
             MaxCharactersFromEntities = maxCharactersFromEntities;
             MaxValidationErrors = maxValidationErrors;
             MaxRuleReportBytes = maxRuleReportBytes;
+            MaxElementDepth = maxElementDepth;
         }
     }
 }

@@ -28,6 +28,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Iwxxm.Net.Tests" />
     <InternalsVisibleTo Include="Iwxxm.Net.Benchmarks" />
+    <!-- The optional Saxon package reads the instance through the same depth-limited reader (SecureXml.CreateReader). -->
+    <InternalsVisibleTo Include="Iwxxm.Net.Validation.Saxon" />
   </ItemGroup>
 
   <!--

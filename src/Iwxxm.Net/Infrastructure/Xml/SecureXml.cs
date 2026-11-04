@@ -18,6 +18,7 @@ namespace Iwxxm.Net.Infrastructure.Xml
     {
         internal const string MalformedCode = "XML-MALFORMED";
         internal const string NoRootCode = "XML-NO-ROOT-ELEMENT";
+        internal const string DepthLimitCode = "XML-DEPTH-LIMIT";
 
         public static readonly SecureXml Parser = new SecureXml();
 
@@ -31,6 +32,19 @@ namespace Iwxxm.Net.Infrastructure.Xml
                 MaxCharactersFromEntities = options.MaxCharactersFromEntities,
                 CloseInput = false
             };
+
+        /// <summary>
+        /// Creates the reader every consumer of an untrusted input stream must use: hardened settings
+        /// (<see cref="InputSettings"/>) plus the <see cref="IwxxmParserOptions.MaxElementDepth"/> check, which throws an
+        /// <see cref="XmlException"/> (<see cref="ElementDepthLimitException"/>) at the first element nested too deep.
+        /// </summary>
+        public static ElementDepthLimitedReader CreateReader(Stream stream, IwxxmParserOptions options, string? baseUri = null)
+        {
+            XmlReader reader = baseUri == null
+                ? XmlReader.Create(stream, InputSettings(options))
+                : XmlReader.Create(stream, InputSettings(options), baseUri);
+            return new ElementDepthLimitedReader(reader, options.MaxElementDepth);
+        }
 
         /// <summary>
         /// Gets the parsed document of <paramref name="document"/> (parsed once, with line information, and cached in the
@@ -62,7 +76,7 @@ namespace Iwxxm.Net.Infrastructure.Xml
 
         public static ValidationError Malformed(XmlException ex) =>
             new ValidationError(
-                MalformedCode,
+                ex is ElementDepthLimitException ? DepthLimitCode : MalformedCode,
                 ex.Message,
                 ErrorCategory.MalformedInput,
                 ValidationSeverity.Error,
@@ -74,7 +88,7 @@ namespace Iwxxm.Net.Infrastructure.Xml
         {
             XDocument parsed;
             using (Stream stream = document.OpenRead())
-            using (XmlReader reader = XmlReader.Create(stream, InputSettings(document.Options)))
+            using (XmlReader reader = CreateReader(stream, document.Options))
             {
                 parsed = XDocument.Load(reader, LoadOptions.SetLineInfo);
             }

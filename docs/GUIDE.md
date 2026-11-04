@@ -518,6 +518,7 @@ IWXXM arrives from networks, so the parser enforces limits *before* it allocates
 | `MaxCharactersFromEntities` | 1,024 | Cap on entity expansion. |
 | `MaxValidationErrors` | 100 | Findings reported per validator, then a `...-TOO-MANY-ERRORS` sentinel. |
 | `MaxRuleReportBytes` | 4 MiB | Size cap of the Schematron SVRL report. |
+| `MaxElementDepth` | 128 | Deepest accepted element nesting (root = 1); a deeper document fails with `XML-DEPTH-LIMIT` before any tree is built. Real products need at most about 20. |
 
 DTDs are always refused and no external resource is ever resolved; XML bombs and XXE attacks cannot even start.
 
@@ -552,7 +553,7 @@ MalformedInput: XML-MALFORMED
 
 | `ErrorCategory` | Typical codes | What happened |
 | :--- | :--- | :--- |
-| `MalformedInput` | `FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, `XML-EMPTY-STRING`, `XML-SIZE-LIMIT`, `XML-MALFORMED`, `STREAM-EMPTY`, `STREAM-UNREADABLE`, `STREAM-READ-ERROR` | The bytes never became a usable XML document. |
+| `MalformedInput` | `FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, `XML-EMPTY-STRING`, `XML-SIZE-LIMIT`, `XML-DEPTH-LIMIT`, `XML-MALFORMED`, `STREAM-EMPTY`, `STREAM-UNREADABLE`, `STREAM-READ-ERROR` | The bytes never became a usable XML document. |
 | `SchemaViolation` | `XSD-UNKNOWN-ROOT-ELEMENT`, `XSD-*`, `XSD-TOO-MANY-ERRORS` | Well-formed XML that breaks the official schema. |
 | `BusinessRuleViolation` | official rule ids such as `METAR_SPECI.MeteorologicalAerodromeObservation-1`, `SCHEMATRON-UNAVAILABLE`, `SCHEMATRON-REPORT-SIZE-LIMIT` | A Schematron or code-list rule failed. |
 | `Deserialization` | `DISPATCH-NOT-A-BULLETIN`, `XML-UNSUPPORTED-ROOT`, `XML-UNSUPPORTED-REPORT`, `XML-DESERIALIZATION-ERROR`, `COLLECT-NESTED-BULLETIN` | Valid document, but of a shape the requested entry point or mapper does not handle. |

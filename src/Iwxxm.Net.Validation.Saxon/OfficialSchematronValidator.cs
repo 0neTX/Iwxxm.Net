@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Infrastructure.Xml;
 using Iwxxm.Net.Validation.Saxon.Internal;
 using Saxon.Api;
 
@@ -94,19 +95,25 @@ namespace Iwxxm.Net.Validation.Saxon
             }
 
             XdmNode input;
+            ElementDepthLimitedReader? depthReader = null;
             try
             {
                 DocumentBuilder builder = engine.Processor.NewDocumentBuilder();
                 builder.BaseUri = InputBaseUri;
                 using (Stream source = document.OpenRead())
-                using (XmlReader reader = XmlReader.Create(source, OfficialSchematronEngine.HardenedReaderSettings(document.Options), InputBaseUri.AbsoluteUri))
+                using (ElementDepthLimitedReader reader = depthReader = SecureXml.CreateReader(source, document.Options, InputBaseUri.AbsoluteUri))
                 {
                     input = builder.Build(reader);
                 }
             }
             catch (Exception ex)
             {
+                // Saxon wraps the exception of its reader and keeps only the text: the depth-limit exception is recovered from the reader.
+                if (depthReader?.Exceeded != null)
+                    return new[] { SecureXml.Malformed(depthReader.Exceeded) };
+
                 XmlException? xmlError = ex as XmlException ?? ex.InnerException as XmlException;
+
                 return new[]
                 {
                     new ValidationError(
