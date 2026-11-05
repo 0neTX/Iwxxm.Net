@@ -91,18 +91,23 @@ RUN perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
 
 # ==============================================================================
 # Stage 5: artifacts — Exportable scratch stage for host extraction
-# Usage: docker build --target artifacts --output type=local,dest=./artifacts .
+# Usage: podman build --target artifacts --output type=local,dest=./artifacts .   (docker build works the same)
 # ==============================================================================
 FROM scratch AS artifacts
 COPY --from=pack /workspace/artifacts/ /
 
 # ==============================================================================
-# Optional stages (AUD-M17): the net48 target of the core test project.
-# Not part of the default build. `net48-compile` compiles it against the reference assemblies
-# (Microsoft.NETFramework.ReferenceAssemblies); `net48-test` also runs it under Mono with the xunit console runner
-# (a Mono approximation of .NET Framework; the Windows CI job is the real .NET Framework run).
-# Usage: podman build --target net48-compile .   |   podman build --target net48-test .
+# Stages 5a and 5b (optional, AUD-M17): the net48 target of the core test project. They are lettered additions to
+# the numbered sequence (1 to 6), not renumbered stages, and are not part of the default build.
+#   5a `net48-compile` compiles the net48 target against the reference assemblies (Microsoft.NETFramework.ReferenceAssemblies).
+#   5b `net48-test` also runs it under Mono with the xunit console runner (a Mono approximation of .NET Framework;
+#      the Windows CI job is the real .NET Framework run).
+# Usage: podman build --target net48-compile .   |   podman build --target net48-test .   (docker build works the same)
 # These stages sit before `ci` so that the default (last) stage is unchanged.
+#
+# The xunit console runner package is pinned by SHA-256 and verified before it is unpacked. To update it: change
+# XUNIT_RUNNER_CONSOLE_VERSION, download https://www.nuget.org/api/v2/package/xunit.runner.console/<version>,
+# run `sha256sum` on the file and put the result in XUNIT_RUNNER_CONSOLE_SHA256.
 # ==============================================================================
 FROM restore AS net48-compile
 COPY . .
@@ -116,10 +121,12 @@ RUN dotnet restore tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj -p:IWXXM_TEST_NE
 
 FROM net48-compile AS net48-test
 ARG XUNIT_RUNNER_CONSOLE_VERSION=2.9.3
+ARG XUNIT_RUNNER_CONSOLE_SHA256=d8775ce150583d262b8a05d3a380c3851b60d0077f2201877ed81668c9b51de3
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends mono-complete unzip curl ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
     curl -sSfL -o /tmp/xunit-runner.zip "https://www.nuget.org/api/v2/package/xunit.runner.console/${XUNIT_RUNNER_CONSOLE_VERSION}" && \
+    echo "${XUNIT_RUNNER_CONSOLE_SHA256}  /tmp/xunit-runner.zip" | sha256sum -c - && \
     unzip -q /tmp/xunit-runner.zip -d /opt/xunit-runner
 WORKDIR /workspace/tests/Iwxxm.Net.Tests/bin/Release/net48
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Tests.dll -nologo -parallel none
@@ -129,9 +136,9 @@ RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Tests.dll -n
 # Publishing happens exclusively in the GitHub Actions workflow. A deliberate local
 # publish requires `tools/run-local-ci.sh --publish` (see README); this image never
 # reads registry credentials on its own.
-# Usage:
-#   docker build -t iwxxm-net-ci .
-#   docker run --rm -v "$(pwd)/artifacts:/out" iwxxm-net-ci
+# Usage (docker works the same as podman):
+#   podman build -t iwxxm-net-ci .
+#   podman run --rm -v "$(pwd)/artifacts:/out" iwxxm-net-ci
 # ==============================================================================
 FROM pack AS ci
 

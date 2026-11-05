@@ -94,38 +94,9 @@ namespace Iwxxm.Net.Validation.Saxon
                 };
             }
 
-            XdmNode input;
-            ElementDepthLimitedReader? depthReader = null;
-            try
-            {
-                DocumentBuilder builder = engine.Processor.NewDocumentBuilder();
-                builder.BaseUri = InputBaseUri;
-                using (Stream source = document.OpenRead())
-                using (ElementDepthLimitedReader reader = depthReader = SecureXml.CreateReader(source, document.Options, InputBaseUri.AbsoluteUri))
-                {
-                    input = builder.Build(reader);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Saxon wraps the exception of its reader and keeps only the text: the depth-limit exception is recovered from the reader.
-                if (depthReader?.Exceeded != null)
-                    return new[] { SecureXml.Malformed(depthReader.Exceeded) };
-
-                XmlException? xmlError = ex as XmlException ?? ex.InnerException as XmlException;
-
-                return new[]
-                {
-                    new ValidationError(
-                        MalformedInputCode,
-                        xmlError?.Message ?? ex.Message,
-                        ErrorCategory.MalformedInput,
-                        ValidationSeverity.Error,
-                        location: null,
-                        lineNumber: xmlError?.LineNumber,
-                        linePosition: xmlError?.LinePosition)
-                };
-            }
+            XdmNode? input = TryBuildInput(engine, document, out IReadOnlyList<ValidationError>? inputErrors);
+            if (input == null)
+                return inputErrors!;
 
             // The SVRL report is serialised into a size-bounded buffer and streamed back (AUD-M14): it is never kept as a
             // Saxon tree, a runaway report stops the evaluation, and it is read with its own limits (not the input quotas).
@@ -177,6 +148,53 @@ namespace Iwxxm.Net.Validation.Saxon
                         };
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Reads the instance into a Saxon tree through the secure, depth-limited reader. Returns <c>null</c> and the findings
+        /// when the document is malformed or exceeds <see cref="IwxxmParserOptions.MaxElementDepth"/>.
+        /// </summary>
+        private static XdmNode? TryBuildInput(OfficialSchematronEngine engine, IwxxmDocumentContext document, out IReadOnlyList<ValidationError>? errors)
+        {
+            ElementDepthLimitedReader? depthReader = null;
+            try
+            {
+                DocumentBuilder builder = engine.Processor.NewDocumentBuilder();
+                builder.BaseUri = InputBaseUri;
+                using (Stream source = document.OpenRead())
+                {
+                    depthReader = SecureXml.CreateReader(source, document.Options, InputBaseUri.AbsoluteUri);
+                    using (depthReader)
+                    {
+                        errors = null;
+                        return builder.Build(depthReader);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Saxon wraps the exception of its reader and keeps only the text: the depth-limit exception is recovered from the reader.
+                if (depthReader?.Exceeded != null)
+                {
+                    errors = new[] { SecureXml.Malformed(depthReader.Exceeded) };
+                    return null;
+                }
+
+                XmlException? xmlError = ex as XmlException ?? ex.InnerException as XmlException;
+
+                errors = new[]
+                {
+                    new ValidationError(
+                        MalformedInputCode,
+                        xmlError?.Message ?? ex.Message,
+                        ErrorCategory.MalformedInput,
+                        ValidationSeverity.Error,
+                        location: null,
+                        lineNumber: xmlError?.LineNumber,
+                        linePosition: xmlError?.LinePosition)
+                };
+                return null;
             }
         }
     }

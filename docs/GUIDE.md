@@ -518,7 +518,7 @@ IWXXM arrives from networks, so the parser enforces limits *before* it allocates
 | `MaxCharactersFromEntities` | 1,024 | Cap on entity expansion. |
 | `MaxValidationErrors` | 100 | Findings reported per validator, then a `...-TOO-MANY-ERRORS` sentinel. |
 | `MaxRuleReportBytes` | 4 MiB | Size cap of the Schematron SVRL report. |
-| `MaxElementDepth` | 128 | Deepest accepted element nesting (root = 1); a deeper document fails with `XML-DEPTH-LIMIT` before any tree is built. Real products need at most about 20. |
+| `MaxElementDepth` | 128 | Deepest accepted element nesting (root = 1); a deeper document fails with `XML-DEPTH-LIMIT` before any tree is built. Real products need at most about 20; the stack of the .NET tree validation overflows at about 25,000 levels (see [SECURITY.md](../SECURITY.md#element-depth-limit)). |
 
 DTDs are always refused and no external resource is ever resolved; XML bombs and XXE attacks cannot even start.
 

@@ -3,8 +3,9 @@
   <PropertyGroup>
     <!--
       AUD-M17: the core library also targets netstandard2.0 (.NET Framework 4.6.1+), so the suite additionally runs on
-      net48 when building on Windows (the Windows CI job) or when IWXXM_TEST_NET48=true is set (compile-only on Linux/macOS via
-      the Microsoft.NETFramework.ReferenceAssemblies package, see CONTRIBUTING.md); the default Linux/macOS build is net10.0 only.
+      net48 when building on Windows (the Windows CI job) or when IWXXM_TEST_NET48=true is set. Outside Windows the opt-in target is
+      compiled against the Microsoft.NETFramework.ReferenceAssemblies package and, in the container pipeline (the net48-test stage), also
+      run under Mono (see CONTRIBUTING.md); the default Linux/macOS build is net10.0 only.
     -->
     <TargetFrameworks>net10.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' Or '$(IWXXM_TEST_NET48)' == 'true'">net10.0;net48</TargetFrameworks>

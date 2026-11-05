@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,28 +11,54 @@ using Iwxxm.Net.Infrastructure.Validation;
 using Iwxxm.Net.Infrastructure.Xml;
 using Iwxxm.Net.Reports;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Iwxxm.Net.Tests
 {
     /// <summary>
-    /// AUD-N1: a schema-valid but deeply nested document (a <c>collect:MeteorologicalBulletin</c> may contain itself) used to
-    /// overflow the stack of <c>XDocument.Validate</c> (about 24,500 levels, an uncatchable process crash). The nesting is now
-    /// limited by <see cref="IwxxmParserOptions.MaxElementDepth"/> (default 128, root element = depth 1) in the single secure
-    /// read, before any tree is built: these tests exercise the limit on every entry point. Heavy payloads are generated
-    /// lazily by a stream and never held as strings.
+    /// AUD-N1: a schema-valid but deeply nested document (a <c>collect:MeteorologicalBulletin</c> may contain itself through
+    /// <c>collect:meteorologicalInformation</c>) used to overflow the stack of <c>XDocument.Validate</c> (about 25,000 levels,
+    /// an uncatchable process crash). The nesting is now limited by <see cref="IwxxmParserOptions.MaxElementDepth"/> (default
+    /// 128, root element = depth 1) in the single secure read, before any tree is built: these tests exercise the limit on
+    /// every entry point. The payloads have the real shape (bulletins with their required <c>gml:id</c> and
+    /// <c>collect:bulletinIdentifier</c>) and are generated lazily by a stream. NEVER feed an over-deep document to
+    /// <c>XDocument.Validate</c> in a test: it would kill the test host, so every deep case runs with the default or a lower limit
+    /// (the only raised limit is used for a payload that is at most a few hundred levels deep).
     /// </summary>
     public sealed class ElementDepthLimitTests
     {
         private const string CollectNs = "http://def.wmo.int/collect/2014";
         private const string GmlNs = "http://www.opengis.net/gml/3.2";
-        private const string Header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<c:B xmlns:c=\"" + CollectNs + "\" xmlns:gml=\"" + GmlNs + "\" gml:id=\"b0\">";
+        private const string Prolog = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        private const string RootNamespaces = " xmlns:collect=\"" + CollectNs + "\" xmlns:gml=\"" + GmlNs + "\"";
+        private const string BulletinClose = "</collect:meteorologicalInformation><collect:bulletinIdentifier>b</collect:bulletinIdentifier></collect:MeteorologicalBulletin>";
+
+        /// <summary>The documented default limit; the one test that pins it uses this literal, every other test derives from the live option.</summary>
+        private const int DocumentedDefaultDepth = 128;
+
+        private const int CustomLimit = 10;
+        private const int FormerCrashDepth = 25000;
+        private const int HundredThousandDepth = 100000;
+        private const int OneMillionDepth = 1000000;
+
+        // A schema-valid nest that is raised-limit friendly: 200 bulletins = 400 levels plus the embedded report.
+        private const int SchemaValidBulletins = 200;
+        private const int RaisedDepthLimit = 1000;
+
+        private static readonly int Limit = IwxxmParserOptions.Default.MaxElementDepth;
+        private static readonly string LimitText = Limit.ToString(CultureInfo.InvariantCulture);
+        private static readonly TimeSpan RejectionBudget = TimeSpan.FromSeconds(5);
+
+        private readonly ITestOutputHelper _output;
+
+        public ElementDepthLimitTests(ITestOutputHelper output) => _output = output;
 
         // ---------------------------------------------------------------- options
 
         [Fact]
         public void Default_Is128_AndTheValueMustBePositive()
         {
-            Assert.Equal(128, IwxxmParserOptions.Default.MaxElementDepth);
+            Assert.Equal(DocumentedDefaultDepth, IwxxmParserOptions.Default.MaxElementDepth);
             Assert.Equal(7, new IwxxmParserOptions(maxElementDepth: 7).MaxElementDepth);
             Assert.Throws<ArgumentOutOfRangeException>(() => new IwxxmParserOptions(maxElementDepth: 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => new IwxxmParserOptions(maxElementDepth: -1));
@@ -69,26 +96,27 @@ namespace Iwxxm.Net.Tests
 
         [Theory]
         [MemberData(nameof(EntryPoints))]
-        public void DepthExactlyAtTheLimit_PassesTheDepthCheck(string entryPoint)
+        public void DepthExactlyAtTheLimit_PassesTheDepthGate_AndFailsDownstreamWithTheExpectedCode(string entryPoint)
         {
-            IReadOnlyList<ValidationError> errors = Invoke(entryPoint, Nest(128), IwxxmParser.Default, IwxxmSigwxParser.Default);
+            // The synthetic nest (innermost meteorologicalInformation empty) is schema-invalid on purpose, so the failure that
+            // follows the depth gate is specific and deterministic for each entry point.
+            IReadOnlyList<ValidationError> errors = Invoke(entryPoint, Nest(Limit), IwxxmParser.Default, IwxxmSigwxParser.Default);
 
-            // The synthetic nest is not a valid report, but the depth gate must let it through.
             Assert.DoesNotContain(errors, e => e.Code == "XML-DEPTH-LIMIT");
             Assert.NotEmpty(errors);
-            Assert.NotEqual("XML-MALFORMED", errors[0].Code);
+            Assert.Equal(ExpectedCodeAtTheLimit(entryPoint), errors[0].Code);
         }
 
         [Theory]
         [MemberData(nameof(EntryPoints))]
         public void DepthOneOverTheLimit_IsRejected_OnEveryEntryPoint(string entryPoint)
         {
-            IReadOnlyList<ValidationError> errors = Invoke(entryPoint, Nest(129), IwxxmParser.Default, IwxxmSigwxParser.Default);
+            IReadOnlyList<ValidationError> errors = Invoke(entryPoint, Nest(Limit + 1), IwxxmParser.Default, IwxxmSigwxParser.Default);
 
             ValidationError error = Assert.Single(errors);
             Assert.Equal("XML-DEPTH-LIMIT", error.Code);
             Assert.Equal(ErrorCategory.MalformedInput, error.Category);
-            Assert.Contains("128", error.Message, StringComparison.Ordinal);
+            Assert.Contains(LimitText, error.Message, StringComparison.Ordinal);
             Assert.True(error.LineNumber > 0, "the line is reported");
             Assert.True(error.LinePosition > 0, "the position is reported");
         }
@@ -97,15 +125,40 @@ namespace Iwxxm.Net.Tests
         [MemberData(nameof(EntryPoints))]
         public void CustomLowerLimit_IsEnforced_OnEveryEntryPoint(string entryPoint)
         {
-            var builder = new IwxxmParserBuilder().WithOptions(new IwxxmParserOptions(maxElementDepth: 10));
+            var builder = new IwxxmParserBuilder().WithOptions(new IwxxmParserOptions(maxElementDepth: CustomLimit));
 
-            IReadOnlyList<ValidationError> over = Invoke(entryPoint, Nest(11), builder.Build(), builder.BuildSigwxParser());
-            IReadOnlyList<ValidationError> at = Invoke(entryPoint, Nest(10), builder.Build(), builder.BuildSigwxParser());
+            IReadOnlyList<ValidationError> over = Invoke(entryPoint, Nest(CustomLimit + 1), builder.Build(), builder.BuildSigwxParser());
+            IReadOnlyList<ValidationError> at = Invoke(entryPoint, Nest(CustomLimit), builder.Build(), builder.BuildSigwxParser());
 
             ValidationError error = Assert.Single(over);
             Assert.Equal("XML-DEPTH-LIMIT", error.Code);
-            Assert.Contains("10", error.Message, StringComparison.Ordinal);
+            Assert.Contains(CustomLimit.ToString(CultureInfo.InvariantCulture), error.Message, StringComparison.Ordinal);
             Assert.DoesNotContain(at, e => e.Code == "XML-DEPTH-LIMIT");
+            Assert.Equal(ExpectedCodeAtTheLimit(entryPoint), at[0].Code);
+        }
+
+        [Fact]
+        public void ASchemaValidNest_BeyondTheDefault_IsAcceptedByTheXsdStage_WithARaisedLimit()
+        {
+            // 200 nested bulletins around a real METAR are genuinely schema-valid (about 420 levels). Only this payload uses a
+            // raised limit, and it is far below the stack depth at which tree validation overflows.
+            string xml = SchemaValidNest(SchemaValidBulletins);
+            int depth = DepthOf(XDocument.Parse(xml).Root!);
+            Assert.True(depth > Limit && depth < RaisedDepthLimit, "depth " + depth);
+
+            IwxxmParser raised = new IwxxmParserBuilder().WithOptions(new IwxxmParserOptions(maxElementDepth: RaisedDepthLimit)).Build();
+
+            // The default limit refuses it ...
+            Assert.Equal("XML-DEPTH-LIMIT", Assert.Single(IwxxmParser.Default.Process(xml).Errors).Code);
+
+            // ... the raised limit lets the XSD stage accept it (no XSD-* finding comes from the nesting) ...
+            Assert.Empty(XsdValidator.CreateFullSuiteValidator(new IwxxmParserOptions(maxElementDepth: RaisedDepthLimit))
+                .Validate(new IwxxmDocumentContext(Encoding.UTF8.GetBytes(xml), new IwxxmParserOptions(maxElementDepth: RaisedDepthLimit))));
+
+            // ... and the mapper then rejects the nested bulletin envelope.
+            IReadOnlyList<ValidationError> errors = raised.Process(xml).Errors;
+            Assert.DoesNotContain(errors, e => e.Code.StartsWith("XSD-", StringComparison.Ordinal));
+            Assert.Equal(new[] { "COLLECT-NESTED-BULLETIN", "DOMAIN-BULLETIN-EMPTY" }, errors.Select(e => e.Code).ToArray());
         }
 
         [Fact]
@@ -126,7 +179,7 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void XsdValidator_InvokedDirectly_ReportsTheDepthLimit()
         {
-            var context = new IwxxmDocumentContext(Encoding.UTF8.GetBytes(Nest(129)));
+            var context = new IwxxmDocumentContext(Encoding.UTF8.GetBytes(Nest(Limit + 1)));
 
             ValidationError error = Assert.Single(XsdValidator.CreateFullSuiteValidator(IwxxmParserOptions.Default).Validate(context));
 
@@ -137,7 +190,7 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void XsltSchematronValidator_InvokedDirectly_ReportsTheDepthLimit()
         {
-            var context = new IwxxmDocumentContext(Encoding.UTF8.GetBytes(Nest(129)));
+            var context = new IwxxmDocumentContext(Encoding.UTF8.GetBytes(Nest(Limit + 1)));
 
             ValidationError error = Assert.Single(new XsltSchematronValidator(IwxxmParserOptions.Default).Validate(context));
 
@@ -186,57 +239,63 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void TheFormerCrashPayload_25000Levels_NowReturnsAFailure()
         {
-            // Run on the code before AUD-N1 was fixed, this schema-valid nest overflowed the stack inside XDocument.Validate
-            // and killed the process; it is now stopped by the streaming depth check before any tree exists.
-            using (var stream = new NestedStream(25000, seekable: true))
-            {
-                var stopwatch = Stopwatch.StartNew();
-                Result<IwxxmDocument> result = IwxxmParser.Default.Process(stream);
-                stopwatch.Stop();
-
-                Assert.True(result.IsFailure);
-                Assert.Equal("XML-DEPTH-LIMIT", Assert.Single(result.Errors).Code);
-                Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), "took " + stopwatch.Elapsed);
-            }
+            // Run on the code before AUD-N1 was fixed, a schema-valid nest of this size overflowed the stack inside
+            // XDocument.Validate and killed the process; it is now stopped by the streaming depth check before any tree exists.
+            AssertRejectedQuickly(FormerCrashDepth, seekable: true);
         }
 
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
-        public void HundredThousandNestedBulletins_AreRejectedQuickly(bool seekable)
+        public void HundredThousandNestedLevels_AreRejectedQuickly(bool seekable)
         {
-            using (var stream = new NestedStream(100000, seekable))
-            {
-                var stopwatch = Stopwatch.StartNew();
-                Result<IwxxmDocument> result = IwxxmParser.Default.Process(stream);
-                stopwatch.Stop();
+            AssertRejectedQuickly(HundredThousandDepth, seekable);
 
-                Assert.Equal("XML-DEPTH-LIMIT", Assert.Single(result.Errors).Code);
-                Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), "took " + stopwatch.Elapsed);
-            }
-
-            using (var stream = new NestedStream(100000, seekable))
+            using (var stream = new NestedStream(HundredThousandDepth, seekable))
             {
                 Assert.Equal("XML-DEPTH-LIMIT", Assert.Single(IwxxmSigwxParser.Default.Process(stream).Errors).Code);
             }
         }
 
 #if !NETFRAMEWORK
+        // Excluded on .NET Framework: the payload (about 80 MB) is buffered whole by Process(Stream) and a 32-bit net48 test host
+        // cannot do that comfortably (memory and time); the 25,000 and 100,000 level cases above still run there.
         [Fact]
-        public void OneMillionNestedElements_WithinTheSizeLimit_AreRejectedInBoundedTime()
+        public void OneMillionNestedLevels_AreRejectedInBoundedTime()
         {
-            using (var stream = new NestedStream(1000000, seekable: false))
+            // The payload is larger than the default 50 MiB size limit, which would reject it before the depth check; the size
+            // limits are raised so the depth limit (left at its default) is what stops it.
+            var options = new IwxxmParserOptions(maxDocumentBytes: 256L * 1024L * 1024L, maxCharactersInDocument: 256L * 1024L * 1024L);
+            IwxxmParser parser = new IwxxmParserBuilder().WithOptions(options).Build();
+            Assert.Equal(Limit, options.MaxElementDepth);
+
+            using (var stream = new NestedStream(OneMillionDepth, seekable: false))
+            {
+                var stopwatch = Stopwatch.StartNew();
+                Result<IwxxmDocument> result = parser.Process(stream);
+                stopwatch.Stop();
+
+                _output.WriteLine(OneMillionDepth + " levels, " + stream.TotalLength + " bytes, rejected in " + stopwatch.ElapsedMilliseconds + " ms");
+                Assert.Equal("XML-DEPTH-LIMIT", Assert.Single(result.Errors).Code);
+                Assert.True(stopwatch.Elapsed < RejectionBudget, "took " + stopwatch.Elapsed);
+            }
+        }
+#endif
+
+        private void AssertRejectedQuickly(int depth, bool seekable)
+        {
+            using (var stream = new NestedStream(depth, seekable))
             {
                 var stopwatch = Stopwatch.StartNew();
                 Result<IwxxmDocument> result = IwxxmParser.Default.Process(stream);
                 stopwatch.Stop();
 
+                _output.WriteLine(depth + " levels, " + stream.TotalLength + " bytes, seekable=" + seekable + ", rejected in " + stopwatch.ElapsedMilliseconds + " ms");
                 Assert.True(stream.TotalLength < IwxxmParserOptions.Default.MaxDocumentBytes, "the payload is within the size limit");
                 Assert.Equal("XML-DEPTH-LIMIT", Assert.Single(result.Errors).Code);
-                Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), "took " + stopwatch.Elapsed);
+                Assert.True(stopwatch.Elapsed < RejectionBudget, "took " + stopwatch.Elapsed);
             }
         }
-#endif
 
         // ---------------------------------------------------------------- helpers
 
@@ -245,27 +304,48 @@ namespace Iwxxm.Net.Tests
         private static int DepthOf(XElement root) => root.DescendantsAndSelf().Max(e => e.AncestorsAndSelf().Count());
 
         /// <summary>
-        /// A well-formed document whose deepest element has exactly <paramref name="depth"/> levels (root = 1): nested
-        /// <c>collect:MeteorologicalBulletin</c> / <c>collect:meteorologicalInformation</c> pairs, the shape of the crash payload.
+        /// The error the parser reports for <see cref="Nest"/> at exactly the limit: the depth gate passes and the first
+        /// downstream stage objects: the XSD stage on the bulletin parsers, and the SIGWX parser, which rejects the bulletin root.
         /// </summary>
-        private static string Nest(int depth)
+        private static string ExpectedCodeAtTheLimit(string entryPoint) =>
+            entryPoint.StartsWith("Sigwx.", StringComparison.Ordinal) ? "XSD-UNEXPECTED-ROOT-ELEMENT" : "XSD-SCHEMA-VIOLATION";
+
+        /// <summary>
+        /// Real-shape nest: <paramref name="bulletins"/> <c>collect:MeteorologicalBulletin</c> elements, each with its required
+        /// unique <c>gml:id</c>, one <c>collect:meteorologicalInformation</c> holding the next bulletin, and the required
+        /// <c>collect:bulletinIdentifier</c>; <paramref name="core"/> sits inside the innermost information element.
+        /// </summary>
+        private static IEnumerable<string> Pieces(int bulletins, string core)
         {
-            var builder = new StringBuilder(Header);
-            var open = new Stack<string>();
-            open.Push("c:B");
-            for (int level = 2; level <= depth; level++)
+            for (int i = 1; i <= bulletins; i++)
             {
-                string name = level % 2 == 0 ? "c:M" : "c:B";
-                builder.Append('<').Append(name).Append('>');
-                open.Push(name);
+                yield return (i == 1 ? Prolog + "<collect:MeteorologicalBulletin" + RootNamespaces : "<collect:MeteorologicalBulletin")
+                    + " gml:id=\"b" + i.ToString(CultureInfo.InvariantCulture) + "\"><collect:meteorologicalInformation>";
             }
 
-            while (open.Count > 0)
-            {
-                builder.Append("</").Append(open.Pop()).Append('>');
-            }
+            yield return core;
 
-            return builder.ToString();
+            for (int i = 0; i < bulletins; i++)
+            {
+                yield return BulletinClose;
+            }
+        }
+
+        /// <summary>
+        /// The pieces of a document whose deepest element is exactly at <paramref name="depth"/> (root = 1): bulletins sit on
+        /// odd depths and their information elements on even ones; the innermost information element is empty (even depth) or
+        /// holds one unknown element (odd depth), so the document is well-formed and the nesting is real-shaped but not schema-valid.
+        /// </summary>
+        private static IEnumerable<string> DepthPieces(int depth) =>
+            Pieces(depth / 2, depth % 2 == 0 ? string.Empty : "<collect:unexpected/>");
+
+        private static string Nest(int depth) => string.Concat(DepthPieces(depth));
+
+        /// <summary>A genuinely schema-valid nest: bulletins around a real METAR report.</summary>
+        private static string SchemaValidNest(int bulletins)
+        {
+            string metar = XDocument.Parse(Sample("metar-A3-1.xml")).Root!.ToString(SaveOptions.DisableFormatting);
+            return string.Concat(Pieces(bulletins, metar));
         }
 
         private static IReadOnlyList<ValidationError> Invoke(string entryPoint, string xml, IwxxmParser parser, IwxxmSigwxParser sigwx)
@@ -313,26 +393,28 @@ namespace Iwxxm.Net.Tests
         }
 
         /// <summary>
-        /// A well-formed, schema-shaped nest of about <c>levels</c> alternating <c>collect:MeteorologicalBulletin</c> /
-        /// <c>collect:meteorologicalInformation</c> elements (the crash payload shape), generated on demand: the payload
-        /// is never held in memory.
+        /// A real-shape nest (see <see cref="Pieces"/>) whose deepest element is at <c>depth</c>, generated on demand so that the
+        /// payload itself is never held in memory (the parser under test still buffers what it reads).
         /// </summary>
         private sealed class NestedStream : Stream
         {
-            private static readonly byte[] OpenTags = Encoding.ASCII.GetBytes("<c:M><c:B>");
-            private static readonly byte[] CloseTags = Encoding.ASCII.GetBytes("</c:B></c:M>");
-            private static readonly byte[] EndTag = Encoding.ASCII.GetBytes("</c:B>");
-
-            private readonly byte[] _header = Encoding.UTF8.GetBytes(Header);
-            private readonly int _opens;
+            private readonly IEnumerator<string> _pieces;
             private readonly bool _seekable;
+            private byte[] _current = new byte[0];
+            private int _offset;
             private long _position;
 
-            public NestedStream(int levels, bool seekable)
+            public NestedStream(int depth, bool seekable)
             {
-                _opens = levels / 2;
+                _pieces = DepthPieces(depth).GetEnumerator();
                 _seekable = seekable;
-                TotalLength = _header.Length + ((long)_opens * (OpenTags.Length + CloseTags.Length)) + EndTag.Length;
+                long total = 0;
+                foreach (string piece in DepthPieces(depth))
+                {
+                    total += Encoding.UTF8.GetByteCount(piece);
+                }
+
+                TotalLength = total;
             }
 
             public long TotalLength { get; }
@@ -353,28 +435,35 @@ namespace Iwxxm.Net.Tests
 
             public override int Read(byte[] buffer, int offset, int count)
             {
-                int n = 0;
-                while (n < count && _position < TotalLength)
+                int written = 0;
+                while (written < count)
                 {
-                    buffer[offset + n++] = ByteAt(_position++);
+                    if (_offset == _current.Length)
+                    {
+                        if (!_pieces.MoveNext())
+                            break;
+
+                        _current = Encoding.UTF8.GetBytes(_pieces.Current);
+                        _offset = 0;
+                        continue;
+                    }
+
+                    int n = Math.Min(count - written, _current.Length - _offset);
+                    Buffer.BlockCopy(_current, _offset, buffer, offset + written, n);
+                    _offset += n;
+                    written += n;
                 }
 
-                return n;
+                _position += written;
+                return written;
             }
 
-            private byte ByteAt(long position)
+            protected override void Dispose(bool disposing)
             {
-                if (position < _header.Length)
-                    return _header[position];
+                if (disposing)
+                    _pieces.Dispose();
 
-                position -= _header.Length;
-                long openBytes = (long)_opens * OpenTags.Length;
-                if (position < openBytes)
-                    return OpenTags[(int)(position % OpenTags.Length)];
-
-                position -= openBytes;
-                long closeBytes = (long)_opens * CloseTags.Length;
-                return position < closeBytes ? CloseTags[(int)(position % CloseTags.Length)] : EndTag[(int)(position - closeBytes)];
+                base.Dispose(disposing);
             }
 
             public override void Flush()

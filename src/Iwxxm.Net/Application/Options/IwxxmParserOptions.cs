@@ -17,7 +17,7 @@ namespace Iwxxm.Net
         /// <summary>
         /// Maximum allowed input XML stream length in bytes before buffering is aborted with <c>XML-SIZE-LIMIT</c>.
         /// Defaults to 50 MiB (<c>52,428,800</c> bytes). The buffered payload costs up to about three times its size
-        /// while it is read; the DOM built from it costs several times more (see <c>docs/SECURITY.md</c>).
+        /// while it is read; the DOM built from it costs several times more (see <c>SECURITY.md</c>).
         /// </summary>
         public long MaxDocumentBytes { get; }
 
@@ -54,8 +54,8 @@ namespace Iwxxm.Net
         /// rejected with <c>XML-DEPTH-LIMIT</c> by a streaming check of the single read, before any tree is built or
         /// validated. Defaults to <c>128</c>: real IWXXM products nest at most about 20 levels (the largest sample, a 14 MB
         /// SIGWX product, reaches 16), so the default leaves a margin of more than six times, while the .NET XML tree
-        /// validation overflows the stack (an uncatchable process crash) at about 24,500 levels of a schema-valid nested
-        /// <c>collect:MeteorologicalBulletin</c>. Raise it consciously for legitimate deeper documents (see <c>docs/SECURITY.md</c>).
+        /// validation overflows the stack (an uncatchable process crash) at about 25,000 levels (24,000 survived) of a schema-valid nested
+        /// <c>collect:MeteorologicalBulletin</c>. Raise it consciously for legitimate deeper documents (see <c>SECURITY.md</c>).
         /// </summary>
         public int MaxElementDepth { get; }
 

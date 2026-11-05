@@ -61,7 +61,7 @@ Out of scope:
 The details and defaults are in the [guide](docs/GUIDE.md#6-options-and-security-limits) and the [reference](docs/REFERENCE.md#official-wmo-schematron):
 
 - DTDs are always prohibited and no external resource is ever resolved (`XML-MALFORMED`); the XSD, XSLT and Schematron resolvers only serve resources embedded in the assemblies, so there is no network or file-system access during validation;
-- configurable limits in `IwxxmParserOptions`: `MaxDocumentBytes` (50 MiB = 52,428,800 bytes), `MaxCharactersInDocument` (52,428,800), `MaxCharactersFromEntities` (1,024), `MaxValidationErrors` (100) and `MaxRuleReportBytes` (4 MiB, `SCHEMATRON-REPORT-SIZE-LIMIT`); the input is read once with these limits before any adapter sees it. The two size defaults are the same number on purpose: a character takes at least one byte of UTF-8 (two of UTF-16), so a document that passes the byte limit never exceeds the character quota whatever its encoding. `MaxElementDepth` (128, root element = depth 1, `XML-DEPTH-LIMIT`) bounds the element nesting: a streaming check in that same single read stops at the first element over the limit, before any tree is built or validated. Without it a small, schema-valid document can crash the host process: a `collect:MeteorologicalBulletin` may contain itself, and about 25,000 levels (about 5 MB, far below the size limit) overflow the stack of the .NET tree validation, an uncatchable `StackOverflowException` (24,000 levels survived in the measurement, and `XDocument.Load` alone is super-linear: 3.2 s at 50,000 levels, 110 s at 200,000). Real products nest at most about 20 levels (the 14 MB Met Office bulletin 16, the official examples 20), so the default leaves a margin of more than six times and the crash threshold is about 190 times the default. The check costs nothing measurable (it is a forwarding reader inside the one read, with no second pass; measured within run-to-run noise: loading the 14 MB bulletin takes about 0.17 s with and without it, a 50 MiB flat document about 1.5 s with and without it); a 100,000-level payload (about 2.2 MB) and a 1,000,000-level payload (about 11 MB) are rejected in under 0.1 s. A legitimate deeper document needs a conscious `new IwxxmParserOptions(maxElementDepth: ...)`; keep it far below 24,000;
+- configurable limits in `IwxxmParserOptions` (`MaxElementDepth` is described under [Element depth limit](#element-depth-limit)): `MaxDocumentBytes` (50 MiB = 52,428,800 bytes), `MaxCharactersInDocument` (52,428,800), `MaxCharactersFromEntities` (1,024), `MaxValidationErrors` (100) and `MaxRuleReportBytes` (4 MiB, `SCHEMATRON-REPORT-SIZE-LIMIT`); the input is read once with these limits before any adapter sees it. The two size defaults are the same number on purpose: a character takes at least one byte of UTF-8 (two of UTF-16), so a document that passes the byte limit never exceeds the character quota whatever its encoding;
 - the core package `Iwxxm.Net` has **zero runtime dependencies**; the optional Saxon package only requests Saxon-HE capabilities and runs air-gapped;
 - the official schemas, code lists and Schematron are embedded byte for byte and checked by tests (for example the SHA-256 of `iwxxm.sch`);
 - expected failures (malformed input, limits, rule violations) are returned as `Result<T>` values with stable error codes, and GeoJSON strings are escaped by a dedicated writer.
@@ -79,6 +79,20 @@ The default limit (50 MiB) is sized for large operational products (the Met Offi
 | SVRL report of the Schematron stage | bounded by `MaxRuleReportBytes` (4 MiB) and `MaxValidationErrors`, independent of the input size |
 
 Plan roughly 12 times the largest accepted document per concurrent request (about 600 MB at 50 MiB, plus about 25 percent when you export GeoJSON), or lower `MaxDocumentBytes` and `MaxCharactersInDocument` together to what your feeds need. The DOM and the buffered payload are held for the duration of the call only.
+
+### Element depth limit
+
+`MaxElementDepth` (default 128, root element = depth 1, error code `XML-DEPTH-LIMIT`) bounds the element nesting. A streaming check in the single secure read stops at the first element over the limit, before any tree is built or validated.
+
+Why it exists: a small, schema-valid document can crash the host process. A `collect:MeteorologicalBulletin` may contain itself (through `collect:meteorologicalInformation`), and about 25,000 levels (2.6 MB, far below the size limit) overflow the stack of the .NET tree validation, an uncatchable `StackOverflowException` (24,000 levels survived in the empirical run). `XDocument.Load` alone is super-linear on such input: about 4 s at 25,000 levels, 16 s at 50,000, 1.5 to 1.8 minutes at 100,000 and about 12.7 minutes at 200,000.
+
+Margins: real products nest at most about 20 levels (the 14 MB Met Office bulletin 16, the official examples 20), so the default leaves a margin of more than six times and sits about 195 times below the crash threshold.
+
+Cost: nothing measurable (a forwarding reader inside the one read, no second pass; loading the 14 MB bulletin takes about 0.17 s and a 50 MiB flat document about 1.5 s, with and without it).
+
+Rejection (real-shape payloads; container with 2 cores on an AMD Ryzen 5 6600H, .NET 10, indicative): 25,000 levels (2,614,024 bytes) in 7 to 12 ms, 100,000 levels (10,489,024 bytes) in 27 to 48 ms, and 1,000,000 levels (105,389,025 bytes, with the size limits raised so that the depth limit is the one that fires) in 0.3 to 0.5 s, most of it spent buffering the input.
+
+A legitimate deeper document needs a conscious `new IwxxmParserOptions(maxElementDepth: ...)`; keep it far below 24,000.
 
 ## Secure usage guidance
 
