@@ -31,6 +31,8 @@ sample: Met Office WAFS SIGWX" in `docs/REFERENCE.md`).
 - **Every chart is an instant**: each `gml:TimePeriod` has `beginPosition == endPosition` (equal to `phenomenonTime`). The
   schema allows it and the library accepts it.
 
-**Licence:** the redistribution terms of the Met Office data were NOT verified by the maintainers, and the package contained
-no licence file. No licence is granted or implied by this repository for this file. If you are the rights holder and want it
-removed, please open an issue.
+**Licence and attribution:** the downloaded package contained no licence file. On 2026-11-05 the maintainer confirmed that this
+data is redistributable, and it is included on that basis. The data is the work of the UK Met Office: please keep this
+attribution when you reuse the file. This repository does not license the file; the MIT licence of the project does not
+apply to it. If you are the rights holder and want it removed, please open an issue. See also
+[THIRD-PARTY-NOTICES.md](../../../../../THIRD-PARTY-NOTICES.md#10-uk-met-office-wafs-sigwx-sample-test-data).

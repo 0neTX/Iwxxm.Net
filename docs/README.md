@@ -12,6 +12,8 @@ Where to look, depending on what you want to do.
 | **Change the code** (setup, layer rules, adding a report family, golden masters, documentation checks) | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 | **Report a vulnerability or harden a deployment** (supported versions, private reporting, scope, secure usage) | [../SECURITY.md](../SECURITY.md) |
 | **See what changed between releases** | [../CHANGELOG.md](../CHANGELOG.md) |
+| **Publish a release** (tag procedure, package contents, v1.0.0 checklist) | [RELEASING.md](RELEASING.md) |
+| **Check licences of the embedded schemas, code lists and dependencies** | [../THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) |
 
 ## Illustrations
 

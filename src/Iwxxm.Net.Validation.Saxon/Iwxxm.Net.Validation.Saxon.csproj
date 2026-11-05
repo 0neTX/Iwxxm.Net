@@ -36,7 +36,7 @@
     <EmbeddedResource Include="Resources\Schematron\iwxxm.sch;Resources\SchXslt\2.0\**\*.xsl">
       <LogicalName>Iwxxm.Net.Validation.Saxon/$([System.String]::Copy('%(RelativeDir)').Replace('\', '/'))%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
-    <None Include="Resources\SchXslt\LICENSE" Pack="true" PackagePath="licenses\SchXslt\" />
+    <None Include="Resources\SchXslt\LICENSE" Pack="true" PackagePath="licenses\SchXslt" />
   </ItemGroup>
 
 </Project>

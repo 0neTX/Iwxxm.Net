@@ -92,7 +92,7 @@ It writes the raw `xscgen` output to `artifacts/xscgen-reference/` (git-ignored)
 
 The official WMO IWXXM 2025-2 schemas and their imports (`src/Iwxxm.Net/Resources/Xsd/Official/`) and the official RDF code lists (`src/Iwxxm.Net/Resources/Codelists/`) are byte-identical copies of [wmo-im/iwxxm](https://github.com/wmo-im/iwxxm) (`IWXXM/`, `externalSchema/`, `IWXXM/rule/*.rdf`). Never edit them; to upgrade, copy the new upstream files unchanged, keeping their relative paths, and include only the files reachable from `iwxxm.xsd` / `iwxxm-collect.xsd`.
 
-The same rule applies to `src/Iwxxm.Net.Validation.Saxon/Resources/Schematron/iwxxm.sch` (official `IWXXM/rule/iwxxm.sch`, SHA-256 checked by a test) and to the vendored SchXslt 1.10.1 files under `src/Iwxxm.Net.Validation.Saxon/Resources/SchXslt/` (keep `LICENSE`). The Saxon package reads the RDF code lists from the `Iwxxm.Net` assembly through their manifest names `Iwxxm.Net/Resources/Codelists/*.rdf`; renaming them is a breaking change for that package.
+The same rule applies to `src/Iwxxm.Net.Validation.Saxon/Resources/Schematron/iwxxm.sch` (official `IWXXM/rule/iwxxm.sch`, SHA-256 checked by a test) and to the vendored SchXslt 1.10.1 files under `src/Iwxxm.Net.Validation.Saxon/Resources/SchXslt/` (keep `LICENSE`). Whenever you add, remove or upgrade a vendored file or a package dependency, update [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) (its last section explains how); the file is packed into both NuGet packages. The Saxon package reads the RDF code lists from the `Iwxxm.Net` assembly through their manifest names `Iwxxm.Net/Resources/Codelists/*.rdf`; renaming them is a breaking change for that package.
 
 ---
 

@@ -53,6 +53,8 @@ Every parsed document derives from the closed abstract root `IwxxmDocument`: eit
 
 Packages are published to **GitHub Packages** only for release tags `vMAJOR.MINOR.PATCH[-PRERELEASE]` (the tag is the package version) or a deliberate manual workflow run; pull requests and pushes to `main` build and test `-ci.<run>.<attempt>` prereleases that are never published.
 
+The repository is **private until the v1.0.0 release**. While it is private, the packages on GitHub Packages are visible only to users who have been given access, and the token used below needs the `read:packages` scope. The links to the source in the package metadata and in the symbols (SourceLink) return 404 for everyone else until the repository becomes public; see [docs/RELEASING.md](docs/RELEASING.md).
+
 Add the NuGet source once:
 
 ```bash
@@ -136,6 +138,8 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | [Architecture analysis](docs/ARCHITECTURE_ANALYSIS.md) | Hexagonal and DDD design decisions and the prioritised debt catalogue (written in Spanish). |
 | [Technical debt](TECHNICAL_DEBT.md) | The audit findings, their status and the open backlog. |
 | [Contributing](CONTRIBUTING.md) | Local setup, architecture rules, how to add a report family, golden-master tests. |
+| [Releasing](docs/RELEASING.md) | Versioning, the tag procedure, package contents and the v1.0.0 publication checklist. |
+| [Third-party notices](THIRD-PARTY-NOTICES.md) | Licences and notices of the schemas, code lists, rules and packages that are redistributed or depended on. |
 | [Security policy](SECURITY.md) | Supported versions, how to report a vulnerability privately, scope and secure-usage guidance. |
 | [Changelog](CHANGELOG.md) | Release notes. |
 
@@ -182,8 +186,8 @@ The internal SIGWX transport model (`Infrastructure/Generated/Iwxxm20252.Generat
 
 ## License and third-party notices
 
-Licensed under the [MIT License](LICENSE).
+Licensed under the [MIT License](LICENSE). The complete list of third-party material, with licences, copyright notices and open points, is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md); the file is also at the root of both NuGet packages.
 
-- The embedded official WMO IWXXM schemas, Schematron rules and code lists, and the imported OGC, ISO, EUROCONTROL and W3C schemas, are redistributed unmodified; their upstream ReadMe and release notes ship under `schema-notices/` in the `Iwxxm.Net` package.
+- The embedded official WMO IWXXM schemas, Schematron rules and code lists, and the imported OGC, ISO, EUROCONTROL and W3C schemas, are redistributed unmodified; their upstream ReadMe and release notes ship under `schema-notices/` in the `Iwxxm.Net` package. Some of those upstream sources state no licence; the open points are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md#12-open-points-for-the-maintainer).
 - `Iwxxm.Net.Validation.Saxon` vendors **SchXslt 1.10.1** (Copyright (c) 2018-2021 David Maus, MIT License), shipped under `licenses/SchXslt/` in the package.
 - `Iwxxm.Net.Validation.Saxon` depends on **SaxonCS-HE 13.1.0** (Saxonica Ltd.). Its bundled `LICENSE.txt` states that SaxonCS-HE is distributed as an "executable form" of the open-source SaxonJ-HE product under the **Mozilla Public License 2.0** (file-level copyleft that applies to Saxon's own files, not to code that merely uses it). No Saxonica licence key is required for the Home Edition features used here.

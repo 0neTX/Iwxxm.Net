@@ -351,7 +351,7 @@ Partial-result behaviour, `ReportResults` and `ItemErrors` are explained with a 
 
 ### Real-world sample: Met Office WAFS SIGWX
 
-`tests/Iwxxm.Net.Tests/Samples/external/metoffice/` holds an unmodified operational WAFS SIGWX package published by the UK Met Office (2026-08-26 06:00Z, T+06 to T+48): one `collect:MeteorologicalBulletin` with 15 `iwxxm:WAFSSignificantWeatherForecast` reports and 4252 features, 14.2 MB. Its [README](../tests/Iwxxm.Net.Tests/Samples/external/metoffice/README.md) gives the origin, the SHA-256, the known data defects and the licence caveat. It is below the default 50 MiB size limit, so the default parser processes it:
+`tests/Iwxxm.Net.Tests/Samples/external/metoffice/` holds an unmodified operational WAFS SIGWX package published by the UK Met Office (2026-08-26 06:00Z, T+06 to T+48): one `collect:MeteorologicalBulletin` with 15 `iwxxm:WAFSSignificantWeatherForecast` reports and 4252 features, 14.2 MB. Its [README](../tests/Iwxxm.Net.Tests/Samples/external/metoffice/README.md) gives the origin, the SHA-256, the known data defects, the licence statement (no licence file in the package; redistribution confirmed by the maintainer; attribution to the UK Met Office) and the attribution request. It is below the default 50 MiB size limit, so the default parser processes it:
 
 ```csharp
 using Iwxxm.Net;

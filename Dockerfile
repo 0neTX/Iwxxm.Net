@@ -89,6 +89,22 @@ RUN perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
          print "Iwxxm.Net snupkg: SourceLink present\n";' \
         /workspace/artifacts/Iwxxm.Net.${PACKAGE_VERSION}.snupkg
 
+# Guard: both packages ship the third-party notices and the licence at the package root (the Saxon package also the
+# SchXslt licence)
+RUN for pkg in Iwxxm.Net Iwxxm.Net.Validation.Saxon; do \
+        for entry in THIRD-PARTY-NOTICES.md LICENSE; do \
+            perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
+                'unzip $ARGV[0] => \my $data, Name => $ARGV[1] or die "ERROR: $ARGV[0] does not contain $ARGV[1]: $UnzipError\n"; \
+                 length($data) > 0 or die "ERROR: $ARGV[1] is empty in $ARGV[0]\n"; \
+                 print "$ARGV[1] present in $ARGV[0]\n";' \
+                "/workspace/artifacts/${pkg}.${PACKAGE_VERSION}.nupkg" "${entry}" || exit 1; \
+        done; \
+    done && \
+    perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
+        'unzip $ARGV[0] => \my $data, Name => "licenses/SchXslt/LICENSE" or die "ERROR: SchXslt LICENSE missing: $UnzipError\n"; \
+         print "licenses/SchXslt/LICENSE present\n";' \
+        /workspace/artifacts/Iwxxm.Net.Validation.Saxon.${PACKAGE_VERSION}.nupkg
+
 # ==============================================================================
 # Stage 5: artifacts — Exportable scratch stage for host extraction
 # Usage: podman build --target artifacts --output type=local,dest=./artifacts .   (docker build works the same)
