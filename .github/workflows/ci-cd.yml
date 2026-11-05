@@ -124,14 +124,31 @@ jobs:
   publish-github-packages:
     name: Publish to GitHub Packages
     needs: build-and-test
-    # Publish only release tags (vX.Y.Z) or a deliberate manual run; pushes to main and pull requests never publish.
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    # Publish only runs on a release tag ref (vX.Y.Z): a tag push, or a manual run selected on a tag. Pushes to main,
+    # pull requests and manual runs on a branch only build and test.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
+      # Full history so the tagged commit can be checked against main.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Only commits that are part of main may be released.
+      - name: Require the tagged commit to be reachable from main
+        shell: bash
+        run: |
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Commit ${GITHUB_SHA} is not reachable from origin/main; refusing to publish"
+            exit 1
+          fi
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
@@ -150,3 +167,4 @@ jobs:
           dotnet nuget push "./artifacts/*.nupkg"
           --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
           --api-key "$GITHUB_TOKEN"
+          --skip-duplicate
