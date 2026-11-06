@@ -11,7 +11,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// <summary>Maps <c>iwxxm:TropicalCycloneAdvisory</c> (<c>tca.xsd</c>) onto <see cref="Tca"/>.</summary>
     internal static class TcaMapper
     {
-        public static Result<Tca> Map(XElement root)
+        public static Result<Tca> Map(XElement root, UomAliasCollector aliases)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -33,14 +33,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             {
                 DateTimeOffset? obsTime = GmlTimeReader.ReadOptionalInstant(obsElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", id, errors);
                 GeoCoordinate? pos = ReadCyclonePosition(obsElem, errors);
-                Speed? maxWind = UomMeasureReader.ReadSpeed(obsElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors, UomMeasureReader.Subsets.WindSpeed);
+                Speed? maxWind = UomMeasureReader.ReadSpeed(obsElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors, UomMeasureReader.Subsets.WindSpeed, aliases);
                 double? pressure = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "centralPressure"), UcumUnits.Hectopascal, id, errors);
 
                 // Movement and intensity change of the observed position (AUD-L3).
                 TropicalCycloneMovement? movement = ReadEnum(GetText(obsElem.Element(IwxxmNs + "movement")), "movement", id, errors,
                     ("MOVING", TropicalCycloneMovement.Moving), ("STATIONARY", TropicalCycloneMovement.Stationary));
                 double? movementDirection = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "movementDirection"), UcumUnits.Degree, id, errors);
-                Speed? movementSpeed = UomMeasureReader.ReadSpeed(obsElem.Element(IwxxmNs + "movementSpeed"), id, errors, UomMeasureReader.Subsets.SpeedOfMotion);
+                Speed? movementSpeed = UomMeasureReader.ReadSpeed(obsElem.Element(IwxxmNs + "movementSpeed"), id, errors, UomMeasureReader.Subsets.SpeedOfMotion, aliases);
                 TropicalCycloneIntensityChange? intensityChange = ReadEnum(GetText(obsElem.Element(IwxxmNs + "intensityChange")), "intensityChange", id, errors,
                     ("NO_CHANGE", TropicalCycloneIntensityChange.NoChange), ("WEAKEN", TropicalCycloneIntensityChange.Weaken), ("INTENSIFY", TropicalCycloneIntensityChange.Intensify));
 
@@ -68,7 +68,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
                 DateTimeOffset? fcstTime = GmlTimeReader.ReadOptionalInstant(fcstElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", id, errors);
                 GeoCoordinate? pos = ReadCyclonePosition(fcstElem, errors);
-                Speed? maxWind = UomMeasureReader.ReadSpeed(fcstElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors, UomMeasureReader.Subsets.WindSpeed);
+                Speed? maxWind = UomMeasureReader.ReadSpeed(fcstElem.Element(IwxxmNs + "maximumSurfaceWindSpeed"), id, errors, UomMeasureReader.Subsets.WindSpeed, aliases);
 
                 if (pos.HasValue)
                 {

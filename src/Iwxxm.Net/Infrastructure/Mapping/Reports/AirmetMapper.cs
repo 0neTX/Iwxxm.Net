@@ -12,7 +12,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// <summary>Maps <c>iwxxm:AIRMET</c> (<c>airmet.xsd</c>) onto <see cref="Airmet"/>.</summary>
     internal static class AirmetMapper
     {
-        public static Result<Airmet> Map(XElement root)
+        public static Result<Airmet> Map(XElement root, UomAliasCollector aliases)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -47,7 +47,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 XElement? condition = GmlReferenceResolver.Content(member, IwxxmNs + "AIRMETEvolvingCondition");
                 if (condition != null)
                 {
-                    evolvingConditions.Add(ReadCondition(condition, timeIndicator, phenomenonTime, errors));
+                    evolvingConditions.Add(ReadCondition(condition, timeIndicator, phenomenonTime, errors, aliases));
                 }
             }
 
@@ -82,9 +82,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
         }
 
         /// <summary>Reads an <c>AIRMETEvolvingCondition</c>: shared volume plus the AIRMET-specific content (<c>airmet.xsd</c>).</summary>
-        private static AirmetEvolvingCondition ReadCondition(XElement condition, TimeIndicator? timeIndicator, DateTimeOffset? phenomenonTime, List<ValidationError> errors)
+        private static AirmetEvolvingCondition ReadCondition(XElement condition, TimeIndicator? timeIndicator, DateTimeOffset? phenomenonTime, List<ValidationError> errors, UomAliasCollector aliases)
         {
-            EnRoutePhenomenonVolume volume = EnRouteVolumeReader.ReadConditionVolume(condition, timeIndicator, phenomenonTime, errors);
+            EnRoutePhenomenonVolume volume = EnRouteVolumeReader.ReadConditionVolume(condition, timeIndicator, phenomenonTime, errors, aliases);
             string id = volume.Id;
 
             VerticalLimit? cloudBase = VerticalLimitReader.Read(
@@ -106,7 +106,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             }
 
             double? windDirection = UomMeasureReader.ReadFixedUnit(condition.Element(IwxxmNs + "surfaceWindDirection"), UcumUnits.Degree, id, errors);
-            Speed? windSpeed = UomMeasureReader.ReadSpeed(condition.Element(IwxxmNs + "surfaceWindSpeed"), id, errors, UomMeasureReader.Subsets.WindSpeed);
+            Speed? windSpeed = UomMeasureReader.ReadSpeed(condition.Element(IwxxmNs + "surfaceWindSpeed"), id, errors, UomMeasureReader.Subsets.WindSpeed, aliases);
 
             return new AirmetEvolvingCondition(volume, cloudBase, cloudTop, cloudTopAbove, surfaceVisibility, causes, windDirection, windSpeed);
         }

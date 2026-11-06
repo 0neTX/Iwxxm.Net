@@ -9,7 +9,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
     {
         private const string CoreFlightLevelMissingCode = "ACL-JS-CORE-FL";
 
-        public static Result<JetStream> FromWafsFeature(MeteorologicalFeatureType feature)
+        public static Result<JetStream> FromWafsFeature(MeteorologicalFeatureType feature, UomAliasCollector aliases)
         {
             string context = $"MeteorologicalFeature[@gml:id='{feature.Id}']";
             CurveType? curve = feature.PhenomenonGeometry?.Curve;
@@ -49,7 +49,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 if (!level.HasValue)
                     return Result<JetStream>.Failure(levelErrors);
 
-                var speedResult = SigwxMeasureReader.ReadRequiredSpeed(symbol.WindSpeed, $"{symbolContext}/windSpeed");
+                var speedResult = SigwxMeasureReader.ReadRequiredSpeed(symbol.WindSpeed, $"{symbolContext}/windSpeed", aliases);
                 if (speedResult.IsFailure)
                     return Result<JetStream>.Failure(speedResult.Errors);
                 Speed windSpeed = speedResult.Value;
@@ -90,7 +90,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 corePoints: corePoints);
         }
 
-        public static Result<JetStream> FromCompact(JetStreamType dto)
+        public static Result<JetStream> FromCompact(JetStreamType dto, UomAliasCollector aliases)
         {
             string context = $"jetStream[@gml:id='{dto.Id}']";
             var axisCoordsResult = SigwxGeometryReader.ReadCurveCoordinates(dto.Axis?.Curve, $"{context}/axis");
@@ -111,7 +111,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             if (!coreLevel.HasValue)
                 return Result<JetStream>.Failure(levelErrors);
 
-            var windSpeedResult = SigwxMeasureReader.ReadRequiredSpeed(dto.WindSpeed, $"{context}/windSpeed");
+            var windSpeedResult = SigwxMeasureReader.ReadRequiredSpeed(dto.WindSpeed, $"{context}/windSpeed", aliases);
             if (windSpeedResult.IsFailure)
                 return Result<JetStream>.Failure(windSpeedResult.Errors);
             Speed windSpeed = windSpeedResult.Value;
@@ -121,7 +121,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             {
                 foreach (JetStreamCorePointType cpDto in dto.CorePoints)
                 {
-                    var corePointResult = FromCompactCorePoint(cpDto, windSpeed, context);
+                    var corePointResult = FromCompactCorePoint(cpDto, windSpeed, context, aliases);
                     if (corePointResult.IsFailure)
                         return Result<JetStream>.Failure(corePointResult.Errors);
 
@@ -133,7 +133,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
         }
 
         /// <summary>Reads a compact core point; its wind speed defaults to the jet stream speed only when the point reports none.</summary>
-        private static Result<JetStreamCorePoint> FromCompactCorePoint(JetStreamCorePointType cpDto, Speed jetStreamSpeed, string context)
+        private static Result<JetStreamCorePoint> FromCompactCorePoint(JetStreamCorePointType cpDto, Speed jetStreamSpeed, string context, UomAliasCollector aliases)
         {
             var ptResult = SigwxGeometryReader.ParsePoint(cpDto.Location?.Point, $"{context}/corePoint");
             if (ptResult.IsFailure)
@@ -154,7 +154,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             Speed coreSpeed = jetStreamSpeed;
             if (cpDto.WindSpeed != null)
             {
-                var coreSpeedResult = SigwxMeasureReader.ReadRequiredSpeed(cpDto.WindSpeed, $"{context}/corePoint/windSpeed");
+                var coreSpeedResult = SigwxMeasureReader.ReadRequiredSpeed(cpDto.WindSpeed, $"{context}/corePoint/windSpeed", aliases);
                 if (coreSpeedResult.IsFailure)
                     return Result<JetStreamCorePoint>.Failure(coreSpeedResult.Errors);
                 coreSpeed = coreSpeedResult.Value;

@@ -15,23 +15,23 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
         internal const string FeatureByReferenceCode = "ACL-SIGWX-FEATURE-BY-REFERENCE";
         internal const string PhenomenonUnsupportedCode = "ACL-SIGWX-PHENOMENON-UNSUPPORTED";
 
-        private delegate void FeatureExtraction(MeteorologicalFeatureType feature, SigwxFeatureSet set, List<ValidationError> errors);
+        private delegate void FeatureExtraction(MeteorologicalFeatureType feature, SigwxFeatureSet set, List<ValidationError> errors, UomAliasCollector aliases);
 
         /// <summary>Phenomenon code suffix to extractor, evaluated in order (closed WAFS phenomenon catalog).</summary>
         private static readonly KeyValuePair<string, FeatureExtraction>[] Extractors =
         {
-            Entry("/JETSTREAM", (f, s, e) => SigwxFeatureSet.Collect(JetStreamExtractor.FromWafsFeature(f), s.JetStreams, e)),
-            Entry("/CLOUD", (f, s, e) => SigwxFeatureSet.Collect(CloudExtractor.FromWafsFeature(f), s.Clouds, e)),
-            Entry("/TROPOPAUSE", (f, s, e) => SigwxFeatureSet.Collect(TropopauseExtractor.FromWafsFeature(f), s.Tropopauses, e)),
-            Entry("/VOLCANO", (f, s, e) => SigwxFeatureSet.Collect(PointPhenomenaExtractor.VolcanoFromWafsFeature(f), s.Volcanoes, e)),
-            Entry("/TURBULENCE", (f, s, e) => SigwxFeatureSet.Collect(TurbulenceExtractor.FromWafsFeature(f), s.Turbulences, e)),
-            Entry("/AIRFRAME_ICING", (f, s, e) => SigwxFeatureSet.Collect(AirframeIcingExtractor.FromWafsFeature(f), s.AirframeIcings, e)),
-            Entry("/TROPICAL_CYCLONE", (f, s, e) => SigwxFeatureSet.Collect(PointPhenomenaExtractor.TropicalCycloneFromWafsFeature(f), s.TropicalCyclones, e)),
-            Entry("/SANDSTORM", (f, s, e) => SigwxFeatureSet.Collect(PointPhenomenaExtractor.SandstormFromWafsFeature(f), s.Sandstorms, e)),
-            Entry("/RADIATION", (f, s, e) => SigwxFeatureSet.Collect(PointPhenomenaExtractor.RadiationIncidentFromWafsFeature(f), s.RadiationIncidents, e))
+            Entry("/JETSTREAM", (f, s, e, aliases) => SigwxFeatureSet.Collect(JetStreamExtractor.FromWafsFeature(f, aliases), s.JetStreams, e)),
+            Entry("/CLOUD", (f, s, e, _) => SigwxFeatureSet.Collect(CloudExtractor.FromWafsFeature(f), s.Clouds, e)),
+            Entry("/TROPOPAUSE", (f, s, e, _) => SigwxFeatureSet.Collect(TropopauseExtractor.FromWafsFeature(f), s.Tropopauses, e)),
+            Entry("/VOLCANO", (f, s, e, _) => SigwxFeatureSet.Collect(PointPhenomenaExtractor.VolcanoFromWafsFeature(f), s.Volcanoes, e)),
+            Entry("/TURBULENCE", (f, s, e, _) => SigwxFeatureSet.Collect(TurbulenceExtractor.FromWafsFeature(f), s.Turbulences, e)),
+            Entry("/AIRFRAME_ICING", (f, s, e, _) => SigwxFeatureSet.Collect(AirframeIcingExtractor.FromWafsFeature(f), s.AirframeIcings, e)),
+            Entry("/TROPICAL_CYCLONE", (f, s, e, _) => SigwxFeatureSet.Collect(PointPhenomenaExtractor.TropicalCycloneFromWafsFeature(f), s.TropicalCyclones, e)),
+            Entry("/SANDSTORM", (f, s, e, _) => SigwxFeatureSet.Collect(PointPhenomenaExtractor.SandstormFromWafsFeature(f), s.Sandstorms, e)),
+            Entry("/RADIATION", (f, s, e, _) => SigwxFeatureSet.Collect(PointPhenomenaExtractor.RadiationIncidentFromWafsFeature(f), s.RadiationIncidents, e))
         };
 
-        public static Result<Sigwx> Map(WAFSSignificantWeatherForecastType dto)
+        public static Result<Sigwx> Map(WAFSSignificantWeatherForecastType dto, UomAliasCollector aliases)
         {
             var errors = new List<ValidationError>();
 
@@ -83,7 +83,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 }
 
                 var itemErrors = new List<ValidationError>();
-                Extract(feature, features, itemErrors);
+                Extract(feature, features, itemErrors, aliases);
                 if (itemErrors.Count > 0)
                 {
                     featureErrors.Add(new ItemMappingError(index, feature.Id, itemErrors));
@@ -131,14 +131,14 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
         }
 
         /// <summary>Dispatches a feature to the first extractor whose suffix matches; an unknown phenomenon is a feature error.</summary>
-        private static void Extract(MeteorologicalFeatureType feature, SigwxFeatureSet features, List<ValidationError> errors)
+        private static void Extract(MeteorologicalFeatureType feature, SigwxFeatureSet features, List<ValidationError> errors, UomAliasCollector aliases)
         {
             string phenomenonHref = feature.Phenomenon?.Href ?? string.Empty;
             foreach (KeyValuePair<string, FeatureExtraction> extractor in Extractors)
             {
                 if (phenomenonHref.EndsWith(extractor.Key, StringComparison.OrdinalIgnoreCase))
                 {
-                    extractor.Value(feature, features, errors);
+                    extractor.Value(feature, features, errors, aliases);
                     return;
                 }
             }

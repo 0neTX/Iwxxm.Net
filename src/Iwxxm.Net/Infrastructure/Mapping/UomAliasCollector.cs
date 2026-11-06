@@ -13,11 +13,12 @@ namespace Iwxxm.Net.Infrastructure.Mapping
     /// and field for the whole document (not one warning per value).
     /// </summary>
     /// <remarks>
-    /// The scope is thread-bound and lives for one mapping call: the outermost <see cref="Begin"/> owns it and attaches the
-    /// warnings to the result; a nested scope (a SIGWX report mapped inside a bulletin) shares it. Outside a scope the
-    /// readers stay strict, so no alias is ever accepted without a warning being able to report it.
+    /// A collector is a plain object created by the mapping call that owns the document and passed explicitly to every
+    /// reader that interprets a speed unit; it holds no ambient state, so concurrent mapping calls never share one. Where
+    /// aliases must not be accepted the readers receive <see cref="NoAliases"/>, which rejects every alias, so no alias is
+    /// ever accepted without a warning being able to report it.
     /// </remarks>
-    internal sealed class UomAliasScope : IDisposable
+    internal sealed class UomAliasCollector
     {
         // legacy spelling -> canonical UCUM code
         private static readonly Dictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -25,17 +26,23 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             ["kn_i"] = "[kn_i]",
         };
 
-        [ThreadStatic]
-        private static UomAliasScope? _current;
+        /// <summary>
+        /// Shared strict instance: accepts no alias (a legacy spelling stays an unsupported unit, as before AUD-R5) and never
+        /// records anything, so it is immutable and safe to share across threads.
+        /// </summary>
+        public static readonly UomAliasCollector NoAliases = new UomAliasCollector(acceptsAliases: false);
 
-        private readonly bool _owner;
-        private readonly Dictionary<(string Field, string Alias), Occurrence> _occurrences;
+        private readonly bool _acceptsAliases;
+        private readonly Dictionary<(string Field, string Alias), Occurrence> _occurrences =
+            new Dictionary<(string Field, string Alias), Occurrence>();
 
-        private UomAliasScope(bool owner, Dictionary<(string Field, string Alias), Occurrence> occurrences)
+        /// <summary>Creates a collector that accepts the known aliases and records each accepted occurrence.</summary>
+        public UomAliasCollector()
+            : this(acceptsAliases: true)
         {
-            _owner = owner;
-            _occurrences = occurrences;
         }
+
+        private UomAliasCollector(bool acceptsAliases) => _acceptsAliases = acceptsAliases;
 
         private sealed class Occurrence
         {
@@ -46,51 +53,38 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             public int Count { get; set; }
         }
 
-        /// <summary>Starts the scope of a mapping call, or joins the one already active on this thread.</summary>
-        public static UomAliasScope Begin()
-        {
-            if (_current != null)
-                return new UomAliasScope(false, _current._occurrences);
-
-            var scope = new UomAliasScope(true, new Dictionary<(string, string), Occurrence>());
-            _current = scope;
-            return scope;
-        }
-
-        /// <summary>Resolves a legacy spelling to its UCUM code; only while a scope is active (otherwise the readers stay strict).</summary>
-        public static bool IsActiveAlias(string? uom, out string canonical)
+        /// <summary>Resolves a legacy spelling to its UCUM code; <c>false</c> for any other unit or for <see cref="NoAliases"/>.</summary>
+        public bool IsAlias(string? uom, out string canonical)
         {
             canonical = string.Empty;
-            return _current != null && uom != null && Aliases.TryGetValue(uom.Trim(), out canonical!);
+            return _acceptsAliases && uom != null && Aliases.TryGetValue(uom.Trim(), out canonical!);
         }
 
         /// <summary>Counts one accepted alias at <paramref name="location"/> and returns its UCUM code.</summary>
-        public static string Accept(string alias, string location)
+        public string Accept(string alias, string location)
         {
-            string canonical = Aliases[alias.Trim()];
-            UomAliasScope? scope = _current;
-            if (scope != null)
-            {
-                (string, string) key = (FieldOf(location), alias.Trim());
-                if (!scope._occurrences.TryGetValue(key, out Occurrence? occurrence))
-                {
-                    occurrence = new Occurrence(location);
-                    scope._occurrences.Add(key, occurrence);
-                }
+            if (!_acceptsAliases)
+                throw new InvalidOperationException("This collector accepts no unit alias.");
 
-                occurrence.Count++;
+            string canonical = Aliases[alias.Trim()];
+            (string, string) key = (FieldOf(location), alias.Trim());
+            if (!_occurrences.TryGetValue(key, out Occurrence? occurrence))
+            {
+                occurrence = new Occurrence(location);
+                _occurrences.Add(key, occurrence);
             }
 
+            occurrence.Count++;
             return canonical;
         }
 
         /// <summary>
-        /// Adds the aggregated alias warnings to a successful result when this scope owns the document; a nested scope and a
-        /// failure return the result unchanged.
+        /// Adds the aggregated alias warnings to a successful result; a failure and a document without aliases return the
+        /// result unchanged. Called once, by the mapping call that owns the document.
         /// </summary>
         public Result<T> Attach<T>(Result<T> result)
         {
-            if (!_owner || result.IsFailure || _occurrences.Count == 0)
+            if (result.IsFailure || _occurrences.Count == 0)
                 return result;
 
             var warnings = new List<ValidationError>(result.Warnings);
@@ -113,12 +107,6 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
 
             return Result<T>.Success(result.Value, warnings);
-        }
-
-        public void Dispose()
-        {
-            if (_owner && ReferenceEquals(_current, this))
-                _current = null;
         }
 
         // Last path segment without its predicate: ".../WAFSJetStreamWindSymbol[@gml:id='x']/windSpeed" -> "windSpeed".

@@ -11,7 +11,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// <summary>Maps <c>iwxxm:VolcanicAshAdvisory</c> (<c>vaa.xsd</c>) onto <see cref="Vaa"/>.</summary>
     internal static class VaaMapper
     {
-        public static Result<Vaa> Map(XElement root)
+        public static Result<Vaa> Map(XElement root, UomAliasCollector aliases)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -28,7 +28,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             if (obsCond != null)
             {
-                observation = ReadConditions(obsCond, "VolcanicAshCloudObservedOrEstimated", errors);
+                observation = ReadConditions(obsCond, "VolcanicAshCloudObservedOrEstimated", errors, aliases);
             }
 
             var forecasts = new List<VolcanicAshConditions>();
@@ -37,7 +37,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 XElement? fcstCond = fcstProp.Element(IwxxmNs + "VolcanicAshForecastConditions");
                 if (fcstCond == null) continue;
 
-                forecasts.Add(ReadConditions(fcstCond, "VolcanicAshCloudForecast", errors));
+                forecasts.Add(ReadConditions(fcstCond, "VolcanicAshCloudForecast", errors, aliases));
             }
 
             DateTimeOffset? nextAdvisory = GmlTimeReader.ReadOptionalInstant(root.Element(IwxxmNs + "nextAdvisoryTime"), "nextAdvisoryTime", id, errors);
@@ -70,7 +70,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
         }
 
         /// <summary>Reads one observed or forecast conditions element: its time, status and ash clouds.</summary>
-        private static VolcanicAshConditions ReadConditions(XElement conditions, string cloudName, List<ValidationError> errors)
+        private static VolcanicAshConditions ReadConditions(XElement conditions, string cloudName, List<ValidationError> errors, UomAliasCollector aliases)
         {
             string id = GetGmlId(conditions);
             DateTimeOffset? phenomenonTime = GmlTimeReader.ReadOptionalInstant(conditions.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", id, errors);
@@ -82,7 +82,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 XElement? ashElem = GmlReferenceResolver.Content(ashProp, IwxxmNs + cloudName);
                 if (ashElem != null)
                 {
-                    clouds.Add(EnRouteVolumeReader.ReadAshCloudVolume(ashElem, phenomenonTime, errors));
+                    clouds.Add(EnRouteVolumeReader.ReadAshCloudVolume(ashElem, phenomenonTime, errors, aliases));
                 }
             }
 

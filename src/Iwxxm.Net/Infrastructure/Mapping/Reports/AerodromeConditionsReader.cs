@@ -44,7 +44,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
         public static CodeListValue<NilReason>? ReadFirstNilReason(IEnumerable<XElement> elements) =>
             elements.Select(ReadNilReason).FirstOrDefault(reason => reason != null);
 
-        public static SurfaceWind? ReadSurfaceWind(XElement? surfaceWindProp, string context, List<ValidationError> errors)
+        public static SurfaceWind? ReadSurfaceWind(XElement? surfaceWindProp, string context, List<ValidationError> errors, UomAliasCollector aliases)
         {
             // Observation (metarSpeci.xsd), TAF forecast (taf.xsd) and METAR/SPECI trend (metarSpeci.xsd, common.xsd) winds.
             XElement? windElem = surfaceWindProp?.Element(IwxxmNs + "AerodromeSurfaceWind")
@@ -55,8 +55,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             bool isVar = ParseBoolAttribute(windElem, "variableWindDirection");
             double? dir = UomMeasureReader.ReadFixedUnit(windElem.Element(IwxxmNs + "meanWindDirection"), UcumUnits.Degree, context, errors);
-            Speed? spd = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "meanWindSpeed"), context, errors, UomMeasureReader.Subsets.WindSpeed);
-            Speed? gust = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "windGustSpeed"), context, errors, UomMeasureReader.Subsets.WindSpeed);
+            Speed? spd = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "meanWindSpeed"), context, errors, UomMeasureReader.Subsets.WindSpeed, aliases);
+            Speed? gust = UomMeasureReader.ReadSpeed(windElem.Element(IwxxmNs + "windGustSpeed"), context, errors, UomMeasureReader.Subsets.WindSpeed, aliases);
             RelationalOperator? spdOp = ReadOperator(windElem.Element(IwxxmNs + "meanWindSpeedOperator"), context, errors);
             RelationalOperator? gustOp = ReadOperator(windElem.Element(IwxxmNs + "windGustSpeedOperator"), context, errors);
             double? extremeCw = UomMeasureReader.ReadFixedUnit(windElem.Element(IwxxmNs + "extremeClockwiseWindDirection"), UcumUnits.Degree, context, errors);
@@ -120,7 +120,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
         public static List<AerodromeWeather> ReadWeather(IEnumerable<XElement> weatherElements) =>
             CollectHrefs(weatherElements).Select(AerodromeWeatherCodeList.Translate).ToList();
 
-        public static AerodromeForecastGroup ReadForecastGroup(XElement fcstElem, List<ValidationError> errors)
+        public static AerodromeForecastGroup ReadForecastGroup(XElement fcstElem, List<ValidationError> errors, UomAliasCollector aliases)
         {
             string id = GetGmlId(fcstElem);
             string? changeInd = fcstElem.Attribute("changeIndicator")?.Value;
@@ -137,7 +137,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             double? vis = UomMeasureReader.ReadFixedUnit(fcstElem.Element(IwxxmNs + "prevailingVisibility"), UcumUnits.Meter, id, errors);
             RelationalOperator? visOp = ReadOperator(fcstElem.Element(IwxxmNs + "prevailingVisibilityOperator"), id, errors);
-            SurfaceWind? wind = ReadSurfaceWind(fcstElem.Element(IwxxmNs + "surfaceWind"), id, errors);
+            SurfaceWind? wind = ReadSurfaceWind(fcstElem.Element(IwxxmNs + "surfaceWind"), id, errors, aliases);
             List<AerodromeWeather> wxList = ReadWeather(fcstElem.Elements(IwxxmNs + "weather"));
             CodeListValue<NilReason>? weatherNilReason = wxList.Count == 0 ? ReadFirstNilReason(fcstElem.Elements(IwxxmNs + "weather")) : null;
             AerodromeCloud? cloud = ReadCloud(fcstElem.Element(IwxxmNs + "cloud"), id, errors);

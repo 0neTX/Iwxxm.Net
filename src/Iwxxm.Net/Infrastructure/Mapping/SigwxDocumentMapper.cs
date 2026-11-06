@@ -17,6 +17,17 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
         public Result<Sigwx> Map(IwxxmDocumentContext validatedDocument)
         {
+            // Legacy unit aliases are reported once per document: this call owns the collector and attaches its warning.
+            var aliases = new UomAliasCollector();
+            return aliases.Attach(Map(validatedDocument, aliases));
+        }
+
+        /// <summary>
+        /// Maps the document recording accepted unit aliases in <paramref name="aliases"/>, which belongs to the caller (the
+        /// composite mapper shares one collector between a bulletin and its SIGWX reports): the caller attaches the warning.
+        /// </summary>
+        internal Result<Sigwx> Map(IwxxmDocumentContext validatedDocument, UomAliasCollector aliases)
+        {
             if (validatedDocument == null)
                 throw new ArgumentNullException(nameof(validatedDocument));
 
@@ -24,11 +35,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (!transport.IsSuccess)
                 return Result<Sigwx>.Failure(transport.Errors);
 
-            // Legacy unit aliases are reported once per document: the outermost mapping call owns the scope.
-            using (UomAliasScope aliases = UomAliasScope.Begin())
-            {
-                return aliases.Attach(_mapper.MapToDomain(transport.Value));
-            }
+            return _mapper.MapToDomain(transport.Value, aliases);
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
     /// <summary>Maps the compact <c>SIGWXReport</c> format onto <see cref="Sigwx"/>.</summary>
     internal static class CompactSigwxReportMapper
     {
-        public static Result<Sigwx> Map(SIGWXReportType dto)
+        public static Result<Sigwx> Map(SIGWXReportType dto, UomAliasCollector aliases)
         {
             var errors = new List<ValidationError>();
 
@@ -22,7 +22,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             VerticalLimit? upperLimit = SigwxMeasureReader.ReadRequiredVertical(dto.UpperLimit, null, "upperLimit", errors);
 
             var features = new SigwxFeatureSet();
-            CollectAll(dto.JetStreams, JetStreamExtractor.FromCompact, features.JetStreams, errors);
+            CollectAll(dto.JetStreams, jetStream => JetStreamExtractor.FromCompact(jetStream, aliases), features.JetStreams, errors);
             CollectAll(dto.Clouds, CloudExtractor.FromCompact, features.Clouds, errors);
             CollectAll(dto.Tropopauses, TropopauseExtractor.FromCompact, features.Tropopauses, errors);
             CollectAll(dto.Volcanoes, PointPhenomenaExtractor.VolcanoFromCompact, features.Volcanoes, errors);

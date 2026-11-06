@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Unit alias collection (internal)**: the thread-static `UomAliasScope` is replaced by an explicit per-document `UomAliasCollector` passed as a required parameter through the readers that interpret speed units. Behaviour is unchanged (same `ACL-MEASURE-UOM-NON-UCUM-ALIAS` warning, message, grouping and first location; readers stay strict without a collector, and a bulletin and its embedded SIGWX reports still share one collector); concurrent parses cannot share alias state, which a concurrency test now covers.
 - **Packages include the notices**: both NuGet packages now carry `THIRD-PARTY-NOTICES.md` at the package root (next to `LICENSE`), and the Dockerfile pack stage fails the build if either package lacks it, `LICENSE`, or (Saxon package) `licenses/SchXslt/LICENSE`.
 - **`SECURITY.md` reports in two phases**: until v1.0.0 (private repository) vulnerabilities are reported directly to the maintainer through the private channel that granted access; from v1.0.0 GitHub private vulnerability reporting is used (to be enabled at publication).
 - **Met Office sample licence wording**: the sample README records that the package carried no licence file, the maintainer's confirmation (2026-11-05) that the data is redistributable, and the attribution to the UK Met Office.

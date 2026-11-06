@@ -42,14 +42,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
 
-            // Legacy unit aliases are reported once per document (AUD-R5): this call owns the scope of the whole mapping.
-            using (UomAliasScope aliases = UomAliasScope.Begin())
-            {
-                return aliases.Attach(MapDocument(document));
-            }
+            // Legacy unit aliases are reported once per document (AUD-R5): this call owns the collector of the whole mapping
+            // (bulletin entries and an embedded SIGWX report included) and attaches its single aggregated warning.
+            var aliases = new UomAliasCollector();
+            return aliases.Attach(MapDocument(document, aliases));
         }
 
-        private Result<IwxxmDocument> MapDocument(IwxxmDocumentContext document)
+        private Result<IwxxmDocument> MapDocument(IwxxmDocumentContext document, UomAliasCollector aliases)
         {
             // The document was parsed once by the use case (shared tree); a direct call parses it here.
             XElement root;
@@ -69,22 +68,22 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             // Delegate SIGWX/WAFS directly to the dedicated SIGWX mapper (transport model + ACL)
             if (IsSigwxRoot(root.Name))
             {
-                return IwxxmReportMapperRegistry.ToDocument(_sigwxMapper.Map(document));
+                return IwxxmReportMapperRegistry.ToDocument(MapSigwx(document, aliases));
             }
 
             if (root.Name == BulletinName)
             {
-                return IwxxmReportMapperRegistry.ToDocument(BulletinMapper.Map(root, MapElementToReport));
+                return IwxxmReportMapperRegistry.ToDocument(BulletinMapper.Map(root, entry => MapElementToReport(entry, aliases)));
             }
 
-            return IwxxmReportMapperRegistry.ToDocument(MapElementToReport(root));
+            return IwxxmReportMapperRegistry.ToDocument(MapElementToReport(root, aliases));
         }
 
         /// <summary>
         /// Maps a report root element (a document root or a <c>collect:meteorologicalInformation</c> child). A bulletin is an
         /// envelope, not a report, so a <c>collect:MeteorologicalBulletin</c> nested in another bulletin is rejected.
         /// </summary>
-        private Result<IwxxmReport> MapElementToReport(XElement root)
+        private Result<IwxxmReport> MapElementToReport(XElement root, UomAliasCollector aliases)
         {
             if (root.Name == BulletinName)
             {
@@ -106,12 +105,12 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (IsSigwxRoot(root.Name))
             {
                 // WAFSSignificantWeatherForecast does not derive from the common ReportType: no translation attributes.
-                return MapEmbeddedSigwx(root);
+                return MapEmbeddedSigwx(root, aliases);
             }
 
-            if (IwxxmReportMapperRegistry.TryGetMapper(root.Name, out Func<XElement, Result<IwxxmReport>> mapper))
+            if (IwxxmReportMapperRegistry.TryGetMapper(root.Name, out Func<XElement, UomAliasCollector, Result<IwxxmReport>> mapper))
             {
-                return ReportTranslationReader.Attach(root, mapper(root));
+                return ReportTranslationReader.Attach(root, mapper(root, aliases));
             }
 
             return Result<IwxxmReport>.Failure(
@@ -125,8 +124,15 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         /// already parsed element: the built-in mapper reads the element directly and the report is serialized only if a
         /// custom mapper asks for its bytes (AUD-L5).
         /// </summary>
-        private Result<IwxxmReport> MapEmbeddedSigwx(XElement root) =>
-            IwxxmReportMapperRegistry.Upcast(_sigwxMapper.Map(SecureXml.ForElement(root, _options)));
+        private Result<IwxxmReport> MapEmbeddedSigwx(XElement root, UomAliasCollector aliases) =>
+            IwxxmReportMapperRegistry.Upcast(MapSigwx(SecureXml.ForElement(root, _options), aliases));
+
+        /// <summary>
+        /// Maps a SIGWX document through the port. The built-in mapper shares this document's collector so that one aggregated
+        /// alias warning results; a custom mapper behind the port does not know the collector and reports its own warnings.
+        /// </summary>
+        private Result<Sigwx> MapSigwx(IwxxmDocumentContext context, UomAliasCollector aliases) =>
+            _sigwxMapper is SigwxDocumentMapper builtIn ? builtIn.Map(context, aliases) : _sigwxMapper.Map(context);
 
         private static readonly XName BulletinName = CollectNs + "MeteorologicalBulletin";
 

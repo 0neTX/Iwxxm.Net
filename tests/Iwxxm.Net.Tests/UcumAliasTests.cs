@@ -18,33 +18,27 @@ namespace Iwxxm.Net.Tests
         private static string CompactSample() => File.ReadAllText("Samples/sigwx-swh-2025-2.xml");
 
         [Fact]
-        public void Reader_OutsideAMappingScope_StaysStrict()
+        public void Reader_WithoutACollector_StaysStrict()
         {
             var errors = new List<ValidationError>();
 
-            Speed? speed = UomMeasureReader.ReadSpeed("135", "kn_i", "x/windSpeed", errors);
+            Speed? speed = UomMeasureReader.ReadSpeed("135", "kn_i", "x/windSpeed", errors, UomAliasCollector.NoAliases);
 
             Assert.Null(speed);
             Assert.Equal("ACL-MEASURE-UOM-UNSUPPORTED", Assert.Single(errors).Code);
+            Assert.Empty(UomAliasCollector.NoAliases.Attach(Result<int>.Success(1)).Warnings);
         }
 
         [Fact]
-        public void Reader_InsideAScope_AcceptsTheAlias_AndTheOwnerReportsOneAggregatedWarning()
+        public void Reader_WithACollector_AcceptsTheAlias_AndTheOwnerReportsOneAggregatedWarning()
         {
             var errors = new List<ValidationError>();
-            Result<int> result;
-            using (UomAliasScope scope = UomAliasScope.Begin())
-            {
-                Assert.Equal(new Speed(135, SpeedUnit.Knots), UomMeasureReader.ReadSpeed("135", "kn_i", "a/windSpeed", errors));
-                Assert.Equal(new Speed(100, SpeedUnit.Knots), UomMeasureReader.ReadSpeed("100", "kn_i", "b/windSpeed", errors));
-                Assert.Equal(new Speed(5, SpeedUnit.Knots), UomMeasureReader.ReadSpeed("5", "[kn_i]", "c/windSpeed", errors)); // the UCUM code is not counted
+            var aliases = new UomAliasCollector();
 
-                // a nested scope shares the data and does not attach anything itself
-                using (UomAliasScope nested = UomAliasScope.Begin())
-                    Assert.Empty(nested.Attach(Result<int>.Success(1)).Warnings);
-
-                result = scope.Attach(Result<int>.Success(1));
-            }
+            Assert.Equal(new Speed(135, SpeedUnit.Knots), UomMeasureReader.ReadSpeed("135", "kn_i", "a/windSpeed", errors, aliases));
+            Assert.Equal(new Speed(100, SpeedUnit.Knots), UomMeasureReader.ReadSpeed("100", "kn_i", "b/windSpeed", errors, aliases));
+            Assert.Equal(new Speed(5, SpeedUnit.Knots), UomMeasureReader.ReadSpeed("5", "[kn_i]", "c/windSpeed", errors, aliases)); // the UCUM code is not counted
+            Result<int> result = aliases.Attach(Result<int>.Success(1));
 
             Assert.Empty(errors);
             ValidationError warning = Assert.Single(result.Warnings);
@@ -55,25 +49,13 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void Reader_InsideAScope_StillRejectsOtherUnknownUnits()
+        public void Reader_WithACollector_StillRejectsOtherUnknownUnits()
         {
             var errors = new List<ValidationError>();
-            using (UomAliasScope.Begin())
-                Assert.Null(UomMeasureReader.ReadSpeed("135", "kt", "x/windSpeed", errors));
+
+            Assert.Null(UomMeasureReader.ReadSpeed("135", "kt", "x/windSpeed", errors, new UomAliasCollector()));
 
             Assert.Equal("ACL-MEASURE-UOM-UNSUPPORTED", Assert.Single(errors).Code);
-        }
-
-        [Fact]
-        public void TheScopeEnds_WithTheOwner()
-        {
-            using (UomAliasScope.Begin())
-            {
-            }
-
-            var errors = new List<ValidationError>();
-            Assert.Null(UomMeasureReader.ReadSpeed("1", "kn_i", "x/windSpeed", errors));
-            Assert.Single(errors);
         }
 
         [Fact]

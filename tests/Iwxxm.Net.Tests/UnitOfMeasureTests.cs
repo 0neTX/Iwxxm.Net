@@ -96,7 +96,7 @@ namespace Iwxxm.Net.Tests
         public void ReadSpeed_SupportedUcumUnits_KeepValueAndUnit(string uom, SpeedUnit expectedUnit)
         {
             var errors = new List<ValidationError>();
-            Speed? speed = UomMeasureReader.ReadSpeed("12.5", uom, "test", errors);
+            Speed? speed = UomMeasureReader.ReadSpeed("12.5", uom, "test", errors, UomAliasCollector.NoAliases);
 
             Assert.Empty(errors);
             Assert.Equal(new Speed(12.5, expectedUnit), speed);
@@ -110,7 +110,7 @@ namespace Iwxxm.Net.Tests
         public void ReadSpeed_MissingOrUnknownUom_ReturnsMappingError(string? uom, string expectedCode)
         {
             var errors = new List<ValidationError>();
-            Speed? speed = UomMeasureReader.ReadSpeed("12.5", uom, "test", errors);
+            Speed? speed = UomMeasureReader.ReadSpeed("12.5", uom, "test", errors, UomAliasCollector.NoAliases);
 
             Assert.Null(speed);
             var error = Assert.Single(errors);

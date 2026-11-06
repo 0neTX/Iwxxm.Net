@@ -17,19 +17,19 @@ namespace Iwxxm.Net.Infrastructure.Mapping
     /// </remarks>
     internal sealed class SigwxMapper
     {
-        public Result<Sigwx> MapToDomain(SigwxDocumentEnvelope envelope)
+        public Result<Sigwx> MapToDomain(SigwxDocumentEnvelope envelope, UomAliasCollector aliases)
         {
             if (envelope == null)
                 throw new ArgumentNullException(nameof(envelope));
 
             if (envelope.WafsForecast != null)
             {
-                return WafsForecastMapper.Map(envelope.WafsForecast);
+                return WafsForecastMapper.Map(envelope.WafsForecast, aliases);
             }
 
             if (envelope.CompactReport != null)
             {
-                return CompactSigwxReportMapper.Map(envelope.CompactReport);
+                return CompactSigwxReportMapper.Map(envelope.CompactReport, aliases);
             }
 
             return Result<Sigwx>.Failure(

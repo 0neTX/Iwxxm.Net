@@ -102,16 +102,16 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         // XElement (LINQ to XML) overloads used by the report mappers (Mapping/Reports)
         // ---------------------------------------------------------------------
 
-        public static Speed? ReadSpeed(XElement? measureElem, string context, List<ValidationError> errors) =>
+        public static Speed? ReadSpeed(XElement? measureElem, string context, List<ValidationError> errors, UomAliasCollector aliases) =>
             measureElem == null || IsNil(measureElem)
                 ? (Speed?)null
-                : ReadSpeed(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors);
+                : ReadSpeed(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors, aliases);
 
         /// <summary>Reads a speed whose unit must belong to the field subset <paramref name="allowedUoms"/>.</summary>
-        public static Speed? ReadSpeed(XElement? measureElem, string context, List<ValidationError> errors, IReadOnlyList<string> allowedUoms) =>
-            measureElem == null || IsNil(measureElem) || !IsAllowed(measureElem, Describe(measureElem, context), allowedUoms, errors)
+        public static Speed? ReadSpeed(XElement? measureElem, string context, List<ValidationError> errors, IReadOnlyList<string> allowedUoms, UomAliasCollector aliases) =>
+            measureElem == null || IsNil(measureElem) || !IsAllowed(measureElem, Describe(measureElem, context), allowedUoms, errors, aliases)
                 ? (Speed?)null
-                : ReadSpeed(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors);
+                : ReadSpeed(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors, aliases);
 
         public static Length? ReadLength(XElement? measureElem, string context, List<ValidationError> errors) =>
             measureElem == null || IsNil(measureElem)
@@ -120,7 +120,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
         /// <summary>Reads a length whose unit must belong to the field subset <paramref name="allowedUoms"/>.</summary>
         public static Length? ReadLength(XElement? measureElem, string context, List<ValidationError> errors, IReadOnlyList<string> allowedUoms) =>
-            measureElem == null || IsNil(measureElem) || !IsAllowed(measureElem, Describe(measureElem, context), allowedUoms, errors)
+            // Unit aliases only exist for speeds, so a length subset is always checked without any.
+            measureElem == null || IsNil(measureElem) || !IsAllowed(measureElem, Describe(measureElem, context), allowedUoms, errors, UomAliasCollector.NoAliases)
                 ? (Length?)null
                 : ReadLength(measureElem.Value, measureElem.Attribute("uom")?.Value, Describe(measureElem, context), errors);
 
@@ -128,7 +129,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         /// Checks the <c>@uom</c> of a non-nil measure against a per-field subset. A missing unit is left to the regular
         /// reader (which reports it); a unit outside the subset is an <see cref="UomNotAllowedCode"/> error naming the field.
         /// </summary>
-        internal static bool IsAllowed(XElement measureElem, string location, IReadOnlyList<string> allowedUoms, List<ValidationError> errors)
+        internal static bool IsAllowed(XElement measureElem, string location, IReadOnlyList<string> allowedUoms, List<ValidationError> errors, UomAliasCollector aliases)
         {
             string? uom = measureElem.Attribute("uom")?.Value?.Trim();
             if (string.IsNullOrEmpty(uom))
@@ -141,7 +142,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
 
             // A recognised legacy spelling of an allowed unit is accepted (and reported by the reader as a warning).
-            if (UomAliasScope.IsActiveAlias(uom, out string canonical) && allowedUoms.Contains(canonical))
+            if (aliases.IsAlias(uom, out string canonical) && allowedUoms.Contains(canonical))
                 return true;
 
             errors.Add(Error(UomNotAllowedCode,
@@ -159,7 +160,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
         // Raw string overloads (also used for the SIGWX transport DTOs in Mapping/Wafs)
         // ---------------------------------------------------------------------
 
-        public static Speed? ReadSpeed(string? rawValue, string? uom, string location, List<ValidationError> errors)
+        public static Speed? ReadSpeed(string? rawValue, string? uom, string location, List<ValidationError> errors, UomAliasCollector aliases)
         {
             if (string.IsNullOrWhiteSpace(rawValue))
                 return null;
@@ -167,11 +168,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (!TryReadValueAndUom(rawValue!, uom, location, errors, out double value, out string unitCode))
                 return null;
 
-            // A recognised legacy spelling ("kn_i") is accepted while a mapping scope can report it as a warning.
+            // A recognised legacy spelling ("kn_i") is accepted only when the collector can report it as a warning.
             SpeedUnit unit;
             if (!TryParseSpeedUnit(unitCode, out unit) &&
-                UomAliasScope.IsActiveAlias(unitCode, out _) &&
-                TryParseSpeedUnit(UomAliasScope.Accept(unitCode, location), out unit))
+                aliases.IsAlias(unitCode, out _) &&
+                TryParseSpeedUnit(aliases.Accept(unitCode, location), out unit))
             {
                 return new Speed(value, unit);
             }

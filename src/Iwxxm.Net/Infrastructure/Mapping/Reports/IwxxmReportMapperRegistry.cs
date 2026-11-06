@@ -16,25 +16,25 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// </remarks>
     internal static class IwxxmReportMapperRegistry
     {
-        private static readonly Dictionary<XName, Func<XElement, Result<IwxxmReport>>> Mappers =
-            new Dictionary<XName, Func<XElement, Result<IwxxmReport>>>
+        private static readonly Dictionary<XName, Func<XElement, UomAliasCollector, Result<IwxxmReport>>> Mappers =
+            new Dictionary<XName, Func<XElement, UomAliasCollector, Result<IwxxmReport>>>
             {
-                [IwxxmNs + "METAR"] = root => Upcast(MetarSpeciMapper.Map<Metar>(root, Metar.Create)),
-                [IwxxmNs + "SPECI"] = root => Upcast(MetarSpeciMapper.Map<Speci>(root, Speci.Create)),
-                [IwxxmNs + "TAF"] = root => Upcast(TafMapper.Map(root)),
-                [IwxxmNs + "SIGMET"] = root => Upcast(SigmetMapper.Map(root, IwxxmReportType.Sigmet)),
-                [IwxxmNs + "VolcanicAshSIGMET"] = root => Upcast(SigmetMapper.Map(root, IwxxmReportType.VolcanicAshSigmet)),
-                [IwxxmNs + "TropicalCycloneSIGMET"] = root => Upcast(SigmetMapper.Map(root, IwxxmReportType.TropicalCycloneSigmet)),
-                [IwxxmNs + "AIRMET"] = root => Upcast(AirmetMapper.Map(root)),
-                [IwxxmNs + "VolcanoObservatoryNoticeForAviation"] = root => Upcast(VonaMapper.Map(root)),
-                [IwxxmNs + "QuantitativeVolcanicAshConcentrationInformation"] = root => Upcast(QvaciMapper.Map(root)),
-                [IwxxmNs + "VolcanicAshAdvisory"] = root => Upcast(VaaMapper.Map(root)),
-                [IwxxmNs + "TropicalCycloneAdvisory"] = root => Upcast(TcaMapper.Map(root)),
-                [IwxxmNs + "SpaceWeatherAdvisory"] = root => Upcast(SpaceWxMapper.Map(root))
+                [IwxxmNs + "METAR"] = (root, aliases) => Upcast(MetarSpeciMapper.Map<Metar>(root, Metar.Create, aliases)),
+                [IwxxmNs + "SPECI"] = (root, aliases) => Upcast(MetarSpeciMapper.Map<Speci>(root, Speci.Create, aliases)),
+                [IwxxmNs + "TAF"] = (root, aliases) => Upcast(TafMapper.Map(root, aliases)),
+                [IwxxmNs + "SIGMET"] = (root, aliases) => Upcast(SigmetMapper.Map(root, IwxxmReportType.Sigmet, aliases)),
+                [IwxxmNs + "VolcanicAshSIGMET"] = (root, aliases) => Upcast(SigmetMapper.Map(root, IwxxmReportType.VolcanicAshSigmet, aliases)),
+                [IwxxmNs + "TropicalCycloneSIGMET"] = (root, aliases) => Upcast(SigmetMapper.Map(root, IwxxmReportType.TropicalCycloneSigmet, aliases)),
+                [IwxxmNs + "AIRMET"] = (root, aliases) => Upcast(AirmetMapper.Map(root, aliases)),
+                [IwxxmNs + "VolcanoObservatoryNoticeForAviation"] = (root, _) => Upcast(VonaMapper.Map(root)),
+                [IwxxmNs + "QuantitativeVolcanicAshConcentrationInformation"] = (root, _) => Upcast(QvaciMapper.Map(root)),
+                [IwxxmNs + "VolcanicAshAdvisory"] = (root, aliases) => Upcast(VaaMapper.Map(root, aliases)),
+                [IwxxmNs + "TropicalCycloneAdvisory"] = (root, aliases) => Upcast(TcaMapper.Map(root, aliases)),
+                [IwxxmNs + "SpaceWeatherAdvisory"] = (root, _) => Upcast(SpaceWxMapper.Map(root))
             };
 
         /// <summary>Finds the mapper registered for the root element name.</summary>
-        public static bool TryGetMapper(XName rootName, out Func<XElement, Result<IwxxmReport>> mapper) =>
+        public static bool TryGetMapper(XName rootName, out Func<XElement, UomAliasCollector, Result<IwxxmReport>> mapper) =>
             Mappers.TryGetValue(rootName, out mapper!);
 
         /// <summary>Converts a typed report mapping result into the polymorphic <see cref="IwxxmReport"/> result.</summary>

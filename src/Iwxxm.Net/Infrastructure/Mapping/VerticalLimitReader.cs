@@ -38,7 +38,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (valueElement == null)
                 return null;
 
-            if (allowedUoms != null && !UomMeasureReader.IsAllowed(valueElement, context + "/" + valueElement.Name.LocalName, allowedUoms, errors))
+            // Unit aliases only exist for speeds: a vertical distance is checked without any.
+            if (allowedUoms != null && !UomMeasureReader.IsAllowed(valueElement, context + "/" + valueElement.Name.LocalName, allowedUoms, errors, UomAliasCollector.NoAliases))
                 return null;
 
             string? nil = valueElement.Attribute(XsiNs + "nil")?.Value;

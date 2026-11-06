@@ -79,5 +79,30 @@ namespace Iwxxm.Net.Tests.DataFidelity
                     : "failure:" + Signature(result.Errors);
             });
         }
+
+        [Fact]
+        public void UnitAliasWarning_IsAggregatedPerDocument_WithoutCrossTalkBetweenThreads()
+        {
+            string ucum = File.ReadAllText(Path.Combine("Samples", "sigwx-swh-2025-2.xml"));
+            string alias = ucum.Replace("uom=\"[kn_i]\"", "uom=\"kn_i\"");
+            Assert.NotEqual(ucum, alias);
+
+            var failures = new ConcurrentBag<string>();
+            Parallel.For(0, 64, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(4, Environment.ProcessorCount * 2) }, i =>
+            {
+                bool withAlias = i % 2 == 0;
+                var result = IwxxmSigwxParser.Parse(withAlias ? alias : ucum);
+                var aliasWarnings = result.Warnings.Where(w => w.Code == "ACL-MEASURE-UOM-NON-UCUM-ALIAS").ToList();
+
+                if (!result.IsSuccess)
+                    failures.Add($"#{i}: {string.Join(" | ", result.Errors)}");
+                else if (withAlias && (aliasWarnings.Count != 1 || !aliasWarnings[0].Message.Contains("2 'windSpeed' value(s)")))
+                    failures.Add($"#{i}: expected one aggregated warning counting 2 values, got {aliasWarnings.Count}: {string.Join(" | ", aliasWarnings.Select(w => w.Message))}");
+                else if (!withAlias && aliasWarnings.Count != 0)
+                    failures.Add($"#{i}: unexpected alias warning on a UCUM document");
+            });
+
+            Assert.Empty(failures);
+        }
     }
 }

@@ -37,7 +37,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
         /// A nil/missing value, a missing <c>@uom</c> or an unknown unit is a mapping error (never assumed); the legacy spelling
         /// <c>kn_i</c> is read as <c>[kn_i]</c> and reported by the document-level alias warning (AUD-R5).
         /// </summary>
-        public static Result<Speed> ReadRequiredSpeed(MeasureType? speedMeasure, string location)
+        public static Result<Speed> ReadRequiredSpeed(MeasureType? speedMeasure, string location, UomAliasCollector aliases)
         {
             if (speedMeasure == null || speedMeasure.IsNil)
             {
@@ -49,7 +49,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             }
 
             var errors = new List<ValidationError>();
-            Speed? speed = UomMeasureReader.ReadSpeed(speedMeasure.RawValue, speedMeasure.Uom, location, errors);
+            Speed? speed = UomMeasureReader.ReadSpeed(speedMeasure.RawValue, speedMeasure.Uom, location, errors, aliases);
             return speed.HasValue && errors.Count == 0
                 ? Result<Speed>.Success(speed.Value)
                 : Result<Speed>.Failure(errors);

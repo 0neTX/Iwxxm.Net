@@ -14,21 +14,18 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// </summary>
     internal static class EnRouteVolumeReader
     {
-        /// <summary>Reads a SIGMET/AIRMET evolving condition or SIGMET forecast position.</summary>
-        public static EnRoutePhenomenonVolume ReadConditionVolume(XElement condElem, List<ValidationError> errors) =>
-            ReadConditionVolume(condElem, null, null, errors);
-
-        /// <summary>Reads a condition volume with the time context of its collection.</summary>
+        /// <summary>Reads a SIGMET/AIRMET evolving condition or SIGMET forecast position with the time context of its collection.</summary>
         public static EnRoutePhenomenonVolume ReadConditionVolume(
             XElement condElem,
             TimeIndicator? timeIndicator,
             DateTimeOffset? phenomenonTimeUtc,
-            List<ValidationError> errors)
+            List<ValidationError> errors,
+            UomAliasCollector aliases)
         {
             string id = GetGmlId(condElem);
             string? intensityChange = condElem.Attribute("intensityChange")?.Value;
             double? dir = UomMeasureReader.ReadFixedUnit(condElem.Element(IwxxmNs + "directionOfMotion"), UcumUnits.Degree, id, errors);
-            Speed? spd = UomMeasureReader.ReadSpeed(condElem.Element(IwxxmNs + "speedOfMotion"), id, errors, UomMeasureReader.Subsets.SpeedOfMotion);
+            Speed? spd = UomMeasureReader.ReadSpeed(condElem.Element(IwxxmNs + "speedOfMotion"), id, errors, UomMeasureReader.Subsets.SpeedOfMotion, aliases);
 
             GeoCoordinate? tcPos = GmlGeometryReader.ReadPoint(
                 condElem.Element(IwxxmNs + "tropicalCyclonePosition")?.Element(GmlNs + "Point"),
@@ -46,7 +43,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
         /// Reads the <c>iwxxm:member</c> volumes named <paramref name="memberName"/> of a SIGMET/AIRMET collection, each
         /// with the collection <c>@timeIndicator</c> and <c>phenomenonTime</c> (inline or by local reference).
         /// </summary>
-        public static void ReadCollectionMembers(XElement? collection, string memberName, List<EnRoutePhenomenonVolume> target, List<ValidationError> errors)
+        public static void ReadCollectionMembers(XElement? collection, string memberName, List<EnRoutePhenomenonVolume> target, List<ValidationError> errors, UomAliasCollector aliases)
         {
             if (collection == null)
                 return;
@@ -57,7 +54,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 XElement? volume = GmlReferenceResolver.Content(member, IwxxmNs + memberName);
                 if (volume != null)
                 {
-                    target.Add(ReadConditionVolume(volume, timeIndicator, phenomenonTime, errors));
+                    target.Add(ReadConditionVolume(volume, timeIndicator, phenomenonTime, errors, aliases));
                 }
             }
         }
@@ -71,11 +68,11 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
         }
 
         /// <summary>Reads a Volcanic Ash Advisory observed/estimated or forecast ash cloud.</summary>
-        public static EnRoutePhenomenonVolume ReadAshCloudVolume(XElement ashElem, DateTimeOffset? phenomenonTimeUtc, List<ValidationError> errors)
+        public static EnRoutePhenomenonVolume ReadAshCloudVolume(XElement ashElem, DateTimeOffset? phenomenonTimeUtc, List<ValidationError> errors, UomAliasCollector aliases)
         {
             string id = GetGmlId(ashElem);
             double? dir = UomMeasureReader.ReadFixedUnit(ashElem.Element(IwxxmNs + "directionOfMotion"), UcumUnits.Degree, id, errors);
-            Speed? spd = UomMeasureReader.ReadSpeed(ashElem.Element(IwxxmNs + "speedOfMotion"), id, errors, UomMeasureReader.Subsets.SpeedOfMotion);
+            Speed? spd = UomMeasureReader.ReadSpeed(ashElem.Element(IwxxmNs + "speedOfMotion"), id, errors, UomMeasureReader.Subsets.SpeedOfMotion, aliases);
 
             XElement? volElem = ashElem.Element(IwxxmNs + "ashCloudExtent")?.Element(AixmNs + "AirspaceVolume");
             AixmFeatureReader.ReadAirspaceVolumeLimits(volElem, id, errors, out VerticalLimit? lower, out VerticalLimit? upper);

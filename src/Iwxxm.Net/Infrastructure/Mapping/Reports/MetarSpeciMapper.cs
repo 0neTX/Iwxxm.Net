@@ -46,7 +46,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             string? permissibleUsageSupplementary)
             where TObservation : AerodromeObservation;
 
-        public static Result<TObservation> Map<TObservation>(XElement root, ObservationFactory<TObservation> create)
+        public static Result<TObservation> Map<TObservation>(XElement root, ObservationFactory<TObservation> create, UomAliasCollector aliases)
             where TObservation : AerodromeObservation
         {
             var errors = new List<ValidationError>();
@@ -89,7 +89,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 airTemp = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "airTemperature"), UcumUnits.Celsius, id, errors);
                 dewpoint = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "dewpointTemperature"), UcumUnits.Celsius, id, errors);
                 qnh = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "qnh"), UcumUnits.Hectopascal, id, errors);
-                surfaceWind = AerodromeConditionsReader.ReadSurfaceWind(obsElem.Element(IwxxmNs + "surfaceWind"), id, errors);
+                surfaceWind = AerodromeConditionsReader.ReadSurfaceWind(obsElem.Element(IwxxmNs + "surfaceWind"), id, errors, aliases);
                 visibility = ReadVisibility(obsElem.Element(IwxxmNs + "visibility")?.Element(IwxxmNs + "AerodromeHorizontalVisibility"), id, errors);
 
                 ReadRunwayVisualRanges(obsElem, rvrs, id, errors);
@@ -108,7 +108,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 XElement? trendElem = trendProp.Element(IwxxmNs + "MeteorologicalAerodromeTrendForecast");
                 if (trendElem != null)
                 {
-                    trends.Add(AerodromeConditionsReader.ReadForecastGroup(trendElem, errors));
+                    trends.Add(AerodromeConditionsReader.ReadForecastGroup(trendElem, errors, aliases));
                 }
             }
 

@@ -15,7 +15,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
     /// </summary>
     internal static class SigmetMapper
     {
-        public static Result<Sigmet> Map(XElement root, IwxxmReportType reportType)
+        public static Result<Sigmet> Map(XElement root, IwxxmReportType reportType, UomAliasCollector aliases)
         {
             var errors = new List<ValidationError>();
             ReportHeader header = ReportHeader.Read(root, errors);
@@ -36,12 +36,12 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
             var evolvingConditions = new List<EnRoutePhenomenonVolume>();
             var forecastPositions = new List<EnRoutePhenomenonVolume>();
-            ReadAnalyses(root.Elements(IwxxmNs + "analysisCollection"), evolvingConditions, forecastPositions, errors);
+            ReadAnalyses(root.Elements(IwxxmNs + "analysisCollection"), evolvingConditions, forecastPositions, errors, aliases);
 
             // TC SIGMET supplementary analyses and VA SIGMET destination FIR (AUD-L3).
             var supplementaryEvolving = new List<EnRoutePhenomenonVolume>();
             var supplementaryPositions = new List<EnRoutePhenomenonVolume>();
-            ReadAnalyses(root.Elements(IwxxmNs + "supplementaryAnalysisCollection"), supplementaryEvolving, supplementaryPositions, errors);
+            ReadAnalyses(root.Elements(IwxxmNs + "supplementaryAnalysisCollection"), supplementaryEvolving, supplementaryPositions, errors, aliases);
             AixmFeatureReader.ReadAirspace(root.Element(IwxxmNs + "volcanicAshMovedToFIR"), out string? movedToFirDesig, out string? movedToFirName);
 
             Volcano? eruptingVolcano = VolcanoElementReader.ReadMetceVolcano(root.Element(IwxxmNs + "eruptingVolcano"), errors);
@@ -92,7 +92,8 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             IEnumerable<XElement> analysisCollections,
             List<EnRoutePhenomenonVolume> evolvingConditions,
             List<EnRoutePhenomenonVolume> forecastPositions,
-            List<ValidationError> errors)
+            List<ValidationError> errors,
+            UomAliasCollector aliases)
         {
             foreach (XElement analysisCol in analysisCollections)
             {
@@ -102,13 +103,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                         .Element(IwxxmNs + "analysis")
                         ?.Element(IwxxmNs + "SIGMETEvolvingConditionCollection");
 
-                    EnRouteVolumeReader.ReadCollectionMembers(evolvingCol, "SIGMETEvolvingCondition", evolvingConditions, errors);
+                    EnRouteVolumeReader.ReadCollectionMembers(evolvingCol, "SIGMETEvolvingCondition", evolvingConditions, errors, aliases);
 
                     XElement? forecastCol = posAnalysis
                         .Element(IwxxmNs + "forecastPositionAnalysis")
                         ?.Element(IwxxmNs + "SIGMETPositionCollection");
 
-                    EnRouteVolumeReader.ReadCollectionMembers(forecastCol, "SIGMETPosition", forecastPositions, errors);
+                    EnRouteVolumeReader.ReadCollectionMembers(forecastCol, "SIGMETPosition", forecastPositions, errors, aliases);
                 }
             }
         }
