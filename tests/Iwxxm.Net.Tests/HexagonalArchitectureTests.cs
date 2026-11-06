@@ -158,33 +158,46 @@ namespace Iwxxm.Net.Tests
             Assert.True(offenders.Count == 0, "Public types outside the documented namespaces: " + string.Join(", ", offenders));
         }
 
+        private const string OutboundPortsNamespace = "Iwxxm.Net.Application.Ports.Out";
+
         [Fact]
-        public void OutboundPorts_ArePublicInterfaces()
+        public void OutboundPorts_OnlySchematronIsPublic_TheOthersAreInternal()
         {
-            var ports = CoreAssembly.GetTypes()
+            // Only the Schematron validator has more than one adapter (built-in XSLT subset, Saxon package), so it is the
+            // only extension point; the single-implementation ports stay internal (re-opening later is compatible, closing is not).
+            Type schematron = CoreAssembly.GetType(ArchitectureLayers.ExtensibilityNamespace + ".ISchematronValidator", throwOnError: true)!;
+            Assert.True(schematron.IsInterface && schematron.IsPublic, "ISchematronValidator must be a public interface.");
+
+            foreach (string portName in new[] { "ISchemaValidator", "IIwxxmDocumentMapper", "ISigwxDocumentMapper", "IGeoJsonExporter" })
+            {
+                Type port = CoreAssembly.GetType(OutboundPortsNamespace + "." + portName, throwOnError: true)!;
+                Assert.True(port.IsInterface && !port.IsVisible, $"'{port.FullName}' must be an internal interface.");
+                Assert.Null(CoreAssembly.GetType(ArchitectureLayers.ExtensibilityNamespace + "." + portName));
+            }
+        }
+
+        [Fact]
+        public void ExtensibilityNamespace_ExportsExactlyTheSchematronPortAndTheDocumentContext()
+        {
+            var exported = CoreAssembly.GetExportedTypes()
                 .Where(t => t.Namespace == ArchitectureLayers.ExtensibilityNamespace)
+                .Select(t => t.Name)
+                .OrderBy(n => n, StringComparer.Ordinal)
                 .ToList();
 
-            Assert.Contains(ports, t => t.Name == "ISchemaValidator");
-            Assert.Contains(ports, t => t.Name == "ISchematronValidator");
-            Assert.Contains(ports, t => t.Name == "IIwxxmDocumentMapper");
-            Assert.Contains(ports, t => t.Name == "ISigwxDocumentMapper");
-            Assert.Contains(ports, t => t.Name == "IGeoJsonExporter");
+            Assert.Equal(new[] { "ISchematronValidator", "IwxxmDocumentContext" }, exported);
 
-            // The only non-interface type of the namespace is the neutral document context passed to the ports (HEX-01).
-            Type context = Assert.Single(ports, t => !t.IsInterface);
-            Assert.Equal("IwxxmDocumentContext", context.Name);
+            Type context = CoreAssembly.GetType(ArchitectureLayers.ExtensibilityNamespace + ".IwxxmDocumentContext", throwOnError: true)!;
             Assert.True(context.IsPublic && context.IsSealed && context.IsClass);
-            Assert.All(ports.Where(t => t != context), t => Assert.True(t.IsInterface && t.IsPublic, $"'{t.FullName}' must be a public interface."));
         }
 
         [Fact]
         public void OutboundPorts_ReceiveTheDocumentContext_NotAStream()
         {
             // HEX-01: the facade owns reading the input; the ports receive the sanitized, already parsed context.
-            foreach (string portName in new[] { "ISchemaValidator", "ISchematronValidator", "IIwxxmDocumentMapper", "ISigwxDocumentMapper" })
+            foreach (string portName in new[] { "Extensibility.ISchematronValidator", "Application.Ports.Out.ISchemaValidator", "Application.Ports.Out.IIwxxmDocumentMapper", "Application.Ports.Out.ISigwxDocumentMapper" })
             {
-                Type port = CoreAssembly.GetType(ArchitectureLayers.ExtensibilityNamespace + "." + portName, throwOnError: true)!;
+                Type port = CoreAssembly.GetType("Iwxxm.Net." + portName, throwOnError: true)!;
                 foreach (MethodInfo method in port.GetMethods())
                 {
                     Assert.All(method.GetParameters(), p => Assert.NotEqual(typeof(System.IO.Stream), p.ParameterType));

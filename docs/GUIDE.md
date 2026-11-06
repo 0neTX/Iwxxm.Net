@@ -111,7 +111,7 @@ flowchart LR
         F["Facades<br/>IwxxmParser<br/>IwxxmSigwxParser<br/>IwxxmGeoJsonExporter"]
     end
     subgraph Application["Application"]
-        OUT["Outbound ports<br/>ISchemaValidator<br/>ISchematronValidator<br/>IIwxxmDocumentMapper<br/>ISigwxDocumentMapper<br/>IGeoJsonExporter"]
+        OUT["Outbound ports<br/>ISchematronValidator (public)<br/>ISchemaValidator, mappers and<br/>GeoJSON exporter (internal)"]
         F --> OUT
     end
     subgraph DomainLayer["Domain, no System.Xml"]
@@ -544,7 +544,7 @@ The input XML stream length (6854 bytes) exceeds the maximum allowed limit of 10
 MalformedInput: XML-MALFORMED
 ```
 
-`IwxxmParserBuilder` is also where you plug in custom adapters, drop the business rules (`WithoutSchematron()`), or register the parser in a dependency-injection container. The [reference](REFERENCE.md#composition-root-and-dependency-injection) shows the container wiring.
+`IwxxmParserBuilder` is also where you plug in a custom Schematron engine, drop the business rules (`WithoutSchematron()`), or register the parser in a dependency-injection container. The [reference](REFERENCE.md#composition-root-and-dependency-injection) shows the container wiring.
 
 ## 7. Error-code cheat sheet
 
@@ -1459,8 +1459,8 @@ Every abstract type (`IwxxmDocument`, `IwxxmReport`, `GeoSurface`...) has a cons
 **Is the library thread-safe?**
 Yes. The facades, the options and the compiled schemas and rules are immutable or lazily initialised in a thread-safe way. Share them.
 
-**Can I use my own XSD, mapper or GeoJSON writer?**
-Yes. Each is a public port in `Iwxxm.Net.Extensibility` (`ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter`). See the [reference](REFERENCE.md#composition-root-and-dependency-injection).
+**Can I replace a component (XSD validator, mapper, GeoJSON writer, rules)?**
+Only the business rules: implement the public `ISchematronValidator` port in `Iwxxm.Net.Extensibility` and plug it in with `UseSchematronValidator(...)`. The schema validator, mappers and GeoJSON exporter are internal. See the [reference](REFERENCE.md#composition-root-and-dependency-injection).
 
 **Does it do network I/O?**
 Never. Schemas, code lists and rules are embedded resources, and every external URI is refused.

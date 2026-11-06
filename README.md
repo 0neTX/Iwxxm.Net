@@ -17,7 +17,7 @@ New here? Start with the **[Getting started guide](docs/GUIDE.md)**: a progressi
 - **Failures are values**: every operation returns a `Result<T>` with structured, stable error codes and warnings; only argument mistakes throw.
 - **Safe by default**: no DTDs, no external resolution, size and character limits, no network or file-system access at runtime. All schemas, rules and code lists are embedded.
 - **Native RFC 7946 GeoJSON export**, with circles, polygon holes, antimeridian handling and measures written as reported.
-- **Hexagonal architecture** with public ports (`Iwxxm.Net.Extensibility`) to replace the validators, mappers or exporter; the layer rules are enforced by tests.
+- **Hexagonal architecture** with a public Schematron port (`Iwxxm.Net.Extensibility`) to replace the business-rule engine (the other adapters are internal); the layer rules are enforced by tests.
 
 ### Validation scope
 
@@ -149,7 +149,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | :--- | :--- |
 | `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory` |
 | `Iwxxm.Net.Reports` | The domain model: the closed document hierarchy and every value object |
-| `Iwxxm.Net.Extensibility` | Outbound ports for custom validators, mappers and exporters |
+| `Iwxxm.Net.Extensibility` | The `ISchematronValidator` port for custom business-rule engines |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
 
 Consumers never need a layer name in a `using` directive; `Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*` and `Iwxxm20252.Generated` are `internal`. The layer map is in the [reference](docs/REFERENCE.md#namespaces-and-layers).

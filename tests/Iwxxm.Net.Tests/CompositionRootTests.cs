@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Reports;
 using Xunit;

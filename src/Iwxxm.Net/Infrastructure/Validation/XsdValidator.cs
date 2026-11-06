@@ -6,6 +6,7 @@ using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.Caching;
 using Iwxxm.Net.Infrastructure.Resources;

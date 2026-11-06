@@ -189,7 +189,7 @@ namespace Iwxxm.Net.Tests
             return validator.Validate(new Extensibility.IwxxmDocumentContext(Encoding.UTF8.GetBytes(xml)));
         }
 
-        private static IReadOnlyList<ValidationError> Validate(Extensibility.ISchemaValidator validator, string xml)
+        private static IReadOnlyList<ValidationError> Validate(Application.Ports.Out.ISchemaValidator validator, string xml)
         {
             return validator.Validate(new Extensibility.IwxxmDocumentContext(Encoding.UTF8.GetBytes(xml)));
         }

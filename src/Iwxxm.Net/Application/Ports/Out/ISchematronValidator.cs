@@ -7,7 +7,7 @@ namespace Iwxxm.Net.Extensibility
     /// (Schematron rules and code-list membership).
     /// </summary>
     /// <remarks>
-    /// Invoked only after <see cref="ISchemaValidator"/> reported no error, with the sanitized
+    /// Invoked only after the structural schema validator reported no error, with the sanitized
     /// <see cref="IwxxmDocumentContext"/> of the document; implementations must perform no network access. Each finding should use <see cref="ErrorCategory.BusinessRuleViolation"/> and the rule
     /// identifier as <see cref="ValidationError.Code"/>. A finding with <see cref="ValidationSeverity.Error"/> stops the pipeline before
     /// domain mapping; <see cref="ValidationSeverity.Warning"/> findings (e.g. a <c>warning</c> role or a fired

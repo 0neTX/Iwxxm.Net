@@ -103,7 +103,7 @@ All contributions are verified automatically by IL-level tests in [`HexagonalArc
 | Layer | Folder | Namespace(s) | May depend on |
 | :--- | :--- | :--- | :--- |
 | Domain | `Domain/` | `Iwxxm.Net.Reports`; `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity` in `Iwxxm.Net` | nothing (no `System.Xml`, `System.IO`, `System.Net`, `System.Reflection`) |
-| Application | `Application/` (`Options`, `Ports/Out`, `UseCases`) | `Iwxxm.Net` (options), `Iwxxm.Net.Extensibility` (outbound ports), `Iwxxm.Net.Application.*` (internal pipeline helpers) | Domain (no `System.Xml`) |
+| Application | `Application/` (`Options`, `Ports/Out`, `UseCases`) | `Iwxxm.Net` (options), `Iwxxm.Net.Extensibility` (public: `ISchematronValidator`, `IwxxmDocumentContext`), `Iwxxm.Net.Application.*` (internal pipeline helpers and the single-implementation outbound ports in `Application.Ports.Out`) | Domain (no `System.Xml`) |
 | Infrastructure | `Infrastructure/` | `Iwxxm.Net.Infrastructure.*`, `Iwxxm20252.Generated` (all `internal`) | Domain, Application; never facades or the composition root |
 | Composition root | `Composition/` | `IwxxmParserBuilder` in `Iwxxm.Net` | everything |
 | Presentation | `Presentation/` | facades in `Iwxxm.Net` | Domain, Application options, internal pipeline helpers, outbound ports, composition root (default instances only); never Infrastructure or `System.Xml` |

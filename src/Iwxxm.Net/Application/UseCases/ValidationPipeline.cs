@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Iwxxm.Net.Application.Ports;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 
 namespace Iwxxm.Net.Application.UseCases

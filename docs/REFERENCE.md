@@ -460,7 +460,7 @@ qvaci: 7080 characters
 
 ## Composition root and dependency injection
 
-`IwxxmParserBuilder` is the composition root: it wires the driven adapters into the facades and returns immutable, thread-safe facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`). Every adapter can be replaced through a public outbound port in `Iwxxm.Net.Extensibility`, and business rules can be switched off. The static `IwxxmParser.Parse*`, `IwxxmSigwxParser.Parse*` and `IwxxmGeoJsonExporter.ToGeoJson` members are thin wrappers over a default instance.
+`IwxxmParserBuilder` is the composition root: it wires the driven adapters into the facades and returns immutable, thread-safe facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`). The business-rule (Schematron) engine can be replaced through the public `ISchematronValidator` port in `Iwxxm.Net.Extensibility`, or switched off; the other adapters (schema validator, mappers, GeoJSON exporter) are internal. The static `IwxxmParser.Parse*`, `IwxxmSigwxParser.Parse*` and `IwxxmGeoJsonExporter.ToGeoJson` members are thin wrappers over a default instance.
 
 An outbound adapter is small. This one implements the Schematron port with a rule of its own: it works on the raw bytes and reports a *warning* (the document stays valid) when a message is unusually large:
 
@@ -506,7 +506,6 @@ var builder = new IwxxmParserBuilder()
     .UseSchematronValidator(new MyRuleEngine());   // an ISchematronValidator adapter
     // .WithoutSchematron()                        // or: XSD validation only
     // .UseOfficialSchematron()                    // or: all 165 official rules (Iwxxm.Net.Validation.Saxon)
-    // .UseSchemaValidator(...) / .UseDocumentMapper(...) / .UseSigwxDocumentMapper(...) / .UseGeoJsonExporter(...)
 
 var services = new ServiceCollection();
 services.AddSingleton(builder.Build());                // IwxxmParser (convenience facade)
@@ -528,13 +527,15 @@ custom rule engine in the pipeline: success = True, warnings = 1
   Warning MY-RULE-001: Unusually large message (6854 bytes).
 ```
 
-| Port | Kind | Namespace | Default adapter |
+| Port | Kind | Visibility | Default adapter |
 | :--- | :--- | :--- | :--- |
-| `ISchemaValidator` | outbound | `Iwxxm.Net.Extensibility` | embedded official WMO XSDs |
-| `ISchematronValidator` | outbound | `Iwxxm.Net.Extensibility` | built-in XSLT 1.0 rule subset (or `UseOfficialSchematron()`) |
-| `IIwxxmDocumentMapper` | outbound | `Iwxxm.Net.Extensibility` | built-in anti-corruption-layer mapper |
-| `ISigwxDocumentMapper` | outbound | `Iwxxm.Net.Extensibility` | built-in SIGWX mapper |
-| `IGeoJsonExporter` | outbound | `Iwxxm.Net.Extensibility` | built-in RFC 7946 writer |
+| `ISchematronValidator` | outbound | public, `Iwxxm.Net.Extensibility` | built-in XSLT 1.0 rule subset (or `UseOfficialSchematron()`) |
+| `ISchemaValidator` | outbound | internal | embedded official WMO XSDs |
+| `IIwxxmDocumentMapper` | outbound | internal | built-in anti-corruption-layer mapper |
+| `ISigwxDocumentMapper` | outbound | internal | built-in SIGWX mapper |
+| `IGeoJsonExporter` | outbound | internal | built-in RFC 7946 writer |
+
+Only the Schematron port is an extension point because it is the only one with more than one adapter (the built-in subset and the Saxon package). The other ports have a single implementation and stay internal; making a type public later is a compatible change, closing it is not.
 
 Outbound ports receive an **`IwxxmDocumentContext`**: the facade has already bounded the size, converted text input to UTF-8 and parsed the document once with the hardened reader settings (DTD prohibited, no resolver, character quotas), so a malformed or DTD-bearing document never reaches an adapter (`XML-MALFORMED`). `OpenRead()` returns a read-only stream of the document bytes for adapters that need raw XML; the built-in adapters share the parsed tree. You can call an adapter directly with `new IwxxmDocumentContext(bytes, options)`.
 
@@ -814,7 +815,7 @@ Consumers never need a layer name in a `using` directive:
 | :--- | :--- |
 | `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, and the `UseOfficialSchematron()` extension of the optional Saxon package |
 | `Iwxxm.Net.Reports` | Domain model: the closed hierarchy (`IwxxmDocument`, `IwxxmReport`, `MeteorologicalBulletin`, `IIwxxmDocumentVisitor<TResult>`, `AerodromeObservation`, `Metar`, `Speci`, `Taf`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, `Sigwx`) and the value objects |
-| `Iwxxm.Net.Extensibility` | Outbound ports for custom adapters (`ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter`) and `IwxxmDocumentContext` |
+| `Iwxxm.Net.Extensibility` | The `ISchematronValidator` port for custom business-rule engines and `IwxxmDocumentContext` |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
 
 Everything else (`Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*`, `Iwxxm20252.Generated`) is `internal`.
@@ -831,7 +832,7 @@ src/Iwxxm.Net/
 │   └── Aggregates/             # IwxxmDocument, IwxxmReport, IIwxxmDocumentVisitor<TResult>, aggregates (ns Iwxxm.Net.Reports)
 ├── Application/                # Depends only on Domain (no System.Xml)
 │   ├── Options/                # IwxxmParserOptions, GeoJsonExportOptions                            (ns Iwxxm.Net)
-│   ├── Ports/Out/              # Outbound ports (driven adapters)                                    (ns Iwxxm.Net.Extensibility)
+│   ├── Ports/Out/              # Outbound ports (driven adapters)                                    (ns Iwxxm.Net.Extensibility: ISchematronValidator, IwxxmDocumentContext; others internal, ns Iwxxm.Net.Application.Ports.Out)
 │   └── UseCases/               # BoundedDocumentBuffer, ValidationPipeline, PipelineGuard (internal helpers)
 ├── Infrastructure/             # Driven adapters, all internal
 │   ├── Generated/              # SIGWX transport model (hand-maintained, namespace Iwxxm20252.Generated)

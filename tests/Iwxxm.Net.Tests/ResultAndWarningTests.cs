@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.Validation;
 using Iwxxm.Net.Reports;

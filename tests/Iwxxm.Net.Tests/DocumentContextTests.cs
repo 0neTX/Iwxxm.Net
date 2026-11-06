@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.Mapping;
 using Iwxxm.Net.Infrastructure.Validation;

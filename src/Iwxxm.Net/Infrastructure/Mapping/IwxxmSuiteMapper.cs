@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Xml;
 using System.Xml.Linq;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.Mapping.Reports;
 using Iwxxm.Net.Infrastructure.Mapping.Xml;

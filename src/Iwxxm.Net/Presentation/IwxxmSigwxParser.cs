@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Iwxxm.Net.Application.Ports;
 using Iwxxm.Net.Application.UseCases;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Reports;
 

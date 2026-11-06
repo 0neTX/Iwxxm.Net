@@ -1,4 +1,5 @@
 using System;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.GeoJson;
 using Iwxxm.Net.Infrastructure.Mapping;
@@ -10,7 +11,7 @@ namespace Iwxxm.Net
     /// <summary>
     /// Composition root of <c>Iwxxm.Net</c>: wires the driven adapters (schema validator, business-rule validator,
     /// document mappers, GeoJSON exporter) to the facades and returns ready-to-use facades.
-    /// Every adapter can be replaced through the outbound ports in <see cref="Iwxxm.Net.Extensibility"/>.
+    /// The business-rule (Schematron) validator can be replaced through <see cref="ISchematronValidator"/> in <see cref="Iwxxm.Net.Extensibility"/>; the other adapters are internal.
     /// </summary>
     /// <remarks>
     /// <para>Defaults (when no adapter is configured):</para>
@@ -49,7 +50,7 @@ namespace Iwxxm.Net
         /// Replaces the structural schema validator for both the full-suite and the SIGWX pipelines.
         /// The adapter is responsible for rejecting root elements it does not support.
         /// </summary>
-        public IwxxmParserBuilder UseSchemaValidator(ISchemaValidator validator)
+        internal IwxxmParserBuilder UseSchemaValidator(ISchemaValidator validator)
         {
             _schemaValidator = validator ?? throw new ArgumentNullException(nameof(validator));
             return this;
@@ -85,21 +86,21 @@ namespace Iwxxm.Net
         }
 
         /// <summary>Replaces the mapper used by <see cref="IwxxmParser"/> to build Domain Aggregate Roots.</summary>
-        public IwxxmParserBuilder UseDocumentMapper(IIwxxmDocumentMapper mapper)
+        internal IwxxmParserBuilder UseDocumentMapper(IIwxxmDocumentMapper mapper)
         {
             _documentMapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             return this;
         }
 
         /// <summary>Replaces the mapper used by <see cref="IwxxmSigwxParser"/> (and by the default full-suite mapper for SIGWX roots).</summary>
-        public IwxxmParserBuilder UseSigwxDocumentMapper(ISigwxDocumentMapper mapper)
+        internal IwxxmParserBuilder UseSigwxDocumentMapper(ISigwxDocumentMapper mapper)
         {
             _sigwxDocumentMapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             return this;
         }
 
         /// <summary>Replaces the GeoJSON exporter.</summary>
-        public IwxxmParserBuilder UseGeoJsonExporter(IGeoJsonExporter exporter)
+        internal IwxxmParserBuilder UseGeoJsonExporter(IGeoJsonExporter exporter)
         {
             _geoJsonExporter = exporter ?? throw new ArgumentNullException(nameof(exporter));
             return this;

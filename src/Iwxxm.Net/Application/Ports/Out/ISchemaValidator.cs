@@ -1,6 +1,7 @@
+using Iwxxm.Net.Extensibility;
 using System.Collections.Generic;
 
-namespace Iwxxm.Net.Extensibility
+namespace Iwxxm.Net.Application.Ports.Out
 {
     /// <summary>
     /// Outbound (driven) port for structural validation of a raw IWXXM document against its schemas.
@@ -12,7 +13,7 @@ namespace Iwxxm.Net.Extensibility
     /// pipeline before business-rule validation; <see cref="ValidationSeverity.Warning"/> findings do not and are returned as
     /// <see cref="Result{T}.Warnings"/> of the successful result.
     /// </remarks>
-    public interface ISchemaValidator
+    internal interface ISchemaValidator
     {
         /// <summary>Validates <paramref name="document"/> and returns every structural finding.</summary>
         /// <param name="document">The document (<see cref="IwxxmDocumentContext.OpenRead"/> gives its raw bytes).</param>

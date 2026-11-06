@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Reports;
 using Iwxxm.Net.Validation.Saxon.Internal;
@@ -383,7 +384,7 @@ namespace Iwxxm.Net.Validation.Saxon.Tests
             return text.Substring(0, index) + newValue + text.Substring(index + oldValue.Length);
         }
 
-        private sealed class NoSchemaFindings : Iwxxm.Net.Extensibility.ISchemaValidator
+        private sealed class NoSchemaFindings : ISchemaValidator
         {
             public IReadOnlyList<ValidationError> Validate(Iwxxm.Net.Extensibility.IwxxmDocumentContext document) => Array.Empty<ValidationError>();
         }
