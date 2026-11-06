@@ -195,10 +195,11 @@ foreach (Result<IwxxmDocument> attempt in attempts)
     Console.WriteLine($"{first.Category,-16} {first.Code}");
 }
 
-// Functional style, if you prefer it to if/else:
-string summary = IwxxmParser.ParseFile("samples/metar-A3-1.xml")
-    .Map(doc => doc.ReportType.ToString())
-    .Match(onSuccess: type => $"parsed a {type}", onFailure: errors => $"{errors.Count} error(s)");
+// Or branch on the result:
+Result<IwxxmDocument> parsed = IwxxmParser.ParseFile("samples/metar-A3-1.xml");
+string summary = parsed.IsSuccess
+    ? $"parsed a {parsed.Value.ReportType}"
+    : $"{parsed.Errors.Count} error(s)";
 Console.WriteLine(summary);
 ```
 ```output

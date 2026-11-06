@@ -88,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **`Result<T>.Map`, `Bind` and `Match` (breaking)**: the three combinators (and both `Match` overloads) were removed; the API stays a plain value object. Migration: `if (result.IsSuccess) { ... result.Value ... } else { ... result.Errors ... }`; warnings are in `result.Warnings`.
 - **Inbound ports and use cases (breaking)**: the public interfaces `IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor` and `IGeoJsonExportService` and the internal use cases `DispatchIwxxmReportUseCase`, `ProcessSigwxReportUseCase` and `ExportGeoJsonUseCase` were folded into the facades. Also removed: the `IwxxmParser.Dispatcher`, `IwxxmSigwxParser.Processor` and `IwxxmGeoJsonExporter.Service` properties, and the public facade constructors (`IwxxmParser(IIwxxmReportDispatcher, IGeoJsonExportService)`, `IwxxmSigwxParser(IIwxxmSigwxProcessor)`, `IwxxmGeoJsonExporter(IGeoJsonExportService)`); facades are created only through `IwxxmParserBuilder`. Migration: inject the facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`) instead of the ports; error codes, limits and messages are unchanged.
 
 ### Fixed

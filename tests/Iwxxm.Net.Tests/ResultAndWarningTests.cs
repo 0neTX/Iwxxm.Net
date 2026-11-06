@@ -95,62 +95,6 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(0, missing);
         }
 
-        [Fact]
-        public void Map_ProjectsTheValue_KeepsWarnings_AndPropagatesFailures()
-        {
-            Result<int> mapped = Result<string>.Success("abc", new[] { Warning }).Map(s => s.Length);
-            Assert.Equal(3, mapped.Value);
-            Assert.Equal(new[] { Warning }, mapped.Warnings);
-
-            int calls = 0;
-            Result<int> failed = Result<string>.Failure(Error).Map(s => ++calls);
-            Assert.True(failed.IsFailure);
-            Assert.Equal(new[] { Error }, failed.Errors);
-            Assert.Equal(0, calls);
-        }
-
-        [Fact]
-        public void Bind_ChainsResults_AndAccumulatesWarningsInOrder()
-        {
-            var second = new ValidationError("W2", "second", ErrorCategory.DomainMapping, ValidationSeverity.Warning);
-
-            Result<int> chained = Result<string>.Success("abc", new[] { Warning })
-                .Bind(s => Result<int>.Success(s.Length, new[] { second }));
-
-            Assert.Equal(3, chained.Value);
-            Assert.Equal(new[] { Warning, second }, chained.Warnings);
-
-            Result<int> failedInside = Result<string>.Success("abc", new[] { Warning }).Bind(_ => Result<int>.Failure(Error));
-            Assert.Equal(new[] { Error }, failedInside.Errors);
-
-            int calls = 0;
-            Result<int> failedBefore = Result<string>.Failure(Error).Bind(_ => Result<int>.Success(++calls));
-            Assert.Equal(new[] { Error }, failedBefore.Errors);
-            Assert.Equal(0, calls);
-        }
-
-        [Fact]
-        public void Match_SelectsTheBranch()
-        {
-            Assert.Equal("ok:1", Result<int>.Success(1).Match(v => "ok:" + v, errors => "ko:" + errors.Count));
-            Assert.Equal("ko:1", Result<int>.Failure(Error).Match(v => "ok:" + v, errors => "ko:" + errors.Count));
-
-            var seen = new List<string>();
-            Result<int>.Success(2).Match(v => seen.Add("v" + v), errors => seen.Add("e"));
-            Result<int>.Failure(Error).Match(v => seen.Add("v" + v), errors => seen.Add("e" + errors[0].Code));
-            Assert.Equal(new[] { "v2", "eRULE-E" }, seen);
-        }
-
-        [Fact]
-        public void Combinators_RejectNullDelegates()
-        {
-            Result<int> ok = Result<int>.Success(1);
-            Assert.Throws<ArgumentNullException>(() => ok.Map<int>(null!));
-            Assert.Throws<ArgumentNullException>(() => ok.Bind<int>(null!));
-            Assert.Throws<ArgumentNullException>(() => ok.Match<int>(null!, _ => 0));
-            Assert.Throws<ArgumentNullException>(() => ok.Match(_ => { }, null!));
-        }
-
         private sealed class FixedValidator : ISchematronValidator, ISchemaValidator
         {
             private readonly ValidationError[] _findings;
