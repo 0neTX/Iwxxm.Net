@@ -103,15 +103,15 @@ All contributions are verified automatically by IL-level tests in [`HexagonalArc
 | Layer | Folder | Namespace(s) | May depend on |
 | :--- | :--- | :--- | :--- |
 | Domain | `Domain/` | `Iwxxm.Net.Reports`; `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity` in `Iwxxm.Net` | nothing (no `System.Xml`, `System.IO`, `System.Net`, `System.Reflection`) |
-| Application | `Application/` (`Options`, `Ports/In`, `Ports/Out`, `UseCases`) | `Iwxxm.Net` (options, inbound ports), `Iwxxm.Net.Extensibility` (outbound ports), `Iwxxm.Net.Application.*` (internal use cases) | Domain (no `System.Xml`) |
+| Application | `Application/` (`Options`, `Ports/Out`, `UseCases`) | `Iwxxm.Net` (options), `Iwxxm.Net.Extensibility` (outbound ports), `Iwxxm.Net.Application.*` (internal pipeline helpers) | Domain (no `System.Xml`) |
 | Infrastructure | `Infrastructure/` | `Iwxxm.Net.Infrastructure.*`, `Iwxxm20252.Generated` (all `internal`) | Domain, Application; never facades or the composition root |
 | Composition root | `Composition/` | `IwxxmParserBuilder` in `Iwxxm.Net` | everything |
-| Presentation | `Presentation/` | facades in `Iwxxm.Net` | Domain, Application options and inbound ports, composition root (default instances only); never Infrastructure, use cases or outbound ports |
+| Presentation | `Presentation/` | facades in `Iwxxm.Net` | Domain, Application options, internal pipeline helpers, outbound ports, composition root (default instances only); never Infrastructure or `System.Xml` |
 
 Further rules:
 
 1. **Zero Runtime Dependencies**: Do not add runtime `<PackageReference>` items to `src/Iwxxm.Net/Iwxxm.Net.csproj`. Only build-time packages with `PrivateAssets="all"` are permitted (SourceLink is provided by the .NET SDK and needs no package). The pack stage fails if the `Iwxxm.Net` nuspec declares a dependency. Optional engines go to separate adapter packages (e.g. `Iwxxm.Net.Validation.Saxon`) that implement a public outbound port.
-2. **Public API**: public types live only in `Iwxxm.Net`, `Iwxxm.Net.Reports` and `Iwxxm.Net.Extensibility`; consumers must never need a layer name in a `using` directive. Outbound ports receive the neutral `IwxxmDocumentContext` (HEX-01) and return `Result<T>` / `ValidationError`, never `System.Xml` types. Input documents are read in exactly one place, `Infrastructure/Xml/SecureXml` (hardened `XmlReaderSettings`, parse-once cache); the use case parses the document before any adapter runs (`HexagonalArchitectureTests.InputXmlReaderSettings_AreCreatedOnlyBySecureXml`). Facades do not implement inbound ports (HEX-02): they expose them (`Dispatcher`, `Processor`, `Service`) and add convenience members.
+2. **Public API**: public types live only in `Iwxxm.Net`, `Iwxxm.Net.Reports` and `Iwxxm.Net.Extensibility`; consumers must never need a layer name in a `using` directive. Outbound ports receive the neutral `IwxxmDocumentContext` (HEX-01) and return `Result<T>` / `ValidationError`, never `System.Xml` types. Input documents are read in exactly one place, `Infrastructure/Xml/SecureXml` (hardened `XmlReaderSettings`, parse-once cache); the facade parses the document before any adapter runs (`HexagonalArchitectureTests.InputXmlReaderSettings_AreCreatedOnlyBySecureXml`). Facades run the pipeline directly over the outbound ports (HEX-02); there are no inbound ports.
 3. **Error contract**: `ValidationError.Code` strings are the stable contract; `ErrorCategory` names stay technology-agnostic.
 4. **Coding Standards**: Follow [`.editorconfig`](.editorconfig) and write all XML documentation and code comments in **English**.
 

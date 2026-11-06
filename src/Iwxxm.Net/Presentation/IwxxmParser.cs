@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using Iwxxm.Net.Application.Ports;
+using Iwxxm.Net.Application.UseCases;
+using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net
@@ -13,13 +16,9 @@ namespace Iwxxm.Net
     /// SWIM/AMHS <c>collect:MeteorologicalBulletin</c> containers.
     /// </summary>
     /// <remarks>
-    /// <para>Instances are created by <see cref="IwxxmParserBuilder"/> (or directly from inbound ports) and depend only on
-    /// the inbound ports <see cref="IIwxxmReportDispatcher"/> and <see cref="IGeoJsonExportService"/>. They are immutable
-    /// and thread-safe; register one as a singleton.</para>
-    /// <para><b>Port contract versus convenience (HEX-02).</b> The facade does not implement the inbound port: the use-case
-    /// contract is <see cref="Dispatcher"/> (<see cref="IIwxxmReportDispatcher"/>: stream and text input); the members of
-    /// this class are convenience entry points over it (string, file, typed and GeoJSON variants, and the static
-    /// <c>Parse*</c> wrappers). Depend on <see cref="IIwxxmReportDispatcher"/> where only the pipeline is needed.</para>
+    /// <para>Instances are created by <see cref="IwxxmParserBuilder"/>. They are immutable and thread-safe; register one
+    /// as a singleton. Each call runs the pipeline: bounded buffer, schema validation, business-rule validation, then
+    /// polymorphic mapping to the Domain Aggregate Root.</para>
     /// <para>The static <c>Parse*</c> members are convenience wrappers over <see cref="Default"/>, an instance built with
     /// the default adapters and <see cref="IwxxmParserOptions.Default"/>.</para>
     /// <para><b>Error contract.</b> Every member returning <see cref="Result{T}"/> reports I/O and adapter failures as
@@ -35,18 +34,27 @@ namespace Iwxxm.Net
         private static readonly Lazy<IwxxmParser> DefaultInstance =
             new Lazy<IwxxmParser>(() => new IwxxmParserBuilder().Build(), isThreadSafe: true);
 
-        private readonly IIwxxmReportDispatcher _dispatcher;
-        private readonly IGeoJsonExportService _geoJsonExporter;
+        private readonly ISchemaValidator _schemaValidator;
+        private readonly ISchematronValidator _schematronValidator;
+        private readonly IIwxxmDocumentMapper _documentMapper;
+        private readonly IGeoJsonExporter _geoJsonExporter;
+        private readonly IDocumentParser _parser;
+        private readonly IwxxmParserOptions _options;
 
-        /// <summary>
-        /// Initializes a facade over the given inbound ports.
-        /// </summary>
-        /// <param name="dispatcher">Validation and mapping use case.</param>
-        /// <param name="geoJsonExporter">GeoJSON export use case used by the <c>*ToGeoJson</c> members.</param>
-        public IwxxmParser(IIwxxmReportDispatcher dispatcher, IGeoJsonExportService geoJsonExporter)
+        internal IwxxmParser(
+            ISchemaValidator schemaValidator,
+            ISchematronValidator schematronValidator,
+            IIwxxmDocumentMapper documentMapper,
+            IGeoJsonExporter geoJsonExporter,
+            IDocumentParser parser,
+            IwxxmParserOptions? options = null)
         {
-            _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+            _schemaValidator = schemaValidator ?? throw new ArgumentNullException(nameof(schemaValidator));
+            _schematronValidator = schematronValidator ?? throw new ArgumentNullException(nameof(schematronValidator));
+            _documentMapper = documentMapper ?? throw new ArgumentNullException(nameof(documentMapper));
             _geoJsonExporter = geoJsonExporter ?? throw new ArgumentNullException(nameof(geoJsonExporter));
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
+            _options = options ?? IwxxmParserOptions.Default;
         }
 
         /// <summary>
@@ -55,48 +63,33 @@ namespace Iwxxm.Net
         /// </summary>
         public static IwxxmParser Default => DefaultInstance.Value;
 
-        /// <summary>Gets the inbound port (use-case contract) this facade delegates to.</summary>
-        public IIwxxmReportDispatcher Dispatcher => _dispatcher;
-
         // =====================================================================
-        // Instance convenience API (delegates to the inbound ports)
+        // Instance API
         // =====================================================================
 
-        /// <summary>Validates and parses a stream containing any IWXXM 2025-2 report or bulletin (see <see cref="IIwxxmReportDispatcher.Process(Stream)"/>).</summary>
+        /// <summary>Validates and parses a stream containing any IWXXM 2025-2 report or bulletin.</summary>
         public Result<IwxxmDocument> Process(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
 
-            return _dispatcher.Process(xmlStream);
+            return ProcessBuffered(BoundedDocumentBuffer.Read(xmlStream, _options));
         }
 
-        /// <summary>Validates and unwraps a <c>collect:MeteorologicalBulletin</c> stream (see <see cref="IIwxxmReportDispatcher.ProcessBulletin(Stream)"/>).</summary>
-        public Result<MeteorologicalBulletin> ProcessBulletin(Stream xmlStream)
-        {
-            if (xmlStream == null)
-                throw new ArgumentNullException(nameof(xmlStream));
+        /// <summary>Validates and unwraps a <c>collect:MeteorologicalBulletin</c> stream.</summary>
+        public Result<MeteorologicalBulletin> ProcessBulletin(Stream xmlStream) => AsBulletin(Process(xmlStream));
 
-            return _dispatcher.ProcessBulletin(xmlStream);
-        }
-
-        /// <summary>Validates and parses already-decoded XML text (see <see cref="IIwxxmReportDispatcher.Process(TextReader)"/>).</summary>
+        /// <summary>Validates and parses already-decoded XML text.</summary>
         public Result<IwxxmDocument> Process(TextReader xmlText)
         {
             if (xmlText == null)
                 throw new ArgumentNullException(nameof(xmlText));
 
-            return _dispatcher.Process(xmlText);
+            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: SharedErrorCodes.XmlEmptyString));
         }
 
-        /// <summary>Validates and unwraps a bulletin from already-decoded XML text (see <see cref="IIwxxmReportDispatcher.ProcessBulletin(TextReader)"/>).</summary>
-        public Result<MeteorologicalBulletin> ProcessBulletin(TextReader xmlText)
-        {
-            if (xmlText == null)
-                throw new ArgumentNullException(nameof(xmlText));
-
-            return _dispatcher.ProcessBulletin(xmlText);
-        }
+        /// <summary>Validates and unwraps a bulletin from already-decoded XML text.</summary>
+        public Result<MeteorologicalBulletin> ProcessBulletin(TextReader xmlText) => AsBulletin(Process(xmlText));
 
         /// <summary>
         /// Validates and parses any IWXXM 2025-2 report or <c>collect:MeteorologicalBulletin</c> from an XML string. The
@@ -194,6 +187,35 @@ namespace Iwxxm.Net
         // Helpers
         // =====================================================================
 
+        private Result<IwxxmDocument> ProcessBuffered(Result<byte[]> buffered)
+        {
+            if (buffered.IsFailure)
+            {
+                return Result<IwxxmDocument>.Failure(buffered.Errors);
+            }
+
+            return ValidationPipeline.Run(buffered.Value, _options, _parser, _schemaValidator, _schematronValidator, document => _documentMapper.Map(document));
+        }
+
+        private static Result<MeteorologicalBulletin> AsBulletin(Result<IwxxmDocument> dispatchResult)
+        {
+            if (dispatchResult.IsFailure)
+            {
+                return Result<MeteorologicalBulletin>.Failure(dispatchResult.Errors);
+            }
+
+            if (dispatchResult.Value is MeteorologicalBulletin bulletin)
+            {
+                return Result<MeteorologicalBulletin>.Success(bulletin, dispatchResult.Warnings);
+            }
+
+            return Result<MeteorologicalBulletin>.Failure(
+                "DISPATCH-NOT-A-BULLETIN",
+                $"Expected a 'collect:MeteorologicalBulletin' document, but parsed '{dispatchResult.Value.ReportType}' ('{dispatchResult.Value.Id}').",
+                ErrorCategory.Deserialization,
+                dispatchResult.Value.Id);
+        }
+
         private Result<string> ToGeoJsonResult(Result<IwxxmDocument> result, GeoJsonExportOptions? options)
         {
             if (result.IsFailure)
@@ -201,7 +223,7 @@ namespace Iwxxm.Net
 
             try
             {
-                string json = _geoJsonExporter.Export(result.Value, options);
+                string json = _geoJsonExporter.Export(result.Value, options ?? GeoJsonExportOptions.Default);
                 if (json == null)
                 {
                     return Result<string>.Failure(

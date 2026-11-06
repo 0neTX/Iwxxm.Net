@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using Iwxxm.Net.Application.Ports;
+using Iwxxm.Net.Application.UseCases;
+using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net
@@ -9,10 +12,8 @@ namespace Iwxxm.Net
     /// (<c>iwxxm:WAFSSignificantWeatherForecast</c> and the non-standard compact <c>iwxxm:SIGWXReport</c>).
     /// </summary>
     /// <remarks>
-    /// Instances are created by <see cref="IwxxmParserBuilder.BuildSigwxParser"/> and depend only on the inbound port
-    /// <see cref="IIwxxmSigwxProcessor"/>; they are immutable and thread-safe. The static members are convenience wrappers
-    /// over <see cref="Default"/>. The facade does not implement the inbound port (HEX-02): the use-case contract is
-    /// <see cref="Processor"/> (<see cref="IIwxxmSigwxProcessor"/>); string and file members are conveniences over it.
+    /// Instances are created by <see cref="IwxxmParserBuilder.BuildSigwxParser"/>; they are immutable and thread-safe.
+    /// The static members are convenience wrappers over <see cref="Default"/>.
     /// <para>I/O and adapter failures are returned as typed errors (<c>FILE-NOT-FOUND</c>, <c>ACCESS-DENIED</c>,
     /// <c>FILE-READ-ERROR</c>, <c>SCHEMA-VALIDATOR-ERROR</c>, <c>RULE-VALIDATOR-ERROR</c>, <c>MAPPER-ERROR</c>); only a
     /// <c>null</c> stream (<see cref="ArgumentNullException"/>) or a <c>null</c>/whitespace path
@@ -23,36 +24,45 @@ namespace Iwxxm.Net
         private static readonly Lazy<IwxxmSigwxParser> DefaultInstance =
             new Lazy<IwxxmSigwxParser>(() => new IwxxmParserBuilder().BuildSigwxParser(), isThreadSafe: true);
 
-        private readonly IIwxxmSigwxProcessor _processor;
+        private readonly ISchemaValidator _schemaValidator;
+        private readonly ISchematronValidator _schematronValidator;
+        private readonly ISigwxDocumentMapper _documentMapper;
+        private readonly IDocumentParser _parser;
+        private readonly IwxxmParserOptions _options;
 
-        /// <summary>Initializes a facade over the given inbound port.</summary>
-        public IwxxmSigwxParser(IIwxxmSigwxProcessor processor)
+        internal IwxxmSigwxParser(
+            ISchemaValidator schemaValidator,
+            ISchematronValidator schematronValidator,
+            ISigwxDocumentMapper documentMapper,
+            IDocumentParser parser,
+            IwxxmParserOptions? options = null)
         {
-            _processor = processor ?? throw new ArgumentNullException(nameof(processor));
+            _schemaValidator = schemaValidator ?? throw new ArgumentNullException(nameof(schemaValidator));
+            _schematronValidator = schematronValidator ?? throw new ArgumentNullException(nameof(schematronValidator));
+            _documentMapper = documentMapper ?? throw new ArgumentNullException(nameof(documentMapper));
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
+            _options = options ?? IwxxmParserOptions.Default;
         }
 
         /// <summary>Gets the shared instance built with the default adapters and <see cref="IwxxmParserOptions.Default"/>.</summary>
         public static IwxxmSigwxParser Default => DefaultInstance.Value;
 
-        /// <summary>Gets the inbound port (use-case contract) this facade delegates to.</summary>
-        public IIwxxmSigwxProcessor Processor => _processor;
-
-        /// <summary>Validates and maps a SIGWX stream (see <see cref="IIwxxmSigwxProcessor.Process(Stream)"/>).</summary>
+        /// <summary>Validates and maps a SIGWX stream.</summary>
         public Result<Sigwx> Process(Stream xmlStream)
         {
             if (xmlStream == null)
                 throw new ArgumentNullException(nameof(xmlStream));
 
-            return _processor.Process(xmlStream);
+            return ProcessBuffered(BoundedDocumentBuffer.Read(xmlStream, _options));
         }
 
-        /// <summary>Validates and maps already-decoded SIGWX XML text (see <see cref="IIwxxmSigwxProcessor.Process(TextReader)"/>).</summary>
+        /// <summary>Validates and maps already-decoded SIGWX XML text.</summary>
         public Result<Sigwx> Process(TextReader xmlText)
         {
             if (xmlText == null)
                 throw new ArgumentNullException(nameof(xmlText));
 
-            return _processor.Process(xmlText);
+            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: SharedErrorCodes.XmlEmptyString));
         }
 
         /// <summary>
@@ -65,6 +75,16 @@ namespace Iwxxm.Net
         /// <summary>Validates and maps an IWXXM 2025-2 SIGWX XML file from disk.</summary>
         public Result<Sigwx> ProcessFile(string filePath) =>
             IwxxmParser.WithFileStream(filePath, "IWXXM file", Process);
+
+        private Result<Sigwx> ProcessBuffered(Result<byte[]> buffered)
+        {
+            if (buffered.IsFailure)
+            {
+                return Result<Sigwx>.Failure(buffered.Errors);
+            }
+
+            return ValidationPipeline.Run(buffered.Value, _options, _parser, _schemaValidator, _schematronValidator, document => _documentMapper.Map(document));
+        }
 
         /// <summary>Validates and maps a SIGWX stream using <see cref="Default"/>.</summary>
         public static Result<Sigwx> Parse(Stream xmlStream) => Default.Process(xmlStream);

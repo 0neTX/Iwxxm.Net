@@ -147,7 +147,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 
 | Namespace | Contents |
 | :--- | :--- |
-| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory`, inbound ports |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory` |
 | `Iwxxm.Net.Reports` | The domain model: the closed document hierarchy and every value object |
 | `Iwxxm.Net.Extensibility` | Outbound ports for custom validators, mappers and exporters |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |

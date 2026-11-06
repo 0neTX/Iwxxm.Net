@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Iwxxm.Net.Tests
 {
-    /// <summary>Both use cases (dispatch and SIGWX) report the same STREAM-* code for the same stream condition.</summary>
+    /// <summary>Both facades (full suite and SIGWX) report the same STREAM-* code for the same stream condition.</summary>
     public sealed class StreamErrorCodeTests
     {
         private sealed class WriteOnlyStream : MemoryStream
@@ -30,14 +30,14 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void EmptyStream_IsStreamEmpty_ForBothUseCases()
+        public void EmptyStream_IsStreamEmpty_ForBothFacades()
         {
             Assert.Equal("STREAM-EMPTY", Assert.Single(IwxxmParser.Default.Process(new MemoryStream()).Errors).Code);
             Assert.Equal("STREAM-EMPTY", Assert.Single(IwxxmSigwxParser.Default.Process(new MemoryStream()).Errors).Code);
         }
 
         [Fact]
-        public void UnreadableStream_IsStreamUnreadable_ForBothUseCases()
+        public void UnreadableStream_IsStreamUnreadable_ForBothFacades()
         {
             Assert.Equal("STREAM-UNREADABLE", Assert.Single(IwxxmParser.Default.Process(new WriteOnlyStream()).Errors).Code);
             Assert.Equal("STREAM-UNREADABLE", Assert.Single(IwxxmSigwxParser.Default.Process(new WriteOnlyStream()).Errors).Code);

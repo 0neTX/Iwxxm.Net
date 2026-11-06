@@ -92,10 +92,10 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void Presentation_DependsOnlyOnInboundPorts_NeverOnInfrastructureUseCasesOrOutboundPorts()
+        public void Presentation_NeverDependsOnInfrastructureOrXmlParsing()
         {
             string[] forbidden = ArchitectureLayers.NamesOf(Layer.Infrastructure)
-                .Concat(new[] { "Iwxxm.Net.Application.UseCases", ArchitectureLayers.ExtensibilityNamespace, "System.Xml" })
+                .Concat(new[] { "System.Xml" })
                 .ToArray();
 
             AssertNoDependency(Layer.Presentation, forbidden);
@@ -179,23 +179,9 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void Facades_DoNotImplementInboundPorts()
-        {
-            // HEX-02: the use-case contract (inbound port) is implemented only by the use cases; facades delegate to it.
-            string[] inboundPorts = { "IIwxxmReportDispatcher", "IIwxxmSigwxProcessor", "IGeoJsonExportService" };
-            var offenders = CoreAssembly.GetTypes()
-                .Where(t => ArchitectureLayers.Classify(t.Namespace, t.Name) == Layer.Presentation)
-                .Where(t => t.GetInterfaces().Any(i => inboundPorts.Contains(i.Name)))
-                .Select(t => t.FullName)
-                .ToList();
-
-            Assert.True(offenders.Count == 0, "Facades implementing inbound ports: " + string.Join(", ", offenders));
-        }
-
-        [Fact]
         public void OutboundPorts_ReceiveTheDocumentContext_NotAStream()
         {
-            // HEX-01: the use case owns reading the input; the ports receive the sanitized, already parsed context.
+            // HEX-01: the facade owns reading the input; the ports receive the sanitized, already parsed context.
             foreach (string portName in new[] { "ISchemaValidator", "ISchematronValidator", "IIwxxmDocumentMapper", "ISigwxDocumentMapper" })
             {
                 Type port = CoreAssembly.GetType(ArchitectureLayers.ExtensibilityNamespace + "." + portName, throwOnError: true)!;
@@ -301,12 +287,9 @@ namespace Iwxxm.Net.Tests
             ["ErrorCategory"] = Layer.Domain,
             ["ValidationSeverity"] = Layer.Domain,
 
-            // Application (Application/Options, Application/Ports/In)
+            // Application (Application/Options)
             ["IwxxmParserOptions"] = Layer.Application,
             ["GeoJsonExportOptions"] = Layer.Application,
-            ["IIwxxmReportDispatcher"] = Layer.Application,
-            ["IIwxxmSigwxProcessor"] = Layer.Application,
-            ["IGeoJsonExportService"] = Layer.Application,
 
             // Presentation (Presentation)
             ["IwxxmParser"] = Layer.Presentation,

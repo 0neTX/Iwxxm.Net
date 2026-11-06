@@ -111,10 +111,8 @@ flowchart LR
         F["Facades<br/>IwxxmParser<br/>IwxxmSigwxParser<br/>IwxxmGeoJsonExporter"]
     end
     subgraph Application["Application"]
-        IN["Inbound ports<br/>IIwxxmReportDispatcher<br/>IIwxxmSigwxProcessor<br/>IGeoJsonExportService"]
-        UC["Use cases"]
         OUT["Outbound ports<br/>ISchemaValidator<br/>ISchematronValidator<br/>IIwxxmDocumentMapper<br/>ISigwxDocumentMapper<br/>IGeoJsonExporter"]
-        IN --> UC --> OUT
+        F --> OUT
     end
     subgraph DomainLayer["Domain, no System.Xml"]
         D["IwxxmDocument, aggregates,<br/>value objects,<br/>Result and ValidationError"]

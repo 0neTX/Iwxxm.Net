@@ -98,7 +98,7 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void WithOptions_PropagatesSizeLimitToTheUseCase()
+        public void WithOptions_PropagatesSizeLimitToTheFacade()
         {
             var parser = new IwxxmParserBuilder().WithOptions(new IwxxmParserOptions(maxDocumentBytes: 128)).Build();
 

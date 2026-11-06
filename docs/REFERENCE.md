@@ -460,7 +460,7 @@ qvaci: 7080 characters
 
 ## Composition root and dependency injection
 
-`IwxxmParserBuilder` is the composition root: it wires the driven adapters into the use cases and returns immutable, thread-safe facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`). Every adapter can be replaced through a public outbound port in `Iwxxm.Net.Extensibility`, and business rules can be switched off. The static `IwxxmParser.Parse*`, `IwxxmSigwxParser.Parse*` and `IwxxmGeoJsonExporter.ToGeoJson` members are thin wrappers over a default instance.
+`IwxxmParserBuilder` is the composition root: it wires the driven adapters into the facades and returns immutable, thread-safe facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`). Every adapter can be replaced through a public outbound port in `Iwxxm.Net.Extensibility`, and business rules can be switched off. The static `IwxxmParser.Parse*`, `IwxxmSigwxParser.Parse*` and `IwxxmGeoJsonExporter.ToGeoJson` members are thin wrappers over a default instance.
 
 An outbound adapter is small. This one implements the Schematron port with a rule of its own: it works on the raw bytes and reports a *warning* (the document stays valid) when a message is unusually large:
 
@@ -474,7 +474,7 @@ public sealed class MyRuleEngine : ISchematronValidator
 {
     public IReadOnlyList<ValidationError> Validate(IwxxmDocumentContext document)
     {
-        // document.OpenRead() gives the raw bytes if you need them; the use case has already parsed them safely once.
+        // document.OpenRead() gives the raw bytes if you need them; the facade has already parsed them safely once.
         if (document.Length <= 5_000)
         {
             return Array.Empty<ValidationError>();
@@ -513,14 +513,10 @@ services.AddSingleton(builder.Build());                // IwxxmParser (convenien
 services.AddSingleton(builder.BuildSigwxParser());     // IwxxmSigwxParser
 services.AddSingleton(builder.BuildGeoJsonExporter()); // IwxxmGeoJsonExporter
 
-// The facades do not implement the inbound ports; they expose the port they delegate to.
-// Inject the ports where only the use-case contract is needed:
-services.AddSingleton<IIwxxmReportDispatcher>(sp => sp.GetRequiredService<IwxxmParser>().Dispatcher);
-services.AddSingleton<IIwxxmSigwxProcessor>(sp => sp.GetRequiredService<IwxxmSigwxParser>().Processor);
 
 using ServiceProvider provider = services.BuildServiceProvider();
-IIwxxmReportDispatcher dispatcher = provider.GetRequiredService<IIwxxmReportDispatcher>();
-Result<IwxxmDocument> result = dispatcher.Process(System.IO.File.OpenRead("samples/metar-A3-1.xml"));
+IwxxmParser parser = provider.GetRequiredService<IwxxmParser>();
+Result<IwxxmDocument> result = parser.Process(System.IO.File.OpenRead("samples/metar-A3-1.xml"));
 Console.WriteLine($"custom rule engine in the pipeline: success = {result.IsSuccess}, warnings = {result.Warnings.Count}");
 foreach (ValidationError warning in result.Warnings)
 {
@@ -534,16 +530,13 @@ custom rule engine in the pipeline: success = True, warnings = 1
 
 | Port | Kind | Namespace | Default adapter |
 | :--- | :--- | :--- | :--- |
-| `IIwxxmReportDispatcher` | inbound (use case) | `Iwxxm.Net` | full-suite validation and mapping pipeline |
-| `IIwxxmSigwxProcessor` | inbound (use case) | `Iwxxm.Net` | SIGWX validation and mapping pipeline |
-| `IGeoJsonExportService` | inbound (use case) | `Iwxxm.Net` | RFC 7946 export |
 | `ISchemaValidator` | outbound | `Iwxxm.Net.Extensibility` | embedded official WMO XSDs |
 | `ISchematronValidator` | outbound | `Iwxxm.Net.Extensibility` | built-in XSLT 1.0 rule subset (or `UseOfficialSchematron()`) |
 | `IIwxxmDocumentMapper` | outbound | `Iwxxm.Net.Extensibility` | built-in anti-corruption-layer mapper |
 | `ISigwxDocumentMapper` | outbound | `Iwxxm.Net.Extensibility` | built-in SIGWX mapper |
 | `IGeoJsonExporter` | outbound | `Iwxxm.Net.Extensibility` | built-in RFC 7946 writer |
 
-Outbound ports receive an **`IwxxmDocumentContext`**: the use case has already bounded the size, converted text input to UTF-8 and parsed the document once with the hardened reader settings (DTD prohibited, no resolver, character quotas), so a malformed or DTD-bearing document never reaches an adapter (`XML-MALFORMED`). `OpenRead()` returns a read-only stream of the document bytes for adapters that need raw XML; the built-in adapters share the parsed tree. You can call an adapter directly with `new IwxxmDocumentContext(bytes, options)`.
+Outbound ports receive an **`IwxxmDocumentContext`**: the facade has already bounded the size, converted text input to UTF-8 and parsed the document once with the hardened reader settings (DTD prohibited, no resolver, character quotas), so a malformed or DTD-bearing document never reaches an adapter (`XML-MALFORMED`). `OpenRead()` returns a read-only stream of the document bytes for adapters that need raw XML; the built-in adapters share the parsed tree. You can call an adapter directly with `new IwxxmDocumentContext(bytes, options)`.
 
 Validators return `IReadOnlyList<ValidationError>`: findings with `ValidationSeverity.Error` stop the pipeline; `Warning` findings come back as `Result<T>.Warnings` of the successful result (as the example above shows). Each validator reports at most `IwxxmParserOptions.MaxValidationErrors` findings (then a `...-TOO-MANY-ERRORS` sentinel), and Schematron reports are bounded by `MaxRuleReportBytes` (`SCHEMATRON-REPORT-SIZE-LIMIT`).
 
@@ -819,7 +812,7 @@ Consumers never need a layer name in a `using` directive:
 
 | Namespace | Contents |
 | :--- | :--- |
-| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, inbound ports (`IIwxxmReportDispatcher`, `IIwxxmSigwxProcessor`, `IGeoJsonExportService`) and the `UseOfficialSchematron()` extension of the optional Saxon package |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, and the `UseOfficialSchematron()` extension of the optional Saxon package |
 | `Iwxxm.Net.Reports` | Domain model: the closed hierarchy (`IwxxmDocument`, `IwxxmReport`, `MeteorologicalBulletin`, `IIwxxmDocumentVisitor<TResult>`, `AerodromeObservation`, `Metar`, `Speci`, `Taf`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, `Sigwx`) and the value objects |
 | `Iwxxm.Net.Extensibility` | Outbound ports for custom adapters (`ISchemaValidator`, `ISchematronValidator`, `IIwxxmDocumentMapper`, `ISigwxDocumentMapper`, `IGeoJsonExporter`) and `IwxxmDocumentContext` |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
@@ -838,9 +831,8 @@ src/Iwxxm.Net/
 │   └── Aggregates/             # IwxxmDocument, IwxxmReport, IIwxxmDocumentVisitor<TResult>, aggregates (ns Iwxxm.Net.Reports)
 ├── Application/                # Depends only on Domain (no System.Xml)
 │   ├── Options/                # IwxxmParserOptions, GeoJsonExportOptions                            (ns Iwxxm.Net)
-│   ├── Ports/In/               # Inbound ports (use-case interfaces)                                 (ns Iwxxm.Net)
 │   ├── Ports/Out/              # Outbound ports (driven adapters)                                    (ns Iwxxm.Net.Extensibility)
-│   └── UseCases/               # DispatchIwxxmReportUseCase, ProcessSigwxReportUseCase, ExportGeoJsonUseCase (internal)
+│   └── UseCases/               # BoundedDocumentBuffer, ValidationPipeline, PipelineGuard (internal helpers)
 ├── Infrastructure/             # Driven adapters, all internal
 │   ├── Generated/              # SIGWX transport model (hand-maintained, namespace Iwxxm20252.Generated)
 │   ├── Resources/              # EmbeddedResourceLoader and EmbeddedXmlUrlResolver (air-gapped XSD, XSLT, RDF)
@@ -855,9 +847,9 @@ src/Iwxxm.Net/
 │       ├── Features/           # One feature builder per report family
 │       └── Writing/            # RFC 8259 JSON writer and FeatureCollection writer
 ├── Composition/                # IwxxmParserBuilder: the only place that references Infrastructure  (ns Iwxxm.Net)
-└── Presentation/               # Facades over inbound ports only                                     (ns Iwxxm.Net)
+└── Presentation/               # Facades running the pipeline over outbound ports                   (ns Iwxxm.Net)
 
 src/Iwxxm.Net.Validation.Saxon/ # Optional driven adapter package (net10.0): ISchematronValidator over SaxonCS-HE
 ```
 
-The rules checked by `HexagonalArchitectureTests`: Domain depends on nothing outside the Domain; Application depends only on Domain; Presentation depends only on inbound ports (never on Infrastructure, use cases or outbound ports); Infrastructure is reached only through the composition root and never calls facades; `Iwxxm20252.Generated` and Infrastructure types are not public; public types live only in the documented namespaces; every root-namespace type is assigned to a layer; and `Iwxxm.Net` has zero third-party runtime dependencies. See [CONTRIBUTING.md](../CONTRIBUTING.md#hexagonal-architecture-rules) for the contributor view.
+The rules checked by `HexagonalArchitectureTests`: Domain depends on nothing outside the Domain; Application depends only on Domain; Presentation never depends on Infrastructure or `System.Xml`; Infrastructure is reached only through the composition root and never calls facades; `Iwxxm20252.Generated` and Infrastructure types are not public; public types live only in the documented namespaces; every root-namespace type is assigned to a layer; and `Iwxxm.Net` has zero third-party runtime dependencies. See [CONTRIBUTING.md](../CONTRIBUTING.md#hexagonal-architecture-rules) for the contributor view.

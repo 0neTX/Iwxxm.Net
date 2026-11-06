@@ -14,7 +14,7 @@ using Xunit;
 namespace Iwxxm.Net.Tests
 {
     /// <summary>
-    /// The use case reads the input once and hands a neutral, sanitized <see cref="IwxxmDocumentContext"/> to the ports
+    /// The facade reads the input once and hands a neutral, sanitized <see cref="IwxxmDocumentContext"/> to the ports
     /// (HEX-01, AUD-N3, AUD-L5); the facades keep their convenience members apart from the port contract (HEX-02).
     /// </summary>
     public sealed class DocumentContextTests
@@ -78,7 +78,7 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void MalformedInput_IsRejectedOnceByTheUseCase_BeforeAnyAdapter()
+        public void MalformedInput_IsRejectedOnceByTheFacade_BeforeAnyAdapter()
         {
             var validator = new CountingValidator();
             IwxxmParser parser = new IwxxmParserBuilder().UseSchemaValidator(validator).UseSchematronValidator(validator).Build();
@@ -91,15 +91,36 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
-        public void Facades_ExposeTheirInboundPorts_WithoutImplementingThem()
+        public void GeoJsonExporter_RejectsNullDocument_AndAppliesDefaultOptionsWhenNone()
         {
-            Assert.False(typeof(IIwxxmReportDispatcher).IsAssignableFrom(typeof(IwxxmParser)));
-            Assert.False(typeof(IIwxxmSigwxProcessor).IsAssignableFrom(typeof(IwxxmSigwxParser)));
-            Assert.False(typeof(IGeoJsonExportService).IsAssignableFrom(typeof(IwxxmGeoJsonExporter)));
+            var exporter = new CapturingExporter();
+            IwxxmGeoJsonExporter facade = new IwxxmParserBuilder().UseGeoJsonExporter(exporter).BuildGeoJsonExporter();
+            IwxxmDocument document = IwxxmParser.Default.Process(new MemoryStream(File.ReadAllBytes(SampleDocuments.PathOf("metar-A3-1.xml")))).Value;
 
-            Assert.True(IwxxmParser.Default.Dispatcher.Process(new MemoryStream(File.ReadAllBytes(SampleDocuments.PathOf("metar-A3-1.xml")))).IsSuccess);
-            Assert.NotNull(IwxxmSigwxParser.Default.Processor);
-            Assert.NotNull(IwxxmGeoJsonExporter.Default.Service);
+            Assert.Throws<ArgumentNullException>(() => facade.Export(null!));
+            Assert.Equal(0, exporter.Calls);
+
+            facade.Export(document);
+            Assert.Same(GeoJsonExportOptions.Default, exporter.LastOptions);
+
+            IwxxmParser parser = new IwxxmParserBuilder().UseGeoJsonExporter(exporter).Build();
+            Assert.True(parser.ProcessToGeoJson(File.ReadAllText(SampleDocuments.PathOf("metar-A3-1.xml"))).IsSuccess);
+            Assert.Equal(2, exporter.Calls);
+            Assert.Same(GeoJsonExportOptions.Default, exporter.LastOptions);
+        }
+
+        private sealed class CapturingExporter : IGeoJsonExporter
+        {
+            public int Calls { get; private set; }
+
+            public GeoJsonExportOptions? LastOptions { get; private set; }
+
+            public string Export(IwxxmDocument document, GeoJsonExportOptions options)
+            {
+                Calls++;
+                LastOptions = options;
+                return "{}";
+            }
         }
 
         private sealed class CountingValidator : ISchemaValidator, ISchematronValidator

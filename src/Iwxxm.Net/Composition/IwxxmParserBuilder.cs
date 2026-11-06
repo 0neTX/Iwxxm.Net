@@ -1,5 +1,4 @@
 using System;
-using Iwxxm.Net.Application.UseCases;
 using Iwxxm.Net.Extensibility;
 using Iwxxm.Net.Infrastructure.GeoJson;
 using Iwxxm.Net.Infrastructure.Mapping;
@@ -10,7 +9,7 @@ namespace Iwxxm.Net
 {
     /// <summary>
     /// Composition root of <c>Iwxxm.Net</c>: wires the driven adapters (schema validator, business-rule validator,
-    /// document mappers, GeoJSON exporter) to the application use cases and returns ready-to-use facades.
+    /// document mappers, GeoJSON exporter) to the facades and returns ready-to-use facades.
     /// Every adapter can be replaced through the outbound ports in <see cref="Iwxxm.Net.Extensibility"/>.
     /// </summary>
     /// <remarks>
@@ -36,7 +35,7 @@ namespace Iwxxm.Net
         private ISigwxDocumentMapper? _sigwxDocumentMapper;
         private IGeoJsonExporter? _geoJsonExporter;
 
-        /// <summary>Gets the parser options that will be passed to the built-in adapters and use cases.</summary>
+        /// <summary>Gets the parser options that will be passed to the built-in adapters.</summary>
         public IwxxmParserOptions Options => _options;
 
         /// <summary>Sets the security and memory-bound options (size and character quotas).</summary>
@@ -110,34 +109,28 @@ namespace Iwxxm.Net
         public IwxxmParser Build()
         {
             ISigwxDocumentMapper sigwxMapper = _sigwxDocumentMapper ?? new SigwxDocumentMapper();
-            var dispatcher = new DispatchIwxxmReportUseCase(
+            return new IwxxmParser(
                 schemaValidator: _schemaValidator ?? XsdValidator.CreateFullSuiteValidator(_options),
                 schematronValidator: CreateSchematronValidator(),
                 documentMapper: _documentMapper ?? new IwxxmSuiteMapper(sigwxMapper, _options),
+                geoJsonExporter: _geoJsonExporter ?? new Rfc7946GeoJsonExporter(),
                 parser: SecureXml.Parser,
                 options: _options);
-
-            return new IwxxmParser(dispatcher, BuildGeoJsonService());
         }
 
         /// <summary>Builds the SIGWX parser facade (<c>iwxxm:WAFSSignificantWeatherForecast</c> and <c>iwxxm:SIGWXReport</c>).</summary>
         public IwxxmSigwxParser BuildSigwxParser()
         {
-            var processor = new ProcessSigwxReportUseCase(
+            return new IwxxmSigwxParser(
                 schemaValidator: _schemaValidator ?? new XsdValidator(useFullSuite: false, options: _options),
                 schematronValidator: CreateSchematronValidator(),
                 documentMapper: _sigwxDocumentMapper ?? new SigwxDocumentMapper(),
                 parser: SecureXml.Parser,
                 options: _options);
-
-            return new IwxxmSigwxParser(processor);
         }
 
         /// <summary>Builds the GeoJSON exporter facade.</summary>
-        public IwxxmGeoJsonExporter BuildGeoJsonExporter() => new IwxxmGeoJsonExporter(BuildGeoJsonService());
-
-        private IGeoJsonExportService BuildGeoJsonService() =>
-            new ExportGeoJsonUseCase(_geoJsonExporter ?? new Rfc7946GeoJsonExporter());
+        public IwxxmGeoJsonExporter BuildGeoJsonExporter() => new IwxxmGeoJsonExporter(_geoJsonExporter ?? new Rfc7946GeoJsonExporter());
 
         private ISchematronValidator CreateSchematronValidator()
         {
