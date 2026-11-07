@@ -103,7 +103,7 @@ Dotted arrows are the failure exits; the four categories shown are values of `Er
 
 ### The layers
 
-The library is hexagonal ("ports and adapters"): the domain model knows nothing about XML, and every technology (XSD, Schematron, mapping, GeoJSON) sits behind a port. You normally only touch the facades on the left; the ports on the right are there when you want to replace an engine.
+The library is a typed read-model parser with a hexagonal-style layering ("ports and adapters"): the domain model knows nothing about XML, and every technology (XSD, Schematron, mapping, GeoJSON) sits behind an outbound port. There are no use-case classes between the facades and the ports: the facades run the pipeline directly. You normally only touch the facades on the left; the one port meant for replacement is `ISchematronValidator`.
 
 ```mermaid
 flowchart LR
@@ -123,8 +123,7 @@ flowchart LR
     SAX["Iwxxm.Net.Validation.Saxon<br/>official Schematron"]
     B["IwxxmParserBuilder<br/>composition root"]
 
-    F --> IN
-    UC --> D
+    F --> D
     A -.implements.-> OUT
     SAX -.implements.-> OUT
     B -.wires.-> F
@@ -170,7 +169,19 @@ Notice three things:
 - **Every report carries its metadata.** `ReportStatus` and `PermissibleUsage` are required by the schema and are never defaulted (a `TEST` or `NON-OPERATIONAL` report must never look operational).
 - **Times are UTC.** All `...Utc` properties hold `DateTimeOffset` values with a zero offset.
 
-`Parse(string)`, `Parse(Stream)` and `ParseFile(string)` are the three entry points; the static members are thin wrappers over `IwxxmParser.Default`. Prefer the instance methods (`Process...`) when you build your own parser, as shown in [section 5](#5-validation-levels).
+`Parse(string)`, `Parse(Stream)` and `ParseFile(string)` are the three input shapes; the static members are thin wrappers over `IwxxmParser.Default`. When you need a configured parser, use the instance methods (`Process...`) of a parser built with `IwxxmParserBuilder`, as shown in [section 5](#5-validation-levels).
+
+### Which entry point do I use?
+
+The facade constructors are `internal`, so there are exactly two ways to get a parser:
+
+| You need | Use | Example |
+| :--- | :--- | :--- |
+| Default limits and the built-in rule subset (the common case) | `IwxxmParser.Default`, or the static `Parse*` helpers, which call it | `IwxxmParser.ParseFile(path)` |
+| The same for SIGWX or GeoJSON | `IwxxmSigwxParser.Default` / `IwxxmGeoJsonExporter.Default` and their static helpers | `IwxxmSigwxParser.Parse(xml)` |
+| Custom limits, the official Schematron, your own rule engine, or no business rules | `IwxxmParserBuilder`, then `Build()` / `BuildSigwxParser()` / `BuildGeoJsonExporter()` | `new IwxxmParserBuilder().WithOptions(options).Build()` |
+
+The builder offers `WithOptions`, `UseSchematronValidator` (an `ISchematronValidator` or a factory), `WithoutSchematron` and, with the Saxon package, `UseOfficialSchematron()`. Build once and reuse the result; parsers are immutable and thread-safe. `ISchematronValidator` and `IwxxmDocumentContext` (namespace `Iwxxm.Net.Extensibility`) are the only public extension points.
 
 ### Errors are values
 

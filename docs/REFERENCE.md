@@ -460,9 +460,9 @@ qvaci: 7080 characters
 
 ## Composition root and dependency injection
 
-`IwxxmParserBuilder` is the composition root: it wires the driven adapters into the facades and returns immutable, thread-safe facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`). The business-rule (Schematron) engine can be replaced through the public `ISchematronValidator` port in `Iwxxm.Net.Extensibility`, or switched off; the other adapters (schema validator, mappers, GeoJSON exporter) are internal. The static `IwxxmParser.Parse*`, `IwxxmSigwxParser.Parse*` and `IwxxmGeoJsonExporter.ToGeoJson` members are thin wrappers over a default instance.
+There are two ways to get a facade; their constructors are `internal`. For the common case use the default instances (`IwxxmParser.Default`, `IwxxmSigwxParser.Default`, `IwxxmGeoJsonExporter.Default`) or the static `Parse*` / `ToGeoJson` helpers, which are thin wrappers over them. When you need options or a different Schematron engine, `IwxxmParserBuilder` is the composition root: it selects the options and the business-rule engine, connects the built-in internal adapters and returns immutable, thread-safe facades. The Schematron engine can be replaced through the public `ISchematronValidator` in `Iwxxm.Net.Extensibility`, or switched off; the other adapters (schema validator, mappers, GeoJSON exporter) are internal.
 
-An outbound adapter is small. This one implements the Schematron port with a rule of its own: it works on the raw bytes and reports a *warning* (the document stays valid) when a message is unusually large:
+A custom Schematron engine is small. This one implements the Schematron port with a rule of its own: it works on the raw bytes and reports a *warning* (the document stays valid) when a message is unusually large:
 
 ```csharp
 using System;

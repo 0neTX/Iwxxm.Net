@@ -126,6 +126,13 @@ METAR YUDO at 2012-08-22 16:30:00Z
 
 The wind arrived in metres per second and stays that way until *you* ask for knots. That habit, "keep what was reported", runs through the whole library; the [guide](docs/GUIDE.md) explains it with real data.
 
+### Which entry point do I use?
+
+- **Common case**: `IwxxmParser.Default`, or the static `IwxxmParser.Parse*` helpers that wrap it (`IwxxmSigwxParser.Default` and `IwxxmGeoJsonExporter.Default` likewise). Default limits, built-in rule subset.
+- **Options or Schematron selection**: `IwxxmParserBuilder` (`WithOptions`, `UseSchematronValidator`, `WithoutSchematron`, and `UseOfficialSchematron()` from `Iwxxm.Net.Validation.Saxon`), then `Build()`.
+
+The facade constructors are `internal`; `ISchematronValidator` and `IwxxmDocumentContext` are the only public extension points. Details in the [guide](docs/GUIDE.md#which-entry-point-do-i-use).
+
 To export GeoJSON, validate with the full official rule set, or tighten the security limits, see the guide's sections on [GeoJSON](docs/GUIDE.md#8-geojson-export), [validation levels](docs/GUIDE.md#5-validation-levels) and [options](docs/GUIDE.md#6-options-and-security-limits).
 
 ## Documentation
@@ -135,7 +142,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | [Getting started guide](docs/GUIDE.md) | A didactic tour: pipeline, `Result<T>`, document types, validation, value objects, and worked SIGWX (jet streams, clouds), METAR/TAF and SIGMET examples. |
 | [Reference](docs/REFERENCE.md) | One example per product family, the composition root and ports, the complete error-code table (every stable code, checked against the source by a test), value-object catalogue and namespace map. |
 | [Documentation index](docs/README.md) | The map of everything under `docs/`. |
-| [Architecture analysis](docs/ARCHITECTURE_ANALYSIS.md) | Hexagonal and DDD design decisions and the prioritised debt catalogue (written in Spanish). |
+| [Architecture analysis](docs/ARCHITECTURE_ANALYSIS.md) | Design decisions (a typed read-model parser with a hexagonal-style layering), the prioritised debt catalogue and the 2026-11 cleanup note (written in Spanish). |
 | [Technical debt](TECHNICAL_DEBT.md) | The audit findings, their status and the open backlog. |
 | [Contributing](CONTRIBUTING.md) | Local setup, architecture rules, how to add a report family, golden-master tests. |
 | [Releasing](docs/RELEASING.md) | Versioning, the tag procedure, package contents and the v1.0.0 publication checklist. |
@@ -149,7 +156,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | :--- | :--- |
 | `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory` |
 | `Iwxxm.Net.Reports` | The domain model: the closed document hierarchy and every value object |
-| `Iwxxm.Net.Extensibility` | The `ISchematronValidator` port for custom business-rule engines |
+| `Iwxxm.Net.Extensibility` | `ISchematronValidator` and `IwxxmDocumentContext`, the extension point for custom business-rule engines |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
 
 Consumers never need a layer name in a `using` directive; `Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*` and `Iwxxm20252.Generated` are `internal`. The layer map is in the [reference](docs/REFERENCE.md#namespaces-and-layers).

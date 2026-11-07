@@ -7,7 +7,7 @@ Where to look, depending on what you want to do.
 | **Learn the library step by step** (parse, validate, read jet streams and clouds, METAR, TAF, SIGMET) | [GUIDE.md](GUIDE.md) |
 | **Look something up** (one example per product family, error codes, value objects, ports, namespaces) | [REFERENCE.md](REFERENCE.md) |
 | **Install the packages and see what is supported** | [../README.md](../README.md) |
-| **Understand why the code is shaped this way** (hexagonal architecture, DDD, the debt catalogue) | [ARCHITECTURE_ANALYSIS.md](ARCHITECTURE_ANALYSIS.md) (in Spanish) |
+| **Understand why the code is shaped this way** (hexagonal-style layering, DDD naming, the debt catalogue, the 2026-11 cleanup) | [ARCHITECTURE_ANALYSIS.md](ARCHITECTURE_ANALYSIS.md) (in Spanish) |
 | **See what is known, fixed and still open** | [../TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md) |
 | **Change the code** (setup, layer rules, adding a report family, golden masters, documentation checks) | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 | **Report a vulnerability or harden a deployment** (supported versions, private reporting, scope, secure usage) | [../SECURITY.md](../SECURITY.md) |
