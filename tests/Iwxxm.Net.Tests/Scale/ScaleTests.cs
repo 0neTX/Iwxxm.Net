@@ -38,7 +38,7 @@ namespace Iwxxm.Net.Tests.Scale
     {
         private static readonly int[] VertexCounts = { 25_000, 50_000, 100_000, 200_000 };
         private static readonly int[] Crossings = { 16_000, 32_000, 64_000, 128_000 };
-        private static readonly int[] ExportCrossings = { 8_000, 16_000, 32_000, 64_000 };
+        private static readonly int[] ExportCrossings = { 16_000, 32_000, 64_000, 128_000 };
         private static readonly int[] PracticalCrossings = { 500, 1_000, 2_000, 4_000 };
         private static readonly int[] ReportCounts = { 200, 400, 800, 1_600 };
 
