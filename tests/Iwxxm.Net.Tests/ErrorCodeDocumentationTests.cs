@@ -9,10 +9,13 @@ using Xunit;
 namespace Iwxxm.Net.Tests
 {
     /// <summary>
-    /// The error-code tables of <c>docs/REFERENCE.md</c> are the stable contract. This test keeps them honest: every
-    /// stable code literal emitted by <c>src/</c> must be documented, and every documented code must still exist. The codes
-    /// a consumer branches on are the public constants of <see cref="IwxxmErrorCodes"/>: they must be documented with their
-    /// value, exist in the code, and be written nowhere else in <c>src/</c>.
+    /// The error-code tables of <c>docs/REFERENCE.md</c> are the stable contract. This test keeps them honest. A code
+    /// counts as emitted by <c>src/</c> in two ways only: a string literal in a file other than
+    /// <c>IwxxmErrorCodes.cs</c> (the internal mapping codes), or a reference <c>IwxxmErrorCodes.&lt;Name&gt;</c> in a file
+    /// other than <c>IwxxmErrorCodes.cs</c> (the public codes). The definition of a constant in <c>IwxxmErrorCodes.cs</c>
+    /// never counts, so a constant nobody uses, or a documented code that only survives as a definition, is reported.
+    /// Verified: every emitted code is documented; every documented code is still emitted; every public constant is
+    /// documented with its value, is used outside its own class, and is written as a literal nowhere else in <c>src/</c>.
     /// </summary>
     public sealed class ErrorCodeDocumentationTests
     {
@@ -37,21 +40,62 @@ namespace Iwxxm.Net.Tests
             return directory!.FullName;
         }
 
-        private static SortedSet<string> CodesEmittedBySource()
+        private const string ErrorCodesFile = "IwxxmErrorCodes.cs";
+
+        private static readonly Regex ConstantReference = new Regex(@"\bIwxxmErrorCodes\.(\w+)\b", RegexOptions.Compiled);
+
+        // Every src/ file except build output and the file that defines the public constants.
+        private static IEnumerable<string> SourceFilesOutsideTheCodeDefinitions()
         {
-            string src = Path.Combine(RepositoryRoot(), "src");
-            var codes = new SortedSet<string>(StringComparer.Ordinal);
-            foreach (string file in Directory.EnumerateFiles(src, "*.cs", SearchOption.AllDirectories))
+            string separator = Path.DirectorySeparatorChar.ToString();
+            foreach (string file in Directory.EnumerateFiles(Path.Combine(RepositoryRoot(), "src"), "*.cs", SearchOption.AllDirectories))
             {
-                string separator = Path.DirectorySeparatorChar.ToString();
-                if (file.Contains(separator + "obj" + separator) || file.Contains(separator + "bin" + separator))
+                if (file.Contains(separator + "obj" + separator) || file.Contains(separator + "bin" + separator)
+                    || Path.GetFileName(file) == ErrorCodesFile)
                     continue;
 
-                foreach (Match match in CodeLiteral.Matches(File.ReadAllText(file)))
+                yield return file;
+            }
+        }
+
+        // Source text without whole-line comments, so a mention in documentation is not mistaken for a use.
+        private static string CodeOf(string file)
+        {
+            IEnumerable<string> lines = File.ReadAllLines(file).Where(l => !l.TrimStart().StartsWith("//", StringComparison.Ordinal));
+            return string.Join("\n", lines);
+        }
+
+        // Names of the public IwxxmErrorCodes constants that some other src/ file refers to.
+        private static SortedSet<string> PublicConstantsUsedBySource()
+        {
+            var used = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (string file in SourceFilesOutsideTheCodeDefinitions())
+            {
+                foreach (Match match in ConstantReference.Matches(CodeOf(file)))
+                    used.Add(match.Groups[1].Value);
+            }
+
+            return used;
+        }
+
+        private static SortedSet<string> CodesEmittedBySource()
+        {
+            var codes = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (string file in SourceFilesOutsideTheCodeDefinitions())
+            {
+                string code = CodeOf(file);
+                foreach (Match match in CodeLiteral.Matches(code))
                 {
                     if (!NotErrorCodes.Contains(match.Groups[1].Value))
                         codes.Add(match.Groups[1].Value);
                 }
+            }
+
+            SortedDictionary<string, string> publicConstants = PublicConstants();
+            foreach (string name in PublicConstantsUsedBySource())
+            {
+                if (publicConstants.TryGetValue(name, out string? value))
+                    codes.Add(value);
             }
 
             return codes;
@@ -136,8 +180,11 @@ namespace Iwxxm.Net.Tests
             SortedSet<string> emitted = CodesEmittedBySource();
             SortedSet<string> documented = CodesDocumented();
 
+            SortedSet<string> used = PublicConstantsUsedBySource();
+
             foreach (KeyValuePair<string, string> constant in PublicConstants())
             {
+                Assert.True(used.Contains(constant.Key), "IwxxmErrorCodes." + constant.Key + " is never used by src/ outside IwxxmErrorCodes.cs.");
                 Assert.True(emitted.Contains(constant.Value), "IwxxmErrorCodes." + constant.Key + " is not emitted by src/.");
                 Assert.True(documented.Contains(constant.Value), "IwxxmErrorCodes." + constant.Key + " is missing from the error-code tables.");
             }
@@ -150,15 +197,9 @@ namespace Iwxxm.Net.Tests
         {
             // Single source of truth: the library refers to these codes through the constants, never through a second literal.
             var publicCodes = new HashSet<string>(PublicConstants().Values, StringComparer.Ordinal);
-            string src = Path.Combine(RepositoryRoot(), "src");
             var duplicates = new List<string>();
-            foreach (string file in Directory.EnumerateFiles(src, "*.cs", SearchOption.AllDirectories))
+            foreach (string file in SourceFilesOutsideTheCodeDefinitions())
             {
-                string separator = Path.DirectorySeparatorChar.ToString();
-                if (file.Contains(separator + "obj" + separator) || file.Contains(separator + "bin" + separator)
-                    || Path.GetFileName(file) == "IwxxmErrorCodes.cs")
-                    continue;
-
                 foreach (Match match in CodeLiteral.Matches(File.ReadAllText(file)))
                 {
                     if (publicCodes.Contains(match.Groups[1].Value))
