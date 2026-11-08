@@ -40,6 +40,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             public double ExitT { get; set; }
 
             public bool Used { get; set; }
+
+            public int Index { get; set; }
         }
 
         /// <summary>
@@ -56,8 +58,10 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             double width = east - west;
             double height = MaxLat - MinLat;
             double perimeter = (2.0 * width) + (2.0 * height);
-            foreach (Arc arc in arcs)
+            for (int i = 0; i < arcs.Count; i++)
             {
+                Arc arc = arcs[i];
+                arc.Index = i;
                 arc.EntryT = Perimeter(arc.Nodes[0], west, width, height);
                 arc.ExitT = Perimeter(arc.Nodes[arc.Nodes.Count - 1], west, width, height);
             }
@@ -71,6 +75,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 (T: (2.0 * width) + height, X: west, Y: MaxLat),
             };
 
+            var successors = new SuccessorIndex(arcs);
             foreach (Arc start in arcs)
             {
                 if (start.Used)
@@ -81,22 +86,18 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 for (int guard = 0; guard <= arcs.Count; guard++)
                 {
                     current.Used = true;
+                    successors.Remove(current);
                     foreach (Node node in current.Nodes)
                         Append(ring, ToPosition(node, source, shift));
 
+                    // The successor is the unused arc nearest counterclockwise to the exit point, unless the start arc is at least
+                    // as near (a tie closes the ring); see SuccessorIndex for how it is found without scanning every arc.
                     Arc next = start;
                     double best = CounterclockwiseDistance(current.ExitT, start.EntryT, perimeter);
-                    foreach (Arc candidate in arcs)
+                    if (!double.IsNaN(best) && successors.TryFindNearest(current.ExitT, perimeter, out Arc? nearest, out double nearestDistance) && nearestDistance < best)
                     {
-                        if (candidate.Used)
-                            continue;
-
-                        double distance = CounterclockwiseDistance(current.ExitT, candidate.EntryT, perimeter);
-                        if (distance < best)
-                        {
-                            best = distance;
-                            next = candidate;
-                        }
+                        best = nearestDistance;
+                        next = nearest!;
                     }
 
                     // Corners passed between the exit point and the next entry point.
@@ -130,6 +131,192 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
 
             return rings;
+        }
+
+        /// <summary>
+        /// Finds the unused arc whose entry point is nearest counterclockwise to a given position on the rectangle perimeter, in
+        /// O(log n) amortised instead of scanning every arc.
+        /// <para>
+        /// The reference behaviour (kept as a test-only copy and compared on generated rings) is: among the unused arcs, the one with the
+        /// smallest <see cref="CounterclockwiseDistance"/> to the exit position wins; on equal distances the arc that comes first in the
+        /// list (lowest <see cref="Arc.Index"/>) wins. The arcs are sorted once by entry position and grouped in buckets of exactly equal
+        /// positions. Because floating-point subtraction and addition are monotone, the distance is non-decreasing along the sorted buckets
+        /// within each of the two runs the exit position cuts the order into (entries at or after it, then entries before it, which pass
+        /// through the wrap-around); only the tail of a run can break the order, when a distance rounds up to the perimeter and is reset
+        /// to 0 (an entry a hair before the exit position). So the minimum is always at the first live bucket of a run or at the last live
+        /// bucket of a run, and equal minima (including different positions that round to the same distance) are neighbours of those
+        /// buckets; they are walked while the distance stays equal. Within a bucket the arcs are always consumed in ascending index order
+        /// (the successor and the next ring start are both the lowest index among the best candidates), so a bucket keeps one pointer to
+        /// its first unused arc. Emptied buckets are skipped with two union-find structures (next and previous live bucket).
+        /// </para>
+        /// </summary>
+        private sealed class SuccessorIndex
+        {
+            private readonly List<Arc> _arcs;
+            private readonly double[] _keys;
+            private readonly int[] _members;
+            private readonly int[] _bucketStart;
+            private readonly int[] _head;
+            private readonly int[] _bucketOf;
+            private readonly int[] _next;
+            private readonly int[] _previous;
+
+            public SuccessorIndex(List<Arc> arcs)
+            {
+                _arcs = arcs;
+                _bucketOf = new int[arcs.Count];
+
+                // An arc whose entry position is not a number never has a defined distance, so it is never a successor.
+                var order = new List<int>(arcs.Count);
+                for (int i = 0; i < arcs.Count; i++)
+                {
+                    _bucketOf[i] = -1;
+                    if (!double.IsNaN(arcs[i].EntryT))
+                        order.Add(i);
+                }
+
+                _members = order.ToArray();
+                Array.Sort(_members, (a, b) =>
+                {
+                    int byPosition = arcs[a].EntryT.CompareTo(arcs[b].EntryT);
+                    return byPosition != 0 ? byPosition : a.CompareTo(b);
+                });
+
+                var keys = new List<double>();
+                var starts = new List<int>();
+                for (int i = 0; i < _members.Length; i++)
+                {
+                    double t = arcs[_members[i]].EntryT;
+                    if (keys.Count == 0 || keys[keys.Count - 1] != t)
+                    {
+                        keys.Add(t);
+                        starts.Add(i);
+                    }
+
+                    _bucketOf[_members[i]] = keys.Count - 1;
+                }
+
+                starts.Add(_members.Length);
+                _keys = keys.ToArray();
+                _bucketStart = starts.ToArray();
+                _head = new int[_keys.Length];
+                Array.Copy(_bucketStart, _head, _keys.Length);
+
+                // _next[b]: first live bucket >= b (Count when none). _previous[b + 1]: last live bucket <= b, plus one (0 when none).
+                _next = new int[_keys.Length + 1];
+                _previous = new int[_keys.Length + 1];
+                for (int i = 0; i < _next.Length; i++)
+                {
+                    _next[i] = i;
+                    _previous[i] = i;
+                }
+            }
+
+            /// <summary>Takes an arc that has just been marked used out of the index.</summary>
+            public void Remove(Arc arc)
+            {
+                int bucket = _bucketOf[arc.Index];
+                if (bucket < 0)
+                    return;
+
+                int end = _bucketStart[bucket + 1];
+                while (_head[bucket] < end && _arcs[_members[_head[bucket]]].Used)
+                    _head[bucket]++;
+
+                if (_head[bucket] == end)
+                {
+                    _next[bucket] = bucket + 1;
+                    _previous[bucket + 1] = bucket;
+                }
+            }
+
+            /// <summary>The unused arc with the smallest counterclockwise distance (lowest index on ties) from <paramref name="from"/>.</summary>
+            public bool TryFindNearest(double from, double perimeter, out Arc? arc, out double distance)
+            {
+                int count = _keys.Length;
+                int split = LowerBound(from);
+
+                // First live bucket of each run (entries at or after the exit position, entries before it) and last live bucket of each run.
+                int firstAfter = NextLive(split);
+                int firstBefore = NextLive(0);
+                if (firstBefore >= split)
+                    firstBefore = count;
+
+                int lastAfter = PreviousLive(count - 1);
+                if (lastAfter < split)
+                    lastAfter = -1;
+
+                int lastBefore = split > 0 ? PreviousLive(split - 1) : -1;
+
+                double minimum = double.PositiveInfinity;
+                minimum = Math.Min(minimum, DistanceOf(firstAfter, from, perimeter));
+                minimum = Math.Min(minimum, DistanceOf(firstBefore, from, perimeter));
+                minimum = Math.Min(minimum, DistanceOf(lastAfter, from, perimeter));
+                minimum = Math.Min(minimum, DistanceOf(lastBefore, from, perimeter));
+                if (double.IsPositiveInfinity(minimum))
+                {
+                    arc = null;
+                    distance = double.NaN;
+                    return false;
+                }
+
+                int lowest = int.MaxValue;
+                lowest = Math.Min(lowest, Walk(firstAfter, 1, minimum, from, perimeter));
+                lowest = Math.Min(lowest, Walk(firstBefore, 1, minimum, from, perimeter));
+                lowest = Math.Min(lowest, Walk(lastAfter, -1, minimum, from, perimeter));
+                lowest = Math.Min(lowest, Walk(lastBefore, -1, minimum, from, perimeter));
+                arc = _arcs[lowest];
+                distance = minimum;
+                return true;
+            }
+
+            // Lowest arc index among the live buckets reached from `bucket` in one direction while their distance equals the minimum.
+            private int Walk(int bucket, int step, double minimum, double from, double perimeter)
+            {
+                int lowest = int.MaxValue;
+                while (bucket >= 0 && bucket < _keys.Length && CounterclockwiseDistance(from, _keys[bucket], perimeter) == minimum)
+                {
+                    lowest = Math.Min(lowest, _members[_head[bucket]]);
+                    bucket = step > 0 ? NextLive(bucket + 1) : PreviousLive(bucket - 1);
+                }
+
+                return lowest;
+            }
+
+            private double DistanceOf(int bucket, double from, double perimeter) =>
+                bucket >= 0 && bucket < _keys.Length ? CounterclockwiseDistance(from, _keys[bucket], perimeter) : double.PositiveInfinity;
+
+            // First bucket whose position is >= value (Count when none).
+            private int LowerBound(double value)
+            {
+                int low = 0;
+                int high = _keys.Length;
+                while (low < high)
+                {
+                    int middle = low + ((high - low) / 2);
+                    if (_keys[middle] < value)
+                        low = middle + 1;
+                    else
+                        high = middle;
+                }
+
+                return low;
+            }
+
+            private int NextLive(int bucket) => Find(_next, bucket);
+
+            private int PreviousLive(int bucket) => Find(_previous, bucket + 1) - 1;
+
+            private static int Find(int[] parent, int item)
+            {
+                while (parent[item] != item)
+                {
+                    parent[item] = parent[parent[item]];
+                    item = parent[item];
+                }
+
+                return item;
+            }
         }
 
         private static List<Arc> CollectArcs(IReadOnlyList<Node> chain, double west, double east)

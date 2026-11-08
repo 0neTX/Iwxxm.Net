@@ -141,7 +141,7 @@ podman run --rm iwxxm-net-build dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Test
   --filter "Category=Scale" --logger "console;verbosity=detailed"
 ```
 
-A scenario that is skipped documents a measured finding (see `TECHNICAL_DEBT.md`); remove its `Skip` to reproduce it.
+A scenario that is skipped documents a measured finding (see `TECHNICAL_DEBT.md`); remove its `Skip` to reproduce it. At present no scenario is skipped (TD-SCALE-1 is resolved).
 
 ---
 

@@ -34,6 +34,9 @@ namespace Iwxxm.Net.Tests.Properties
         /// <summary>Fixed seed of the GeoJSON geometry properties.</summary>
         public const string GeometrySeed = "0QOiJyfJrGP5";
 
+        /// <summary>Fixed seed of the StripClipper differential test.</summary>
+        public const string StripClipperSeed = "0Hn2VqXc8TrA";
+
         /// <summary>
         /// Runs <paramref name="property"/> (it asserts and throws on violation) on <see cref="Iterations"/> generated cases,
         /// starting from <paramref name="seed"/>, on a single thread, printing a failing case with <paramref name="print"/>.

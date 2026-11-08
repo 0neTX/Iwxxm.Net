@@ -91,13 +91,11 @@ namespace Iwxxm.Net.Tests.Scale
             _output.WriteLine(export.ToTable());
         }
 
-        // FINDING (quadratic cost, measured on net10.0 in the container, median of 3 after a warm-up, export of a comb polygon
-        // whose ring crosses the antimeridian n times): 8,000 crossings 105 ms; 16,000 241 ms; 32,000 930 ms; 64,000 3,972 ms.
-        // Doubling the input costs 2.3x, 3.9x, 4.3x: log-log exponent 1.77 over the range and still rising towards 2. The allocations
-        // are linear (x2.0 per doubling). Hot spot: StripClipper.Clip scans every arc for every arc it appends (candidate loop,
-        // StripClipper.cs lines 74-100), O(arcs^2). A 50 MiB document can hold about 1.5 million crossings (about 30 minutes of CPU by extrapolation).
-        // Remove the Skip to run the check; it fails until the arc assembly is sub-quadratic. See TECHNICAL_DEBT.md.
-        [Fact(Skip = "Finding TD-SCALE-1: AntimeridianSplitter/StripClipper export is quadratic in the number of antimeridian crossings (105 ms at 8k, 241 ms at 16k, 930 ms at 32k, 3,972 ms at 64k crossings; exponent 1.77). See the comment above and TECHNICAL_DEBT.md.")]
+        // TD-SCALE-1 (resolved): the export used to be quadratic in the number of crossings, because StripClipper.Clip scanned every arc
+        // for every arc it appended to a ring (8,000 crossings 105 ms; 16,000 241 ms; 32,000 930 ms; 64,000 3,972 ms; exponent 1.77).
+        // The successor is now found with a sorted index (SuccessorIndex), so the cost is O(n log n); the rings are identical to the
+        // scanning algorithm (StripClipperDifferentialTests). See TECHNICAL_DEBT.md for the measured table.
+        [Fact]
         public void AntimeridianZigZag_Crossings_Export_IsSubQuadratic()
         {
             ScaleSeries export = MeasureExport("zigzag GeoJSON export (AntimeridianSplitter/StripClipper)", "crossings", ExportCrossings, ZigZag, out List<string> outputs);
