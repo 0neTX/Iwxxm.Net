@@ -17,6 +17,9 @@
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <!-- IL-level architecture rules (test-only; never referenced by a packable project) -->
     <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+    <!-- Property-based testing (test-only). 2.14.1 is the last CsCheck release that targets netstandard2.0, which the optional
+         net48 test target needs (CsCheck 3.x targets net6.0, 4.x net8.0, 5.x net10.0+ only). -->
+    <PackageVersion Include="CsCheck" Version="2.14.1" />
 
     <!-- net48 test target only (AUD-M17): System.Text.Json is not part of .NET Framework -->
     <PackageVersion Include="System.Text.Json" Version="9.0.10" />

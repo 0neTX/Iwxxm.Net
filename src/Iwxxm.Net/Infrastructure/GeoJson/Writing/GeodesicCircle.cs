@@ -64,9 +64,14 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 double bearing = -k * (2.0 * Math.PI / SegmentCount);
                 double lat = Math.Asin((Math.Sin(lat0) * Math.Cos(angularRadius)) +
                                        (Math.Cos(lat0) * Math.Sin(angularRadius) * Math.Cos(bearing)));
+
+                // Longitude difference as atan2(east, north) components of the destination vector, in the frame of the centre.
+                // The textbook form atan2(sin(b) sin(r) cos(lat0), cos(r) - sin(lat0) sin(lat)) has a numerator and a denominator that
+                // both vanish when the centre is at (or within rounding of) a pole, so the angle becomes noise there; this equivalent
+                // form stays well conditioned for every centre (at a pole it gives lon0 + 180 degrees - bearing).
                 double lon = lon0 + Math.Atan2(
-                    Math.Sin(bearing) * Math.Sin(angularRadius) * Math.Cos(lat0),
-                    Math.Cos(angularRadius) - (Math.Sin(lat0) * Math.Sin(lat)));
+                    Math.Sin(bearing) * Math.Sin(angularRadius),
+                    (Math.Cos(lat0) * Math.Cos(angularRadius)) - (Math.Sin(lat0) * Math.Sin(angularRadius) * Math.Cos(bearing)));
                 lats[k] = lat / DegreesToRadians;
                 lons[k] = NormalizeLongitude(lon / DegreesToRadians);
             }
