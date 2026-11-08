@@ -128,7 +128,7 @@ The wind arrived in metres per second and stays that way until *you* ask for kno
 
 ### Which entry point do I use?
 
-- **Common case**: `IwxxmParser.Default`, or the static `IwxxmParser.Parse*` helpers that wrap it (`IwxxmSigwxParser.Default` and `IwxxmGeoJsonExporter.Default` likewise). Default limits, built-in rule subset.
+- **Common case**: `IwxxmParser.Default`, or the static `IwxxmParser.Parse*` helpers that wrap it (`IwxxmGeoJsonExporter.Default` likewise). Default limits, built-in rule subset. WAFS SIGWX and bulletins need no other entry point: `IwxxmParser.ParseFileAs<Sigwx>(path)` reads the official and the compact SIGWX root (`IwxxmSigwxParser` is an optional narrow facade over the same mapper).
 - **Options or Schematron selection**: `IwxxmParserBuilder` (`WithOptions`, `UseSchematronValidator`, `WithoutSchematron`, and `UseOfficialSchematron()` from `Iwxxm.Net.Validation.Saxon`), then `Build()`.
 
 The facade constructors are `internal`; `ISchematronValidator` and `IwxxmDocumentContext` are the only public extension points. Details in the [guide](docs/GUIDE.md#which-entry-point-do-i-use).
@@ -155,7 +155,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 
 | Namespace | Contents |
 | :--- | :--- |
-| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes` |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmGeoJsonExporter`, and the optional SIGWX-only `IwxxmSigwxParser`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes` |
 | `Iwxxm.Net.Reports` | The domain model: the closed document hierarchy and every value object |
 | `Iwxxm.Net.Extensibility` | `ISchematronValidator` and `IwxxmDocumentContext`, the extension point for custom business-rule engines |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |

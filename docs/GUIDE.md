@@ -178,8 +178,11 @@ The facade constructors are `internal`, so there are exactly two ways to get a p
 | You need | Use | Example |
 | :--- | :--- | :--- |
 | Default limits and the built-in rule subset (the common case) | `IwxxmParser.Default`, or the static `Parse*` helpers, which call it | `IwxxmParser.ParseFile(path)` |
-| The same for SIGWX or GeoJSON | `IwxxmSigwxParser.Default` / `IwxxmGeoJsonExporter.Default` and their static helpers | `IwxxmSigwxParser.Parse(xml)` |
-| Custom limits, the official Schematron, your own rule engine, or no business rules | `IwxxmParserBuilder`, then `Build()` / `BuildSigwxParser()` / `BuildGeoJsonExporter()` | `new IwxxmParserBuilder().WithOptions(options).Build()` |
+| A WAFS SIGWX chart, a bulletin, or any other report | the same `IwxxmParser`; ask for the type with `ParseAs<T>` / `ParseFileAs<T>` | `IwxxmParser.ParseFileAs<Sigwx>(path)` |
+| GeoJSON from a document you already parsed | `IwxxmGeoJsonExporter.Default` and its static helper | `IwxxmGeoJsonExporter.ToGeoJson(document)` |
+| Custom limits, the official Schematron, your own rule engine, or no business rules | `IwxxmParserBuilder`, then `Build()` / `BuildGeoJsonExporter()` | `new IwxxmParserBuilder().WithOptions(options).Build()` |
+
+SIGWX needs no entry point of its own. `IwxxmParser` reads the official `iwxxm:WAFSSignificantWeatherForecast`, the compact `iwxxm:SIGWXReport` and bulletins that carry them, and `ParseAs<Sigwx>` gives the typed `Result<Sigwx>`. `IwxxmSigwxParser` is an optional narrow facade over the same mapper: it returns `Result<Sigwx>` directly (no `ParseAs` cast) and refuses any other root element before mapping with `XSD-UNEXPECTED-ROOT-ELEMENT`, bulletins included. Use it only if you want that early refusal; its builder method is `BuildSigwxParser()`.
 
 The builder offers `WithOptions`, `UseSchematronValidator` (an `ISchematronValidator` or a factory), `WithoutSchematron` and, with the Saxon package, `UseOfficialSchematron()`. Build once and reuse the result; parsers are immutable and thread-safe. `ISchematronValidator` and `IwxxmDocumentContext` (namespace `Iwxxm.Net.Extensibility`) are the only public extension points.
 
@@ -1030,7 +1033,7 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Sigwx chart = IwxxmSigwxParser.ParseFile("samples/sigwx-swh-2025-2.xml").Value;
+Sigwx chart = IwxxmParser.ParseFileAs<Sigwx>("samples/sigwx-swh-2025-2.xml").Value;
 JetStream jet = chart.JetStreams[0];
 
 Console.WriteLine($"{chart.IssuingCentre}: {chart.LowerLimit} to {chart.UpperLimit}");
@@ -1185,7 +1188,7 @@ using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Sigwx chart = IwxxmSigwxParser.ParseFile("samples/sigwx-swh-2025-2.xml").Value;
+Sigwx chart = IwxxmParser.ParseFileAs<Sigwx>("samples/sigwx-swh-2025-2.xml").Value;
 Cloud cb = chart.Clouds[0];
 
 Console.WriteLine($"distribution: {cb.Distribution}");   // Code (Notation)

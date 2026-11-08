@@ -218,14 +218,14 @@ foreach (AirmetEvolvingCondition condition in airmet.EvolvingConditions)
 
 ### WAFS significant weather (SIGWX)
 
-`IwxxmSigwxParser.ParseFile` and `IwxxmParser.ParseFileAs<Sigwx>` give the same model. The guide has worked examples for [jet streams](GUIDE.md#10-worked-example-jet-streams-sigwx) and [clouds](GUIDE.md#11-worked-example-clouds-sigwx). The nine phenomenon families:
+`IwxxmParser.ParseFileAs<Sigwx>` is the entry point: the general parser reads the official `iwxxm:WAFSSignificantWeatherForecast`, the compact `iwxxm:SIGWXReport` and bulletins that carry them (`ParseBulletin`). `IwxxmSigwxParser.ParseFile` gives the same model through an optional narrow facade: it returns `Result<Sigwx>` without the `ParseAs` cast and refuses any other root element before mapping (`XSD-UNEXPECTED-ROOT-ELEMENT`), bulletins included. The guide has worked examples for [jet streams](GUIDE.md#10-worked-example-jet-streams-sigwx) and [clouds](GUIDE.md#11-worked-example-clouds-sigwx). The nine phenomenon families:
 
 ```csharp
 using System;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-Result<Sigwx> result = IwxxmSigwxParser.ParseFile("samples/WAFS-Example.xml");
+Result<Sigwx> result = IwxxmParser.ParseFileAs<Sigwx>("samples/WAFS-Example.xml");
 
 if (result.IsFailure)
 {
@@ -466,7 +466,7 @@ qvaci: 7080 characters
 
 ## Composition root and dependency injection
 
-There are two ways to get a facade; their constructors are `internal`. For the common case use the default instances (`IwxxmParser.Default`, `IwxxmSigwxParser.Default`, `IwxxmGeoJsonExporter.Default`) or the static `Parse*` / `ToGeoJson` helpers, which are thin wrappers over them. When you need options or a different Schematron engine, `IwxxmParserBuilder` is the composition root: it selects the options and the business-rule engine, connects the built-in internal adapters and returns immutable, thread-safe facades. The Schematron engine can be replaced through the public `ISchematronValidator` in `Iwxxm.Net.Extensibility`, or switched off; the other adapters (schema validator, mappers, GeoJSON exporter) are internal.
+There are two ways to get a facade; their constructors are `internal`. For the common case use the default instances (`IwxxmParser.Default`, `IwxxmGeoJsonExporter.Default` and the optional `IwxxmSigwxParser.Default`) or the static `Parse*` / `ToGeoJson` helpers, which are thin wrappers over them. When you need options or a different Schematron engine, `IwxxmParserBuilder` is the composition root: it selects the options and the business-rule engine, connects the built-in internal adapters and returns immutable, thread-safe facades. The Schematron engine can be replaced through the public `ISchematronValidator` in `Iwxxm.Net.Extensibility`, or switched off; the other adapters (schema validator, mappers, GeoJSON exporter) are internal.
 
 A custom Schematron engine is small. This one implements the Schematron port with a rule of its own: it works on the raw bytes and reports a *warning* (the document stays valid) when a message is unusually large:
 
@@ -682,7 +682,7 @@ The library emits exactly these strings and refers to them through the constants
 | `XSD-SCHEMA-VIOLATION` | The document violates the official IWXXM / COLLECT XSD (one finding per violation, with line and position). | Fix the document at the reported position. |
 | `XSD-FATAL-ERROR` | The XSD validator stopped with a fatal schema exception. | Usually a structurally broken instance; see the message. |
 | `XSD-UNKNOWN-ROOT-ELEMENT` | The root element is not declared by the official IWXXM / COLLECT schemas. | Wrong namespace or element name. |
-| `XSD-UNEXPECTED-ROOT-ELEMENT` | The SIGWX entry point received a root element that is not a SIGWX document. | Use `IwxxmParser` for non-SIGWX reports. |
+| `XSD-UNEXPECTED-ROOT-ELEMENT` | The optional SIGWX facade (`IwxxmSigwxParser`) received a root element that is not a SIGWX document (a bulletin included). | Use `IwxxmParser`, which reads SIGWX, every other report and bulletins. |
 | `XSD-SCHEMA-SET-UNAVAILABLE` | The embedded schema set could not be compiled (retried on the next validation). | Resource pressure (for example memory); retry. |
 | `XSD-TOO-MANY-ERRORS` | More findings than `MaxValidationErrors`; only the first are reported. | Fix the first findings, then re-validate. |
 | `SCHEMA-VALIDATOR-ERROR` | A custom or built-in schema validator threw or returned nothing. | Bug in a custom `IIwxxmSchemaValidator` adapter. |
