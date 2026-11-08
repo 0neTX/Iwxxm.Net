@@ -184,7 +184,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
             }
             catch (InvalidOperationException ex)
             {
-                errors.Add(new ValidationError(SecureXml.NoRootCode, ex.Message, ErrorCategory.MalformedInput));
+                errors.Add(new ValidationError(IwxxmErrorCodes.XmlNoRootElement, ex.Message, ErrorCategory.MalformedInput));
                 return errors;
             }
 
@@ -227,7 +227,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
             if (!_useFullSuite && rootName != WafsForecastRoot)
             {
                 errors.Add(new ValidationError(
-                    code: "XSD-UNEXPECTED-ROOT-ELEMENT",
+                    code: IwxxmErrorCodes.XsdUnexpectedRootElement,
                     message: $"Root element '{{{rootName.Namespace}}}{rootName.Name}' is not a SIGWX document. Expected " +
                              $"'{{{IwxxmNamespace}}}{WafsForecastLocalName}' (official) or '{{{IwxxmNamespace}}}{LegacySigwxReportLocalName}' (non-standard extension).",
                     category: ErrorCategory.SchemaViolation,
@@ -248,7 +248,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
             if (!declared)
             {
                 errors.Add(new ValidationError(
-                    code: "XSD-UNKNOWN-ROOT-ELEMENT",
+                    code: IwxxmErrorCodes.XsdUnknownRootElement,
                     message: $"Root element '{{{rootName.Namespace}}}{rootName.Name}' is not declared by the official WMO IWXXM 2025-2 / COLLECT schemas.",
                     category: ErrorCategory.SchemaViolation,
                     severity: ValidationSeverity.Error,
@@ -307,7 +307,7 @@ namespace Iwxxm.Net.Infrastructure.Validation
                     if (args.Severity == XmlSeverityType.Error)
                     {
                         bool added = limit.TryAdd(new ValidationError(
-                            code: "XSD-SCHEMA-VIOLATION",
+                            code: IwxxmErrorCodes.XsdSchemaViolation,
                             message: args.Message ?? "XSD validation error.",
                             category: ErrorCategory.SchemaViolation,
                             severity: ValidationSeverity.Error,

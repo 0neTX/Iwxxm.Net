@@ -139,7 +139,7 @@ namespace Iwxxm.Net.Reports
             {
                 var emptyErrors = itemErrors.SelectMany(e => e.Errors).ToList();
                 emptyErrors.Add(new ValidationError(
-                    "DOMAIN-BULLETIN-EMPTY",
+                    IwxxmErrorCodes.BulletinEmpty,
                     "The MeteorologicalBulletin contains no successfully mapped report; its issue time and metadata cannot be derived.",
                     ErrorCategory.DomainMapping,
                     ValidationSeverity.Error,

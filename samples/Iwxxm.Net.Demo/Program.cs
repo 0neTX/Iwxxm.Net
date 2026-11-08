@@ -123,10 +123,11 @@ Exit codes:
 
         private static bool IsIoFailure(Result<IwxxmDocument> result)
         {
-            // The library has no public error-code constants or I/O category; the codes are documented strings.
+            // ErrorCategory.Io groups the failures where the message was never read (missing file, no permission,
+            // unreadable stream); IwxxmErrorCodes names the individual causes if a caller needs them.
             foreach (ValidationError error in result.Errors)
             {
-                if (error.Code == "FILE-NOT-FOUND" || error.Code == "ACCESS-DENIED" || error.Code == "FILE-READ-ERROR")
+                if (error.Category == ErrorCategory.Io)
                 {
                     return true;
                 }

@@ -16,10 +16,6 @@ namespace Iwxxm.Net.Infrastructure.Xml
     /// </summary>
     internal sealed class SecureXml : IDocumentParser
     {
-        internal const string MalformedCode = "XML-MALFORMED";
-        internal const string NoRootCode = "XML-NO-ROOT-ELEMENT";
-        internal const string DepthLimitCode = "XML-DEPTH-LIMIT";
-
         public static readonly SecureXml Parser = new SecureXml();
 
         /// <summary>Hardened reader settings for input documents.</summary>
@@ -70,13 +66,13 @@ namespace Iwxxm.Net.Infrastructure.Xml
             }
             catch (InvalidOperationException ex)
             {
-                return new[] { new ValidationError(NoRootCode, ex.Message, ErrorCategory.MalformedInput) };
+                return new[] { new ValidationError(IwxxmErrorCodes.XmlNoRootElement, ex.Message, ErrorCategory.MalformedInput) };
             }
         }
 
         public static ValidationError Malformed(XmlException ex) =>
             new ValidationError(
-                ex is ElementDepthLimitException ? DepthLimitCode : MalformedCode,
+                ex is ElementDepthLimitException ? IwxxmErrorCodes.XmlDepthLimit : IwxxmErrorCodes.XmlMalformed,
                 ex.Message,
                 ErrorCategory.MalformedInput,
                 ValidationSeverity.Error,

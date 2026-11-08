@@ -588,21 +588,86 @@ official rules accept the sample METAR: True
 
 `tests/Iwxxm.Net.Tests/ErrorCodeDocumentationTests.cs` fails when a code literal emitted by `src/` is missing from the tables below, or when a table row names a code that no longer exists, so this list cannot drift from the code. Where the same condition can be reached from two entry points (the SIGWX and the general parser), both report the same code (for example `STREAM-EMPTY`).
 
-### Input, files and streams (`MalformedInput`)
+### Error categories
 
-| Code | Meaning | Typical cause and remediation |
-| :--- | :--- | :--- |
-| `FILE-NOT-FOUND` | The file or its directory does not exist. | Wrong path; check the path and working directory. |
-| `ACCESS-DENIED` | Permission denied (or the path is a directory). | Fix file permissions or pass a file, not a directory. |
-| `FILE-READ-ERROR` | Sharing violation, path too long, malformed path or other I/O error. | Close the other process holding the file, shorten the path. |
-| `XML-EMPTY-STRING` | The XML string, reader or file content is null, empty or whitespace. | Nothing was read upstream; check the producer. |
-| `STREAM-EMPTY` | The input stream has zero bytes. | The upstream read returned nothing, or the stream was already consumed (rewind it). |
-| `STREAM-UNREADABLE` | The stream does not support reading. | Pass a readable stream (not a write-only one). |
-| `STREAM-READ-ERROR` | Reading the stream threw an I/O error. | Transient transport failure; retry. An `OutOfMemoryException` is never converted into this code. |
-| `XML-SIZE-LIMIT` | The input exceeds `IwxxmParserOptions.MaxDocumentBytes` (default 50 MiB = 52,428,800 bytes). | Raise the limit deliberately (mind the memory cost in [SECURITY.md](../SECURITY.md)) or reject the oversized message. |
-| `XML-DEPTH-LIMIT` | An element is nested deeper than `IwxxmParserOptions.MaxElementDepth` (default 128, root element = depth 1). The message gives the limit and the line and position of the first element over it; the check runs in the single read, before any tree is built or validated. | Real IWXXM products nest at most about 20 levels (the .NET tree validation overflows its stack at about 25,000), so this is a malformed or hostile document: reject it. Raise the limit only for a legitimate deeper document (see [SECURITY.md](../SECURITY.md)). |
-| `XML-MALFORMED` | Not well-formed XML, or a DTD was found (DTDs are always refused). | Fix the producer; do not enable DTD processing. |
-| `XML-NO-ROOT-ELEMENT` | The XML has no root element. | An empty or truncated document. |
+`ValidationError.Category` groups the codes by the stage where the problem arose. The numeric values are stable: `Io` was appended (5), the others keep their numbers.
+
+| Category | Value | Meaning | Usual reaction |
+| :--- | :---: | :--- | :--- |
+| `MalformedInput` | 0 | The input was read but is empty, over a size or depth limit, or not well-formed XML. | Reject the message: the sender's content is unusable. |
+| `SchemaViolation` | 1 | Well-formed XML that breaks the official schema (also a failing schema validator adapter). | Reject the message. |
+| `BusinessRuleViolation` | 2 | A Schematron or code-list rule failed (also a failing rule validator adapter). | Reject or quarantine. |
+| `Deserialization` | 3 | A valid document of a shape the requested entry point or mapper does not handle. | Routing error: use another entry point. |
+| `DomainMapping` | 4 | Valid XML whose content cannot become a safe domain object, or a pipeline or export adapter failed. | Log and investigate. |
+| `Io` | 5 | The input could not be read at all: missing or inaccessible file, unreadable or failing stream. The message was never seen, so the cause is the environment, not the content. | Fix the path or permissions, or retry. |
+
+`Io` is deliberately narrow. An empty stream (`STREAM-EMPTY`), an empty string (`XML-EMPTY-STRING`) and a size limit are `MalformedInput`: the read succeeded and the *content* is what is wrong.
+
+### Constants for the codes you branch on
+
+`IwxxmErrorCodes` (namespace `Iwxxm.Net`) holds the codes a caller realistically branches on as `public const string`, so a comparison cannot drift from the code and the constants work in `switch` statements:
+
+```csharp
+using System;
+using System.Linq;
+using Iwxxm.Net;
+using Iwxxm.Net.Reports;
+
+Result<IwxxmDocument> result = IwxxmParser.ParseFile("samples/does-not-exist.xml");
+
+if (result.Errors.Any(e => e.Code == IwxxmErrorCodes.FileNotFound))
+{
+    Console.WriteLine($"file missing ({result.Errors[0].Category}): check the path");
+}
+```
+```output
+file missing (Io): check the path
+```
+
+The library emits exactly these strings and refers to them through the constants only (a test fails on a second literal). The several hundred `ACL-*`, `DOMAIN-*`, `GML-*` and `GEO-*` mapping codes, the `SCHEMATRON-*` engine codes and the official rule ids are not constants: they describe document content or engine internals, may gain members, and are matched by prefix. They are listed in the tables below. A test checks that this table and the class contain the same constants with the same values.
+
+| Constant | Code | Category | Meaning |
+| :--- | :--- | :--- | :--- |
+| `IwxxmErrorCodes.FileNotFound` | `FILE-NOT-FOUND` | `Io` | The file or its directory does not exist. |
+| `IwxxmErrorCodes.AccessDenied` | `ACCESS-DENIED` | `Io` | Permission denied, or the path is a directory. |
+| `IwxxmErrorCodes.FileReadError` | `FILE-READ-ERROR` | `Io` | Sharing violation, path too long, malformed path or another I/O error on a file. |
+| `IwxxmErrorCodes.StreamUnreadable` | `STREAM-UNREADABLE` | `Io` | The stream does not support reading. |
+| `IwxxmErrorCodes.StreamReadError` | `STREAM-READ-ERROR` | `Io` | Reading the stream or text reader threw an I/O error. |
+| `IwxxmErrorCodes.StreamEmpty` | `STREAM-EMPTY` | `MalformedInput` | The stream was read and has zero bytes. |
+| `IwxxmErrorCodes.XmlEmptyString` | `XML-EMPTY-STRING` | `MalformedInput` | The XML string, reader or file content is null, empty or whitespace. |
+| `IwxxmErrorCodes.XmlSizeLimit` | `XML-SIZE-LIMIT` | `MalformedInput` | The input exceeds `MaxDocumentBytes`. |
+| `IwxxmErrorCodes.XmlDepthLimit` | `XML-DEPTH-LIMIT` | `MalformedInput` | An element is nested deeper than `MaxElementDepth`. |
+| `IwxxmErrorCodes.XmlMalformed` | `XML-MALFORMED` | `MalformedInput` | Not well-formed XML, or a DTD was found. |
+| `IwxxmErrorCodes.XmlNoRootElement` | `XML-NO-ROOT-ELEMENT` | `MalformedInput` | The XML has no root element. |
+| `IwxxmErrorCodes.XsdSchemaViolation` | `XSD-SCHEMA-VIOLATION` | `SchemaViolation` | The document violates the official XSD (one finding per violation). |
+| `IwxxmErrorCodes.XsdUnknownRootElement` | `XSD-UNKNOWN-ROOT-ELEMENT` | `SchemaViolation` | The root element is not declared by the IWXXM / COLLECT schemas. |
+| `IwxxmErrorCodes.XsdUnexpectedRootElement` | `XSD-UNEXPECTED-ROOT-ELEMENT` | `SchemaViolation` | `IwxxmSigwxParser` received a root element that is not a SIGWX document. |
+| `IwxxmErrorCodes.SchemaValidatorError` | `SCHEMA-VALIDATOR-ERROR` | `SchemaViolation` | A schema validator threw or returned nothing. |
+| `IwxxmErrorCodes.RuleValidatorError` | `RULE-VALIDATOR-ERROR` | `BusinessRuleViolation` | A business-rule validator threw or returned nothing. |
+| `IwxxmErrorCodes.NotABulletin` | `DISPATCH-NOT-A-BULLETIN` | `Deserialization` | `ProcessBulletin` received a document that is not a `collect:MeteorologicalBulletin`. |
+| `IwxxmErrorCodes.XmlUnsupportedNamespace` | `XML-UNSUPPORTED-NAMESPACE` | `Deserialization` | The root element is not in the IWXXM 2025-2 namespace. |
+| `IwxxmErrorCodes.XmlUnsupportedReport` | `XML-UNSUPPORTED-REPORT` | `Deserialization` | The IWXXM root element is not a supported 2025-2 report. |
+| `IwxxmErrorCodes.CollectNestedBulletin` | `COLLECT-NESTED-BULLETIN` | `Deserialization` | A bulletin entry is itself a bulletin (an item error). |
+| `IwxxmErrorCodes.UnexpectedReportType` | `IWXXM-UNEXPECTED-REPORT-TYPE` | `DomainMapping` | `ParseAs<T>` parsed a different document type than `T`. |
+| `IwxxmErrorCodes.MapperError` | `MAPPER-ERROR` | `DomainMapping` | A document or report mapper threw or returned nothing (for a bulletin: the item error of that entry). |
+| `IwxxmErrorCodes.BulletinEmpty` | `DOMAIN-BULLETIN-EMPTY` | `DomainMapping` | No report of the bulletin could be mapped. |
+| `IwxxmErrorCodes.GeoJsonExportError` | `GEOJSON-EXPORT-ERROR` | `DomainMapping` | The GeoJSON exporter threw or returned nothing. |
+
+### Input, files and streams (`Io`, `MalformedInput`)
+
+| Code | Category | Meaning | Typical cause and remediation |
+| :--- | :--- | :--- | :--- |
+| `FILE-NOT-FOUND` | `Io` | The file or its directory does not exist. | Wrong path; check the path and working directory. |
+| `ACCESS-DENIED` | `Io` | Permission denied (or the path is a directory). | Fix file permissions or pass a file, not a directory. |
+| `FILE-READ-ERROR` | `Io` | Sharing violation, path too long, malformed path or other I/O error. | Close the other process holding the file, shorten the path. |
+| `XML-EMPTY-STRING` | `MalformedInput` | The XML string, reader or file content is null, empty or whitespace. | Nothing was read upstream; check the producer. |
+| `STREAM-EMPTY` | `MalformedInput` | The input stream has zero bytes. | The upstream read returned nothing, or the stream was already consumed (rewind it). |
+| `STREAM-UNREADABLE` | `Io` | The stream does not support reading. | Pass a readable stream (not a write-only one). |
+| `STREAM-READ-ERROR` | `Io` | Reading the stream threw an I/O error. | Transient transport failure; retry. An `OutOfMemoryException` is never converted into this code. |
+| `XML-SIZE-LIMIT` | `MalformedInput` | The input exceeds `IwxxmParserOptions.MaxDocumentBytes` (default 50 MiB = 52,428,800 bytes). | Raise the limit deliberately (mind the memory cost in [SECURITY.md](../SECURITY.md)) or reject the oversized message. |
+| `XML-DEPTH-LIMIT` | `MalformedInput` | An element is nested deeper than `IwxxmParserOptions.MaxElementDepth` (default 128, root element = depth 1). The message gives the limit and the line and position of the first element over it; the check runs in the single read, before any tree is built or validated. | Real IWXXM products nest at most about 20 levels (the .NET tree validation overflows its stack at about 25,000), so this is a malformed or hostile document: reject it. Raise the limit only for a legitimate deeper document (see [SECURITY.md](../SECURITY.md)). |
+| `XML-MALFORMED` | `MalformedInput` | Not well-formed XML, or a DTD was found (DTDs are always refused). | Fix the producer; do not enable DTD processing. |
+| `XML-NO-ROOT-ELEMENT` | `MalformedInput` | The XML has no root element. | An empty or truncated document. |
 
 ### Schema validation (`SchemaViolation`)
 
@@ -813,7 +878,7 @@ Consumers never need a layer name in a `using` directive:
 
 | Namespace | Contents |
 | :--- | :--- |
-| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `ValidationSeverity`, and the `UseOfficialSchematron()` extension of the optional Saxon package |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes`, `ValidationSeverity`, and the `UseOfficialSchematron()` extension of the optional Saxon package |
 | `Iwxxm.Net.Reports` | Domain model: the closed hierarchy (`IwxxmDocument`, `IwxxmReport`, `MeteorologicalBulletin`, `IIwxxmDocumentVisitor<TResult>`, `AerodromeObservation`, `Metar`, `Speci`, `Taf`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, `Sigwx`) and the value objects |
 | `Iwxxm.Net.Extensibility` | The `ISchematronValidator` port for custom business-rule engines and `IwxxmDocumentContext` |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
@@ -827,7 +892,7 @@ Folders express the hexagonal layers; IL-level tests (`HexagonalArchitectureTest
 ```text
 src/Iwxxm.Net/
 ├── Domain/                     # Depends on nothing (no System.Xml, System.IO, Application or Infrastructure)
-│   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, ValidationSeverity      (ns Iwxxm.Net)
+│   ├── Common/                 # Result<T>, ValidationError, ErrorCategory, IwxxmErrorCodes, ValidationSeverity (ns Iwxxm.Net)
 │   ├── ValueObjects/           # GeoCoordinate, GeoPolygon, VerticalLimit, SurfaceWind, ..., CodeLists/ (ns Iwxxm.Net.Reports)
 │   └── Aggregates/             # IwxxmDocument, IwxxmReport, IIwxxmDocumentVisitor<TResult>, aggregates (ns Iwxxm.Net.Reports)
 ├── Application/                # Depends only on Domain (no System.Xml)

@@ -14,7 +14,7 @@ New here? Start with the **[Getting started guide](docs/GUIDE.md)**: a progressi
 
 - **Every IWXXM 2025-2 product**, plus `collect:MeteorologicalBulletin` envelopes with partial results (one bad report does not discard the rest).
 - **Honest data**: nothing is invented. A missing value is `null`; speeds and lengths keep their reported unit (`Speed`, `Length`); vertical limits keep unit and reference (`VerticalLimit`: FL, MSL, SFC); WMO code lists become typed `CodeListValue<T>` that never drop an unknown code.
-- **Failures are values**: every operation returns a `Result<T>` with structured, stable error codes and warnings; only argument mistakes throw.
+- **Failures are values**: every operation returns a `Result<T>` with structured, stable error codes (`IwxxmErrorCodes` for the ones you branch on) and warnings; only argument mistakes throw.
 - **Safe by default**: no DTDs, no external resolution, size and character limits, no network or file-system access at runtime. All schemas, rules and code lists are embedded.
 - **Native RFC 7946 GeoJSON export**, with circles, polygon holes, antimeridian handling and measures written as reported.
 - **Hexagonal architecture** with a public Schematron port (`Iwxxm.Net.Extensibility`) to replace the business-rule engine (the other adapters are internal); the layer rules are enforced by tests.
@@ -155,7 +155,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 
 | Namespace | Contents |
 | :--- | :--- |
-| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory` |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes` |
 | `Iwxxm.Net.Reports` | The domain model: the closed document hierarchy and every value object |
 | `Iwxxm.Net.Extensibility` | `ISchematronValidator` and `IwxxmDocumentContext`, the extension point for custom business-rule engines |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |

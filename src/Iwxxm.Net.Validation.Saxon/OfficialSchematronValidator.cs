@@ -34,7 +34,7 @@ namespace Iwxxm.Net.Validation.Saxon
     public sealed class OfficialSchematronValidator : ISchematronValidator
     {
         /// <summary>Error code reported when the input cannot be parsed.</summary>
-        public const string MalformedInputCode = "XML-MALFORMED";
+        public const string MalformedInputCode = IwxxmErrorCodes.XmlMalformed;
 
         /// <summary>Error code reported when the official Schematron cannot be compiled.</summary>
         public const string UnavailableCode = "SCHEMATRON-UNAVAILABLE";

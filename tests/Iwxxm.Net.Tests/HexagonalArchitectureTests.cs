@@ -298,6 +298,7 @@ namespace Iwxxm.Net.Tests
             ["Result`1"] = Layer.Domain,
             ["ValidationError"] = Layer.Domain,
             ["ErrorCategory"] = Layer.Domain,
+            ["IwxxmErrorCodes"] = Layer.Domain,
             ["ValidationSeverity"] = Layer.Domain,
 
             // Application (Application/Options)

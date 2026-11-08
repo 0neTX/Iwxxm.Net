@@ -197,7 +197,7 @@ Result<IwxxmDocument>[] attempts =
     IwxxmParser.Parse("<not-xml"),                        // not well-formed
     IwxxmParser.Parse("<foo xmlns='urn:example'/>"),      // well-formed, but not an IWXXM root
     IwxxmParser.Parse("   "),                             // nothing to parse
-    IwxxmParser.ParseFile("samples/does-not-exist.xml"),  // I/O problem
+    IwxxmParser.ParseFile("samples/does-not-exist.xml"),  // I/O problem (never read)
 };
 
 foreach (Result<IwxxmDocument> attempt in attempts)
@@ -217,7 +217,7 @@ Console.WriteLine(summary);
 MalformedInput   XML-MALFORMED
 SchemaViolation  XSD-UNKNOWN-ROOT-ELEMENT
 MalformedInput   XML-EMPTY-STRING
-MalformedInput   FILE-NOT-FOUND
+Io               FILE-NOT-FOUND
 parsed a Metar
 ```
 
@@ -563,11 +563,14 @@ MalformedInput: XML-MALFORMED
 
 | `ErrorCategory` | Typical codes | What happened |
 | :--- | :--- | :--- |
-| `MalformedInput` | `FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, `XML-EMPTY-STRING`, `XML-SIZE-LIMIT`, `XML-DEPTH-LIMIT`, `XML-MALFORMED`, `STREAM-EMPTY`, `STREAM-UNREADABLE`, `STREAM-READ-ERROR` | The bytes never became a usable XML document. |
+| `Io` | `FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, `STREAM-UNREADABLE`, `STREAM-READ-ERROR` | The input could not be read at all (missing file, no permission, failing stream). The message was never seen; a retry may succeed. |
+| `MalformedInput` | `XML-EMPTY-STRING`, `STREAM-EMPTY`, `XML-SIZE-LIMIT`, `XML-DEPTH-LIMIT`, `XML-MALFORMED`, `XML-NO-ROOT-ELEMENT` | The bytes were read but never became a usable XML document. |
 | `SchemaViolation` | `XSD-UNKNOWN-ROOT-ELEMENT`, `XSD-*`, `XSD-TOO-MANY-ERRORS` | Well-formed XML that breaks the official schema. |
 | `BusinessRuleViolation` | official rule ids such as `METAR_SPECI.MeteorologicalAerodromeObservation-1`, `SCHEMATRON-UNAVAILABLE`, `SCHEMATRON-REPORT-SIZE-LIMIT` | A Schematron or code-list rule failed. |
 | `Deserialization` | `DISPATCH-NOT-A-BULLETIN`, `XML-UNSUPPORTED-ROOT`, `XML-UNSUPPORTED-REPORT`, `XML-DESERIALIZATION-ERROR`, `COLLECT-NESTED-BULLETIN` | Valid document, but of a shape the requested entry point or mapper does not handle. |
 | `DomainMapping` | `ACL-*`, `DOMAIN-*`, `IWXXM-UNEXPECTED-REPORT-TYPE`, `GEOJSON-EXPORT-ERROR`, `MAPPER-ERROR` | Valid XML that cannot become a safe domain object (a missing mandatory time, a speed with an unsupported unit, a negative visibility...). |
+
+In code, compare against the constants of `IwxxmErrorCodes` instead of retyping the strings (`error.Code == IwxxmErrorCodes.FileNotFound`); they are `const`, so they also work in `switch` statements. The class lists the codes a caller realistically branches on; the several hundred `ACL-*` and `DOMAIN-*` codes describe document content and are matched by prefix. [The reference](REFERENCE.md#error-codes) lists everything.
 
 A handler that reacts to the category is usually enough:
 
@@ -583,6 +586,7 @@ foreach (string source in new[] { "<broken", "<foo xmlns='urn:example'/>" })
     {
         string advice = error.Category switch
         {
+            ErrorCategory.Io => "retry or fix the environment: the input could not be read",
             ErrorCategory.MalformedInput => "reject the message: the sender sent garbage",
             ErrorCategory.SchemaViolation => "reject the message: it is not valid IWXXM 2025-2",
             ErrorCategory.BusinessRuleViolation => "reject or quarantine: an official rule failed",

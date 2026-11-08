@@ -24,6 +24,7 @@ namespace Iwxxm.Net.Tests
 
             Assert.True(result.IsFailure);
             Assert.Equal("FILE-NOT-FOUND", Assert.Single(result.Errors).Code);
+            Assert.Equal(ErrorCategory.Io, result.Errors[0].Category);
         }
 
         [Fact]
@@ -47,7 +48,7 @@ namespace Iwxxm.Net.Tests
 
                 Assert.True(result.IsFailure);
                 Assert.Equal("ACCESS-DENIED", Assert.Single(result.Errors).Code);
-                Assert.Equal(ErrorCategory.MalformedInput, result.Errors[0].Category);
+                Assert.Equal(ErrorCategory.Io, result.Errors[0].Category);
             }
             finally
             {
@@ -70,6 +71,9 @@ namespace Iwxxm.Net.Tests
                     Assert.Equal("FILE-READ-ERROR", Assert.Single(suite.Errors).Code);
                     Assert.Equal("FILE-READ-ERROR", Assert.Single(sigwx.Errors).Code);
                     Assert.Equal("FILE-READ-ERROR", Assert.Single(geoJson.Errors).Code);
+                    Assert.Equal(ErrorCategory.Io, suite.Errors[0].Category);
+                    Assert.Equal(ErrorCategory.Io, sigwx.Errors[0].Category);
+                    Assert.Equal(ErrorCategory.Io, geoJson.Errors[0].Category);
                 }
             }
             finally
@@ -85,6 +89,7 @@ namespace Iwxxm.Net.Tests
 
             Assert.True(result.IsFailure);
             Assert.Equal("FILE-READ-ERROR", Assert.Single(result.Errors).Code);
+            Assert.Equal(ErrorCategory.Io, result.Errors[0].Category);
         }
 
         [Fact]

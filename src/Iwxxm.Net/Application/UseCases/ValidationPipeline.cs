@@ -32,7 +32,7 @@ namespace Iwxxm.Net.Application.UseCases
             IwxxmDocumentContext document = IwxxmDocumentContext.FromBuffer(payload, options);
 
             // Step 0: parse once (well-formedness, DTD prohibition and character quotas), shared by every adapter.
-            IReadOnlyList<ValidationError> parseErrors = PipelineGuard.Validate(() => parser.Parse(document), "XML-MALFORMED", ErrorCategory.MalformedInput, "document parser");
+            IReadOnlyList<ValidationError> parseErrors = PipelineGuard.Validate(() => parser.Parse(document), IwxxmErrorCodes.XmlMalformed, ErrorCategory.MalformedInput, "document parser");
             if (parseErrors.Count > 0)
             {
                 return Result<T>.Failure(parseErrors);
@@ -40,7 +40,7 @@ namespace Iwxxm.Net.Application.UseCases
 
             // Step 1: structural validation.
             IReadOnlyList<ValidationError> schemaFindings =
-                PipelineGuard.Validate(() => schemaValidator.Validate(document), PipelineGuard.SchemaValidatorErrorCode, ErrorCategory.SchemaViolation, "schema validator");
+                PipelineGuard.Validate(() => schemaValidator.Validate(document), IwxxmErrorCodes.SchemaValidatorError, ErrorCategory.SchemaViolation, "schema validator");
 
             if (ContainsError(schemaFindings))
             {
@@ -51,7 +51,7 @@ namespace Iwxxm.Net.Application.UseCases
 
             // Step 2: business-rule and code-list validation.
             IReadOnlyList<ValidationError> ruleFindings =
-                PipelineGuard.Validate(() => schematronValidator.Validate(document), PipelineGuard.RuleValidatorErrorCode, ErrorCategory.BusinessRuleViolation, "business-rule validator");
+                PipelineGuard.Validate(() => schematronValidator.Validate(document), IwxxmErrorCodes.RuleValidatorError, ErrorCategory.BusinessRuleViolation, "business-rule validator");
 
             if (ContainsError(ruleFindings))
             {

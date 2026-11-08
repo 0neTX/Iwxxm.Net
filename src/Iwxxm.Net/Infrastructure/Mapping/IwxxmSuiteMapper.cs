@@ -62,7 +62,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
             catch (InvalidOperationException ex)
             {
-                return Result<IwxxmDocument>.Failure(SecureXml.NoRootCode, ex.Message, ErrorCategory.MalformedInput);
+                return Result<IwxxmDocument>.Failure(IwxxmErrorCodes.XmlNoRootElement, ex.Message, ErrorCategory.MalformedInput);
             }
 
             // Delegate SIGWX/WAFS directly to the dedicated SIGWX mapper (transport model + ACL)
@@ -88,7 +88,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (root.Name == BulletinName)
             {
                 return Result<IwxxmReport>.Failure(
-                    "COLLECT-NESTED-BULLETIN",
+                    IwxxmErrorCodes.CollectNestedBulletin,
                     "A collect:MeteorologicalBulletin cannot contain another collect:MeteorologicalBulletin; its entries must be IWXXM reports.",
                     ErrorCategory.Deserialization,
                     XmlValueReader.GetGmlId(root));
@@ -97,7 +97,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             if (root.Name.Namespace != IwxxmNs)
             {
                 return Result<IwxxmReport>.Failure(
-                    "XML-UNSUPPORTED-NAMESPACE",
+                    IwxxmErrorCodes.XmlUnsupportedNamespace,
                     $"Unsupported root namespace '{root.Name.NamespaceName}' on element '{root.Name.LocalName}'.",
                     ErrorCategory.Deserialization);
             }
@@ -114,7 +114,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
             }
 
             return Result<IwxxmReport>.Failure(
-                "XML-UNSUPPORTED-REPORT",
+                IwxxmErrorCodes.XmlUnsupportedReport,
                 $"Unsupported IWXXM 2025-2 root element '{root.Name.LocalName}'.",
                 ErrorCategory.Deserialization);
         }

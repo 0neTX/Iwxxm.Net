@@ -15,15 +15,6 @@ namespace Iwxxm.Net.Application.UseCases
     {
         private const int ChunkSize = 8192;
 
-        /// <summary>The stream has zero bytes (both use cases report the same code).</summary>
-        internal const string EmptyStreamCode = "STREAM-EMPTY";
-
-        /// <summary>The stream does not support reading.</summary>
-        internal const string UnreadableStreamCode = "STREAM-UNREADABLE";
-
-        /// <summary>Reading the stream threw (I/O failure).</summary>
-        internal const string StreamReadErrorCode = "STREAM-READ-ERROR";
-
         /// <summary>
         /// Buffers <paramref name="input"/> into a byte array or returns the failure describing why it could not.
         /// </summary>
@@ -39,15 +30,15 @@ namespace Iwxxm.Net.Application.UseCases
             if (!input.CanRead)
             {
                 return Result<byte[]>.Failure(
-                    UnreadableStreamCode,
+                    IwxxmErrorCodes.StreamUnreadable,
                     "The input XML stream is not readable.",
-                    ErrorCategory.MalformedInput);
+                    ErrorCategory.Io);
             }
 
             if (input.CanSeek && (input.Length - input.Position) > options.MaxDocumentBytes)
             {
                 return Result<byte[]>.Failure(
-                    SharedErrorCodes.XmlSizeLimit,
+                    IwxxmErrorCodes.XmlSizeLimit,
                     $"The input XML stream length ({input.Length - input.Position} bytes) exceeds the maximum allowed limit of {options.MaxDocumentBytes} bytes.",
                     ErrorCategory.MalformedInput);
             }
@@ -66,7 +57,7 @@ namespace Iwxxm.Net.Application.UseCases
                         if (totalBytesRead > options.MaxDocumentBytes)
                         {
                             return Result<byte[]>.Failure(
-                                SharedErrorCodes.XmlSizeLimit,
+                                IwxxmErrorCodes.XmlSizeLimit,
                                 $"The input XML stream exceeds the maximum allowed limit of {options.MaxDocumentBytes} bytes.",
                                 ErrorCategory.MalformedInput);
                         }
@@ -80,15 +71,15 @@ namespace Iwxxm.Net.Application.UseCases
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
                 return Result<byte[]>.Failure(
-                    StreamReadErrorCode,
+                    IwxxmErrorCodes.StreamReadError,
                     $"Failed to read the input XML stream: {ex.Message}",
-                    ErrorCategory.MalformedInput);
+                    ErrorCategory.Io);
             }
 
             if (payload.Length == 0)
             {
                 return Result<byte[]>.Failure(
-                    EmptyStreamCode,
+                    IwxxmErrorCodes.StreamEmpty,
                     "The input XML stream is empty (0 bytes).",
                     ErrorCategory.MalformedInput);
             }
@@ -134,9 +125,9 @@ namespace Iwxxm.Net.Application.UseCases
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
                 return Result<byte[]>.Failure(
-                    StreamReadErrorCode,
+                    IwxxmErrorCodes.StreamReadError,
                     $"Failed to read the input XML text: {ex.Message}",
-                    ErrorCategory.MalformedInput);
+                    ErrorCategory.Io);
             }
 
             string normalized = DeclareUtf8(text.ToString());
@@ -188,7 +179,7 @@ namespace Iwxxm.Net.Application.UseCases
 
         private static Result<byte[]> SizeLimitExceeded(IwxxmParserOptions options) =>
             Result<byte[]>.Failure(
-                SharedErrorCodes.XmlSizeLimit,
+                IwxxmErrorCodes.XmlSizeLimit,
                 $"The input XML text exceeds the maximum allowed limit of {options.MaxDocumentBytes} bytes (UTF-8).",
                 ErrorCategory.MalformedInput);
     }

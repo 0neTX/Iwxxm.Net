@@ -11,9 +11,6 @@ namespace Iwxxm.Net.Application.UseCases
     /// </summary>
     internal static class PipelineGuard
     {
-        internal const string SchemaValidatorErrorCode = "SCHEMA-VALIDATOR-ERROR";
-        internal const string RuleValidatorErrorCode = "RULE-VALIDATOR-ERROR";
-
         public static IReadOnlyList<ValidationError> Validate(
             Func<IReadOnlyList<ValidationError>> validate,
             string errorCode,
@@ -35,11 +32,11 @@ namespace Iwxxm.Net.Application.UseCases
         {
             try
             {
-                return map() ?? Result<T>.Failure(Failure(SharedErrorCodes.MapperError, ErrorCategory.DomainMapping, "The document mapper returned no result."));
+                return map() ?? Result<T>.Failure(Failure(IwxxmErrorCodes.MapperError, ErrorCategory.DomainMapping, "The document mapper returned no result."));
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                return Result<T>.Failure(Failure(SharedErrorCodes.MapperError, ErrorCategory.DomainMapping, $"The document mapper failed: {ex.Message}"));
+                return Result<T>.Failure(Failure(IwxxmErrorCodes.MapperError, ErrorCategory.DomainMapping, $"The document mapper failed: {ex.Message}"));
             }
         }
 

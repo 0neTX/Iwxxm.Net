@@ -12,7 +12,7 @@ It is a **sample**, not part of the product: it is not in `Iwxxm.Net.slnx`, the 
 | `Result<T>`: errors and warnings (code, severity, category, location, line) are always printed | `Program.cs`, `ConsoleReport.cs` |
 | The closed document hierarchy through `IIwxxmDocumentVisitor<TResult>` (adding a document type to the library breaks the build here) | `DocumentSummaryVisitor.cs` |
 | Value objects: `Speed`/`Length` with `Amount` and unit, `VerticalLimit`, `CodeListValue<T>`, `GeoSurface.Match` (polygon or circle) | `FactSheet.cs` |
-| `IwxxmGeoJsonExporter.ToGeoJson` on an already parsed document | `Program.cs` |
+| `IwxxmGeoJsonExporter.ToGeoJson` on an already parsed document; `ErrorCategory.Io` to tell an unreadable input from a bad message | `Program.cs` |
 
 Values the message does not carry are shown as `-`; nothing is defaulted.
 
@@ -82,7 +82,7 @@ Iwxxm.Net.Demo bulletin.xml --no-schematron
 | 2 | Usage error (unknown option, missing or extra input, GeoJSON target equal to the input) |
 | 3 | I/O error (input missing or unreadable, output not writable) |
 
-Bad input never throws: the library returns a failed `Result<T>`, and the demo maps its `FILE-NOT-FOUND`, `ACCESS-DENIED` and `FILE-READ-ERROR` codes to exit code 3.
+Bad input never throws: the library returns a failed `Result<T>`, and the demo maps every `ErrorCategory.Io` error (`FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, ...) to exit code 3.
 
 ## Sample output
 

@@ -29,6 +29,11 @@ namespace Iwxxm.Net.Tests
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
 
+        private sealed class ThrowingTextReader : TextReader
+        {
+            public override int Read(char[] buffer, int index, int count) => throw new IOException("network");
+        }
+
         [Fact]
         public void EmptyStream_IsStreamEmpty_ForBothFacades()
         {
@@ -37,17 +42,37 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
+        public void EmptyStream_IsMalformedInput_BecauseTheReadSucceededAndTheMessageIsEmpty()
+        {
+            Assert.Equal(ErrorCategory.MalformedInput, IwxxmParser.Default.Process(new MemoryStream()).Errors[0].Category);
+            Assert.Equal(ErrorCategory.MalformedInput, IwxxmParser.Default.Process(" ").Errors[0].Category);
+        }
+
+        [Fact]
         public void UnreadableStream_IsStreamUnreadable_ForBothFacades()
         {
             Assert.Equal("STREAM-UNREADABLE", Assert.Single(IwxxmParser.Default.Process(new WriteOnlyStream()).Errors).Code);
             Assert.Equal("STREAM-UNREADABLE", Assert.Single(IwxxmSigwxParser.Default.Process(new WriteOnlyStream()).Errors).Code);
+            Assert.Equal(ErrorCategory.Io, IwxxmParser.Default.Process(new WriteOnlyStream()).Errors[0].Category);
+            Assert.Equal(ErrorCategory.Io, IwxxmSigwxParser.Default.Process(new WriteOnlyStream()).Errors[0].Category);
         }
 
         [Fact]
         public void IoFailure_IsStreamReadError()
         {
-            Assert.Equal("STREAM-READ-ERROR",
-                Assert.Single(IwxxmParser.Default.Process(new ThrowingStream(new IOException("disk"))).Errors).Code);
+            ValidationError error = Assert.Single(IwxxmParser.Default.Process(new ThrowingStream(new IOException("disk"))).Errors);
+
+            Assert.Equal("STREAM-READ-ERROR", error.Code);
+            Assert.Equal(ErrorCategory.Io, error.Category);
+        }
+
+        [Fact]
+        public void IoFailure_WhileReadingText_IsStreamReadError_WithTheIoCategory()
+        {
+            ValidationError error = Assert.Single(IwxxmParser.Default.Process(new ThrowingTextReader()).Errors);
+
+            Assert.Equal("STREAM-READ-ERROR", error.Code);
+            Assert.Equal(ErrorCategory.Io, error.Category);
         }
 
         [Fact]

@@ -5,7 +5,8 @@ namespace Iwxxm.Net
     /// <summary>
     /// Identifies the technology-agnostic processing stage where a validation or processing error originated.
     /// The machine-readable contract of an error is its <see cref="ValidationError.Code"/> (for example
-    /// <c>XSD-SCHEMA-VIOLATION</c> or an official Schematron rule identifier); categories only group codes.
+    /// <c>XSD-SCHEMA-VIOLATION</c> or an official Schematron rule identifier, see <see cref="IwxxmErrorCodes"/>); categories
+    /// only group codes.
     /// </summary>
     /// <remarks>
     /// Renamed in the Unreleased version (numeric values unchanged): <c>XmlWellFormedness</c> is now
@@ -14,7 +15,7 @@ namespace Iwxxm.Net
     /// </remarks>
     public enum ErrorCategory
     {
-        /// <summary>The input could not be read or is not a well-formed document.</summary>
+        /// <summary>The input is empty, over a size or depth limit, or not a well-formed document.</summary>
         MalformedInput = 0,
 
         /// <summary>The document violates the structural schema of the format.</summary>
@@ -27,6 +28,13 @@ namespace Iwxxm.Net
         Deserialization = 3,
 
         /// <summary>The decoded content could not be mapped onto the domain model.</summary>
-        DomainMapping = 4
+        DomainMapping = 4,
+
+        /// <summary>
+        /// The input could not be read at all: the file is missing or inaccessible, or the stream or reader failed. The
+        /// message was never seen, so the cause lies with the environment (path, permissions, transport), not with the content;
+        /// a retry may succeed.
+        /// </summary>
+        Io = 5
     }
 }

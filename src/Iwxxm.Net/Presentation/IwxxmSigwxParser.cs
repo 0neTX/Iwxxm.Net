@@ -63,7 +63,7 @@ namespace Iwxxm.Net
             if (xmlText == null)
                 throw new ArgumentNullException(nameof(xmlText));
 
-            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: SharedErrorCodes.XmlEmptyString));
+            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: IwxxmErrorCodes.XmlEmptyString));
         }
 
         /// <summary>

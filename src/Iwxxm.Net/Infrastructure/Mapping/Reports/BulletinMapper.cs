@@ -56,7 +56,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
 
         private static Result<IwxxmReport> Fail(int index, string? itemId, string detail) =>
             Result<IwxxmReport>.Failure(
-                SharedErrorCodes.MapperError,
+                IwxxmErrorCodes.MapperError,
                 "The report of entry #" + index + (itemId == null ? string.Empty : " ('" + itemId + "')") + " could not be mapped. " + detail,
                 ErrorCategory.DomainMapping,
                 itemId);

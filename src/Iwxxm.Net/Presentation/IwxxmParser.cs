@@ -23,7 +23,8 @@ namespace Iwxxm.Net
     /// <para>The static <c>Parse*</c> members are convenience wrappers over <see cref="Default"/>, an instance built with
     /// the default adapters and <see cref="IwxxmParserOptions.Default"/>.</para>
     /// <para><b>Error contract.</b> Every member returning <see cref="Result{T}"/> reports I/O and adapter failures as
-    /// typed errors and never throws for them: <c>FILE-NOT-FOUND</c> (missing file or directory), <c>ACCESS-DENIED</c>
+    /// typed errors and never throws for them (the stable codes are the constants of <see cref="IwxxmErrorCodes"/>; a file
+    /// or stream that cannot be read has <see cref="ErrorCategory.Io"/>): <c>FILE-NOT-FOUND</c> (missing file or directory), <c>ACCESS-DENIED</c>
     /// (permission denied, or the path is a directory), <c>FILE-READ-ERROR</c> (sharing violation, path too long, malformed
     /// path, other I/O errors), <c>SCHEMA-VALIDATOR-ERROR</c>, <c>RULE-VALIDATOR-ERROR</c>, <c>MAPPER-ERROR</c> and
     /// <c>GEOJSON-EXPORT-ERROR</c> (an adapter threw or returned nothing). Only argument validation throws:
@@ -86,7 +87,7 @@ namespace Iwxxm.Net
             if (xmlText == null)
                 throw new ArgumentNullException(nameof(xmlText));
 
-            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: SharedErrorCodes.XmlEmptyString));
+            return ProcessBuffered(BoundedDocumentBuffer.ReadText(xmlText, _options, emptyCode: IwxxmErrorCodes.XmlEmptyString));
         }
 
         /// <summary>Validates and unwraps a bulletin from already-decoded XML text.</summary>
@@ -211,7 +212,7 @@ namespace Iwxxm.Net
             }
 
             return Result<MeteorologicalBulletin>.Failure(
-                "DISPATCH-NOT-A-BULLETIN",
+                IwxxmErrorCodes.NotABulletin,
                 $"Expected a 'collect:MeteorologicalBulletin' document, but parsed '{dispatchResult.Value.ReportType}' ('{dispatchResult.Value.Id}').",
                 ErrorCategory.Deserialization,
                 dispatchResult.Value.Id);
@@ -228,7 +229,7 @@ namespace Iwxxm.Net
                 if (json == null)
                 {
                     return Result<string>.Failure(
-                        SharedErrorCodes.GeoJsonExportError,
+                        IwxxmErrorCodes.GeoJsonExportError,
                         "The GeoJSON exporter returned no document.",
                         ErrorCategory.DomainMapping,
                         result.Value.Id);
@@ -239,7 +240,7 @@ namespace Iwxxm.Net
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
                 return Result<string>.Failure(
-                    SharedErrorCodes.GeoJsonExportError,
+                    IwxxmErrorCodes.GeoJsonExportError,
                     $"The GeoJSON export failed: {ex.Message}",
                     ErrorCategory.DomainMapping,
                     result.Value.Id);
@@ -251,7 +252,7 @@ namespace Iwxxm.Net
             if (string.IsNullOrWhiteSpace(xmlContent))
             {
                 return Result<T>.Failure(
-                    SharedErrorCodes.XmlEmptyString,
+                    IwxxmErrorCodes.XmlEmptyString,
                     "The provided XML string is null or empty.",
                     ErrorCategory.MalformedInput);
             }
@@ -274,17 +275,17 @@ namespace Iwxxm.Net
             }
             catch (Exception ex) when (ex is FileNotFoundException || ex is DirectoryNotFoundException)
             {
-                return FileFailure<T>("FILE-NOT-FOUND", $"The specified {description} does not exist: '{filePath}'.", filePath);
+                return FileFailure<T>(IwxxmErrorCodes.FileNotFound, $"The specified {description} does not exist: '{filePath}'.", filePath);
             }
             catch (UnauthorizedAccessException ex)
             {
-                return FileFailure<T>("ACCESS-DENIED", $"Access to the specified {description} '{filePath}' is denied: {ex.Message}", filePath);
+                return FileFailure<T>(IwxxmErrorCodes.AccessDenied, $"Access to the specified {description} '{filePath}' is denied: {ex.Message}", filePath);
             }
             catch (Exception ex) when (ex is IOException || ex is NotSupportedException || ex is ArgumentException || ex is System.Security.SecurityException)
             {
                 // IOException covers PathTooLongException and sharing violations; ArgumentException / NotSupportedException
                 // cover malformed paths (the null / whitespace check above is the only argument validation that throws).
-                return FileFailure<T>("FILE-READ-ERROR", $"The specified {description} '{filePath}' cannot be opened: {ex.Message}", filePath);
+                return FileFailure<T>(IwxxmErrorCodes.FileReadError, $"The specified {description} '{filePath}' cannot be opened: {ex.Message}", filePath);
             }
 
             using (fileStream)
@@ -294,7 +295,7 @@ namespace Iwxxm.Net
         }
 
         private static Result<T> FileFailure<T>(string code, string message, string filePath) =>
-            Result<T>.Failure(new ValidationError(code, message, ErrorCategory.MalformedInput, ValidationSeverity.Error, filePath));
+            Result<T>.Failure(new ValidationError(code, message, ErrorCategory.Io, ValidationSeverity.Error, filePath));
 
         private static Result<TDocument> CastReportResult<TDocument>(Result<IwxxmDocument> result)
             where TDocument : IwxxmDocument
@@ -305,7 +306,7 @@ namespace Iwxxm.Net
             if (!(result.Value is TDocument typed))
             {
                 return Result<TDocument>.Failure(
-                    "IWXXM-UNEXPECTED-REPORT-TYPE",
+                    IwxxmErrorCodes.UnexpectedReportType,
                     $"Expected report aggregate of type '{typeof(TDocument).Name}', but parsed '{result.Value.GetType().Name}' (ReportType: {result.Value.ReportType}).",
                     ErrorCategory.DomainMapping);
             }
