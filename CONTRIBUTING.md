@@ -131,6 +131,20 @@ Keep each file to one responsibility (as a guide, under about 300 lines).
 
 ---
 
+## Scale Tests
+
+[`ScaleTests`](tests/Iwxxm.Net.Tests/Scale/ScaleTests.cs) look for super-linear time and memory in the pipeline, because the library bounds the document size (50 MiB) and the element depth (128) but not the time or the number of vertices. Each scenario scales a real WMO example by templating (a polygon with N vertices, a ring that crosses the antimeridian many times, polar caps, a bulletin of N reports), measures the median time and the thread's allocated bytes (not on net48) at four growing sizes after a warm-up, and asserts that the cost of the largest input stays below the quadratic cost (about 10x time and 6x allocations for a 4x larger input). No absolute timing is asserted; the table of each scenario and its log-log exponent are written to the test output (`--logger "console;verbosity=detailed"`). The tests share one non-parallel collection, carry `[Trait("Category", "Scale")]` and take about 20 seconds on net10.0:
+
+```bash
+podman build --target build -t iwxxm-net-build .
+podman run --rm iwxxm-net-build dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj -c Release --no-build \
+  --filter "Category=Scale" --logger "console;verbosity=detailed"
+```
+
+A scenario that is skipped documents a measured finding (see `TECHNICAL_DEBT.md`); remove its `Skip` to reproduce it.
+
+---
+
 ## Golden-Master (Characterization) Tests
 
 [`GoldenMasterTests`](tests/Iwxxm.Net.Tests/GoldenMaster/GoldenMasterTests.cs) compare, for every official example in `Samples/wmo-examples` and both SIGWX samples, three outputs against committed files in `tests/Iwxxm.Net.Tests/Golden/{suite,sigwx}/`:
