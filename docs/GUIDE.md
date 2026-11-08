@@ -648,7 +648,7 @@ The domain is made of small immutable values. They share three habits: they keep
 
 ### Speed and Length: why units are not in property names
 
-A wind speed in a METAR may be `m/s` or `[kn_i]` depending on the country. If the property were called `WindSpeedKnots`, the library would have to convert silently (and lose what was reported). Instead `Speed` and `Length` keep value and unit together, and *you* choose when to convert:
+A wind speed in a METAR may be `m/s` or `[kn_i]` depending on the country. If the property were called `WindSpeedKnots`, the library would have to convert silently (and lose what was reported). Instead `Speed` and `Length` keep the amount and the unit together (`Amount` and `Unit`; the property is not called `Value`, so that `Speed?.Value.Amount` stays readable), and *you* choose when to convert:
 
 ```csharp
 using System;
@@ -656,7 +656,7 @@ using Iwxxm.Net.Reports;
 
 var wind = new Speed(10, SpeedUnit.Knots);
 Console.WriteLine($"{wind} = {wind.ToMetersPerSecond():F2} m/s = {wind.ToKilometersPerHour():F1} km/h");
-Console.WriteLine($"Unit as reported: {wind.Unit}, UCUM code {wind.UnitOfMeasure}");
+Console.WriteLine($"Amount as reported: {wind.Amount} {wind.Unit}, UCUM code {wind.UnitOfMeasure}");
 
 // Equality is about what was reported, not about physics.
 var sameWindInMetres = new Speed(wind.ToMetersPerSecond(), SpeedUnit.MetersPerSecond);
@@ -669,7 +669,7 @@ Console.WriteLine($"1 NM = {new Length(1, LengthUnit.NauticalMiles).ToMeters()} 
 ```
 ```output
 10 [kn_i] = 5.14 m/s = 18.5 km/h
-Unit as reported: Knots, UCUM code [kn_i]
+Amount as reported: 10 Knots, UCUM code [kn_i]
 == ? False
 same magnitude ? True
 2000 [ft_i] = 609.6 m
@@ -680,7 +680,7 @@ Quantities with a *single* legal unit (`AirTemperatureCelsius`, `QnhHpa`, `Preva
 
 ### VerticalLimit: FL, MSL and SFC are different things
 
-"FL390", "12 000 m above mean sea level" and "300 m above the ground" are not the same kind of number. `VerticalLimit` keeps value, unit **and reference** and refuses to pretend otherwise.
+"FL390", "12 000 m above mean sea level" and "300 m above the ground" are not the same kind of number. `VerticalLimit` keeps amount, unit **and reference** and refuses to pretend otherwise.
 
 ![Vertical references: SFC, MSL and STD](assets/vertical-references.svg)
 
@@ -888,7 +888,7 @@ public static class Levels
     /// true only in the standard atmosphere. Never use it for an operational decision.
     public static double? ApproxFeet(VerticalLimit? limit)
     {
-        if (limit is not { } l || l.IsNil || l.Value is not { } value)
+        if (limit is not { } l || l.IsNil || l.Amount is not { } value)
         {
             return null;
         }
@@ -1444,8 +1444,8 @@ The same pattern exists for `Airmet` (`IsCancelReport`, `CancelledReportSequence
 3. **Assuming knots (or metres, or feet).** Read `.Unit`, or convert explicitly with `ToKnots()`, `ToMeters()` and friends.
 4. **Treating anything measured in `FL` as a flight level.** `VerticalLimit.AsFlightLevel()` answers only for `STD` references (or exact hundreds of feet under `STD`). A value of `FL100` with an `MSL` or no reference gives `null`, on purpose.
 5. **Converting metres to flight levels without saying so.** `15240 M MSL` is about FL500 in the standard atmosphere, nothing more. Keep the original next to any approximation you display (as `Levels.Format` does).
-6. **Comparing speeds across units with `==`.** `Speed` equality is exact on value *and* unit. Compare magnitudes through a common unit.
-7. **Expecting cloud bases to be numbers.** `Cloud.Base` may be `null`, a nil limit or a number. Check `IsNil`, `Value` and `SpecialValue`.
+6. **Comparing speeds across units with `==`.** `Speed` equality is exact on amount *and* unit. Compare magnitudes through a common unit.
+7. **Expecting cloud bases to be numbers.** `Cloud.Base` may be `null`, a nil limit or a number. Check `IsNil`, `Amount` and `SpecialValue`.
 8. **Looking for turbulence and icing inside `Cloud`.** They are separate features (`Sigwx.Turbulences`, `Sigwx.AirframeIcings`).
 9. **Treating default validation as certification.** The default rule set is a subset (11 of 165 official rules). Use `UseOfficialSchematron()` when you must reject non-conformant messages.
 10. **Forgetting that `Saxon` is `net10.0` only.** The core library runs from .NET Framework 4.6.1; the official-rules package needs .NET 10.

@@ -43,7 +43,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             if (surface is GeoCircle circle)
             {
                 properties.Add(("center", new[] { circle.Centre.Lon, circle.Centre.Lat }));
-                properties.Add(("radius", circle.Radius.Value));
+                properties.Add(("radius", circle.Radius.Amount));
                 properties.Add(("radiusUom", circle.Radius.UnitOfMeasure));
                 properties.Add(("circleSegments", GeodesicCircle.SegmentCount));
             }

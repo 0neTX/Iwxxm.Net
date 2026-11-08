@@ -20,14 +20,14 @@ namespace Iwxxm.Net.Reports
         private const double FeetPerMeter = 1.0 / 0.3048;
 
         private VerticalLimit(
-            double? value,
+            double? amount,
             VerticalUnit? unit,
             VerticalReference? reference,
             VerticalSpecialValue specialValue,
             bool isNil,
             string? nilReason)
         {
-            Value = value.HasValue && value.Value == 0.0 ? 0.0 : value; // normalize negative zero
+            Amount = amount.HasValue && amount.Value == 0.0 ? 0.0 : amount; // normalize negative zero
             Unit = unit;
             Reference = reference;
             SpecialValue = specialValue;
@@ -35,10 +35,10 @@ namespace Iwxxm.Net.Reports
             NilReason = nilReason;
         }
 
-        /// <summary>Numeric value as reported; <c>null</c> for special values (<c>GND</c>, <c>UNL</c>, ...) and nil limits.</summary>
-        public double? Value { get; }
+        /// <summary>Numeric magnitude as reported; <c>null</c> for special values (<c>GND</c>, <c>UNL</c>, ...) and nil limits.</summary>
+        public double? Amount { get; }
 
-        /// <summary>Unit of <see cref="Value"/>; <c>null</c> when not reported or not applicable.</summary>
+        /// <summary>Unit of <see cref="Amount"/>; <c>null</c> when not reported or not applicable.</summary>
         public VerticalUnit? Unit { get; }
 
         /// <summary>Vertical reference; <c>null</c> when the document does not report one (never assumed).</summary>
@@ -79,9 +79,9 @@ namespace Iwxxm.Net.Reports
         /// Creates a numeric vertical limit. The value must be finite; a flight level must not be negative
         /// (heights and altitudes may be negative, e.g. below mean sea level).
         /// </summary>
-        public static Result<VerticalLimit> Create(double value, VerticalUnit unit, VerticalReference? reference, string? location = null)
+        public static Result<VerticalLimit> Create(double amount, VerticalUnit unit, VerticalReference? reference, string? location = null)
         {
-            if (double.IsNaN(value) || double.IsInfinity(value))
+            if (double.IsNaN(amount) || double.IsInfinity(amount))
             {
                 return Result<VerticalLimit>.Failure(
                     DomainErrorCodes.VerticalLimitInvalid,
@@ -99,16 +99,16 @@ namespace Iwxxm.Net.Reports
                     location);
             }
 
-            if (unit == VerticalUnit.FlightLevel && value < 0)
+            if (unit == VerticalUnit.FlightLevel && amount < 0)
             {
                 return Result<VerticalLimit>.Failure(
                     DomainErrorCodes.VerticalLimitInvalid,
-                    string.Format(CultureInfo.InvariantCulture, "Flight level {0} cannot be negative.", value),
+                    string.Format(CultureInfo.InvariantCulture, "Flight level {0} cannot be negative.", amount),
                     ErrorCategory.DomainMapping,
                     location);
             }
 
-            return Result<VerticalLimit>.Success(new VerticalLimit(value, unit, reference, VerticalSpecialValue.None, false, null));
+            return Result<VerticalLimit>.Success(new VerticalLimit(amount, unit, reference, VerticalSpecialValue.None, false, null));
         }
 
         /// <summary>Creates a non-numeric limit (<c>GND</c>, <c>UNL</c>, <c>FLOOR</c>, <c>CEILING</c>).</summary>
@@ -135,17 +135,17 @@ namespace Iwxxm.Net.Reports
         /// </summary>
         public FlightLevel? AsFlightLevel()
         {
-            if (Reference != VerticalReference.Std || !Value.HasValue || SpecialValue != VerticalSpecialValue.None || IsNil)
+            if (Reference != VerticalReference.Std || !Amount.HasValue || SpecialValue != VerticalSpecialValue.None || IsNil)
                 return null;
 
             double hundredsOfFeet;
             if (Unit == VerticalUnit.FlightLevel)
             {
-                hundredsOfFeet = Value.Value;
+                hundredsOfFeet = Amount.Value;
             }
             else if (Unit == VerticalUnit.Feet)
             {
-                hundredsOfFeet = Value.Value / 100.0;
+                hundredsOfFeet = Amount.Value / 100.0;
             }
             else
             {
@@ -173,8 +173,8 @@ namespace Iwxxm.Net.Reports
 
             int? leftRank = SpecialRank(SpecialValue);
             int? rightRank = SpecialRank(other.SpecialValue);
-            bool leftNumeric = SpecialValue == VerticalSpecialValue.None && Value.HasValue;
-            bool rightNumeric = other.SpecialValue == VerticalSpecialValue.None && other.Value.HasValue;
+            bool leftNumeric = SpecialValue == VerticalSpecialValue.None && Amount.HasValue;
+            bool rightNumeric = other.SpecialValue == VerticalSpecialValue.None && other.Amount.HasValue;
 
             if (leftRank.HasValue || rightRank.HasValue)
             {
@@ -220,7 +220,7 @@ namespace Iwxxm.Net.Reports
         };
 
         public bool Equals(VerticalLimit other) =>
-            Nullable.Equals(Value, other.Value) &&
+            Nullable.Equals(Amount, other.Amount) &&
             Unit == other.Unit &&
             Reference == other.Reference &&
             SpecialValue == other.SpecialValue &&
@@ -233,7 +233,7 @@ namespace Iwxxm.Net.Reports
         {
             unchecked
             {
-                int hash = Value.HasValue ? Value.Value.GetHashCode() : 0;
+                int hash = Amount.HasValue ? Amount.Value.GetHashCode() : 0;
                 hash = (hash * 397) ^ (Unit.HasValue ? (int)Unit.Value : -1);
                 hash = (hash * 397) ^ (Reference.HasValue ? (int)Reference.Value : -1);
                 hash = (hash * 397) ^ (int)SpecialValue;
@@ -257,13 +257,13 @@ namespace Iwxxm.Net.Reports
             if (SpecialValue != VerticalSpecialValue.None)
                 return SpecialValueCode + referenceSuffix;
 
-            if (!Value.HasValue)
+            if (!Amount.HasValue)
                 return "UNSPECIFIED" + referenceSuffix;
 
             if (Unit == VerticalUnit.FlightLevel)
-                return string.Format(CultureInfo.InvariantCulture, "FL{0:000}{1}", Value.Value, referenceSuffix);
+                return string.Format(CultureInfo.InvariantCulture, "FL{0:000}{1}", Amount.Value, referenceSuffix);
 
-            return string.Format(CultureInfo.InvariantCulture, "{0} {1}{2}", Value.Value, UnitOfMeasure, referenceSuffix);
+            return string.Format(CultureInfo.InvariantCulture, "{0} {1}{2}", Amount.Value, UnitOfMeasure, referenceSuffix);
         }
 
         private static int? SpecialRank(VerticalSpecialValue value) => value switch
@@ -280,7 +280,7 @@ namespace Iwxxm.Net.Reports
         private static bool TryToCommonScale(VerticalLimit limit, VerticalUnit otherUnit, out double scaled)
         {
             scaled = 0;
-            double value = limit.Value!.Value;
+            double value = limit.Amount!.Value;
             VerticalUnit unit = limit.Unit!.Value;
 
             bool unitIsLength = unit == VerticalUnit.Feet || unit == VerticalUnit.Meters || unit == VerticalUnit.Kilometers;

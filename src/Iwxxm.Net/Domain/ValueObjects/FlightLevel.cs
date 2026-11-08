@@ -17,15 +17,18 @@ namespace Iwxxm.Net.Reports
     {
         private const double MetersPerFoot = 0.3048;
 
-        public int Value { get; }
-        public int AltitudeInFeet => Value * 100;
+        /// <summary>The flight level number: hundreds of feet (<c>350</c> for FL350).</summary>
+        public int Number { get; }
 
-        public FlightLevel(int value)
+        /// <summary>The pressure altitude in feet (<c>35000</c> for FL350).</summary>
+        public int AltitudeInFeet => Number * 100;
+
+        public FlightLevel(int number)
         {
-            if (value < 0 || value > 1000)
-                throw new ArgumentOutOfRangeException(nameof(value), value, "Flight Level must be between FL000 and FL1000.");
+            if (number < 0 || number > 1000)
+                throw new ArgumentOutOfRangeException(nameof(number), number, "Flight Level must be between FL000 and FL1000.");
 
-            Value = value;
+            Number = number;
         }
 
         public static Result<FlightLevel> Create(double rawValue, string? uom, string? location = null)
@@ -76,18 +79,18 @@ namespace Iwxxm.Net.Reports
             return Result<FlightLevel>.Success(new FlightLevel(rounded));
         }
 
-        public bool Equals(FlightLevel other) => Value == other.Value;
+        public bool Equals(FlightLevel other) => Number == other.Number;
         public override bool Equals(object? obj) => obj is FlightLevel other && Equals(other);
-        public override int GetHashCode() => Value;
-        public int CompareTo(FlightLevel other) => Value.CompareTo(other.Value);
+        public override int GetHashCode() => Number;
+        public int CompareTo(FlightLevel other) => Number.CompareTo(other.Number);
 
-        public static bool operator <(FlightLevel left, FlightLevel right) => left.Value < right.Value;
-        public static bool operator >(FlightLevel left, FlightLevel right) => left.Value > right.Value;
-        public static bool operator <=(FlightLevel left, FlightLevel right) => left.Value <= right.Value;
-        public static bool operator >=(FlightLevel left, FlightLevel right) => left.Value >= right.Value;
+        public static bool operator <(FlightLevel left, FlightLevel right) => left.Number < right.Number;
+        public static bool operator >(FlightLevel left, FlightLevel right) => left.Number > right.Number;
+        public static bool operator <=(FlightLevel left, FlightLevel right) => left.Number <= right.Number;
+        public static bool operator >=(FlightLevel left, FlightLevel right) => left.Number >= right.Number;
         public static bool operator ==(FlightLevel left, FlightLevel right) => left.Equals(right);
         public static bool operator !=(FlightLevel left, FlightLevel right) => !left.Equals(right);
 
-        public override string ToString() => string.Format(CultureInfo.InvariantCulture, "FL{0:D3}", Value);
+        public override string ToString() => string.Format(CultureInfo.InvariantCulture, "FL{0:D3}", Number);
     }
 }

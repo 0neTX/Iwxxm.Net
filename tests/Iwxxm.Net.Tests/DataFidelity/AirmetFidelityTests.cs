@@ -120,10 +120,10 @@ namespace Iwxxm.Net.Tests.DataFidelity
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             AirmetEvolvingCondition condition = Assert.Single(result.Value.EvolvingConditions);
-            Assert.Equal(1000.0, condition.CloudBase!.Value.Value);
+            Assert.Equal(1000.0, condition.CloudBase!.Value.Amount);
             Assert.Equal(VerticalUnit.Feet, condition.CloudBase.Value.Unit);
             Assert.Equal(VerticalReference.Sfc, condition.CloudBase.Value.Reference);
-            Assert.Equal(3000.0, condition.CloudTop!.Value.Value);
+            Assert.Equal(3000.0, condition.CloudTop!.Value.Amount);
             Assert.Equal(VerticalUnit.Meters, condition.CloudTop.Value.Unit);
             Assert.Equal(VerticalReference.Msl, condition.CloudTop.Value.Reference);
             Assert.True(condition.IsCloudTopAbove);

@@ -11,7 +11,7 @@ It is a **sample**, not part of the product: it is not in `Iwxxm.Net.slnx`, the 
 | Entry point: `IwxxmParser.Default` (or `IwxxmParserBuilder().WithoutSchematron().Build()` for `--no-schematron`) | `Program.cs` |
 | `Result<T>`: errors and warnings (code, severity, category, location, line) are always printed | `Program.cs`, `ConsoleReport.cs` |
 | The closed document hierarchy through `IIwxxmDocumentVisitor<TResult>` (adding a document type to the library breaks the build here) | `DocumentSummaryVisitor.cs` |
-| Value objects: `Speed`/`Length` with units, `VerticalLimit`, `CodeListValue<T>`, `GeoSurface.Match` (polygon or circle) | `FactSheet.cs` |
+| Value objects: `Speed`/`Length` with `Amount` and unit, `VerticalLimit`, `CodeListValue<T>`, `GeoSurface.Match` (polygon or circle) | `FactSheet.cs` |
 | `IwxxmGeoJsonExporter.ToGeoJson` on an already parsed document | `Program.cs` |
 
 Values the message does not carry are shown as `-`; nothing is defaulted.

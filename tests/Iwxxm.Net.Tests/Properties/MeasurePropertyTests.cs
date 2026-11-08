@@ -62,7 +62,7 @@ namespace Iwxxm.Net.Tests.Properties
                 double converted = original.To(c.Item3);
                 double back = new Length(converted, c.Item3).To(c.Item2);
 
-                AssertClose(original.Value, back, RoundTripTolerance, $"{original} via {c.Item3}");
+                AssertClose(original.Amount, back, RoundTripTolerance, $"{original} via {c.Item3}");
             });
         }
 
@@ -117,7 +117,7 @@ namespace Iwxxm.Net.Tests.Properties
                 var negative = new Length(-0.0, unit);
                 var positive = new Length(0.0, unit);
 
-                Assert.True(SameBits(0.0, negative.Value), "stored value must be +0");
+                Assert.True(SameBits(0.0, negative.Amount), "stored value must be +0");
                 Assert.Equal(positive, negative);
                 Assert.Equal(positive.GetHashCode(), negative.GetHashCode());
                 Assert.DoesNotContain("-", negative.ToString());
@@ -132,7 +132,7 @@ namespace Iwxxm.Net.Tests.Properties
             PropertySettings.Run(Gen.Select(NonFinite, AnyLengthUnit), PropertySettings.MeasureSeed, c =>
             {
                 var thrown = Assert.Throws<ArgumentOutOfRangeException>(() => new Length(c.Item1, c.Item2));
-                Assert.Equal("value", thrown.ParamName);
+                Assert.Equal("amount", thrown.ParamName);
             });
 
             PropertySettings.Run(Gen.Select(LengthValues, UnknownEnumValue), PropertySettings.MeasureSeed, c =>
@@ -154,7 +154,7 @@ namespace Iwxxm.Net.Tests.Properties
                 double converted = original.To(c.Item3);
                 double back = new Speed(converted, c.Item3).To(c.Item2);
 
-                AssertClose(original.Value, back, RoundTripTolerance, $"{original} via {c.Item3}");
+                AssertClose(original.Amount, back, RoundTripTolerance, $"{original} via {c.Item3}");
             });
         }
 
@@ -203,7 +203,7 @@ namespace Iwxxm.Net.Tests.Properties
                 var negative = new Speed(-0.0, unit);
                 var positive = new Speed(0.0, unit);
 
-                Assert.True(SameBits(0.0, negative.Value), "stored value must be +0");
+                Assert.True(SameBits(0.0, negative.Amount), "stored value must be +0");
                 Assert.Equal(positive, negative);
                 Assert.Equal(positive.GetHashCode(), negative.GetHashCode());
                 Assert.DoesNotContain("-", negative.ToString());
@@ -218,7 +218,7 @@ namespace Iwxxm.Net.Tests.Properties
             PropertySettings.Run(Gen.Select(NonFinite, AnySpeedUnit), PropertySettings.MeasureSeed, c =>
             {
                 var thrown = Assert.Throws<ArgumentOutOfRangeException>(() => new Speed(c.Item1, c.Item2));
-                Assert.Equal("value", thrown.ParamName);
+                Assert.Equal("amount", thrown.ParamName);
             });
 
             PropertySettings.Run(Gen.Select(SpeedValues, UnknownSpeedEnumValue), PropertySettings.MeasureSeed, c =>

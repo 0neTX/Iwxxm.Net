@@ -5,43 +5,43 @@ namespace Iwxxm.Net.Reports
 {
     /// <summary>
     /// Immutable Value Object holding a length (height, elevation, distance) exactly as reported
-    /// (numeric value + unit of measure). Negative values are allowed (e.g. elevations below mean sea level).
-    /// Equality is structural and exact (value and unit); use <see cref="ToMeters"/> or <see cref="ToFeet"/>
+    /// (numeric amount + unit of measure). Negative values are allowed (e.g. elevations below mean sea level).
+    /// Equality is structural and exact (amount and unit); use <see cref="ToMeters"/> or <see cref="ToFeet"/>
     /// to compare magnitudes expressed in different units.
     /// </summary>
     public readonly struct Length : IEquatable<Length>
     {
-        public Length(double value, LengthUnit unit)
+        public Length(double amount, LengthUnit unit)
         {
-            if (double.IsNaN(value) || double.IsInfinity(value))
-                throw new ArgumentOutOfRangeException(nameof(value), value, "Length value must be a finite number.");
+            if (double.IsNaN(amount) || double.IsInfinity(amount))
+                throw new ArgumentOutOfRangeException(nameof(amount), amount, "Length amount must be a finite number.");
             if (unit < LengthUnit.Meters || unit > LengthUnit.StatuteMiles)
                 throw new ArgumentOutOfRangeException(nameof(unit), unit, "Unsupported length unit.");
 
             // Normalize negative zero so that Equals and GetHashCode always agree.
-            Value = value == 0.0 ? 0.0 : value;
+            Amount = amount == 0.0 ? 0.0 : amount;
             Unit = unit;
         }
 
-        /// <summary>Numeric value exactly as reported in <see cref="Unit"/>.</summary>
-        public double Value { get; }
+        /// <summary>Numeric magnitude exactly as reported in <see cref="Unit"/>.</summary>
+        public double Amount { get; }
 
-        /// <summary>Unit of measure of <see cref="Value"/>.</summary>
+        /// <summary>Unit of measure of <see cref="Amount"/>.</summary>
         public LengthUnit Unit { get; }
 
         /// <summary>UCUM code of <see cref="Unit"/> as used by IWXXM (e.g. <c>m</c>, <c>[ft_i]</c>).</summary>
         public string UnitOfMeasure => GetUcumCode(Unit);
 
-        public double ToMeters() => Value * MetersPer(Unit);
+        public double ToMeters() => Amount * MetersPer(Unit);
 
-        public double ToFeet() => Unit == LengthUnit.Feet ? Value : ToMeters() / 0.3048;
+        public double ToFeet() => Unit == LengthUnit.Feet ? Amount : ToMeters() / 0.3048;
 
-        public double ToKilometers() => Unit == LengthUnit.Kilometers ? Value : ToMeters() / 1000.0;
+        public double ToKilometers() => Unit == LengthUnit.Kilometers ? Amount : ToMeters() / 1000.0;
 
-        public double ToNauticalMiles() => Unit == LengthUnit.NauticalMiles ? Value : ToMeters() / 1852.0;
+        public double ToNauticalMiles() => Unit == LengthUnit.NauticalMiles ? Amount : ToMeters() / 1852.0;
 
-        /// <summary>Returns the value converted to <paramref name="unit"/>.</summary>
-        public double To(LengthUnit unit) => unit == Unit ? Value : ToMeters() / MetersPer(unit);
+        /// <summary>Returns the amount converted to <paramref name="unit"/>.</summary>
+        public double To(LengthUnit unit) => unit == Unit ? Amount : ToMeters() / MetersPer(unit);
 
         public static string GetUcumCode(LengthUnit unit) => unit switch
         {
@@ -62,7 +62,7 @@ namespace Iwxxm.Net.Reports
             _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, "Unsupported length unit.")
         };
 
-        public bool Equals(Length other) => Value.Equals(other.Value) && Unit == other.Unit;
+        public bool Equals(Length other) => Amount.Equals(other.Amount) && Unit == other.Unit;
 
         public override bool Equals(object? obj) => obj is Length other && Equals(other);
 
@@ -70,7 +70,7 @@ namespace Iwxxm.Net.Reports
         {
             unchecked
             {
-                return (Value.GetHashCode() * 397) ^ (int)Unit;
+                return (Amount.GetHashCode() * 397) ^ (int)Unit;
             }
         }
 
@@ -78,6 +78,6 @@ namespace Iwxxm.Net.Reports
         public static bool operator !=(Length left, Length right) => !left.Equals(right);
 
         public override string ToString() =>
-            string.Format(CultureInfo.InvariantCulture, "{0} {1}", Value, UnitOfMeasure);
+            string.Format(CultureInfo.InvariantCulture, "{0} {1}", Amount, UnitOfMeasure);
     }
 }

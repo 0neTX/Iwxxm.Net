@@ -113,7 +113,7 @@ namespace Iwxxm.Net.Demo
                 return Dash;
             }
 
-            string text = $"{s.Value.ToString("0.###", CultureInfo.InvariantCulture)} {s.UnitOfMeasure}";
+            string text = $"{s.Amount.ToString("0.###", CultureInfo.InvariantCulture)} {s.UnitOfMeasure}";
             return s.Unit == SpeedUnit.Knots
                 ? text
                 : text + $" (~{s.ToKnots().ToString("0.#", CultureInfo.InvariantCulture)} kt)";

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Tests.GoldenMaster
 {
@@ -144,14 +145,14 @@ namespace Iwxxm.Net.Tests.GoldenMaster
             PropertyInfo[] properties = type
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead && p.GetIndexParameters().Length == 0 && p.GetMethod != null && p.GetMethod.IsPublic)
-                .OrderBy(p => p.Name, StringComparer.Ordinal)
+                .OrderBy(p => DumpedName(p), StringComparer.Ordinal)
                 .ToArray();
 
             sb.Append(TypeName(type)).Append(" {");
             foreach (PropertyInfo property in properties)
             {
                 NewLine(sb, depth + 1);
-                sb.Append(property.Name).Append(" = ");
+                sb.Append(DumpedName(property)).Append(" = ");
 
                 object? propertyValue;
                 try
@@ -169,6 +170,20 @@ namespace Iwxxm.Net.Tests.GoldenMaster
 
             NewLine(sb, depth);
             sb.Append('}');
+        }
+
+        /// <summary>
+        /// The name under which a property appears in the golden files. The magnitude of <c>Speed</c>, <c>Length</c> and
+        /// <c>VerticalLimit</c> and the number of a <c>FlightLevel</c> were called <c>Value</c> when the goldens were
+        /// generated and are named <c>Amount</c> / <c>Number</c> in the API now; the goldens are vendored and stay
+        /// byte-identical, so the old name (and with it the ordinal property order) is kept in the dump.
+        /// </summary>
+        private static string DumpedName(PropertyInfo property)
+        {
+            Type? owner = property.DeclaringType;
+            bool renamedMagnitude = property.Name == "Amount" && (owner == typeof(Speed) || owner == typeof(Length) || owner == typeof(VerticalLimit));
+            bool renamedLevel = property.Name == "Number" && owner == typeof(FlightLevel);
+            return renamedMagnitude || renamedLevel ? "Value" : property.Name;
         }
 
         private static string TypeName(Type type)

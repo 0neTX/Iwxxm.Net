@@ -29,7 +29,7 @@ namespace Iwxxm.Net.Tests
         {
             VerticalLimit limit = VerticalLimit.Create(15, VerticalUnit.Kilometers, VerticalReference.Msl).Value;
 
-            Assert.Equal(15, limit.Value);
+            Assert.Equal(15, limit.Amount);
             Assert.Equal(VerticalUnit.Kilometers, limit.Unit);
             Assert.Equal(VerticalReference.Msl, limit.Reference);
             Assert.Null(limit.AsFlightLevel()); // previously FL492
@@ -42,7 +42,7 @@ namespace Iwxxm.Net.Tests
             VerticalLimit fl000 = VerticalLimit.Create(0, VerticalUnit.FlightLevel, VerticalReference.Std).Value;
 
             Assert.NotEqual(ground, fl000);
-            Assert.Null(ground.Value);
+            Assert.Null(ground.Amount);
             Assert.True(ground.IsGround);
             Assert.Null(ground.AsFlightLevel());
             Assert.Equal(new FlightLevel(0), fl000.AsFlightLevel());
@@ -100,7 +100,7 @@ namespace Iwxxm.Net.Tests
 
             Assert.True(nil.IsNil);
             Assert.Equal("unknown", nil.NilReason);
-            Assert.Null(nil.Value);
+            Assert.Null(nil.Amount);
             Assert.Null(nil.AsFlightLevel());
         }
 
@@ -155,7 +155,7 @@ namespace Iwxxm.Net.Tests
 
             Assert.Empty(errors);
             Assert.NotNull(limit);
-            Assert.Equal(value, limit!.Value.Value);
+            Assert.Equal(value, limit!.Value.Amount);
             Assert.Equal(unit, limit.Value.Unit);
             Assert.Equal(expectedReference, limit.Value.Reference);
         }
@@ -178,7 +178,7 @@ namespace Iwxxm.Net.Tests
 
             Assert.Empty(errors);
             Assert.Equal(expected, limit!.Value.SpecialValue);
-            Assert.Null(limit.Value.Value);
+            Assert.Null(limit.Value.Amount);
             Assert.Null(limit.Value.AsFlightLevel());
         }
 
@@ -258,7 +258,7 @@ namespace Iwxxm.Net.Tests
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             EnRoutePhenomenonVolume volume = result.Value.EvolvingConditions[0];
-            Assert.Equal(15000, volume.UpperLimit!.Value.Value);
+            Assert.Equal(15000, volume.UpperLimit!.Value.Amount);
             Assert.Equal(VerticalUnit.Meters, volume.UpperLimit.Value.Unit);
             Assert.Equal(VerticalReference.Msl, volume.UpperLimit.Value.Reference);
             Assert.Null(volume.UpperLimit.Value.AsFlightLevel());

@@ -105,7 +105,7 @@ namespace Iwxxm.Net.Reports
 
         internal void RequireNonNegative(Speed? speed, string field)
         {
-            if (speed.HasValue && speed.Value.Value < 0.0)
+            if (speed.HasValue && speed.Value.Amount < 0.0)
                 Add(DomainErrorCodes.NegativeSpeed, $"The {field} ({speed.Value}) cannot be negative.");
         }
 
@@ -157,7 +157,7 @@ namespace Iwxxm.Net.Reports
 
         internal void Check(AerodromeCloud? cloud, string field)
         {
-            if (cloud?.VerticalVisibility.HasValue == true && cloud.VerticalVisibility.Value.Value < 0.0)
+            if (cloud?.VerticalVisibility.HasValue == true && cloud.VerticalVisibility.Value.Amount < 0.0)
             {
                 Add(DomainErrorCodes.NegativeVisibility, $"The {field} vertical visibility ({cloud.VerticalVisibility.Value}) cannot be negative.");
             }
@@ -177,7 +177,7 @@ namespace Iwxxm.Net.Reports
             Check(condition.Volume);
             RequireDirection(condition.SurfaceWindDirectionDegrees, $"surface wind direction of '{condition.Id}'");
             RequireNonNegative(condition.SurfaceWindSpeed, $"surface wind speed of '{condition.Id}'");
-            if (condition.SurfaceVisibility.HasValue && condition.SurfaceVisibility.Value.Value < 0.0)
+            if (condition.SurfaceVisibility.HasValue && condition.SurfaceVisibility.Value.Amount < 0.0)
             {
                 Add(DomainErrorCodes.NegativeVisibility, $"The surface visibility of '{condition.Id}' cannot be negative.");
             }

@@ -41,7 +41,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             GeoCircle circle = Assert.IsType<GeoCircle>(volume.Area);
             Assert.Equal(new GeoCoordinate(27.1, -73.1), circle.Centre);
             Assert.Equal(new Length(250.0, LengthUnit.NauticalMiles), circle.Radius);
-            Assert.Equal(500.0, volume.UpperLimit!.Value.Value);
+            Assert.Equal(500.0, volume.UpperLimit!.Value.Amount);
             Assert.Equal("circle", volume.Area!.Match(_ => "polygon", _ => "circle"));
         }
 

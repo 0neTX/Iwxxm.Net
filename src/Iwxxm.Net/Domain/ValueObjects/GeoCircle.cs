@@ -26,11 +26,11 @@ namespace Iwxxm.Net.Reports
         /// <summary>Creates a circle; the radius must be strictly positive.</summary>
         public static Result<GeoCircle> Create(GeoCoordinate centre, Length radius, string? location = null)
         {
-            if (!(radius.Value > 0.0))
+            if (!(radius.Amount > 0.0))
             {
                 return Result<GeoCircle>.Failure(
                     "GEO-CIRCLE-RADIUS-INVALID",
-                    string.Format(CultureInfo.InvariantCulture, "A circle radius must be strictly positive (received {0} {1}).", radius.Value, radius.UnitOfMeasure),
+                    string.Format(CultureInfo.InvariantCulture, "A circle radius must be strictly positive (received {0} {1}).", radius.Amount, radius.UnitOfMeasure),
                     ErrorCategory.DomainMapping,
                     location);
             }
@@ -58,6 +58,6 @@ namespace Iwxxm.Net.Reports
         public static bool operator !=(GeoCircle? left, GeoCircle? right) => !Equals(left, right);
 
         public override string ToString() =>
-            string.Format(CultureInfo.InvariantCulture, "Circle({0}, {1} {2})", Centre, Radius.Value, Radius.UnitOfMeasure);
+            string.Format(CultureInfo.InvariantCulture, "Circle({0}, {1} {2})", Centre, Radius.Amount, Radius.UnitOfMeasure);
     }
 }

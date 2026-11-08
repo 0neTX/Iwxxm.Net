@@ -52,7 +52,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
         /// </summary>
         public static void AddSpeed(List<(string Key, object? Value)> props, string name, Speed? speed)
         {
-            props.Add((name, speed?.Value));
+            props.Add((name, speed?.Amount));
             props.Add((name + "Uom", speed?.UnitOfMeasure));
         }
 
@@ -62,7 +62,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
         /// </summary>
         public static void AddLength(List<(string Key, object? Value)> props, string name, Length? length)
         {
-            props.Add((name, length?.Value));
+            props.Add((name, length?.Amount));
             props.Add((name + "Uom", length?.UnitOfMeasure));
         }
 
@@ -79,7 +79,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
                 return;
 
             VerticalLimit value = limit.Value;
-            props.Add((name, value.Value));
+            props.Add((name, value.Amount));
             props.Add((name + "Uom", value.UnitOfMeasure));
             props.Add((name + "Reference", value.ReferenceCode));
             props.Add((name + "SpecialValue", value.SpecialValueCode));

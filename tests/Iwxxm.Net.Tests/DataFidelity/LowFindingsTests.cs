@@ -100,7 +100,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Volcano etna = Assert.Single(result.Value.Volcanoes);
             Assert.Equal(VolcanoActivityStatus.EruptionOngoing, etna.ActivityStatus);
-            Assert.Equal(3329, etna.SourceElevation!.Value.Value);
+            Assert.Equal(3329, etna.SourceElevation!.Value.Amount);
         }
 
         [Theory]

@@ -168,7 +168,7 @@ foreach (EnRoutePhenomenonVolume volume in sigmet.EvolvingConditions)
     // The area is a closed union: GeoPolygon or GeoCircle ("WI 250NM OF TC CENTRE").
     string area = volume.Area?.Match(
         polygon => $"polygon, {polygon.ExteriorRing.Count} vertices",
-        circle => $"circle, {circle.Radius.Value} {circle.Radius.UnitOfMeasure} around {circle.Centre}") ?? "(none)";
+        circle => $"circle, {circle.Radius.Amount} {circle.Radius.UnitOfMeasure} around {circle.Centre}") ?? "(none)";
     Console.WriteLine($"  area            : {area}");
 }
 
@@ -791,13 +791,13 @@ Reproduce them with `dotnet run --project tests/Iwxxm.Net.Benchmarks -c Release 
 | :--- | :--- |
 | **`GeoCoordinate`** | Immutable `readonly struct` enforcing WGS84 bounds (latitude in [-90, 90], longitude in [-180, 180]). Values are quantised once at construction to 7 decimal degrees (`GeoCoordinate.Precision` = 1e-7, about 1.1 cm) and compared exactly, so `Equals` and `GetHashCode` agree and equality is transitive. |
 | **`GeoSurface`** | Closed union of horizontal surfaces: `GeoPolygon` or `GeoCircle` (`Match(polygon => ..., circle => ...)` or pattern matching). Used by `EnRoutePhenomenonVolume.Area`, `SpaceWeatherAnalysisRegion.Areas` and the SIGWX `Cloud`, `Turbulence` and `AirframeIcing` areas. |
-| **`GeoCircle`** | Circle from `gml:CircleByCenterPoint`: `Centre` and `Radius` (a `Length`, value and unit as reported, strictly positive). |
+| **`GeoCircle`** | Circle from `gml:CircleByCenterPoint`: `Centre` and `Radius` (a `Length`, amount and unit as reported, strictly positive). |
 | **`GeoPolygon`** | Immutable polygon with at least 3 distinct vertices, automatic ring closure and optional `InteriorRings` for hollow contours. Equality and hash code cover every exterior and interior vertex. |
-| **`VerticalLimit`** | Immutable `readonly struct` keeping a limit exactly as reported: `Value`, `Unit` (`FlightLevel`, `Feet`, `Meters`, `Kilometers`, `StandardMeters`), `Reference` (`Sfc`, `Msl`, `W84`, `Std`, `Other`; `null` when not reported), `SpecialValue` (`GND`, `UNL`, `FLOOR`, `CEILING`) and `NilReason`. "15 km AMSL" is not FL492 and `GND SFC` is not FL000. `TryCompareTo` compares only commensurable limits. |
-| **`FlightLevel`** | Derived view: `VerticalLimit.AsFlightLevel()` returns a flight level only for STD limits in `FL` (or exact hundreds of `FT`). |
+| **`VerticalLimit`** | Immutable `readonly struct` keeping a limit exactly as reported: `Amount` (`double?`; `null` for special values and nil limits), `Unit` (`FlightLevel`, `Feet`, `Meters`, `Kilometers`, `StandardMeters`), `Reference` (`Sfc`, `Msl`, `W84`, `Std`, `Other`; `null` when not reported), `SpecialValue` (`GND`, `UNL`, `FLOOR`, `CEILING`) and `NilReason`. "15 km AMSL" is not FL492 and `GND SFC` is not FL000. `TryCompareTo` compares only commensurable limits. |
+| **`FlightLevel`** | Derived view (`Number` = hundreds of feet): `VerticalLimit.AsFlightLevel()` returns a flight level only for STD limits in `FL` (or exact hundreds of `FT`). |
 | **`ReportStatus`, `PermissibleUsage`, `PermissibleUsageReason`** | Typed report metadata (`common.xsd`). Missing or unknown required values are mapping errors; a report is never presented as operational by default. |
-| **`Speed`** | Reported speed value and `SpeedUnit` (`MetersPerSecond`, `Knots`, `KilometersPerHour`); exact conversions `ToMetersPerSecond()`, `ToKnots()`, `ToKilometersPerHour()` (1 kt = 1852/3600 m/s). Equality is exact on value and unit. |
-| **`Length`** | Reported length and `LengthUnit` (`Meters`, `Feet`, `Kilometers`, `NauticalMiles`, `StatuteMiles`); exact conversions `ToMeters()`, `ToFeet()`, ... (1 ft = 0.3048 m). |
+| **`Speed`** | Reported speed (`Amount`) and `SpeedUnit` (`MetersPerSecond`, `Knots`, `KilometersPerHour`); exact conversions `ToMetersPerSecond()`, `ToKnots()`, `ToKilometersPerHour()` (1 kt = 1852/3600 m/s). Equality is exact on `Amount` and unit. |
+| **`Length`** | Reported length (`Amount`) and `LengthUnit` (`Meters`, `Feet`, `Kilometers`, `NauticalMiles`, `StatuteMiles`); exact conversions `ToMeters()`, `ToFeet()`, ... (1 ft = 0.3048 m). |
 | **BUFR codes** | `Cloud.Distribution`, `Cloud.CloudType`, `Turbulence.Degree` and `AirframeIcing.Degree` are `CodeListValue<CloudDistributionCode / CloudTypeCode / TurbulenceDegreeCode / IcingDegreeCode>`, translated from the WMO BUFR code tables (`0-20-008`, `0-20-012`, `0-11-030`, `0-20-041`), bare codes and TAC abbreviations. Each member's numeric value equals the official code; `Notation` keeps the code as reported. |
 | **`CodeListValue<NilReason>`** | `@nilReason` translated against the official register `http://codes.wmo.int/common/nil`: distinguishes `NSW` (`AerodromeForecastGroup.IsNoSignificantWeather`), `NSC` / `NCD` (`AerodromeCloud.IsNoSignificantCloud` / `IsNoCloudDetected`), `VV///`, `//` and `SKC` from content that is not reported. |
 | **`RelationalOperator`** | TAC `P` / `M` qualifiers on wind and gust speeds, RVR and prevailing visibility (`SurfaceWind.MeanSpeedOperator`, `RunwayVisualRange.MeanRvrOperator`, `AerodromeHorizontalVisibility.PrevailingOperator`). |
