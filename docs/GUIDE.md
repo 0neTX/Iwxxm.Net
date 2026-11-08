@@ -720,7 +720,7 @@ ground vs 15 km MSL comparable: False
 
 ### GeoSurface: polygon or circle
 
-Areas are a closed union of `GeoPolygon` and `GeoCircle`. A tropical-cyclone SIGMET says "within 250 NM of the centre" with a circle; a thunderstorm area is a polygon. `Match` (or ordinary pattern matching) handles both:
+Areas are a closed union of `GeoPolygon` and `GeoCircle`. A tropical-cyclone SIGMET says "within 250 NM of the centre" with a circle; a thunderstorm area is a polygon. There are two ways to handle both cases. `Match` takes one handler per case, so the compiler makes you supply both: a pair of functions returning a value, or a pair of actions for statements. Pattern matching on the public sealed subtypes `GeoPolygon` and `GeoCircle` reads naturally too, but the compiler does not check that every case is covered.
 
 ```csharp
 using System;
@@ -740,16 +740,27 @@ foreach (GeoSurface area in new[] { polygon, circle })
     Console.WriteLine(text);
 }
 
-// The same with pattern matching:
-if (polygon is GeoPolygon p2)
+// Statements instead of values: the overload that takes two actions.
+polygon.Match(
+    p => Console.WriteLine($"action overload: polygon, {p.ExteriorRing.Count} ring points"),
+    c => Console.WriteLine("action overload: circle"));
+
+// The same with pattern matching on the public sealed subtypes:
+switch (circle)
 {
-    Console.WriteLine($"first = last ? {p2.ExteriorRing.First() == p2.ExteriorRing.Last()}");
+    case GeoPolygon p2:
+        Console.WriteLine($"first = last ? {p2.ExteriorRing.First() == p2.ExteriorRing.Last()}");
+        break;
+    case GeoCircle c2:
+        Console.WriteLine($"switch: circle, radius {c2.Radius.Amount} {c2.Radius.UnitOfMeasure}");
+        break;
 }
 ```
 ```output
 polygon with 5 ring points (closed automatically)
 circle around (27.1000, -73.1000), radius 250 [nmi_i] = 463 km
-first = last ? True
+action overload: polygon, 5 ring points
+switch: circle, radius 250 [nmi_i]
 ```
 
 A `GeoCoordinate` rejects latitudes outside [-90, 90] and longitudes outside [-180, 180]; polygon holes live in `GeoPolygon.InteriorRings`.

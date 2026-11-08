@@ -31,6 +31,53 @@ namespace Iwxxm.Net.Tests.DataFidelity
             Assert.All(cases, t => Assert.True(t.IsSealed));
         }
 
+        private static GeoSurface Polygon() =>
+            GeoPolygon.Create(new[] { new GeoCoordinate(0, 0), new GeoCoordinate(0, 10), new GeoCoordinate(10, 10), new GeoCoordinate(0, 0) }).Value;
+
+        private static GeoSurface Circle() =>
+            GeoCircle.Create(new GeoCoordinate(5, 5), new Length(100, LengthUnit.Kilometers)).Value;
+
+        [Fact]
+        public void GeoSurface_MatchWithActions_RunsExactlyTheHandlerOfTheConcreteCase()
+        {
+            var calls = new System.Collections.Generic.List<string>();
+
+            Polygon().Match(p => calls.Add("polygon " + p.ExteriorRing.Count), c => calls.Add("circle"));
+            Circle().Match(p => calls.Add("polygon"), c => calls.Add("circle " + c.Radius.Amount));
+
+            Assert.Equal(new[] { "polygon 4", "circle 100" }, calls);
+        }
+
+        [Fact]
+        public void GeoSurface_MatchWithActions_RejectsNullHandlers_BeforeRunningAnything()
+        {
+            bool ran = false;
+
+            Assert.Throws<ArgumentNullException>(() => Polygon().Match((Action<GeoPolygon>)null!, c => { ran = true; }));
+            Assert.Throws<ArgumentNullException>(() => Polygon().Match(p => { ran = true; }, (Action<GeoCircle>)null!));
+            Assert.False(ran);
+        }
+
+        [Fact]
+        public void GeoSurface_MatchWithActions_AndTheFunctionOverload_AgreeWithPatternMatching()
+        {
+            foreach (GeoSurface surface in new[] { Polygon(), Circle() })
+            {
+                string byPattern = surface switch
+                {
+                    GeoPolygon _ => "polygon",
+                    GeoCircle _ => "circle",
+                    _ => throw new InvalidOperationException("The union is closed.")
+                };
+                string byFunction = surface.Match(_ => "polygon", _ => "circle");
+                string byAction = string.Empty;
+                surface.Match(_ => { byAction = "polygon"; }, _ => { byAction = "circle"; });
+
+                Assert.Equal(byPattern, byFunction);
+                Assert.Equal(byPattern, byAction);
+            }
+        }
+
         [Fact]
         public void TropicalCycloneSigmet_WithinRadiusOfCentre_IsAGeoCircle()
         {
