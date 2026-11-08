@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Demo console application. It consumes the library exactly as an application would (the core assembly targets
+    netstandard2.0/2.1, so a net8.0 consumer picks one of those). It is deliberately NOT part of Iwxxm.Net.slnx, the
+    Dockerfile stages or the CI workflow: it is never packed, tested or covered. Build it explicitly (see README.md).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Iwxxm.Net.Demo</RootNamespace>
+    <AssemblyName>Iwxxm.Net.Demo</AssemblyName>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Iwxxm.Net/Iwxxm.Net.csproj" />
+  </ItemGroup>
+
+</Project>

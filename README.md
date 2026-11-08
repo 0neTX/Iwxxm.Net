@@ -149,6 +149,7 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | [Third-party notices](THIRD-PARTY-NOTICES.md) | Licences and notices of the schemas, code lists, rules and packages that are redistributed or depended on. |
 | [Security policy](SECURITY.md) | Supported versions, how to report a vulnerability privately, scope and secure-usage guidance. |
 | [Changelog](CHANGELOG.md) | Release notes. |
+| [Demo console app](samples/Iwxxm.Net.Demo/README.md) | A small `net8.0` consumer (not part of the solution, CI or packages): parses any IWXXM file, prints its data and can export GeoJSON. |
 
 ## Public namespaces
 
