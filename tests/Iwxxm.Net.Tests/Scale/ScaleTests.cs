@@ -157,7 +157,7 @@ namespace Iwxxm.Net.Tests.Scale
 
                 points.Add(ScaleMeasurement.Measure(count, () => IwxxmParser.ParseBulletin(xml)));
                 MeteorologicalBulletin bulletin = parsed.Value;
-                exportPoints.Add(ScaleMeasurement.Measure(count, () => IwxxmGeoJsonExporter.ToGeoJson(bulletin)));
+                exportPoints.Add(ScaleMeasurement.Measure(count, () => IwxxmGeoJsonExporter.ToGeoJson(bulletin).Value));
             }
 
             AssertGrowth(new ScaleSeries("bulletin parse+validate+map (METAR/SIGMET reports)", "reports", points));
@@ -184,7 +184,7 @@ namespace Iwxxm.Net.Tests.Scale
 
             long exportBytes = ScaleMeasurement.AllocatedBytes();
             var exportWatch = Stopwatch.StartNew();
-            geoJson = IwxxmGeoJsonExporter.ToGeoJson(parsed.Value);
+            geoJson = IwxxmGeoJsonExporter.ToGeoJson(parsed.Value).Value;
             exportWatch.Stop();
             exportBytes = ScaleMeasurement.AllocatedBytes() - exportBytes;
 
@@ -283,7 +283,7 @@ namespace Iwxxm.Net.Tests.Scale
                 Result<IwxxmDocument> parsed = IwxxmParser.Parse(build(size));
                 Assert.True(parsed.IsSuccess, string.Join(" | ", parsed.Errors.Take(3)));
                 IwxxmDocument document = parsed.Value;
-                ScalePoint point = ScaleMeasurement.Measure(size, () => IwxxmGeoJsonExporter.ToGeoJson(document));
+                ScalePoint point = ScaleMeasurement.Measure(size, () => IwxxmGeoJsonExporter.ToGeoJson(document).Value);
                 points.Add(point);
                 outputs.Add((string)point.LastResult!);
             }
@@ -343,7 +343,7 @@ namespace Iwxxm.Net.Tests.Scale
 
                     parse.Add(ScaleMeasurement.Measure(vertices, () => IwxxmParser.Parse(xml)));
                     map.Add(ScaleMeasurement.Measure(vertices, () => SampleDocuments.MapDirectly(xml)));
-                    ScalePoint exported = ScaleMeasurement.Measure(vertices, () => IwxxmGeoJsonExporter.ToGeoJson(document));
+                    ScalePoint exported = ScaleMeasurement.Measure(vertices, () => IwxxmGeoJsonExporter.ToGeoJson(document).Value);
                     export.Add(exported);
                     JsonBytes.Add(Encoding.UTF8.GetByteCount((string)exported.LastResult!));
                     Assert.Equal("Polygon", JsonType((string)exported.LastResult!));

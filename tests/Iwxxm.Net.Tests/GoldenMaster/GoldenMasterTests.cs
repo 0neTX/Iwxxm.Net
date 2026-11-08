@@ -75,8 +75,8 @@ namespace Iwxxm.Net.Tests.GoldenMaster
             string stem = Path.GetFileNameWithoutExtension(sampleName);
 
             AssertMatchesGolden(Path.Combine(family, stem + ".domain.txt"), CanonicalDomainDumper.Dump(report));
-            AssertMatchesGolden(Path.Combine(family, stem + ".pretty.geojson"), IwxxmGeoJsonExporter.ToGeoJson(report, GeoJsonExportOptions.Pretty) + "\n");
-            AssertMatchesGolden(Path.Combine(family, stem + ".compact.geojson"), IwxxmGeoJsonExporter.ToGeoJson(report, CompactWithoutBoundingBox) + "\n");
+            AssertMatchesGolden(Path.Combine(family, stem + ".pretty.geojson"), IwxxmGeoJsonExporter.ToGeoJson(report, GeoJsonExportOptions.Pretty).Value + "\n");
+            AssertMatchesGolden(Path.Combine(family, stem + ".compact.geojson"), IwxxmGeoJsonExporter.ToGeoJson(report, CompactWithoutBoundingBox).Value + "\n");
         }
 
         private static void AssertMatchesGolden(string relativePath, string actual)

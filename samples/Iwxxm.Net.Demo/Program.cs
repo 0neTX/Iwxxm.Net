@@ -147,22 +147,19 @@ Exit codes:
                 return ExitCode.UsageError;
             }
 
-            string json;
-            try
+            // Export takes the already-parsed document (no second parse); a failure is a value, like a parse failure.
+            Result<string> exported = IwxxmGeoJsonExporter.ToGeoJson(
+                document,
+                options.PrettyGeoJson ? GeoJsonExportOptions.Pretty : GeoJsonExportOptions.Default);
+
+            if (exported.IsFailure)
             {
-                // Export takes the already-parsed document (no second parse) and throws on an adapter failure.
-                json = IwxxmGeoJsonExporter.ToGeoJson(document, options.PrettyGeoJson ? GeoJsonExportOptions.Pretty : GeoJsonExportOptions.Default);
-            }
-            catch (Exception ex)
-            {
-                report.Diagnostics("GeoJSON export", new[]
-                {
-                    new ValidationError("GEOJSON-EXPORT-ERROR", $"{ex.GetType().Name}: {ex.Message}", ErrorCategory.DomainMapping),
-                }, Array.Empty<ValidationError>());
+                report.Diagnostics("GeoJSON export", exported.Errors, exported.Warnings);
                 report.Verdict(false, "FAILED: GeoJSON export.");
                 return ExitCode.ParseOrValidationErrors;
             }
 
+            string json = exported.Value;
             int features = CountFeatures(json);
             var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             byte[] bytes = utf8NoBom.GetBytes(json);

@@ -104,7 +104,7 @@ namespace Iwxxm.Net.Tests
 
         private static readonly Lazy<string> RepairedGeoJson = new Lazy<string>(() =>
         {
-            var geoJson = IwxxmGeoJsonExporter.ToGeoJson(Repaired.Value.Value);
+            var geoJson = IwxxmGeoJsonExporter.ToGeoJson(Repaired.Value.Value).Value;
             return geoJson;
         });
 

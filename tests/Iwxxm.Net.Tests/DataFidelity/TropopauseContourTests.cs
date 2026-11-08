@@ -68,7 +68,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
         {
             Sigwx sigwx = SigwxWith(Tropopause.Create("t1", null, Array.Empty<TropopauseSpotHeight>(), Polygon(), Fl350).Value);
 
-            using (JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(sigwx, GeoJsonExportOptions.Default)))
+            using (JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(sigwx, GeoJsonExportOptions.Default).Value))
             {
                 JsonElement feature = Assert.Single(json.RootElement.GetProperty("features").EnumerateArray());
                 Assert.Equal("t1", feature.GetProperty("id").GetString());
@@ -91,7 +91,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             };
             Sigwx sigwx = SigwxWith(Tropopause.Create("t2", "SPOT", spots).Value);
 
-            using (JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(sigwx, GeoJsonExportOptions.Default)))
+            using (JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(sigwx, GeoJsonExportOptions.Default).Value))
             {
                 var features = json.RootElement.GetProperty("features").EnumerateArray().ToList();
                 Assert.Equal(2, features.Count);
@@ -110,7 +110,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             Assert.Empty(tropopause.SpotHeights);
             Assert.Equal(VerticalLimit.Create(14020, VerticalUnit.Meters, VerticalReference.Msl).Value, tropopause.ContourLevel);
 
-            using (JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(result.Value, GeoJsonExportOptions.Default)))
+            using (JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(result.Value, GeoJsonExportOptions.Default).Value))
             {
                 var types = json.RootElement.GetProperty("features").EnumerateArray()
                     .Select(f => f.GetProperty("properties").GetProperty("featureType").GetString()).ToList();

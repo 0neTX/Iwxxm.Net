@@ -131,6 +131,70 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
+        public void ProcessToGeoJson_ExporterThrows_ReportsTheSameErrorAsTheExporterFacade()
+        {
+            IwxxmDocument document = IwxxmParser.ParseFile(MetarPath).Value;
+            var builder = new IwxxmParserBuilder().UseGeoJsonExporter(new ThrowingGeoJsonExporter());
+
+            ValidationError fromFacade = Assert.Single(builder.BuildGeoJsonExporter().Export(document).Errors);
+            ValidationError fromParser = Assert.Single(builder.Build().ProcessFileToGeoJson(MetarPath).Errors);
+
+            Assert.Equal(fromFacade.Code, fromParser.Code);
+            Assert.Equal(fromFacade.Message, fromParser.Message);
+            Assert.Equal(fromFacade.Category, fromParser.Category);
+            Assert.Equal(fromFacade.Location, fromParser.Location);
+        }
+
+        [Fact]
+        public void ExporterFacade_ExporterThrows_ReturnsGeoJsonExportError_LocatedAtTheDocument()
+        {
+            IwxxmDocument document = IwxxmParser.ParseFile(MetarPath).Value;
+            IwxxmGeoJsonExporter facade = new IwxxmParserBuilder().UseGeoJsonExporter(new ThrowingGeoJsonExporter()).BuildGeoJsonExporter();
+
+            Result<string> result = facade.Export(document);
+
+            Assert.True(result.IsFailure);
+            ValidationError error = Assert.Single(result.Errors);
+            Assert.Equal(IwxxmErrorCodes.GeoJsonExportError, error.Code);
+            Assert.Equal(ErrorCategory.DomainMapping, error.Category);
+            Assert.Equal(document.Id, error.Location);
+            Assert.Equal("The GeoJSON export failed: Simulated exporter failure.", error.Message);
+        }
+
+        [Fact]
+        public void ExporterFacade_ExporterReturnsNull_ReturnsGeoJsonExportError()
+        {
+            IwxxmDocument document = IwxxmParser.ParseFile(MetarPath).Value;
+            IwxxmGeoJsonExporter facade = new IwxxmParserBuilder().UseGeoJsonExporter(new NullReturningGeoJsonExporter()).BuildGeoJsonExporter();
+
+            ValidationError error = Assert.Single(facade.Export(document).Errors);
+
+            Assert.Equal(IwxxmErrorCodes.GeoJsonExportError, error.Code);
+            Assert.Equal("The GeoJSON exporter returned no document.", error.Message);
+        }
+
+        [Fact]
+        public void ExporterFacade_OutOfMemory_IsNotConvertedToAnError()
+        {
+            IwxxmDocument document = IwxxmParser.ParseFile(MetarPath).Value;
+            IwxxmGeoJsonExporter facade = new IwxxmParserBuilder().UseGeoJsonExporter(new OutOfMemoryGeoJsonExporter()).BuildGeoJsonExporter();
+
+            Assert.Throws<OutOfMemoryException>(() => facade.Export(document));
+        }
+
+        [Fact]
+        public void ExporterFacade_NullDocument_StillThrows_AndASuccessIsAResultWithTheJson()
+        {
+            Assert.Throws<ArgumentNullException>(() => IwxxmGeoJsonExporter.ToGeoJson(null!));
+            Assert.Throws<ArgumentNullException>(() => IwxxmGeoJsonExporter.Default.Export(null!));
+
+            Result<string> result = IwxxmGeoJsonExporter.ToGeoJson(IwxxmParser.ParseFile(MetarPath).Value);
+
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            Assert.Contains("\"FeatureCollection\"", result.Value, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Process_SchemaValidatorThrows_ReturnsSchemaValidatorError()
         {
             var builder = new IwxxmParserBuilder().UseSchemaValidator(new ThrowingValidator());
@@ -192,6 +256,16 @@ namespace Iwxxm.Net.Tests
         {
             public string Export(IwxxmDocument document, GeoJsonExportOptions options) =>
                 throw new InvalidOperationException("Simulated exporter failure.");
+        }
+
+        private sealed class NullReturningGeoJsonExporter : IGeoJsonExporter
+        {
+            public string Export(IwxxmDocument document, GeoJsonExportOptions options) => null!;
+        }
+
+        private sealed class OutOfMemoryGeoJsonExporter : IGeoJsonExporter
+        {
+            public string Export(IwxxmDocument document, GeoJsonExportOptions options) => throw new OutOfMemoryException();
         }
 
         private sealed class ThrowingValidator : ISchemaValidator, ISchematronValidator

@@ -39,7 +39,7 @@ namespace Iwxxm.Net
         private readonly ISchemaValidator _schemaValidator;
         private readonly ISchematronValidator _schematronValidator;
         private readonly IIwxxmDocumentMapper _documentMapper;
-        private readonly IGeoJsonExporter _geoJsonExporter;
+        private readonly IwxxmGeoJsonExporter _geoJsonExporter;
         private readonly IDocumentParser _parser;
         private readonly IwxxmParserOptions _options;
 
@@ -54,7 +54,7 @@ namespace Iwxxm.Net
             _schemaValidator = schemaValidator ?? throw new ArgumentNullException(nameof(schemaValidator));
             _schematronValidator = schematronValidator ?? throw new ArgumentNullException(nameof(schematronValidator));
             _documentMapper = documentMapper ?? throw new ArgumentNullException(nameof(documentMapper));
-            _geoJsonExporter = geoJsonExporter ?? throw new ArgumentNullException(nameof(geoJsonExporter));
+            _geoJsonExporter = new IwxxmGeoJsonExporter(geoJsonExporter ?? throw new ArgumentNullException(nameof(geoJsonExporter)));
             _parser = parser ?? throw new ArgumentNullException(nameof(parser));
             _options = options ?? IwxxmParserOptions.Default;
         }
@@ -223,28 +223,10 @@ namespace Iwxxm.Net
             if (result.IsFailure)
                 return Result<string>.Failure(result.Errors);
 
-            try
-            {
-                string json = _geoJsonExporter.Export(result.Value, options ?? GeoJsonExportOptions.Default);
-                if (json == null)
-                {
-                    return Result<string>.Failure(
-                        IwxxmErrorCodes.GeoJsonExportError,
-                        "The GeoJSON exporter returned no document.",
-                        ErrorCategory.DomainMapping,
-                        result.Value.Id);
-                }
-
-                return Result<string>.Success(json, result.Warnings);
-            }
-            catch (Exception ex) when (!(ex is OutOfMemoryException))
-            {
-                return Result<string>.Failure(
-                    IwxxmErrorCodes.GeoJsonExportError,
-                    $"The GeoJSON export failed: {ex.Message}",
-                    ErrorCategory.DomainMapping,
-                    result.Value.Id);
-            }
+            Result<string> exported = _geoJsonExporter.Export(result.Value, options);
+            return exported.IsFailure
+                ? exported
+                : Result<string>.Success(exported.Value, result.Warnings);
         }
 
         internal static Result<T> WithTextReader<T>(string xmlContent, Func<TextReader, Result<T>> process)

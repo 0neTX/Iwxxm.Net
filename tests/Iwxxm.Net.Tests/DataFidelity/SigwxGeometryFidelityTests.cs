@@ -62,7 +62,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             Assert.Same(turbulence.Areas[0], turbulence.Area);
             Assert.Equal(new GeoCoordinate(10.0, 10.0), Assert.IsType<GeoPolygon>(turbulence.Areas[1]).ExteriorRing[0]);
 
-            using JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(result.Value));
+            using JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(result.Value).Value);
             JsonElement feature = json.RootElement.GetProperty("features").EnumerateArray()
                 .Single(f => f.GetProperty("id").GetString() == TurbulenceFeatureId);
             Assert.Equal("MultiPolygon", feature.GetProperty("geometry").GetProperty("type").GetString());
@@ -84,7 +84,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             IReadOnlyList<GeoCoordinate> hole = Assert.Single(area.InteriorRings);
             Assert.Equal(new GeoCoordinate(48.0, -80.0), hole[0]);
 
-            using JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(result.Value));
+            using JsonDocument json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(result.Value).Value);
             JsonElement rings = json.RootElement.GetProperty("features").EnumerateArray()
                 .Single(f => f.GetProperty("id").GetString() == TurbulenceFeatureId).GetProperty("geometry").GetProperty("coordinates");
             Assert.Equal(2, rings.GetArrayLength());

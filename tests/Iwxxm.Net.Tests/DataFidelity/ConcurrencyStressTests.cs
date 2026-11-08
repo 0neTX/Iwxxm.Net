@@ -75,7 +75,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
                 using var stream = new MemoryStream(bytes);
                 var result = IwxxmParser.Parse(stream);
                 return result.IsSuccess
-                    ? result.Value.ReportType + ":" + result.Value.Id + ":" + IwxxmGeoJsonExporter.ToGeoJson(result.Value).Length
+                    ? result.Value.ReportType + ":" + result.Value.Id + ":" + IwxxmGeoJsonExporter.ToGeoJson(result.Value).Value.Length
                     : "failure:" + Signature(result.Errors);
             });
         }

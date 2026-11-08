@@ -135,7 +135,7 @@ namespace Iwxxm.Net.Tests
                 new CodeListValue<AerodromeCloudAmount>(AerodromeCloudAmount.Unknown, "http://codes.wmo.int/bufr4/codeflag/0-20-008/4"),
                 metar.CloudLayers[1].Amount);
 
-            string geoJson = IwxxmGeoJsonExporter.ToGeoJson(metar, new GeoJsonExportOptions(indented: false, includeBoundingBox: false));
+            string geoJson = IwxxmGeoJsonExporter.ToGeoJson(metar, new GeoJsonExportOptions(indented: false, includeBoundingBox: false)).Value;
             Assert.Contains("\"presentWeatherUris\":[\"http://codes.wmo.int/306/4678/-DZ\",\"http://codes.wmo.int/306/4678/FG\"]", geoJson);
         }
 

@@ -644,7 +644,7 @@ feature: TROPICAL_CYCLONE_CENTRE (Point)
 feature: TROPICAL_CYCLONE_CENTRE (Point)
 ```
 
-`System.Text.Json` is in the box on modern .NET; Iwxxm.Net itself has no JSON dependency and returns a plain `string`. If you already hold a parsed document, call `IwxxmGeoJsonExporter.ToGeoJson(document, options)`. `GeoJsonExportOptions.Pretty` indents the output; `Default` is compact.
+`System.Text.Json` is in the box on modern .NET; Iwxxm.Net itself has no JSON dependency and returns the GeoJSON as a plain `string` inside a `Result<string>`. If you already hold a parsed document, call `IwxxmGeoJsonExporter.ToGeoJson(document, options)`: it returns a `Result<string>` too (an exporter failure is a `GEOJSON-EXPORT-ERROR` value; only a `null` document throws). `GeoJsonExportOptions.Pretty` indents the output; `Default` is compact.
 
 ## 9. Value-object cookbook
 

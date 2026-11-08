@@ -143,8 +143,8 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(fromStream, parser.ProcessToGeoJson(Open(metarPath)).Value);
             Assert.Equal(fromStream, parser.ProcessToGeoJson(metar).Value);
             Assert.Equal(fromStream, parser.ProcessFileToGeoJson(metarPath).Value);
-            Assert.Equal(fromStream, IwxxmGeoJsonExporter.ToGeoJson(IwxxmParser.Parse(metar).Value));
-            Assert.Equal(fromStream, IwxxmGeoJsonExporter.Default.Export(IwxxmParser.Parse(metar).Value));
+            Assert.Equal(fromStream, IwxxmGeoJsonExporter.ToGeoJson(IwxxmParser.Parse(metar).Value).Value);
+            Assert.Equal(fromStream, IwxxmGeoJsonExporter.Default.Export(IwxxmParser.Parse(metar).Value).Value);
             Assert.Contains("\n", IwxxmParser.ParseToGeoJson(metar, new GeoJsonExportOptions(indented: true)).Value, StringComparison.Ordinal);
 
             Assert.True(IwxxmSigwxParser.Parse(Open(wafsPath)).IsSuccess);

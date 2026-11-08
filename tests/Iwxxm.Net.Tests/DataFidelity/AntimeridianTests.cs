@@ -15,7 +15,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
 
         private static JsonElement Export(IwxxmDocument document, out JsonDocument json)
         {
-            json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(document, GeoJsonExportOptions.Default));
+            json = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(document, GeoJsonExportOptions.Default).Value);
             return json.RootElement;
         }
 

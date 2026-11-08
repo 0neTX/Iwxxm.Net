@@ -229,7 +229,7 @@ namespace Iwxxm.Net.Tests.Properties
                 "NZZC", null, null, null, null, "1", T0, T0.AddHours(4), evolvingConditions: new[] { volume });
             Assert.True(report.IsSuccess, string.Join(" | ", report.Errors));
 
-            string geoJson = IwxxmGeoJsonExporter.ToGeoJson(report.Value, GeoJsonExportOptions.Default);
+            string geoJson = IwxxmGeoJsonExporter.ToGeoJson(report.Value, GeoJsonExportOptions.Default).Value;
             using (JsonDocument json = JsonDocument.Parse(geoJson))
             {
                 JsonElement geometry = json.RootElement.GetProperty("features").EnumerateArray()

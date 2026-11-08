@@ -24,7 +24,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
                 "s1", IwxxmReportType.Sigmet, T0, ReportStatus.Normal, PermissibleUsage.Operational,
                 "NZZC", null, null, null, null, "1", T0, T0.AddHours(4), evolvingConditions: volumes);
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            return JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(result.Value, GeoJsonExportOptions.Default));
+            return JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(result.Value, GeoJsonExportOptions.Default).Value);
         }
 
         // Vertices are given as (latitude, unwrapped longitude): longitudes beyond ±180 are wrapped back, as a source would write them.

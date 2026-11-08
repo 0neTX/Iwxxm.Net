@@ -389,7 +389,7 @@ What the file shows (library 1.0.0-rc.1, official XSD, built-in Schematron subse
 
 ## GeoJSON export in detail
 
-`IwxxmParser.ParseFileToGeoJson` and `IwxxmGeoJsonExporter.ToGeoJson` convert any `IwxxmDocument` into an RFC 7946 `FeatureCollection`:
+`IwxxmParser.ParseFileToGeoJson` and `IwxxmGeoJsonExporter.ToGeoJson` convert any `IwxxmDocument` into an RFC 7946 `FeatureCollection`. Both return a `Result<string>`: an exporter failure is a `GEOJSON-EXPORT-ERROR` value (located at the document id), like every other failure; only a `null` document passed to `IwxxmGeoJsonExporter` throws (`ArgumentNullException`). The `*ToGeoJson` members of the parser reuse the exporter facade, so there is one definition of an export failure:
 
 - GML `[latitude, longitude]` is swapped to RFC 7946 section 3.1.1 `[longitude, latitude]`.
 - Polygon interior holes (`GeoPolygon.InteriorRings`) are written as additional linear rings.
@@ -413,8 +413,14 @@ Console.WriteLine(direct.IsSuccess ? $"qvaci: {direct.Value.Length} characters" 
 Result<IwxxmDocument> parsed = IwxxmParser.ParseFile("samples/WAFS-Example.xml");
 if (parsed.IsSuccess)
 {
-    string pretty = IwxxmGeoJsonExporter.ToGeoJson(parsed.Value, GeoJsonExportOptions.Pretty);
-    string[] lines = pretty.Split('\n');
+    Result<string> pretty = IwxxmGeoJsonExporter.ToGeoJson(parsed.Value, GeoJsonExportOptions.Pretty);
+    if (pretty.IsFailure)
+    {
+        Console.WriteLine(pretty.Errors[0]);
+        return;
+    }
+
+    string[] lines = pretty.Value.Split('\n');
     for (int i = 0; i < 31; i++)
     {
         string line = lines[i].TrimEnd('\r');
@@ -711,7 +717,7 @@ The library emits exactly these strings and refers to them through the constants
 | :--- | :--- | :--- |
 | `IWXXM-UNEXPECTED-REPORT-TYPE` | `ParseAs<T>` parsed a different document type than `T`. | Ask for the right type or use `Parse`. |
 | `MAPPER-ERROR` | A document mapper threw or returned nothing. For a bulletin, the code is reported as the item error of that one entry and the other entries are kept. | Bug in a custom `ISigwxDocumentMapper` or report mapper. |
-| `GEOJSON-EXPORT-ERROR` | The GeoJSON exporter threw (`*ToGeoJson` members). | Bug in a custom exporter. |
+| `GEOJSON-EXPORT-ERROR` | The GeoJSON exporter threw or returned nothing (`*ToGeoJson` members of the parser, `IwxxmGeoJsonExporter.Export` and `ToGeoJson`). The error is located at the document id. | Bug in a custom exporter. |
 | `ACL-EMPTY-ENVELOPE` | The deserialized SIGWX envelope holds no report instance. | Empty `iwxxm:report` wrapper. |
 
 ### Metadata, time and measures (`DomainMapping`)
