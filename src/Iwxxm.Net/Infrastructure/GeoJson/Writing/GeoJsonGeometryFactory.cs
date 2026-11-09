@@ -17,7 +17,10 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         {
             List<GeoJsonPosition> line = ToPositions(coordinates);
             if (line.Count > 1 && AntimeridianSplitter.Crosses(line))
-                return GeoJsonGeometry.ForLines(AntimeridianSplitter.SplitLine(line), true);
+            {
+                List<IReadOnlyList<GeoJsonPosition>> parts = AntimeridianSplitter.SplitLine(line);
+                return GeoJsonGeometry.ForLines(parts, parts.Count > 1);
+            }
 
             return GeoJsonGeometry.ForLines(new[] { (IReadOnlyList<GeoJsonPosition>)line }, false);
         }

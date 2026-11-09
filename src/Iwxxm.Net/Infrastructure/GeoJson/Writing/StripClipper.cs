@@ -42,15 +42,34 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             public bool Used { get; set; }
 
             public int Index { get; set; }
+
+            public IReadOnlyList<GeoJsonPosition> Source { get; set; } = Array.Empty<GeoJsonPosition>();
         }
 
         /// <summary>
         /// Clips a chain whose first and last vertices lie outside the strip. <paramref name="shift"/> is added to every
         /// longitude of the result (it maps a strip beyond [-180, 180] back into it).
         /// </summary>
-        public static List<List<GeoJsonPosition>> Clip(IReadOnlyList<Node> chain, IReadOnlyList<GeoJsonPosition> source, double west, double east, double shift)
+        public static List<List<GeoJsonPosition>> Clip(IReadOnlyList<Node> chain, IReadOnlyList<GeoJsonPosition> source, double west, double east, double shift) =>
+            Clip(new[] { (chain, source) }, west, east, shift);
+
+        /// <summary>
+        /// Clips several chains together (each one starts and ends outside the strip and keeps the region on its left, each one
+        /// with its own source positions): the arcs of all chains are joined along the rectangle as one set. The chains of
+        /// the interior rings of a polygon, traversed so that the polygon is on their left (clockwise), cut notches into the
+        /// pieces of the exterior where they leave the strip. The arcs of the first chain come first (the lowest arc indexes).
+        /// </summary>
+        public static List<List<GeoJsonPosition>> Clip(IReadOnlyList<(IReadOnlyList<Node> Chain, IReadOnlyList<GeoJsonPosition> Source)> chains, double west, double east, double shift)
         {
-            List<Arc> arcs = CollectArcs(chain, west, east);
+            var arcs = new List<Arc>();
+            foreach ((IReadOnlyList<Node> chain, IReadOnlyList<GeoJsonPosition> source) in chains)
+            {
+                int first = arcs.Count;
+                CollectArcs(chain, west, east, arcs);
+                for (int a = first; a < arcs.Count; a++)
+                    arcs[a].Source = source;
+            }
+
             var rings = new List<List<GeoJsonPosition>>();
             if (arcs.Count == 0)
                 return rings;
@@ -88,7 +107,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                     current.Used = true;
                     successors.Remove(current);
                     foreach (Node node in current.Nodes)
-                        Append(ring, ToPosition(node, source, shift));
+                        Append(ring, ToPosition(node, current.Source, shift));
 
                     // The successor is the unused arc nearest counterclockwise to the exit point, unless the start arc is at least
                     // as near (a tie closes the ring); see SuccessorIndex for how it is found without scanning every arc.
@@ -319,9 +338,16 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
         }
 
-        private static List<Arc> CollectArcs(IReadOnlyList<Node> chain, double west, double east)
+        /// <summary>Gets a value indicating whether the chain has at least one arc inside the strip that encloses something.</summary>
+        public static bool HasArcs(IReadOnlyList<Node> chain, double west, double east)
         {
             var arcs = new List<Arc>();
+            CollectArcs(chain, west, east, arcs);
+            return arcs.Count > 0;
+        }
+
+        private static void CollectArcs(IReadOnlyList<Node> chain, double west, double east, List<Arc> arcs)
+        {
             Arc? current = null;
             for (int i = 0; i < chain.Count; i++)
             {
@@ -352,8 +378,6 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 if (inside && current != null)
                     current.Nodes.Add(p);
             }
-
-            return arcs;
         }
 
         // A touch of the strip border (a single point) or a run along the border encloses nothing.

@@ -109,6 +109,60 @@ namespace Iwxxm.Net.Tests.Scale
             AssertGrowth(export);
         }
 
+        // TD-SCALE-2: the comb with one small hole in each tooth tip (n + 1 pieces, n holes). Locating the piece that holds each hole is
+        // still holes x pieces, but the pieces are first filtered by their bounding box, so the constant is a few comparisons.
+        private static readonly int[] HoleTeeth = { 2_000, 4_000, 8_000, 16_000 };
+
+        [Fact]
+        public void AntimeridianCombWithAHolePerTooth_Export_IsSubQuadratic()
+        {
+            var points = new List<ScalePoint>();
+            foreach (int teeth in HoleTeeth)
+            {
+                IwxxmDocument document = CombWithHoles(teeth);
+                ScalePoint point = ScaleMeasurement.Measure(teeth, () => IwxxmGeoJsonExporter.ToGeoJson(document).Value);
+                points.Add(point);
+                using (JsonDocument json = JsonDocument.Parse((string)point.LastResult!))
+                {
+                    JsonElement feature = json.RootElement.GetProperty("features")[0];
+                    JsonElement polygons = feature.GetProperty("geometry").GetProperty("coordinates");
+                    Assert.Equal(teeth + 1, polygons.GetArrayLength());
+                    Assert.Equal(teeth, polygons.EnumerateArray().Sum(polygon => polygon.GetArrayLength() - 1));
+                    Assert.False(feature.GetProperty("properties").TryGetProperty("droppedInteriorRings", out _));
+                }
+            }
+
+            AssertGrowth(new ScaleSeries("comb with a hole per tooth GeoJSON export (owner lookup)", "teeth", points));
+        }
+
+        private static IwxxmDocument CombWithHoles(int teeth)
+        {
+            double Wrap(double x) => x > 180.0 ? x - 360.0 : x;
+            double step = 160.0 / teeth;
+            var holes = new List<IEnumerable<GeoCoordinate>>(teeth);
+            for (int i = 0; i < teeth; i++)
+            {
+                double y = -80.0 + (i * step);
+                double low = y + (step * 0.1);
+                double high = y + (step * 0.4);
+                holes.Add(new[]
+                {
+                    new GeoCoordinate(low, Wrap(181.0)), new GeoCoordinate(low, Wrap(184.0)), new GeoCoordinate(high, Wrap(184.0)),
+                    new GeoCoordinate(high, Wrap(181.0)), new GeoCoordinate(low, Wrap(181.0)),
+                });
+            }
+
+            Result<GeoPolygon> polygon = GeoPolygon.Create(ScaleDocuments.Comb(teeth).Select(v => new GeoCoordinate(v.Lat, Wrap(v.X))), holes);
+            Assert.True(polygon.IsSuccess, string.Join(" | ", polygon.Errors.Take(3)));
+            var t0 = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var volumes = new List<EnRoutePhenomenonVolume> { new EnRoutePhenomenonVolume("v1", polygon.Value, null, null) };
+            Result<Sigmet> sigmet = Sigmet.Create(
+                "s1", IwxxmReportType.Sigmet, t0, ReportStatus.Normal, PermissibleUsage.Operational,
+                "NZZC", null, null, null, null, "1", t0, t0.AddHours(4), evolvingConditions: volumes);
+            Assert.True(sigmet.IsSuccess, string.Join(" | ", sigmet.Errors.Take(3)));
+            return sigmet.Value;
+        }
+
         // ---------------------------------------------------------------- 3. polar caps
 
         [Fact]

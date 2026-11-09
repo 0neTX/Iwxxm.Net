@@ -413,6 +413,10 @@ namespace Iwxxm.Net.Tests
             }
         }
 
+        // -180 and 180 are the same point: a line that starts or ends on the antimeridian is written on the side it lies on,
+        // without a zero-length part (TD-GEO-2), so a source vertex at one of them may appear with the other sign.
+        private static (double, double) Key(double lon, double lat) => (Math.Round(Math.Abs(lon) == 180.0 ? 180.0 : lon, 6), Math.Round(lat, 6));
+
         private static Dictionary<string, int> MissingVerticesPerFeature()
         {
             var geoJson = new Dictionary<string, HashSet<(double, double)>>();
@@ -424,7 +428,7 @@ namespace Iwxxm.Net.Tests
                     if (id.Contains('#'))
                         continue;
                     geoJson[id] = new HashSet<(double, double)>(
-                        Flatten(feature.GetProperty("geometry").GetProperty("coordinates")).Select(p => (Math.Round(p[0], 6), Math.Round(p[1], 6))));
+                        Flatten(feature.GetProperty("geometry").GetProperty("coordinates")).Select(p => Key(p[0], p[1])));
                 }
             }
 
@@ -438,14 +442,14 @@ namespace Iwxxm.Net.Tests
                     double[] values = posList.Value.Split((char[])null!, StringSplitOptions.RemoveEmptyEntries)
                         .Select(t => double.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
                     for (int k = 0; k + 1 < values.Length; k += 2)
-                        expected.Add((Math.Round(values[k + 1], 6), Math.Round(values[k], 6))); // source order is "Lat Long"
+                        expected.Add(Key(values[k + 1], values[k])); // source order is "Lat Long"
                 }
 
                 foreach (XElement pos in feature.Element(Iwxxm + "phenomenonGeometry")!.Descendants(Gml + "pos"))
                 {
                     double[] values = pos.Value.Split((char[])null!, StringSplitOptions.RemoveEmptyEntries)
                         .Select(t => double.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
-                    expected.Add((Math.Round(values[1], 6), Math.Round(values[0], 6)));
+                    expected.Add(Key(values[1], values[0]));
                 }
 
                 expected.ExceptWith(geoJson[id]);

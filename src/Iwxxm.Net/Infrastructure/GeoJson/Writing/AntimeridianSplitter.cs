@@ -41,7 +41,11 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         private static bool IsCrossing(GeoJsonPosition a, GeoJsonPosition b) =>
             Math.Abs(b.Lon - a.Lon) > 180.0 && !(Math.Abs(a.Lon) == 180.0 && Math.Abs(b.Lon) == 180.0);
 
-        /// <summary>Cuts a line at every antimeridian crossing.</summary>
+        /// <summary>
+        /// Cuts a line at every antimeridian crossing. A vertex that lies exactly on ±180 is the cut position itself: it is not
+        /// repeated, and a part that would have fewer than two distinct positions (the line only starts or ends on the
+        /// antimeridian) is left out, so no part is a stub. The total length is unchanged.
+        /// </summary>
         public static List<IReadOnlyList<GeoJsonPosition>> SplitLine(IReadOnlyList<GeoJsonPosition> line)
         {
             var parts = new List<IReadOnlyList<GeoJsonPosition>>();
@@ -55,18 +59,54 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 {
                     double boundary = delta < 0 ? 180.0 : -180.0;            // a is east of the antimeridian when b wraps to the west
                     double unwrappedB = b.Lon + (delta < 0 ? 360.0 : -360.0);
-                    double t = (boundary - a.Lon) / (unwrappedB - a.Lon);
-                    double lat = a.Lat + (t * (b.Lat - a.Lat));
-                    current.Add(GeoJsonPosition.Computed(boundary, lat));
-                    parts.Add(current);
+                    double lat;
+                    if (a.Lon == boundary)
+                    {
+                        lat = a.Lat;                                         // the line leaves from the antimeridian itself
+                    }
+                    else if (unwrappedB == boundary)
+                    {
+                        lat = b.Lat;                                         // the line ends on the antimeridian
+                    }
+                    else
+                    {
+                        double t = (boundary - a.Lon) / (unwrappedB - a.Lon);
+                        lat = a.Lat + (t * (b.Lat - a.Lat));
+                    }
+
+                    AppendDistinct(current, GeoJsonPosition.Computed(boundary, lat));
+                    if (HasTwoDistinctPositions(current))
+                        parts.Add(current);
+
                     current = new List<GeoJsonPosition> { GeoJsonPosition.Computed(-boundary, lat) };
+                    AppendDistinct(current, b);
+                    continue;
                 }
 
                 current.Add(b);
             }
 
-            parts.Add(current);
+            if (HasTwoDistinctPositions(current) || parts.Count == 0)
+                parts.Add(current);
+
             return parts;
+        }
+
+        private static void AppendDistinct(List<GeoJsonPosition> positions, GeoJsonPosition position)
+        {
+            if (positions.Count == 0 || !positions[positions.Count - 1].Equals(position))
+                positions.Add(position);
+        }
+
+        private static bool HasTwoDistinctPositions(List<GeoJsonPosition> positions)
+        {
+            for (int i = 1; i < positions.Count; i++)
+            {
+                if (!positions[i].Equals(positions[0]))
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary>Splits a polygon (exterior plus holes) that crosses the antimeridian into polygons inside [-180, 180].</summary>
@@ -105,26 +145,56 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             double max = unwrapped.Max();
             var pieces = new List<List<List<GeoJsonPosition>>>();
             List<StripClipper.Node> ringNodes = RingNodes(exterior, unwrapped);
+            var shapes = new List<HoleShape>(holes.Count);
+            foreach (List<GeoJsonPosition> hole in holes)
+                shapes.Add(new HoleShape(hole, Unwrap(hole), (min + max) / 2.0));
+
             for (int k = (int)Math.Floor((min + 180.0) / 360.0); k <= (int)Math.Floor((max + 180.0) / 360.0); k++)
             {
                 double west = -180.0 + (360.0 * k);
                 double east = west + 360.0;
+                double shift = -360.0 * k;
 
-                // More than one piece inside the strip: assemble them properly (Sutherland-Hodgman would join them
-                // with zero-width bridges along the strip border).
-                List<List<GeoJsonPosition>> separate = ClipSeparatePieces(ringNodes, exterior, west, east, -360.0 * k);
-                if (separate.Count > 1)
+                // Interior rings that reach the strip border (they leave the strip, or run along its border) are cut out of the
+                // exterior with the exterior's own arcs (a notch); the others are holes of the piece that contains them.
+                var cuts = new List<(IReadOnlyList<StripClipper.Node> Chain, IReadOnlyList<GeoJsonPosition> Source)>();
+                var bordering = new List<HoleShape>();
+                var inside = new List<List<GeoJsonPosition>>();
+                foreach (HoleShape shape in shapes)
+                {
+                    List<List<StripClipper.Node>>? chains = shape.BorderChains(west, east);
+                    if (chains != null)
+                    {
+                        bool any = false;
+                        foreach (List<StripClipper.Node> chain in chains)
+                        {
+                            if (StripClipper.HasArcs(chain, west, east))
+                            {
+                                cuts.Add((chain, shape.Positions));
+                                any = true;
+                            }
+                        }
+
+                        if (any)
+                            bordering.Add(shape);
+                        continue;
+                    }
+
+                    List<GeoJsonPosition>? clippedHole = Clip(shape.Positions, shape.Lons, west, east, shift);
+                    if (clippedHole != null)
+                        inside.Add(clippedHole);
+                }
+
+                // More than one piece inside the strip, or a notch to cut: assemble them properly (Sutherland-Hodgman would join
+                // pieces with zero-width bridges along the strip border and cannot cut a notch).
+                List<List<GeoJsonPosition>> separate = ClipSeparatePieces(ringNodes, exterior, west, east, shift, cuts);
+                if (separate.Count > 1 || (separate.Count == 1 && cuts.Count > 0))
                 {
                     var multi = separate.Select(r => new List<List<GeoJsonPosition>> { r }).ToList();
-                    foreach (List<GeoJsonPosition> hole in holes)
+                    PieceIndex? index = inside.Count > 0 && multi.Count > 1 ? new PieceIndex(multi) : null;
+                    foreach (List<GeoJsonPosition> clippedHole in inside)
                     {
-                        List<double> holeLons = Unwrap(hole);
-                        double holeShift = 360.0 * Math.Round(((min + max) / 2.0 - holeLons.Average()) / 360.0);
-                        List<GeoJsonPosition>? clippedHole = Clip(hole, holeLons.Select(l => l + holeShift).ToList(), west, east, -360.0 * k);
-                        if (clippedHole == null)
-                            continue;
-
-                        List<List<GeoJsonPosition>>? owner = multi.FirstOrDefault(p => IsInside(p[0], clippedHole[0]));
+                        List<List<GeoJsonPosition>>? owner = index == null ? multi[0] : index.OwnerOf(clippedHole);
                         if (owner != null)
                             owner.Add(clippedHole);
                         else
@@ -135,17 +205,18 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                     continue;
                 }
 
-                List<GeoJsonPosition>? clipped = Clip(exterior, unwrapped, west, east, -360.0 * k);
+                List<GeoJsonPosition>? clipped = Clip(exterior, unwrapped, west, east, shift);
                 if (clipped == null)
                     continue;
 
                 var rings = new List<List<GeoJsonPosition>> { clipped };
-                foreach (List<GeoJsonPosition> hole in holes)
+                rings.AddRange(inside);
+
+                // Cannot happen for a valid surface (an interior ring that reaches the border lies inside the exterior, which then has
+                // arcs in the strip); kept so that such a ring is never lost: it is written as a plain hole.
+                foreach (HoleShape shape in bordering)
                 {
-                    List<double> holeLons = Unwrap(hole);
-                    double shift = 360.0 * Math.Round(((min + max) / 2.0 - holeLons.Average()) / 360.0);
-                    List<double> shifted = holeLons.Select(l => l + shift).ToList();
-                    List<GeoJsonPosition>? clippedHole = Clip(hole, shifted, west, east, -360.0 * k);
+                    List<GeoJsonPosition>? clippedHole = Clip(shape.Positions, shape.Lons, west, east, shift);
                     if (clippedHole != null)
                         rings.Add(clippedHole);
                 }
@@ -154,6 +225,237 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
 
             return pieces;
+        }
+
+        /// <summary>
+        /// An interior ring at its unwrapped longitudes (shifted by whole turns to lie next to the exterior), oriented clockwise
+        /// (the polygon is on the left of its direction of travel), able to describe how it meets a strip.
+        /// </summary>
+        private sealed class HoleShape
+        {
+            public HoleShape(List<GeoJsonPosition> positions, List<double> lons, double exteriorCentre)
+            {
+                Positions = positions;
+                double turns = 360.0 * Math.Round((exteriorCentre - lons.Average()) / 360.0);
+                Lons = lons.Select(l => l + turns).ToList();
+                List<StripClipper.Node> nodes = RingNodes(positions, Lons);
+                double area = 0.0;
+                for (int i = 0, j = nodes.Count - 1; i < nodes.Count; j = i++)
+                    area += (nodes[j].X * nodes[i].Y) - (nodes[i].X * nodes[j].Y);
+
+                if (area > 0.0)
+                    nodes.Reverse();
+
+                Nodes = nodes;
+            }
+
+            public List<GeoJsonPosition> Positions { get; }
+
+            public List<double> Lons { get; }
+
+            public List<StripClipper.Node> Nodes { get; }
+
+            /// <summary>
+            /// The chains (each starts and ends outside the strip, see <see cref="StripClipper"/>) that describe the part of the ring
+            /// inside the strip [west, east] when the ring leaves the strip or has an edge on its border; <c>null</c> when it is
+            /// entirely inside the closed strip without an edge on the border (a plain hole; touching the border at single
+            /// vertices is valid for a hole). A ring with an edge on the border is cut at its border edges: every stretch
+            /// between two of them is a chain, bracketed by two computed vertices outside the strip.
+            /// </summary>
+            public List<List<StripClipper.Node>>? BorderChains(double west, double east)
+            {
+                int n = Nodes.Count;
+                int outside = Nodes.FindIndex(v => v.X < west || v.X > east);
+                if (outside >= 0)
+                {
+                    var chain = new List<StripClipper.Node>(n + 1);
+                    for (int i = 0; i <= n; i++)
+                        chain.Add(Nodes[(outside + i) % n]);
+
+                    return new List<List<StripClipper.Node>> { chain };
+                }
+
+                bool OnBorderEdge(int edge)
+                {
+                    StripClipper.Node a = Nodes[edge];
+                    StripClipper.Node b = Nodes[(edge + 1) % n];
+                    return a.X == b.X && (a.X == west || a.X == east);
+                }
+
+                int firstBorderEdge = -1;
+                for (int e = 0; e < n && firstBorderEdge < 0; e++)
+                {
+                    if (OnBorderEdge(e))
+                        firstBorderEdge = e;
+                }
+
+                if (firstBorderEdge < 0)
+                    return null;
+
+                var chains = new List<List<StripClipper.Node>>();
+                var run = new List<StripClipper.Node> { Nodes[(firstBorderEdge + 1) % n] };
+                for (int step = 1; step < n; step++)
+                {
+                    int edge = (firstBorderEdge + step) % n;
+                    StripClipper.Node end = Nodes[(edge + 1) % n];
+                    if (!OnBorderEdge(edge))
+                    {
+                        run.Add(end);
+                        continue;
+                    }
+
+                    chains.Add(Bracket(run, west));
+                    run = new List<StripClipper.Node> { end };
+                }
+
+                chains.Add(Bracket(run, west));
+                return chains;
+            }
+
+            // Adds a vertex outside the strip, beside the border the end belongs to, before and after a stretch of the ring.
+            private static List<StripClipper.Node> Bracket(List<StripClipper.Node> run, double west)
+            {
+                StripClipper.Node first = run[0];
+                StripClipper.Node last = run[run.Count - 1];
+                var chain = new List<StripClipper.Node>(run.Count + 2)
+                {
+                    new StripClipper.Node(first.X == west ? west - 1.0 : first.X + 1.0, first.Y, -1),
+                };
+                chain.AddRange(run);
+                chain.Add(new StripClipper.Node(last.X == west ? west - 1.0 : last.X + 1.0, last.Y, -1));
+                return chain;
+            }
+        }
+
+        private readonly struct Box
+        {
+            public Box(IReadOnlyList<GeoJsonPosition> ring)
+            {
+                MinLon = double.PositiveInfinity;
+                MaxLon = double.NegativeInfinity;
+                MinLat = double.PositiveInfinity;
+                MaxLat = double.NegativeInfinity;
+                foreach (GeoJsonPosition p in ring)
+                {
+                    MinLon = Math.Min(MinLon, p.Lon);
+                    MaxLon = Math.Max(MaxLon, p.Lon);
+                    MinLat = Math.Min(MinLat, p.Lat);
+                    MaxLat = Math.Max(MaxLat, p.Lat);
+                }
+            }
+
+            public double MinLon { get; }
+
+            public double MaxLon { get; }
+
+            public double MinLat { get; }
+
+            public double MaxLat { get; }
+
+            public bool Intersects(Box other) =>
+                MinLon <= other.MaxLon && other.MinLon <= MaxLon && MinLat <= other.MaxLat && other.MinLat <= MaxLat;
+
+            public bool Contains(GeoJsonPosition p) => p.Lon >= MinLon && p.Lon <= MaxLon && p.Lat >= MinLat && p.Lat <= MaxLat;
+        }
+
+        /// <summary>
+        /// The pieces of a strip with their bounding boxes, sorted by minimum latitude with a running maximum of the maximum latitude,
+        /// so that the pieces whose box can meet a given box are found without looking at the ones that lie entirely to the north or
+        /// south (the pieces of a comb or a serpentine are stacked in latitude). The answer is exact: it only discards pieces whose box
+        /// does not meet the box of the hole, which cannot contain any of its vertices.
+        /// </summary>
+        private sealed class PieceIndex
+        {
+            private readonly List<List<List<GeoJsonPosition>>> _pieces;
+            private readonly Box[] _boxes;
+            private readonly int[] _byMinLat;
+            private readonly double[] _runningMaxLat;
+
+            public PieceIndex(List<List<List<GeoJsonPosition>>> pieces)
+            {
+                _pieces = pieces;
+                _boxes = pieces.Select(p => new Box(p[0])).ToArray();
+                _byMinLat = Enumerable.Range(0, pieces.Count).ToArray();
+                Array.Sort(_byMinLat, (x, y) =>
+                {
+                    int byLat = _boxes[x].MinLat.CompareTo(_boxes[y].MinLat);
+                    return byLat != 0 ? byLat : x.CompareTo(y);
+                });
+
+                _runningMaxLat = new double[pieces.Count];
+                double max = double.NegativeInfinity;
+                for (int i = 0; i < _byMinLat.Length; i++)
+                {
+                    max = Math.Max(max, _boxes[_byMinLat[i]].MaxLat);
+                    _runningMaxLat[i] = max;
+                }
+            }
+
+            /// <summary>
+            /// The piece that holds a plain hole: a few vertices of the hole spread along its ring, skipping the ones on the strip
+            /// border (±180; a vertex on it has no reliable even-odd answer), are tested against the exterior of each piece whose
+            /// box meets the box of the hole, and the piece that contains most of them wins, the first in list order on a tie.
+            /// <c>null</c> when none contains one.
+            /// </summary>
+            public List<List<GeoJsonPosition>>? OwnerOf(List<GeoJsonPosition> hole)
+            {
+                const int Samples = 5;
+                var samples = new List<GeoJsonPosition>();
+                for (int i = 0; i < hole.Count - 1; i++)
+                {
+                    if (Math.Abs(hole[i].Lon) < 180.0)
+                        samples.Add(hole[i]);
+                }
+
+                int stride = Math.Max(1, samples.Count / Samples);
+                var picked = new List<GeoJsonPosition>(Samples);
+                for (int s = 0; s < samples.Count && picked.Count < Samples; s += stride)
+                    picked.Add(samples[s]);
+
+                var holeBox = new Box(hole);
+
+                // Pieces that can meet the box of the hole: those with minimum latitude up to its top, scanned from the north while
+                // some piece to the south still reaches its bottom.
+                int low = 0;
+                int high = _byMinLat.Length;
+                while (low < high)
+                {
+                    int middle = low + ((high - low) / 2);
+                    if (_boxes[_byMinLat[middle]].MinLat <= holeBox.MaxLat)
+                        low = middle + 1;
+                    else
+                        high = middle;
+                }
+
+                var candidates = new List<int>();
+                for (int i = low - 1; i >= 0 && _runningMaxLat[i] >= holeBox.MinLat; i--)
+                {
+                    int piece = _byMinLat[i];
+                    if (_boxes[piece].Intersects(holeBox))
+                        candidates.Add(piece);
+                }
+
+                candidates.Sort();
+                List<List<GeoJsonPosition>>? owner = null;
+                int bestVotes = 0;
+                foreach (int piece in candidates)
+                {
+                    int votes = 0;
+                    foreach (GeoJsonPosition v in picked)
+                    {
+                        if (_boxes[piece].Contains(v) && IsInside(_pieces[piece][0], v))
+                            votes++;
+                    }
+
+                    if (votes > bestVotes)
+                    {
+                        bestVotes = votes;
+                        owner = _pieces[piece];
+                    }
+                }
+
+                return owner;
+            }
         }
 
         /// <summary>Nodes of a closed ring at their unwrapped longitudes (the closing vertex is not repeated).</summary>
@@ -171,7 +473,13 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         /// The pieces of an unwrapped closed ring inside the strip [west, east], assembled so that the region stays on the left
         /// of the boundary (a clockwise ring is traversed backwards).
         /// </summary>
-        private static List<List<GeoJsonPosition>> ClipSeparatePieces(List<StripClipper.Node> nodes, IReadOnlyList<GeoJsonPosition> source, double west, double east, double shift)
+        private static List<List<GeoJsonPosition>> ClipSeparatePieces(
+            List<StripClipper.Node> nodes,
+            IReadOnlyList<GeoJsonPosition> source,
+            double west,
+            double east,
+            double shift,
+            IReadOnlyList<(IReadOnlyList<StripClipper.Node> Chain, IReadOnlyList<GeoJsonPosition> Source)> cuts)
         {
             double area = 0.0;
             for (int i = 0, j = nodes.Count - 1; i < nodes.Count; j = i++)
@@ -190,7 +498,12 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             for (int i = 0; i <= ordered.Count; i++)
                 chain.Add(ordered[(start + i) % ordered.Count]);
 
-            return StripClipper.Clip(chain, source, west, east, shift);
+            if (cuts.Count == 0)
+                return StripClipper.Clip(chain, source, west, east, shift);
+
+            var all = new List<(IReadOnlyList<StripClipper.Node> Chain, IReadOnlyList<GeoJsonPosition> Source)>(cuts.Count + 1) { (chain, source) };
+            all.AddRange(cuts);
+            return StripClipper.Clip(all, west, east, shift);
         }
 
         /// <summary>
