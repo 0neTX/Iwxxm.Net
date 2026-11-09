@@ -22,6 +22,9 @@ namespace Iwxxm.Net.Demo
 
         public bool NoSchematron { get; private set; }
 
+        /// <summary>True when the complete official WMO Schematron (Iwxxm.Net.Validation.Saxon) replaces the built-in subset.</summary>
+        public bool OfficialSchematron { get; private set; }
+
         public bool NoColor { get; private set; }
 
         public static bool TryParse(IReadOnlyList<string> args, out CliOptions options, out string? error)
@@ -71,6 +74,10 @@ namespace Iwxxm.Net.Demo
                         options.NoSchematron = true;
                         break;
 
+                    case "--official-schematron":
+                        options.OfficialSchematron = true;
+                        break;
+
                     case "--no-color":
                         options.NoColor = true;
                         break;
@@ -91,6 +98,12 @@ namespace Iwxxm.Net.Demo
                         options.InputPath = arg;
                         break;
                 }
+            }
+
+            if (options.NoSchematron && options.OfficialSchematron)
+            {
+                error = "Options '--no-schematron' and '--official-schematron' are mutually exclusive.";
+                return false;
             }
 
             if (string.IsNullOrWhiteSpace(options.InputPath))

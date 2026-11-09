@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
+using Iwxxm.Net.Validation.Saxon;
 
 namespace Iwxxm.Net.Demo
 {
@@ -31,13 +33,18 @@ Options:
   -o, --output <path>  Same as --geojson <path> (use '-' for stdout).
   --pretty             Indent the GeoJSON.
   --no-schematron      Skip the built-in business rules (XSD validation only).
+  --official-schematron
+                       Run the complete official WMO Schematron (all 165 rules, SaxonCS-HE)
+                       instead of the built-in subset. The first run compiles the rules
+                       (about a second). Cannot be combined with --no-schematron.
   --no-color           Never use ANSI colours (also off when output is redirected
                        or NO_COLOR is set).
   -h, --help           Show this help.
 
 Exit codes:
   0  parsed (warnings may be present) and, if requested, exported
-  1  parse or validation errors, or the GeoJSON export failed
+  1  parse or validation errors, or the GeoJSON export failed, or the official
+     Schematron engine could not be initialised (SCHEMATRON-UNAVAILABLE)
   2  usage error
   3  I/O error (input not found or unreadable, output not writable)
 ";
@@ -87,13 +94,40 @@ Exit codes:
             report.Banner("Iwxxm.Net demo");
             report.Info("Input", path);
 
-            Result<IwxxmDocument> result = Parse(path, options.NoSchematron);
-            report.Info("Validation", options.NoSchematron ? "XSD only (--no-schematron)" : "XSD + built-in business rules");
+            // One builder configures both the parser and the GeoJSON exporter.
+            IwxxmParserBuilder builder = CreateBuilder(options);
+
+            report.Info("Validation", DescribeValidation(options));
+            Stopwatch clock = Stopwatch.StartNew();
+            Result<IwxxmDocument> result;
+            try
+            {
+                IwxxmParser parser = options.OfficialSchematron || options.NoSchematron ? builder.Build() : IwxxmParser.Default;
+                result = parser.ProcessFile(path);
+            }
+            catch (Exception ex) when (options.OfficialSchematron && !(ex is OutOfMemoryException))
+            {
+                // The library reports problems as values; a throw here means the Saxon engine itself could not be loaded or
+                // initialised (for example a missing SaxonCS assembly). Say so plainly: it is not an input or I/O problem.
+                report.Verdict(false, $"FAILED: the official Schematron engine could not be initialised ({ex.GetType().Name}: {ex.Message}).");
+                return ExitCode.ParseOrValidationErrors;
+            }
+
+            clock.Stop();
+            if (options.OfficialSchematron)
+            {
+                report.Info("Parse + validate", $"{clock.Elapsed.TotalSeconds:F1} s (the first run includes compiling the official rules)");
+            }
 
             if (result.IsFailure)
             {
                 report.Diagnostics("Diagnostics", result.Errors, result.Warnings);
                 report.Verdict(false, $"FAILED: {result.Errors.Count} error(s), {result.Warnings.Count} warning(s).");
+                if (HasEngineFailure(result))
+                {
+                    Console.Error.WriteLine("The official Schematron engine failed (see the finding above); the document itself was not judged.");
+                }
+
                 return IsIoFailure(result) ? ExitCode.IoError : ExitCode.ParseOrValidationErrors;
             }
 
@@ -102,23 +136,54 @@ Exit codes:
             report.Diagnostics("Diagnostics", result.Errors, result.Warnings);
             report.Verdict(true, $"OK: {document.ReportType} parsed, {result.Warnings.Count} warning(s).");
 
-            return options.ExportGeoJson ? ExportGeoJson(document, options, report) : ExitCode.Ok;
+            return options.ExportGeoJson ? ExportGeoJson(document, builder, options, report) : ExitCode.Ok;
         }
 
         /// <summary>
-        /// Entry-point selection, as the guide prescribes: <see cref="IwxxmParser"/> reads every product, including the WAFS SIGWX
+        /// Pipeline selection, as the guide prescribes: <see cref="IwxxmParser"/> reads every product, including the WAFS SIGWX
         /// forecast (both <c>iwxxm:WAFSSignificantWeatherForecast</c> and the compact <c>iwxxm:SIGWXReport</c>) and collective
-        /// bulletins, so no fallback to <see cref="IwxxmSigwxParser"/> is needed. That one only matters if you want the
-        /// SIGWX-only pipeline or a typed <c>Result&lt;Sigwx&gt;</c> directly.
+        /// bulletins, so no fallback to <see cref="IwxxmSigwxParser"/> is needed. The default instance serves the common case;
+        /// the builder is used only when a non-default pipeline was requested.
         /// </summary>
-        private static Result<IwxxmDocument> Parse(string path, bool noSchematron)
+        private static IwxxmParserBuilder CreateBuilder(CliOptions options)
         {
-            // The default instance for the common case; the builder only when a non-default pipeline was requested.
-            IwxxmParser parser = noSchematron
-                ? new IwxxmParserBuilder().WithoutSchematron().Build()
-                : IwxxmParser.Default;
+            var builder = new IwxxmParserBuilder();
+            if (options.NoSchematron)
+            {
+                builder.WithoutSchematron();
+            }
+            else if (options.OfficialSchematron)
+            {
+                // Extension method of Iwxxm.Net.Validation.Saxon: replaces the built-in subset with the 165 official rules.
+                builder.UseOfficialSchematron();
+            }
 
-            return parser.ProcessFile(path);
+            return builder;
+        }
+
+        private static string DescribeValidation(CliOptions options)
+        {
+            if (options.NoSchematron)
+            {
+                return "XSD only (--no-schematron)";
+            }
+
+            return options.OfficialSchematron
+                ? "XSD + official WMO Schematron (all 165 rules, SaxonCS-HE)"
+                : "XSD + built-in business rules (subset: 11 of the 165 official rules)";
+        }
+
+        private static bool HasEngineFailure(Result<IwxxmDocument> result)
+        {
+            foreach (ValidationError error in result.Errors)
+            {
+                if (error.Code == OfficialSchematronValidator.UnavailableCode || error.Code == OfficialSchematronValidator.ExecutionErrorCode)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsIoFailure(Result<IwxxmDocument> result)
@@ -136,7 +201,7 @@ Exit codes:
             return false;
         }
 
-        private static int ExportGeoJson(IwxxmDocument document, CliOptions options, ConsoleReport report)
+        private static int ExportGeoJson(IwxxmDocument document, IwxxmParserBuilder builder, CliOptions options, ConsoleReport report)
         {
             string target = options.ResolveGeoJsonPath();
             bool toStdout = target == CliOptions.StdoutMarker;
@@ -148,7 +213,7 @@ Exit codes:
             }
 
             // Export takes the already-parsed document (no second parse); a failure is a value, like a parse failure.
-            Result<string> exported = IwxxmGeoJsonExporter.ToGeoJson(
+            Result<string> exported = builder.BuildGeoJsonExporter().Export(
                 document,
                 options.PrettyGeoJson ? GeoJsonExportOptions.Pretty : GeoJsonExportOptions.Default);
 

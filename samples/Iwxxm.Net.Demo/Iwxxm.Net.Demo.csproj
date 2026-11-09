@@ -2,22 +2,27 @@
 
   <!--
     Demo console application. It consumes the library exactly as an application would (the core assembly targets
-    netstandard2.0/2.1, so a net8.0 consumer picks one of those). It is deliberately NOT part of Iwxxm.Net.slnx, the
-    Dockerfile stages or the CI workflow: it is never packed, tested or covered. Build it explicitly (see README.md).
+    netstandard2.0/2.1, so a net10.0 consumer picks one of those). It targets net10.0 because the optional
+    Iwxxm.Net.Validation.Saxon package (the complete official WMO Schematron, enabled with the official-schematron option) only
+    targets net10.0; SaxonCS-HE restores transitively through that project reference, with the version pinned centrally
+    in Directory.Packages.props. It is deliberately NOT part of Iwxxm.Net.slnx, the Dockerfile stages or the CI workflow:
+    it is never packed, tested or covered. Build it explicitly (see README.md).
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Iwxxm.Net.Demo</RootNamespace>
     <AssemblyName>Iwxxm.Net.Demo</AssemblyName>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- SaxonCS resolves the "en" culture; the globalization-invariant mode makes the official Schematron fail to compile. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Iwxxm.Net/Iwxxm.Net.csproj" />
+    <ProjectReference Include="../../src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj" />
   </ItemGroup>
 
 </Project>
