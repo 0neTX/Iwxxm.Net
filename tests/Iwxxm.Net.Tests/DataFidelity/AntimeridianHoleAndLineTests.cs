@@ -1,0 +1,371 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using Iwxxm.Net.Reports;
+using Xunit;
+
+namespace Iwxxm.Net.Tests.DataFidelity
+{
+    /// <summary>
+    /// Interior rings of polygons that cross the antimeridian (not polar caps), and lines with a vertex exactly on ±180.
+    /// The assertions describe the behaviour a consumer needs: the exported area equals the exterior minus the holes, no hole
+    /// shares a segment with the exterior of its polygon (a hole that touches its shell along an edge is invalid for GEOS and
+    /// PostGIS: the correct output is a notch in the exterior), and a hole that cannot be attached to a piece is counted in
+    /// <c>droppedInteriorRings</c> (docs/REFERENCE.md), never lost silently. Known defects are skipped and recorded in
+    /// TECHNICAL_DEBT.md (TD-GEO-1, TD-GEO-2).
+    /// </summary>
+    public sealed class AntimeridianHoleAndLineTests
+    {
+        private static readonly DateTimeOffset T0 = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        private const double Tolerance = 1e-9;
+
+        // Vertices are (latitude, unwrapped longitude); longitudes beyond ±180 are wrapped back, as a GML source would write them.
+        private static double Wrap(double x)
+        {
+            double lon = ((x + 180.0) % 360.0 + 360.0) % 360.0 - 180.0;
+            return lon == -180.0 && x > 0 ? 180.0 : lon;
+        }
+
+        private static IEnumerable<GeoCoordinate> Coordinates((double Lat, double X)[] ring) =>
+            ring.Select(v => new GeoCoordinate(v.Lat, Wrap(v.X)));
+
+        private static GeoPolygon Polygon((double Lat, double X)[] exterior, params (double Lat, double X)[][] holes)
+        {
+            var result = GeoPolygon.Create(Coordinates(exterior), holes.Select(Coordinates));
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            return result.Value;
+        }
+
+        private static JsonDocument Export(IwxxmDocument document) =>
+            JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(document, GeoJsonExportOptions.Default).Value);
+
+        private static JsonDocument ExportArea(GeoPolygon area)
+        {
+            var volumes = new List<EnRoutePhenomenonVolume> { new EnRoutePhenomenonVolume("v1", area, null, null) };
+            var result = Sigmet.Create(
+                "s1", IwxxmReportType.Sigmet, T0, ReportStatus.Normal, PermissibleUsage.Operational,
+                "NZZC", null, null, null, null, "1", T0, T0.AddHours(4), evolvingConditions: volumes);
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            return Export(result.Value);
+        }
+
+        private static List<List<double[][]>> Polygons(JsonElement geometry)
+        {
+            string type = geometry.GetProperty("type").GetString()!;
+            JsonElement coordinates = geometry.GetProperty("coordinates");
+            IEnumerable<JsonElement> polygons = type == "Polygon" ? new[] { coordinates } : coordinates.EnumerateArray();
+            return polygons.Select(p => p.EnumerateArray().Select(CircleGeometryTests.Ring).ToList()).ToList();
+        }
+
+        private static double PlanarArea(List<List<double[][]>> polygons) =>
+            polygons.Sum(p => p.Select((ring, i) => Math.Abs(CircleGeometryTests.SignedArea(ring)) * (i == 0 ? 1 : -1)).Sum());
+
+        private static double SourceArea((double Lat, double X)[] ring) =>
+            Math.Abs(CircleGeometryTests.SignedArea(ring.Select(v => new[] { v.X, v.Lat }).ToArray()));
+
+        private static double ExpectedArea((double Lat, double X)[] exterior, params (double Lat, double X)[][] holes) =>
+            SourceArea(exterior) - holes.Sum(SourceArea);
+
+        private static int Dropped(JsonDocument json) =>
+            json.RootElement.GetProperty("features")[0].GetProperty("properties").TryGetProperty("droppedInteriorRings", out JsonElement n) ? n.GetInt32() : 0;
+
+        private static int HoleCount(List<List<double[][]>> polygons) => polygons.Sum(p => p.Count - 1);
+
+        /// <summary>Length of the common part of two segments when they are collinear (0 when they only cross or touch at a point).</summary>
+        private static double SharedLength(double[] a1, double[] a2, double[] b1, double[] b2)
+        {
+            double dx = a2[0] - a1[0];
+            double dy = a2[1] - a1[1];
+            double length = Math.Sqrt((dx * dx) + (dy * dy));
+            if (length < Tolerance)
+                return 0.0;
+
+            double Cross(double[] p) => ((p[0] - a1[0]) * dy - (p[1] - a1[1]) * dx) / length;
+            if (Math.Abs(Cross(b1)) > Tolerance || Math.Abs(Cross(b2)) > Tolerance)
+                return 0.0;
+
+            double Along(double[] p) => (((p[0] - a1[0]) * dx) + ((p[1] - a1[1]) * dy)) / length;
+            double low = Math.Max(0.0, Math.Min(Along(b1), Along(b2)));
+            double high = Math.Min(length, Math.Max(Along(b1), Along(b2)));
+            return Math.Max(0.0, high - low);
+        }
+
+        private static List<string> HolesSharingAnEdgeWithTheirShell(List<List<double[][]>> polygons)
+        {
+            var shared = new List<string>();
+            for (int p = 0; p < polygons.Count; p++)
+            {
+                double[][] shell = polygons[p][0];
+                for (int h = 1; h < polygons[p].Count; h++)
+                {
+                    double[][] hole = polygons[p][h];
+                    for (int i = 1; i < hole.Length; i++)
+                    {
+                        for (int j = 1; j < shell.Length; j++)
+                        {
+                            double length = SharedLength(shell[j - 1], shell[j], hole[i - 1], hole[i]);
+                            if (length > Tolerance)
+                                shared.Add($"polygon {p}, hole {h}: segment {i} shares {length:0.######} with shell segment {j}");
+                        }
+                    }
+                }
+            }
+
+            return shared;
+        }
+
+        // ---------------------------------------------------------------- a hole that crosses the antimeridian (TD-GEO-1)
+
+        private static readonly (double Lat, double X)[] Box = { (0, 170), (0, 190), (10, 190), (10, 170), (0, 170) };
+        private static readonly (double Lat, double X)[] BoxHole = { (4, 175), (4, 185), (6, 185), (6, 175), (4, 175) };
+
+        [Fact]
+        public void HoleCrossingTheAntimeridian_KeepsTheTotalArea_OfExteriorMinusHole()
+        {
+            using (JsonDocument json = ExportArea(Polygon(Box, BoxHole)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(ExpectedArea(Box, BoxHole), PlanarArea(polygons), 6);
+                Assert.Equal(0, Dropped(json));
+            }
+        }
+
+        [Fact(Skip = "Known defect: a hole that crosses the antimeridian is written as a hole sharing the edge x=+-180 with its shell in both pieces (invalid for GEOS/PostGIS; a notch is expected); see TECHNICAL_DEBT.md TD-GEO-1")]
+        public void HoleCrossingTheAntimeridian_DoesNotShareASegmentWithTheExterior()
+        {
+            using (JsonDocument json = ExportArea(Polygon(Box, BoxHole)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(2, polygons.Count);
+                Assert.Empty(HolesSharingAnEdgeWithTheirShell(polygons));
+            }
+        }
+
+        // ---------------------------------------------------------------- holes in a polygon that splits into several pieces
+
+        // A comb: a spine west of 180 and two teeth that reach east across it. East of 180 the teeth are two separate pieces.
+        private static readonly (double Lat, double X)[] Comb =
+            { (0, 170), (0, 190), (5, 190), (5, 175), (25, 175), (25, 190), (30, 190), (30, 170), (0, 170) };
+
+        [Fact]
+        public void Comb_HoleFullyInsideTheEastStripNextToTheBorder_IsAttachedToItsPiece()
+        {
+            (double Lat, double X)[] h = { (1, 181), (1, 184), (4, 184), (4, 181), (1, 181) };
+            using (JsonDocument json = ExportArea(Polygon(Comb, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(3, polygons.Count);
+                Assert.Equal(1, HoleCount(polygons));
+                Assert.Equal(ExpectedArea(Comb, h), PlanarArea(polygons), 6);
+                Assert.Equal(0, Dropped(json));
+                Assert.Empty(HolesSharingAnEdgeWithTheirShell(polygons));
+            }
+        }
+
+        [Fact]
+        public void Comb_HoleFarFromTheBorderInTheUpperTooth_IsAttachedToTheUpperTooth()
+        {
+            (double Lat, double X)[] h = { (26, 185), (26, 189), (29, 189), (29, 185), (26, 185) };
+            using (JsonDocument json = ExportArea(Polygon(Comb, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(ExpectedArea(Comb, h), PlanarArea(polygons), 6);
+                Assert.Equal(0, Dropped(json));
+                var owner = Assert.Single(polygons, p => p.Count == 2);
+                Assert.True(owner[0].Min(c => c[1]) >= 25.0, "the hole belongs to the piece of the upper tooth");
+            }
+        }
+
+        [Fact]
+        public void Comb_HoleInTheWesternSpine_IsKeptWithoutBeingCounted()
+        {
+            (double Lat, double X)[] h = { (10, 171), (10, 174), (20, 174), (20, 171), (10, 171) };
+            using (JsonDocument json = ExportArea(Polygon(Comb, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(ExpectedArea(Comb, h), PlanarArea(polygons), 6);
+                Assert.Equal(0, Dropped(json));
+                Assert.Equal(1, HoleCount(polygons));
+            }
+        }
+
+        [Fact]
+        public void Comb_HoleTouchingTheAntimeridianAtAVertex_IsAttachedOrCounted_NeverLostSilently()
+        {
+            (double Lat, double X)[] h = { (2, 180), (1, 184), (4, 184), (2, 180) };
+            using (JsonDocument json = ExportArea(Polygon(Comb, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                bool kept = Math.Abs(PlanarArea(polygons) - ExpectedArea(Comb, h)) < 1e-6;
+                Assert.True(kept || Dropped(json) == 1, $"hole lost silently: area {PlanarArea(polygons)}, dropped {Dropped(json)}");
+                Assert.InRange(Dropped(json), 0, 1);
+            }
+        }
+
+        // A serpentine: three horizontal bars joined alternately at the east and at the west end, so both strips hold two pieces.
+        private static readonly (double Lat, double X)[] Serpentine =
+        {
+            (0, 170), (0, 190), (10, 190), (10, 173), (17, 173), (17, 190), (20, 190), (20, 170), (7, 170), (7, 187), (3, 187), (3, 170), (0, 170),
+        };
+
+        [Fact]
+        public void Serpentine_HoleCrossingTheAntimeridian_IsCountedAtMostOnce_AndNeverLostSilently()
+        {
+            // Inside the middle bar (latitude 7 to 10), astride 180.
+            (double Lat, double X)[] h = { (8, 177), (8, 183), (9, 183), (9, 177), (8, 177) };
+            using (JsonDocument json = ExportArea(Polygon(Serpentine, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(4, polygons.Count);
+                bool kept = Math.Abs(PlanarArea(polygons) - ExpectedArea(Serpentine, h)) < 1e-6;
+                Assert.True(kept || Dropped(json) >= 1, $"hole lost silently: area {PlanarArea(polygons)} instead of {ExpectedArea(Serpentine, h)}, dropped {Dropped(json)}");
+                Assert.InRange(Dropped(json), 0, 1); // one source hole is never counted more than once
+            }
+        }
+
+        public static IEnumerable<object[]> HoleStarts()
+        {
+            foreach (bool reversed in new[] { false, true })
+            {
+                for (int rotation = 0; rotation < 4; rotation++)
+                    yield return new object[] { rotation, reversed };
+            }
+        }
+
+        // Hole astride 180 in the middle bar of the serpentine, written from a given start vertex and direction.
+        private static (double Lat, double X)[] StraddlingHole(int rotation, bool reversed)
+        {
+            var corners = new List<(double Lat, double X)> { (8, 177), (8, 183), (9, 183), (9, 177) };
+            if (reversed)
+                corners.Reverse();
+
+            var ring = corners.Skip(rotation).Concat(corners.Take(rotation)).ToList();
+            ring.Add(ring[0]);
+            return ring.ToArray();
+        }
+
+        [Theory]
+        [MemberData(nameof(HoleStarts))]
+        public void Serpentine_HoleCrossingTheAntimeridian_IsNeverLostSilently_WhicheverVertexItStartsAt(int rotation, bool reversed)
+        {
+            (double Lat, double X)[] h = StraddlingHole(rotation, reversed);
+            using (JsonDocument json = ExportArea(Polygon(Serpentine, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                bool kept = Math.Abs(PlanarArea(polygons) - ExpectedArea(Serpentine, h)) < 1e-6;
+                Assert.True(kept || Dropped(json) >= 1, $"hole lost silently: area {PlanarArea(polygons)} instead of {ExpectedArea(Serpentine, h)}, dropped {Dropped(json)}");
+                Assert.InRange(Dropped(json), 0, 1);
+            }
+        }
+
+        [Theory(Skip = "Known defect: the owner piece of a hole is chosen from its first clipped vertex, which lies on the strip border when the hole crosses the antimeridian; depending on the start vertex the west half is dropped (counted as droppedInteriorRings=1) while the east half is still written (area 210 instead of 207); see TECHNICAL_DEBT.md TD-GEO-1")]
+        [MemberData(nameof(HoleStarts))]
+        public void Serpentine_HoleCrossingTheAntimeridian_KeepsTheWholeAreaInEveryVertexOrder(int rotation, bool reversed)
+        {
+            (double Lat, double X)[] h = StraddlingHole(rotation, reversed);
+            using (JsonDocument json = ExportArea(Polygon(Serpentine, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(ExpectedArea(Serpentine, h), PlanarArea(polygons), 6);
+                Assert.Equal(0, Dropped(json));
+                Assert.Empty(HolesSharingAnEdgeWithTheirShell(polygons));
+            }
+        }
+
+        [Fact]
+        public void Serpentine_HoleFullyInsideOneBar_IsAttachedWithoutBeingCounted()
+        {
+            (double Lat, double X)[] h = { (8, 176), (8, 178), (9, 178), (9, 176), (8, 176) };
+            using (JsonDocument json = ExportArea(Polygon(Serpentine, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(ExpectedArea(Serpentine, h), PlanarArea(polygons), 6);
+                Assert.Equal(0, Dropped(json));
+                Assert.Equal(1, HoleCount(polygons));
+            }
+        }
+
+        // ---------------------------------------------------------------- lines with a vertex exactly on the antimeridian (TD-GEO-2)
+
+        private static List<double[][]> ExportTrack(params (double Lat, double Lon)[] points)
+        {
+            var tca = Tca.Create(
+                "t1", T0, ReportStatus.Normal, PermissibleUsage.Operational, "RJTD",
+                observation: new TropicalCycloneTrackPoint(T0, new GeoCoordinate(points[0].Lat, points[0].Lon), null),
+                forecasts: points.Skip(1).Select((p, i) => new TropicalCycloneTrackPoint(T0.AddHours(6 * (i + 1)), new GeoCoordinate(p.Lat, p.Lon), null)).ToArray()).Value;
+
+            using (JsonDocument json = Export(tca))
+            {
+                JsonElement track = json.RootElement.GetProperty("features").EnumerateArray()
+                    .Single(f => f.GetProperty("properties").GetProperty("featureType").GetString() == "TC_TRACK")
+                    .GetProperty("geometry");
+                JsonElement coordinates = track.GetProperty("coordinates");
+                return track.GetProperty("type").GetString() == "LineString"
+                    ? new List<double[][]> { CircleGeometryTests.Ring(coordinates) }
+                    : coordinates.EnumerateArray().Select(CircleGeometryTests.Ring).ToList();
+            }
+        }
+
+        private static double LineLength(IEnumerable<double[][]> parts) =>
+            parts.Sum(part => Enumerable.Range(1, part.Length - 1).Sum(i => Math.Sqrt(Math.Pow(part[i][0] - part[i - 1][0], 2) + Math.Pow(part[i][1] - part[i - 1][1], 2))));
+
+        private static double SourceLength((double Lat, double Lon)[] points)
+        {
+            double total = 0.0;
+            for (int i = 1; i < points.Length; i++)
+            {
+                double dLon = points[i].Lon - points[i - 1].Lon;
+                dLon = dLon > 180.0 ? dLon - 360.0 : dLon < -180.0 ? dLon + 360.0 : dLon;
+                double dLat = points[i].Lat - points[i - 1].Lat;
+                total += Math.Sqrt((dLon * dLon) + (dLat * dLat));
+            }
+
+            return total;
+        }
+
+        public static IEnumerable<object[]> LinesWithAMiddleVertexOnTheAntimeridian()
+        {
+            yield return new object[] { new[] { (8.0, 170.0), (10.0, 180.0), (12.0, -170.0) } };   // on +180, going east
+            yield return new object[] { new[] { (12.0, -170.0), (10.0, -180.0), (8.0, 170.0) } };   // on -180, going west
+        }
+
+        public static IEnumerable<object[]> LinesWithAnEndVertexOnTheAntimeridian()
+        {
+            yield return new object[] { new[] { (10.0, 180.0), (12.0, -170.0) } };                  // starts on +180
+            yield return new object[] { new[] { (8.0, 170.0), (10.0, -180.0) } };                   // ends on -180 (reached the short way east)
+            yield return new object[] { new[] { (10.0, -180.0), (8.0, 170.0) } };                   // starts on -180
+            yield return new object[] { new[] { (12.0, -170.0), (10.0, 180.0) } };                  // ends on +180 (reached the short way west)
+        }
+
+        private static void AssertNoDegeneratePart_AndLengthKept((double Lat, double Lon)[] points)
+        {
+            List<double[][]> parts = ExportTrack(points);
+
+            string described = string.Join(" | ", parts.Select(p => string.Join(" ", p.Select(c => $"({c[0]},{c[1]})"))));
+            Assert.All(parts, part => Assert.True(part.Select(c => (c[0], c[1])).Distinct().Count() >= 2, "degenerate part in " + described));
+            Assert.Equal(SourceLength(points), LineLength(parts), 6);
+        }
+
+        [Theory]
+        [MemberData(nameof(LinesWithAMiddleVertexOnTheAntimeridian))]
+        public void LineWithAMiddleVertexOnTheAntimeridian_HasNoDegeneratePart_AndKeepsItsLength((double Lat, double Lon)[] points) =>
+            AssertNoDegeneratePart_AndLengthKept(points);
+
+        [Theory(Skip = "Known defect: SplitLine repeats the boundary position when the first or last vertex lies exactly on +-180, leaving a zero-length part such as [(180,10),(180,10)]; see TECHNICAL_DEBT.md TD-GEO-2")]
+        [MemberData(nameof(LinesWithAnEndVertexOnTheAntimeridian))]
+        public void LineWithAnEndVertexOnTheAntimeridian_HasNoDegeneratePart_AndKeepsItsLength((double Lat, double Lon)[] points) =>
+            AssertNoDegeneratePart_AndLengthKept(points);
+    }
+}
