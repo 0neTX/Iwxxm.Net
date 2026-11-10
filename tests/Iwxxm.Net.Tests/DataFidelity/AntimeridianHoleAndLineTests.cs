@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using Iwxxm.Net.Infrastructure.GeoJson.Writing;
 using Iwxxm.Net.Reports;
 using Xunit;
 
@@ -541,6 +542,126 @@ namespace Iwxxm.Net.Tests.DataFidelity
                 Assert.Equal(0, Dropped(json));
                 Assert.Equal(1, HoleCount(polygons));
             }
+        }
+
+        // ---------------------------------------------------------------- interior rings that are not inside the exterior
+
+        /// <summary>
+        /// The interior ring is not inside the exterior (GeoPolygon only checks its length): it must be left out and counted once,
+        /// never cut out of the strip as a notch, which would close through the corners of the strip (a world-sized ring).
+        /// </summary>
+        private static void AssertHoleDroppedAndExteriorKept((double Lat, double X)[] exterior, (double Lat, double X)[] hole, int expectedMembers)
+        {
+            using (JsonDocument json = ExportArea(Polygon(exterior, hole)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(expectedMembers, polygons.Count);
+                Assert.Equal(SourceArea(exterior), PlanarArea(polygons), 6);
+                Assert.Equal(1, Dropped(json));
+                Assert.Equal(0, HoleCount(polygons));
+                Assert.All(Rings(polygons), ring => Assert.DoesNotContain(ring, c => Math.Abs(c[1]) == 90.0));
+                Assert.All(polygons, p => Assert.All(p[0], c => Assert.InRange(c[1], exterior.Min(v => v.Lat), exterior.Max(v => v.Lat))));
+                AssertValidRings(polygons);
+            }
+        }
+
+        [Fact]
+        public void HoleEntirelyOutsideTheExterior_AcrossTheAntimeridian_IsDroppedAndCounted()
+        {
+            (double Lat, double X)[] h = { (20, 175), (20, 185), (22, 185), (22, 175), (20, 175) };
+            AssertHoleDroppedAndExteriorKept(Box, h, 2);
+        }
+
+        [Fact]
+        public void HolePokingOutOfTheTopEdge_AcrossTheAntimeridian_IsDroppedAndCounted()
+        {
+            (double Lat, double X)[] h = { (8, 175), (8, 185), (12, 185), (12, 175), (8, 175) };
+            AssertHoleDroppedAndExteriorKept(Box, h, 2);
+        }
+
+        [Fact]
+        public void HolePokingOutSideways_WhileCrossingTheAntimeridian_IsDroppedAndCounted()
+        {
+            // Longitude 195 is beyond the exterior (170 to 190) on the east side.
+            (double Lat, double X)[] h = { (4, 175), (4, 195), (6, 195), (6, 175), (4, 175) };
+            AssertHoleDroppedAndExteriorKept(Box, h, 2);
+        }
+
+        [Fact]
+        public void HoleWithASingleVertexOutsideTheExterior_IsDroppedAndCounted()
+        {
+            (double Lat, double X)[] h = { (4, 175), (4, 185), (11, 183), (6, 175), (4, 175) };
+            AssertHoleDroppedAndExteriorKept(Box, h, 2);
+        }
+
+        [Fact]
+        public void HoleOutsideTheExterior_InAPolygonThatSplitsIntoSeveralPieces_IsDroppedAndCounted()
+        {
+            // The gap between the teeth of the comb (latitude 5 to 25, east of 175) is outside the exterior; the hole is astride 180.
+            (double Lat, double X)[] h = { (10, 177), (10, 183), (15, 183), (15, 177), (10, 177) };
+            AssertHoleDroppedAndExteriorKept(Comb, h, 3);
+        }
+
+        [Fact]
+        public void HoleOutsideTheExterior_ReachingTheBorderFromTheEastOnly_IsDroppedAndCounted()
+        {
+            (double Lat, double X)[] h = { (20, 180), (20, 185), (22, 185), (22, 180), (20, 180) };
+            AssertHoleDroppedAndExteriorKept(Box, h, 2);
+        }
+
+        [Fact]
+        public void HoleCrossingTheBorderSeveralTimes_InsideTheExterior_IsCutOutAsNotches()
+        {
+            // A "C" whose bars end beyond 180 on the east: the ring crosses 180 four times.
+            (double Lat, double X)[] h = { (2, 175), (2, 185), (4, 185), (4, 177), (6, 177), (6, 185), (8, 185), (8, 175), (2, 175) };
+            using (JsonDocument json = ExportArea(Polygon(Box, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(ExpectedArea(Box, h), PlanarArea(polygons), 6);
+                Assert.Equal(0, Dropped(json));
+                Assert.Equal(0, HoleCount(polygons));
+                Assert.All(Rings(polygons), ring => Assert.DoesNotContain(ring, c => Math.Abs(c[1]) == 90.0));
+                AssertValidRings(polygons);
+            }
+        }
+
+        [Fact]
+        public void HoleCrossingTheBorderSeveralTimes_WithAVertexTouchingTheShell_IsStillANotch()
+        {
+            // Same "C", with its lower bar on the lower edge of the exterior (an edge shared with the shell is invalid GML, a vertex is not).
+            (double Lat, double X)[] h = { (0, 176), (2, 185), (4, 185), (4, 177), (6, 177), (6, 185), (8, 185), (8, 175), (0, 176) };
+            using (JsonDocument json = ExportArea(Polygon(Box, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(0, Dropped(json));
+                Assert.Equal(ExpectedArea(Box, h), PlanarArea(polygons), 6);
+                Assert.All(Rings(polygons), ring => Assert.DoesNotContain(ring, c => Math.Abs(c[1]) == 90.0));
+            }
+        }
+
+        [Fact]
+        public void StripClipper_NeverClosesARingMadeOnlyOfNotchArcs_AndReportsTheirSource()
+        {
+            // The exterior has no arc in the strip; the notch chain (it enters at latitude 5 and leaves at 3 on the west border, so the
+            // arc can only be closed round the whole rectangle) has one.
+            var exterior = new List<StripClipper.Node> { new StripClipper.Node(200.0, 0.0, 0), new StripClipper.Node(210.0, 5.0, 1), new StripClipper.Node(200.0, 0.0, 0) };
+            var notch = new List<StripClipper.Node>
+            {
+                new StripClipper.Node(-190.0, 5.0, -1), new StripClipper.Node(-170.0, 5.0, 1), new StripClipper.Node(-170.0, 3.0, 0), new StripClipper.Node(-190.0, 3.0, -1),
+            };
+            var source = new List<GeoJsonPosition> { new GeoJsonPosition(-170.0, 3.0), new GeoJsonPosition(-170.0, 5.0) };
+            var orphans = new List<IReadOnlyList<GeoJsonPosition>>();
+
+            List<List<GeoJsonPosition>> rings = StripClipper.Clip(
+                new (IReadOnlyList<StripClipper.Node> Chain, IReadOnlyList<GeoJsonPosition> Source)[] { (exterior, source), (notch, source) },
+                -180.0, 180.0, 0.0, orphans);
+
+            Assert.Empty(rings);
+            Assert.Single(orphans);
+            Assert.Same(source, orphans[0]);
         }
 
         // ---------------------------------------------------------------- lines with a vertex exactly on the antimeridian (TD-GEO-2)

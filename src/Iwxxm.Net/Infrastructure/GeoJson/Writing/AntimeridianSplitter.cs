@@ -145,6 +145,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             double max = unwrapped.Max();
             var pieces = new List<List<List<GeoJsonPosition>>>();
             List<StripClipper.Node> ringNodes = RingNodes(exterior, unwrapped);
+            var shell = new Shell(ringNodes);
             var shapes = new List<HoleShape>(holes.Count);
             foreach (List<GeoJsonPosition> hole in holes)
                 shapes.Add(new HoleShape(hole, Unwrap(hole), (min + max) / 2.0));
@@ -162,21 +163,36 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 var inside = new List<List<GeoJsonPosition>>();
                 foreach (HoleShape shape in shapes)
                 {
+                    if (shape.Dropped)
+                        continue;
+
                     List<List<StripClipper.Node>>? chains = shape.BorderChains(west, east);
                     if (chains != null)
                     {
-                        bool any = false;
+                        var shapeCuts = new List<List<StripClipper.Node>>();
                         foreach (List<StripClipper.Node> chain in chains)
                         {
                             if (StripClipper.HasArcs(chain, west, east))
-                            {
-                                cuts.Add((chain, shape.Positions));
-                                any = true;
-                            }
+                                shapeCuts.Add(chain);
                         }
 
-                        if (any)
-                            bordering.Add(shape);
+                        if (shapeCuts.Count == 0)
+                            continue;
+
+                        // A notch is cut with the arcs of the exterior: a ring that is not inside the exterior has no arcs to be cut
+                        // from and would be closed through the corners of the strip (a world-sized ring), so it is left out and counted
+                        // once (the verdict is kept for the other strips it crosses).
+                        if (!shell.Contains(shape.Nodes))
+                        {
+                            shape.Dropped = true;
+                            droppedInteriorRings++;
+                            continue;
+                        }
+
+                        foreach (List<StripClipper.Node> chain in shapeCuts)
+                            cuts.Add((chain, shape.Positions));
+
+                        bordering.Add(shape);
                         continue;
                     }
 
@@ -187,7 +203,19 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
                 // More than one piece inside the strip, or a notch to cut: assemble them properly (Sutherland-Hodgman would join
                 // pieces with zero-width bridges along the strip border and cannot cut a notch).
-                List<List<GeoJsonPosition>> separate = ClipSeparatePieces(ringNodes, exterior, west, east, shift, cuts);
+                var orphans = new List<IReadOnlyList<GeoJsonPosition>>();
+                List<List<GeoJsonPosition>> separate = ClipSeparatePieces(ringNodes, exterior, west, east, shift, cuts, orphans);
+                foreach (IReadOnlyList<GeoJsonPosition> orphan in orphans)
+                {
+                    // A notch that no arc of the exterior surrounds (cannot happen for a hole inside the exterior): counted, not written.
+                    HoleShape orphaned = shapes.First(h => ReferenceEquals(h.Positions, orphan));
+                    if (!orphaned.Dropped)
+                    {
+                        orphaned.Dropped = true;
+                        droppedInteriorRings++;
+                    }
+                }
+
                 if (separate.Count > 1 || (separate.Count == 1 && cuts.Count > 0))
                 {
                     var multi = separate.Select(r => new List<List<GeoJsonPosition>> { r }).ToList();
@@ -216,6 +244,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 // arcs in the strip); kept so that such a ring is never lost: it is written as a plain hole.
                 foreach (HoleShape shape in bordering)
                 {
+                    if (shape.Dropped)
+                        continue;
+
                     List<GeoJsonPosition>? clippedHole = Clip(shape.Positions, shape.Lons, west, east, shift);
                     if (clippedHole != null)
                         rings.Add(clippedHole);
@@ -250,6 +281,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
 
             public List<GeoJsonPosition> Positions { get; }
+
+            /// <summary>Gets or sets a value indicating whether the ring was left out (and counted) because it is not inside the exterior.</summary>
+            public bool Dropped { get; set; }
 
             public List<double> Lons { get; }
 
@@ -324,6 +358,85 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 chain.AddRange(run);
                 chain.Add(new StripClipper.Node(last.X == west ? west - 1.0 : last.X + 1.0, last.Y, -1));
                 return chain;
+            }
+        }
+
+        /// <summary>
+        /// The exterior ring at its unwrapped longitudes, able to tell whether an interior ring is inside it. The test is made once
+        /// per interior ring, in the unwrapped plane and against the whole exterior (not against the part in a strip): the answer does
+        /// not depend on the strip, so a ring that crosses several strips gets one verdict.
+        /// <para>
+        /// An interior ring is inside when none of its vertices is strictly outside: a vertex on the exterior boundary is allowed (a
+        /// hole may touch its shell at a point), any other vertex must satisfy the even-odd rule. The bounding box of the exterior
+        /// rejects the common case (a ring beside or beyond the shell) in O(m) for the m vertices of the ring. The remaining vertices
+        /// cost O(n) each against the n exterior edges; above <see cref="VertexBudget"/> edge tests the vertices are spread evenly
+        /// along the ring and only a sample is tested (at least 16), which keeps a very large ring linear in the document size.
+        /// A ring whose vertices are all inside but whose edges leave a concave exterior between two vertices is not detected.
+        /// </para>
+        /// </summary>
+        private sealed class Shell
+        {
+            private const long VertexBudget = 4_000_000;
+            private const int MinimumSamples = 16;
+            private readonly List<StripClipper.Node> _nodes;
+            private readonly double _minX = double.PositiveInfinity;
+            private readonly double _maxX = double.NegativeInfinity;
+            private readonly double _minY = double.PositiveInfinity;
+            private readonly double _maxY = double.NegativeInfinity;
+
+            public Shell(List<StripClipper.Node> nodes)
+            {
+                _nodes = nodes;
+                foreach (StripClipper.Node node in nodes)
+                {
+                    _minX = Math.Min(_minX, node.X);
+                    _maxX = Math.Max(_maxX, node.X);
+                    _minY = Math.Min(_minY, node.Y);
+                    _maxY = Math.Max(_maxY, node.Y);
+                }
+            }
+
+            public bool Contains(IReadOnlyList<StripClipper.Node> ring)
+            {
+                foreach (StripClipper.Node node in ring)
+                {
+                    if (node.X < _minX || node.X > _maxX || node.Y < _minY || node.Y > _maxY)
+                        return false;
+                }
+
+                long samples = Math.Min(ring.Count, Math.Max(MinimumSamples, VertexBudget / Math.Max(1, _nodes.Count)));
+                for (long s = 0; s < samples; s++)
+                {
+                    if (!IsInsideOrOnBoundary(ring[(int)(s * ring.Count / samples)]))
+                        return false;
+                }
+
+                return true;
+            }
+
+            private bool IsInsideOrOnBoundary(StripClipper.Node point)
+            {
+                bool inside = false;
+                for (int i = 0, j = _nodes.Count - 1; i < _nodes.Count; j = i++)
+                {
+                    StripClipper.Node a = _nodes[i];
+                    StripClipper.Node b = _nodes[j];
+                    double cross = ((b.X - a.X) * (point.Y - a.Y)) - ((b.Y - a.Y) * (point.X - a.X));
+                    if (cross == 0.0 &&
+                        point.X >= Math.Min(a.X, b.X) && point.X <= Math.Max(a.X, b.X) &&
+                        point.Y >= Math.Min(a.Y, b.Y) && point.Y <= Math.Max(a.Y, b.Y))
+                    {
+                        return true;
+                    }
+
+                    if ((a.Y > point.Y) != (b.Y > point.Y) &&
+                        point.X < ((b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y)) + a.X)
+                    {
+                        inside = !inside;
+                    }
+                }
+
+                return inside;
             }
         }
 
@@ -479,7 +592,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             double west,
             double east,
             double shift,
-            IReadOnlyList<(IReadOnlyList<StripClipper.Node> Chain, IReadOnlyList<GeoJsonPosition> Source)> cuts)
+            IReadOnlyList<(IReadOnlyList<StripClipper.Node> Chain, IReadOnlyList<GeoJsonPosition> Source)> cuts,
+            List<IReadOnlyList<GeoJsonPosition>> orphans)
         {
             double area = 0.0;
             for (int i = 0, j = nodes.Count - 1; i < nodes.Count; j = i++)
@@ -492,7 +606,16 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             // Start at a vertex outside the strip so that every piece is a complete arc.
             int start = ordered.FindIndex(n => n.X < west || n.X > east);
             if (start < 0)
+            {
+                // No arc of the exterior in this strip: nothing for a notch to be cut from.
+                foreach ((IReadOnlyList<StripClipper.Node> _, IReadOnlyList<GeoJsonPosition> cutSource) in cuts)
+                {
+                    if (!orphans.Contains(cutSource))
+                        orphans.Add(cutSource);
+                }
+
                 return new List<List<GeoJsonPosition>>();
+            }
 
             var chain = new List<StripClipper.Node>(ordered.Count + 1);
             for (int i = 0; i <= ordered.Count; i++)
@@ -503,7 +626,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
             var all = new List<(IReadOnlyList<StripClipper.Node> Chain, IReadOnlyList<GeoJsonPosition> Source)>(cuts.Count + 1) { (chain, source) };
             all.AddRange(cuts);
-            return StripClipper.Clip(all, west, east, shift);
+            return StripClipper.Clip(all, west, east, shift, orphans);
         }
 
         /// <summary>

@@ -43,6 +43,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
             public int Index { get; set; }
 
+            public int Chain { get; set; }
+
             public IReadOnlyList<GeoJsonPosition> Source { get; set; } = Array.Empty<GeoJsonPosition>();
         }
 
@@ -59,15 +61,34 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         /// the interior rings of a polygon, traversed so that the polygon is on their left (clockwise), cut notches into the
         /// pieces of the exterior where they leave the strip. The arcs of the first chain come first (the lowest arc indexes).
         /// </summary>
-        public static List<List<GeoJsonPosition>> Clip(IReadOnlyList<(IReadOnlyList<Node> Chain, IReadOnlyList<GeoJsonPosition> Source)> chains, double west, double east, double shift)
+        public static List<List<GeoJsonPosition>> Clip(IReadOnlyList<(IReadOnlyList<Node> Chain, IReadOnlyList<GeoJsonPosition> Source)> chains, double west, double east, double shift) =>
+            Clip(chains, west, east, shift, null);
+
+        /// <summary>
+        /// Same as the overload above, and a ring made only of arcs of the later chains (the notches) that has to pass a corner of the
+        /// rectangle is never written: it would be a world-sized ring, because no arc of the first chain, the exterior, surrounds it. (A ring
+        /// of notch arcs closed along the strip border without a corner is an island between the arms of a hole and is kept.) The source of every discarded notch arc is added to <paramref name="orphanSources"/> so that the caller can count it.
+        /// </summary>
+        public static List<List<GeoJsonPosition>> Clip(
+            IReadOnlyList<(IReadOnlyList<Node> Chain, IReadOnlyList<GeoJsonPosition> Source)> chains,
+            double west,
+            double east,
+            double shift,
+            List<IReadOnlyList<GeoJsonPosition>>? orphanSources)
         {
             var arcs = new List<Arc>();
+            int chainIndex = 0;
             foreach ((IReadOnlyList<Node> chain, IReadOnlyList<GeoJsonPosition> source) in chains)
             {
                 int first = arcs.Count;
                 CollectArcs(chain, west, east, arcs);
                 for (int a = first; a < arcs.Count; a++)
+                {
                     arcs[a].Source = source;
+                    arcs[a].Chain = chainIndex;
+                }
+
+                chainIndex++;
             }
 
             var rings = new List<List<GeoJsonPosition>>();
@@ -101,10 +122,13 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                     continue;
 
                 var ring = new List<GeoJsonPosition>();
+                var ringArcs = new List<Arc>();
+                int cornersPassed = 0;
                 Arc current = start;
                 for (int guard = 0; guard <= arcs.Count; guard++)
                 {
                     current.Used = true;
+                    ringArcs.Add(current);
                     successors.Remove(current);
                     foreach (Node node in current.Nodes)
                         Append(ring, ToPosition(node, current.Source, shift));
@@ -129,6 +153,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                     }
 
                     passed.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+                    cornersPassed += passed.Count;
                     foreach (var corner in passed)
                         Append(ring, new GeoJsonPosition(corner.X + shift, corner.Y));
 
@@ -136,6 +161,17 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                         break;
 
                     current = next;
+                }
+
+                if (chains.Count > 1 && cornersPassed > 0 && ringArcs.TrueForAll(a => a.Chain != 0))
+                {
+                    foreach (Arc orphan in ringArcs)
+                    {
+                        if (orphanSources != null && !orphanSources.Contains(orphan.Source))
+                            orphanSources.Add(orphan.Source);
+                    }
+
+                    continue;
                 }
 
                 if (ring.Count > 1 && ring[ring.Count - 1].Equals(ring[0]))
