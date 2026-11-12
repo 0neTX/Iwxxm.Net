@@ -47,7 +47,9 @@ namespace Iwxxm.Net.Reports
             TrendForecasts = content.TrendForecasts;
         }
 
+        /// <inheritdoc />
         public sealed override string Id { get; }
+        /// <inheritdoc />
         public sealed override DateTimeOffset IssueTimeUtc { get; }
 
         /// <summary>
@@ -55,22 +57,42 @@ namespace Iwxxm.Net.Reports
         /// gives it only by an <c>xlink:href</c> reference, which this version does not resolve. Never defaulted to the issue time.
         /// </summary>
         public DateTimeOffset? ObservationTimeUtc { get; }
+        /// <inheritdoc />
         public sealed override ReportStatus ReportStatus { get; }
+        /// <inheritdoc />
         public sealed override PermissibleUsage PermissibleUsage { get; }
+        /// <inheritdoc />
         public sealed override PermissibleUsageReason? PermissibleUsageReason { get; }
+        /// <inheritdoc />
         public sealed override string? PermissibleUsageSupplementary { get; }
+        /// <summary>Gets a value indicating whether the report comes from an automated observing station (<c>automatedStation="true"</c>); <c>false</c> when the attribute is false or absent.</summary>
         public bool IsAutomatedStation { get; }
+        /// <summary>Gets the ICAO location indicator of the aerodrome (<c>aixm:designator</c> of the <c>iwxxm:aerodrome</c> feature, falling back to <c>aixm:locationIndicatorICAO</c>), trimmed and never blank.</summary>
         public string AerodromeDesignator { get; }
+        /// <summary>Gets the aerodrome name (<c>aixm:name</c>), or <c>null</c> when the document does not carry it.</summary>
         public string? AerodromeName { get; }
+        /// <summary>Gets the aerodrome reference point (<c>aixm:ARP</c> of the <c>iwxxm:aerodrome</c> feature), or <c>null</c> when the document does not carry it.</summary>
         public GeoCoordinate? AerodromePosition { get; }
+        /// <summary>Gets a value indicating whether <c>iwxxm:observation</c> is nil (a missing report): the element carries a <c>nilReason</c> and no observed conditions, see <see cref="ObservationNilReason"/>.</summary>
         public bool IsNilObservation { get; }
+        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:observation</c> (a URI or token of the WMO nil-reason code list, kept as written), or <c>null</c> when conditions are reported.</summary>
         public string? ObservationNilReason { get; }
+        /// <inheritdoc />
         public sealed override bool IsTranslationFailed { get; }
+        /// <inheritdoc />
         public sealed override string? TranslationFailedTac { get; }
+        /// <summary>
+        /// Gets a value indicating whether the observation is <c>CAVOK</c> (<c>cloudAndVisibilityOK="true"</c>): visibility 10 km or more, no cloud of operational significance and no weather of significance to aviation.
+        /// In that case visibility, RVR, present weather and cloud are not reported (ICAO PANS-MET, Doc 10157, Section 2.2).
+        /// </summary>
         public bool CloudAndVisibilityOk { get; }
+        /// <summary>Gets the observed air temperature in degrees Celsius (<c>iwxxm:airTemperature</c>, UCUM <c>Cel</c>), or <c>null</c> when not reported.</summary>
         public double? AirTemperatureCelsius { get; }
+        /// <summary>Gets the observed dew-point temperature in degrees Celsius (<c>iwxxm:dewpointTemperature</c>, UCUM <c>Cel</c>), or <c>null</c> when not reported.</summary>
         public double? DewpointTemperatureCelsius { get; }
+        /// <summary>Gets the observed QNH altimeter setting (barometric pressure adjusted to sea level) in hectopascals (<c>iwxxm:qnh</c>, UCUM <c>hPa</c>), or <c>null</c> when not reported.</summary>
         public double? QnhHpa { get; }
+        /// <summary>Gets the representative surface wind (<c>iwxxm:surfaceWind</c>), or <c>null</c> when not reported.</summary>
         public SurfaceWind? SurfaceWind { get; }
 
         /// <summary>Horizontal visibility (prevailing with operator, minimum with direction); <c>null</c> when not reported.</summary>
@@ -79,6 +101,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Prevailing visibility in metres (<see cref="AerodromeHorizontalVisibility.PrevailingMeters"/> of <see cref="Visibility"/>).</summary>
         public double? PrevailingVisibilityMeters => Visibility?.PrevailingMeters;
 
+        /// <summary>Gets the runway visual range observations (<c>iwxxm:rvr</c>), one per runway, in document order; empty when none is reported. The schema requires them when visibility or RVR is below 1500 m.</summary>
         public IReadOnlyList<RunwayVisualRange> RunwayVisualRanges { get; }
 
         /// <summary>Present weather codes (WMO code list <c>AerodromePresentOrForecastWeather</c>), in document order.</summary>
@@ -95,6 +118,7 @@ namespace Iwxxm.Net.Reports
 
         /// <summary>Cloud layers of <see cref="Cloud"/> (empty when no cloud group is reported).</summary>
         public IReadOnlyList<AerodromeCloudLayer> CloudLayers => Cloud?.Layers ?? Array.Empty<AerodromeCloudLayer>();
+        /// <summary>Gets the trend forecasts appended to the observation (<c>iwxxm:trendForecast</c>, the TAC <c>BECMG</c>/<c>TEMPO</c> trend groups), in document order; empty when none is reported. A nil <c>NOSIG</c> trend yields no group.</summary>
         public IReadOnlyList<AerodromeForecastGroup> TrendForecasts { get; }
 
         /// <summary>

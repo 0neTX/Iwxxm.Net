@@ -12,6 +12,11 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class VolcanicAshConditions : IEquatable<VolcanicAshConditions>
     {
+        /// <summary>Creates the ash conditions of one observation or forecast time.</summary>
+        /// <param name="id">The <c>gml:id</c> of the conditions element; <c>null</c> is stored as an empty string.</param>
+        /// <param name="phenomenonTimeUtc">The time the conditions apply to; <c>null</c> when nil or unresolved.</param>
+        /// <param name="status">The <c>status</c> attribute; <c>null</c> when not reported.</param>
+        /// <param name="ashClouds">The ash cloud volumes in document order; <c>null</c> is treated as empty.</param>
         public VolcanicAshConditions(
             string id,
             DateTimeOffset? phenomenonTimeUtc,
@@ -36,6 +41,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Ash clouds of this time, in document order (empty unless <see cref="Status"/> is <c>Provided</c>).</summary>
         public IReadOnlyList<EnRoutePhenomenonVolume> AshClouds { get; }
 
+        /// <inheritdoc />
         public bool Equals(VolcanicAshConditions? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -46,8 +52,10 @@ namespace Iwxxm.Net.Reports
                    ValueEquality.SequenceEqual(AshClouds, other.AshClouds);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is VolcanicAshConditions other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.Add(ValueEquality.Seed, Id);
@@ -56,8 +64,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.AddSequence(hash, AshClouds);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="VolcanicAshConditions"/> operands are equal by value.</summary>
         public static bool operator ==(VolcanicAshConditions? left, VolcanicAshConditions? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="VolcanicAshConditions"/> operands differ by value.</summary>
         public static bool operator !=(VolcanicAshConditions? left, VolcanicAshConditions? right) => !Equals(left, right);
     }
 }

@@ -10,10 +10,15 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class VolcanicAshConcentrationCloud : IEquatable<VolcanicAshConcentrationCloud>
     {
+        /// <summary>Gets the <c>gml:id</c> of the feature.</summary>
         public string Id { get; }
+        /// <summary>Gets the horizontal extent of the modelled ash concentration area.</summary>
         public GeoPolygon Area { get; }
+        /// <summary>Gets the lower vertical limit of the ash cloud (<c>lowerElevation</c> with its vertical reference) as reported, or <c>null</c> when not reported.</summary>
         public VerticalLimit? LowerLimit { get; }
+        /// <summary>Gets the upper vertical limit of the ash cloud (<c>upperElevation</c> with its vertical reference) as reported, or <c>null</c> when not reported.</summary>
         public VerticalLimit? UpperLimit { get; }
+        /// <summary>Gets the quantitative threshold of ash density within the cloud (<c>iwxxm:ashDensityEqualsOrExceeds</c>) in milligrams per cubic metre; the mapper rejects a cloud without it and accepts no other unit.</summary>
         public double AshDensityMgPerM3 { get; }
 
         /// <summary>
@@ -22,6 +27,14 @@ namespace Iwxxm.Net.Reports
         /// </summary>
         public DateTimeOffset? PhenomenonTimeUtc { get; }
 
+        /// <summary>Creates an ash concentration cloud.</summary>
+        /// <param name="id">The <c>gml:id</c> of the ash cloud feature; <c>null</c> is stored as an empty string.</param>
+        /// <param name="area">The horizontal extent; required.</param>
+        /// <param name="lowerLimit">The lower vertical limit; <c>null</c> when not reported.</param>
+        /// <param name="upperLimit">The upper vertical limit; <c>null</c> when not reported.</param>
+        /// <param name="ashDensityMgPerM3">The ash density threshold in milligrams per cubic metre.</param>
+        /// <param name="phenomenonTimeUtc">The time the cloud applies to; <c>null</c> when absent, nil or unresolved.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="area"/> is <c>null</c>.</exception>
         public VolcanicAshConcentrationCloud(
             string id,
             GeoPolygon area,
@@ -38,6 +51,7 @@ namespace Iwxxm.Net.Reports
             PhenomenonTimeUtc = phenomenonTimeUtc;
         }
 
+        /// <inheritdoc />
         public bool Equals(VolcanicAshConcentrationCloud? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -50,8 +64,10 @@ namespace Iwxxm.Net.Reports
                    Nullable.Equals(PhenomenonTimeUtc, other.PhenomenonTimeUtc);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is VolcanicAshConcentrationCloud other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.Seed;
@@ -63,8 +79,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.Add(hash, PhenomenonTimeUtc);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="VolcanicAshConcentrationCloud"/> operands are equal by value.</summary>
         public static bool operator ==(VolcanicAshConcentrationCloud? left, VolcanicAshConcentrationCloud? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="VolcanicAshConcentrationCloud"/> operands differ by value.</summary>
         public static bool operator !=(VolcanicAshConcentrationCloud? left, VolcanicAshConcentrationCloud? right) => !Equals(left, right);
     }
 }

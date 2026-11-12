@@ -28,12 +28,19 @@ namespace Iwxxm.Net.Reports
     /// </remarks>
     public sealed class MeteorologicalBulletin : IwxxmDocument
     {
+        /// <inheritdoc />
         public override string Id { get; }
+        /// <inheritdoc />
         public override IwxxmReportType ReportType => IwxxmReportType.MeteorologicalBulletin;
+        /// <summary>Gets the bulletin identifier (<c>collect:bulletinIdentifier</c>), which follows the general file naming convention of Attachment II-15 to the WMO Manual on the Global Telecommunication System (WMO No. 386); required and never blank.</summary>
         public string BulletinIdentifier { get; }
+        /// <inheritdoc />
         public override DateTimeOffset IssueTimeUtc { get; }
+        /// <inheritdoc />
         public override ReportStatus ReportStatus { get; }
+        /// <inheritdoc />
         public override PermissibleUsage PermissibleUsage { get; }
+        /// <inheritdoc />
         public override PermissibleUsageReason? PermissibleUsageReason { get; }
 
         /// <inheritdoc />

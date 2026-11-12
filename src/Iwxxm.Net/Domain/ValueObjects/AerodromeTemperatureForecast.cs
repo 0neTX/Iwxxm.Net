@@ -9,6 +9,11 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class AerodromeTemperatureForecast : IEquatable<AerodromeTemperatureForecast>
     {
+        /// <summary>Creates a TAF temperature forecast (the <c>TXTX/TNTN</c> groups of a forecast).</summary>
+        /// <param name="maximumCelsius">The forecast maximum air temperature in degrees Celsius; <c>null</c> when not forecast.</param>
+        /// <param name="maximumTimeUtc">The time of the maximum, which the schema requires within the forecast record period; <c>null</c> when given only by an unresolved reference. Must be in UTC when given.</param>
+        /// <param name="minimumCelsius">The forecast minimum air temperature in degrees Celsius; <c>null</c> when not forecast.</param>
+        /// <param name="minimumTimeUtc">The time of the minimum; <c>null</c> when given only by an unresolved reference. Must be in UTC when given.</param>
         public AerodromeTemperatureForecast(
             double? maximumCelsius,
             DateTimeOffset? maximumTimeUtc,
@@ -33,6 +38,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Time of the forecast minimum temperature; <c>null</c> when given only by an unresolved reference.</summary>
         public DateTimeOffset? MinimumTimeUtc { get; }
 
+        /// <inheritdoc />
         public bool Equals(AerodromeTemperatureForecast? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -43,8 +49,10 @@ namespace Iwxxm.Net.Reports
                    Nullable.Equals(MinimumTimeUtc, other.MinimumTimeUtc);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is AerodromeTemperatureForecast other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.AddDouble(ValueEquality.Seed, MaximumCelsius);
@@ -53,8 +61,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.Add(hash, MinimumTimeUtc);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AerodromeTemperatureForecast"/> operands are equal by value.</summary>
         public static bool operator ==(AerodromeTemperatureForecast? left, AerodromeTemperatureForecast? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AerodromeTemperatureForecast"/> operands differ by value.</summary>
         public static bool operator !=(AerodromeTemperatureForecast? left, AerodromeTemperatureForecast? right) => !Equals(left, right);
     }
 }

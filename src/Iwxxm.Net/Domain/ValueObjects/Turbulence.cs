@@ -11,6 +11,7 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class Turbulence : IEquatable<Turbulence>
     {
+        /// <summary>Gets the <c>gml:id</c> of the feature.</summary>
         public string Id { get; }
         /// <summary>
         /// Degree (WMO BUFR table 0 11 030) translated by the Anti-Corruption Layer: the Domain meaning plus the code as reported;
@@ -47,6 +48,14 @@ namespace Iwxxm.Net.Reports
             Areas = areas;
         }
 
+        /// <summary>Creates a turbulence area of a SIGWX chart, enforcing the identifier, the area and the order of the vertical limits.</summary>
+        /// <param name="id">The <c>gml:id</c> of the feature; required (not blank).</param>
+        /// <param name="degree">The degree from the WMO code list as reported; <c>null</c> when absent or nil.</param>
+        /// <param name="baseLimit">The lower limit as reported; <c>null</c> when not reported.</param>
+        /// <param name="topLimit">The upper limit as reported; when it is comparable with <paramref name="baseLimit"/> it must be strictly higher.</param>
+        /// <param name="area">The first horizontal extent (polygon or circle); required.</param>
+        /// <param name="additionalAreas">The further horizontal extents of a multi-patch feature, in document order; <c>null</c> for none.</param>
+        /// <returns>The turbulence area, or a failure with code <c>DOMAIN-TURBULENCE-ID</c>, <c>DOMAIN-TURBULENCE-AREA</c> or <c>DOMAIN-TURBULENCE-VERTICAL-EXTENT</c>.</returns>
         public static Result<Turbulence> Create(
             string id,
             CodeListValue<TurbulenceDegreeCode>? degree,
@@ -90,6 +99,7 @@ namespace Iwxxm.Net.Reports
                 new ReadOnlyCollection<GeoSurface>(new[] { area }.Concat(additionalAreas ?? Enumerable.Empty<GeoSurface>()).ToList())));
         }
 
+        /// <inheritdoc />
         public bool Equals(Turbulence? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -102,8 +112,10 @@ namespace Iwxxm.Net.Reports
                    Areas.SequenceEqual(other.Areas);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is Turbulence other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -115,8 +127,10 @@ namespace Iwxxm.Net.Reports
             }
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="Turbulence"/> operands are equal by value.</summary>
         public static bool operator ==(Turbulence? left, Turbulence? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="Turbulence"/> operands differ by value.</summary>
         public static bool operator !=(Turbulence? left, Turbulence? right) => !Equals(left, right);
     }
 }

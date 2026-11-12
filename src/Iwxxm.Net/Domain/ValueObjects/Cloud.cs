@@ -14,6 +14,7 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class Cloud : IEquatable<Cloud>
     {
+        /// <summary>Gets the <c>gml:id</c> of the feature.</summary>
         public string Id { get; }
         /// <summary>Cloud distribution (BUFR 0 20 008); <c>null</c> when absent or nil (never invented).</summary>
         public CodeListValue<CloudDistributionCode>? Distribution { get; }
@@ -51,6 +52,15 @@ namespace Iwxxm.Net.Reports
             Areas = areas;
         }
 
+        /// <summary>Creates a cloud area of a SIGWX chart, enforcing the identifier, the area and the order of the vertical limits.</summary>
+        /// <param name="id">The <c>gml:id</c> of the feature; required (not blank).</param>
+        /// <param name="distribution">The cloud distribution as reported (BUFR 0 20 008); <c>null</c> when absent or nil.</param>
+        /// <param name="cloudType">The cloud type as reported (BUFR 0 20 012); <c>null</c> when absent or nil.</param>
+        /// <param name="baseLimit">The cloud base as reported; <c>null</c> when not reported.</param>
+        /// <param name="topLimit">The cloud top as reported; when it is comparable with <paramref name="baseLimit"/> it must be strictly higher.</param>
+        /// <param name="area">The first horizontal extent (polygon or circle); required.</param>
+        /// <param name="additionalAreas">The further horizontal extents of a multi-patch feature, in document order; <c>null</c> for none.</param>
+        /// <returns>The cloud area, or a failure with code <c>DOMAIN-CLOUD-ID</c>, <c>DOMAIN-CLOUD-AREA</c> or <c>DOMAIN-CLOUD-VERTICAL-EXTENT</c>.</returns>
         public static Result<Cloud> Create(
             string id,
             CodeListValue<CloudDistributionCode>? distribution,
@@ -96,6 +106,7 @@ namespace Iwxxm.Net.Reports
                 new ReadOnlyCollection<GeoSurface>(new[] { area }.Concat(additionalAreas ?? Enumerable.Empty<GeoSurface>()).ToList())));
         }
 
+        /// <inheritdoc />
         public bool Equals(Cloud? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -109,8 +120,10 @@ namespace Iwxxm.Net.Reports
                    Areas.SequenceEqual(other.Areas);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is Cloud other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -123,8 +136,10 @@ namespace Iwxxm.Net.Reports
             }
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="Cloud"/> operands are equal by value.</summary>
         public static bool operator ==(Cloud? left, Cloud? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="Cloud"/> operands differ by value.</summary>
         public static bool operator !=(Cloud? left, Cloud? right) => !Equals(left, right);
     }
 }

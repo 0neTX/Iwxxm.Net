@@ -29,6 +29,11 @@ namespace Iwxxm.Net.Reports
         /// </summary>
         public IReadOnlyList<GeoSurface> Areas { get; }
 
+        /// <summary>Creates one intensity and region group of a space weather analysis.</summary>
+        /// <param name="id">The <c>gml:id</c> of the group; <c>null</c> is stored as an empty string.</param>
+        /// <param name="intensity">The intensity as written in the document: <c>MOD</c> (moderate) or <c>SEV</c> (severe); <c>null</c> when not reported.</param>
+        /// <param name="locationIndicators">The location indicators of the regions (WMO code list <c>SpaceWxLocation</c>); <c>null</c> is treated as empty.</param>
+        /// <param name="areas">The horizontal extents of the regions; <c>null</c> is treated as empty.</param>
         public SpaceWeatherAnalysisRegion(
             string id,
             string? intensity,
@@ -42,6 +47,7 @@ namespace Iwxxm.Net.Reports
             Areas = new ReadOnlyCollection<GeoSurface>(areas?.ToList() ?? new List<GeoSurface>(0));
         }
 
+        /// <inheritdoc />
         public bool Equals(SpaceWeatherAnalysisRegion? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -52,8 +58,10 @@ namespace Iwxxm.Net.Reports
                    ValueEquality.SequenceEqual(Areas, other.Areas);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is SpaceWeatherAnalysisRegion other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.Add(ValueEquality.Seed, Id);
@@ -62,8 +70,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.AddSequence(hash, Areas);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="SpaceWeatherAnalysisRegion"/> operands are equal by value.</summary>
         public static bool operator ==(SpaceWeatherAnalysisRegion? left, SpaceWeatherAnalysisRegion? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="SpaceWeatherAnalysisRegion"/> operands differ by value.</summary>
         public static bool operator !=(SpaceWeatherAnalysisRegion? left, SpaceWeatherAnalysisRegion? right) => !Equals(left, right);
     }
 }

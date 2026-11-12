@@ -14,7 +14,6 @@
     <Description>Zero-dependency .NET Standard 2.0 &amp; 2.1 library for ICAO/WMO IWXXM 2025-2: XSD validation against the embedded, unmodified official WMO IWXXM 2025-2 schemas (with official GML 3.2.1, AIXM 5.1.1, METCE and COLLECT imports), partial built-in business-rule validation (an XSLT 1.0 subset of the official Schematron: 11 of 165 official rule IDs, plus official WMO RDF code-list membership checks; the complete official Schematron is available through the optional Iwxxm.Net.Validation.Saxon package and pluggable validation ports), Domain-Driven Design (DDD) parsing, and Native RFC 7946 GeoJSON export of the full ICAO/WMO IWXXM 2025-2 aeronautical meteorological suite (SIGWX/WAFS, METAR, SPECI, TAF, SIGMET, AIRMET, VONA, QVACI, Volcanic Ash/Tropical Cyclone/Space Weather Advisories, and SWIM Collect Bulletins).</Description>
     <PackageTags>IWXXM;IWXXM-2025-2;Iwxxm.Net;SIGWX;WAFS;METAR;SPECI;TAF;SIGMET;AIRMET;VONA;QVACI;WMO;ICAO;SWIM;GML;AIXM;XSD;Schematron;Aviation;Meteorology;XML</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <!-- 

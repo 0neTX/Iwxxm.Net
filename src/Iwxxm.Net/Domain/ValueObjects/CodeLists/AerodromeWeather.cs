@@ -39,6 +39,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Gets a value indicating whether <see cref="Notation"/> is a code of the official list.</summary>
         public bool IsKnown { get; }
 
+        /// <inheritdoc />
         public bool Equals(AerodromeWeather? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -46,14 +47,19 @@ namespace Iwxxm.Net.Reports
             return IsKnown == other.IsKnown && string.Equals(Notation, other.Notation, StringComparison.Ordinal);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is AerodromeWeather other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode() => ValueEquality.Add(ValueEquality.Add(ValueEquality.Seed, Notation), IsKnown);
 
+        /// <inheritdoc />
         public override string ToString() => IsKnown ? Notation : "Unknown (" + Notation + ")";
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AerodromeWeather"/> operands are equal by value.</summary>
         public static bool operator ==(AerodromeWeather? left, AerodromeWeather? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AerodromeWeather"/> operands differ by value.</summary>
         public static bool operator !=(AerodromeWeather? left, AerodromeWeather? right) => !Equals(left, right);
     }
 }

@@ -16,18 +16,31 @@ namespace Iwxxm.Net.Reports
     /// </remarks>
     public sealed class Airmet : IwxxmReport
     {
+        /// <inheritdoc />
         public override string Id { get; }
+        /// <inheritdoc />
         public override IwxxmReportType ReportType => IwxxmReportType.Airmet;
+        /// <inheritdoc />
         public override DateTimeOffset IssueTimeUtc { get; }
+        /// <inheritdoc />
         public override ReportStatus ReportStatus { get; }
+        /// <inheritdoc />
         public override PermissibleUsage PermissibleUsage { get; }
+        /// <inheritdoc />
         public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        /// <inheritdoc />
         public override string? PermissibleUsageSupplementary { get; }
+        /// <summary>Gets the designator of the Air Traffic Services unit serving the FIR or CTA the report refers to (<c>aixm:designator</c> of <c>iwxxm:issuingAirTrafficServicesUnit</c>); never blank.</summary>
         public string AtsUnitDesignator { get; }
+        /// <summary>Gets the name of the issuing ATS unit (<c>aixm:name</c> of <c>iwxxm:issuingAirTrafficServicesUnit</c>), or <c>null</c> when not reported.</summary>
         public string? AtsUnitName { get; }
+        /// <summary>Gets the designator of the Meteorological Watch Office that originated the report (<c>aixm:designator</c> of <c>iwxxm:originatingMeteorologicalWatchOffice</c>), or <c>null</c> when not reported.</summary>
         public string? MwoDesignator { get; }
+        /// <summary>Gets the designator of the FIR, UIR or CTA the report applies to (<c>aixm:designator</c> of <c>iwxxm:issuingAirTrafficServicesRegion</c>), or <c>null</c> when not reported.</summary>
         public string? FirDesignator { get; }
+        /// <summary>Gets the name of the FIR, UIR or CTA the report applies to (<c>aixm:name</c> of <c>iwxxm:issuingAirTrafficServicesRegion</c>), or <c>null</c> when not reported.</summary>
         public string? FirName { get; }
+        /// <summary>Gets the sequence number of the message (<c>iwxxm:sequenceNumber</c>, for example <c>5</c>, <c>A3</c> or <c>2</c>), kept as text; <c>null</c> when not reported.</summary>
         public string? SequenceNumber { get; }
         /// <summary>Start of <c>validPeriod</c> (mandatory in <c>airmet.xsd</c>); <c>null</c> only when given by an unresolved <c>xlink:href</c>.</summary>
         public DateTimeOffset? ValidFromUtc { get; }
@@ -52,7 +65,9 @@ namespace Iwxxm.Net.Reports
         /// <summary>Gets a value indicating whether the report describes an active hazard (not a cancellation).</summary>
         public bool IsActiveHazard => !IsCancelReport;
 
+        /// <inheritdoc />
         public override bool IsTranslationFailed { get; }
+        /// <inheritdoc />
         public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
@@ -113,6 +128,29 @@ namespace Iwxxm.Net.Reports
             EvolvingConditions = evolvingConditions;
         }
 
+        /// <summary>Creates an AIRMET, enforcing the minimal domain invariants (a cancellation carries no phenomenon or evolving condition) and collecting every violation in the returned <see cref="Result{T}"/>.</summary>
+        /// <param name="id">The <c>gml:id</c> of the report root element; required (not blank).</param>
+        /// <param name="issueTimeUtc">The <c>iwxxm:issueTime</c> instant; required (not <c>default</c>) and expressed in UTC (offset zero).</param>
+        /// <param name="reportStatus">The <c>reportStatus</c> attribute (<c>NORMAL</c>, <c>AMENDMENT</c> or <c>CORRECTION</c>); must be a defined value.</param>
+        /// <param name="permissibleUsage">The <c>permissibleUsage</c> attribute (<c>OPERATIONAL</c> or <c>NON-OPERATIONAL</c>); must be a defined value.</param>
+        /// <param name="permissibleUsageReason">The optional <c>permissibleUsageReason</c> (<c>TEST</c> or <c>EXERCISE</c>), meaningful for non-operational data; <c>null</c> when not reported. When given it must be a defined value.</param>
+        /// <param name="permissibleUsageSupplementary">The optional free-text <c>permissibleUsageSupplementary</c>; <c>null</c> when not reported.</param>
+        /// <param name="atsUnitDesignator">The designator of the issuing ATS unit (<c>aixm:designator</c>); required (not blank).</param>
+        /// <param name="atsUnitName">The name of the issuing ATS unit; <c>null</c> when not reported.</param>
+        /// <param name="mwoDesignator">The designator of the originating Meteorological Watch Office; <c>null</c> when not reported.</param>
+        /// <param name="firDesignator">The designator of the FIR, UIR or CTA concerned; <c>null</c> when not reported.</param>
+        /// <param name="firName">The name of the FIR, UIR or CTA concerned; <c>null</c> when not reported.</param>
+        /// <param name="sequenceNumber">The message sequence number; <c>null</c> when not reported.</param>
+        /// <param name="validFromUtc">The start of <c>iwxxm:validPeriod</c> in UTC; <c>null</c> only when the period is given by an unresolved <c>xlink:href</c>.</param>
+        /// <param name="validUntilUtc">The end of <c>iwxxm:validPeriod</c> in UTC; must be strictly after <paramref name="validFromUtc"/> when both are given.</param>
+        /// <param name="isTranslationFailed">Whether the TAC-to-XML translation failed (<c>translationFailedTAC</c> present).</param>
+        /// <param name="translationFailedTac">The original TAC text that could not be translated; <c>null</c> when the translation succeeded.</param>
+        /// <param name="cancelledReportSequenceNumber">The sequence number of the cancelled report; <c>null</c> unless the report is a cancellation.</param>
+        /// <param name="cancelledReportValidFromUtc">The start of <c>iwxxm:cancelledReportValidPeriod</c> in UTC; <c>null</c> when not reported.</param>
+        /// <param name="cancelledReportValidUntilUtc">The end of <c>iwxxm:cancelledReportValidPeriod</c> in UTC; must be strictly after the start when both are given.</param>
+        /// <param name="isCancelReport">Whether the report cancels an earlier one (<c>isCancelReport</c>).</param>
+        /// <param name="phenomenon">The reported phenomenon from the WMO code list; <c>null</c> when absent or nil.</param>
+        /// <param name="evolvingConditions">The observed or forecast conditions in document order; <c>null</c> is treated as empty. Must be empty for a cancellation.</param>
         public static Result<Airmet> Create(
             string id,
             DateTimeOffset issueTimeUtc,

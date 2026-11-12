@@ -12,9 +12,13 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class SurfaceWind : IEquatable<SurfaceWind>
     {
+        /// <summary>Gets a value indicating whether the wind direction is variable (<c>variableWindDirection="true"</c>); a mean direction may still be reported.</summary>
         public bool IsVariableDirection { get; }
+        /// <summary>Gets the mean direction the wind blows from, in degrees from true north (<c>iwxxm:meanWindDirection</c>; 360 is a north wind and 0 is calm), or <c>null</c> when not reported (for example when the wind is variable).</summary>
         public double? MeanDirectionDegrees { get; }
+        /// <summary>Gets the mean wind speed (<c>iwxxm:meanWindSpeed</c>) in the unit reported (<c>m/s</c> or knots), or <c>null</c> when not reported.</summary>
         public Speed? MeanSpeed { get; }
+        /// <summary>Gets the speed of the wind gusts, the variation from the mean speed (<c>iwxxm:windGustSpeed</c>) in the unit reported, or <c>null</c> when no gust is reported.</summary>
         public Speed? GustSpeed { get; }
 
         /// <summary>Qualifier of <see cref="MeanSpeed"/> (<c>meanWindSpeedOperator</c>).</summary>
@@ -29,6 +33,15 @@ namespace Iwxxm.Net.Reports
         /// <summary>Extreme counter-clockwise direction of a variable wind (<c>extremeCounterClockwiseWindDirection</c>, TAC <c>dndndn</c>).</summary>
         public double? ExtremeCounterClockwiseDirectionDegrees { get; }
 
+        /// <summary>Creates a surface wind. The report factories reject directions outside 0-360 degrees and negative speeds.</summary>
+        /// <param name="isVariableDirection">Whether the direction is variable.</param>
+        /// <param name="meanDirectionDegrees">The mean direction in degrees from true north; <c>null</c> when not reported.</param>
+        /// <param name="meanSpeed">The mean speed; <c>null</c> when not reported.</param>
+        /// <param name="gustSpeed">The gust speed; <c>null</c> when no gust is reported.</param>
+        /// <param name="meanSpeedOperator">The qualifier of the mean speed (for example <see cref="RelationalOperator.Above"/> for <c>P49MPS</c>); <c>null</c> for an exact value.</param>
+        /// <param name="gustSpeedOperator">The qualifier of the gust speed; <c>null</c> for an exact value.</param>
+        /// <param name="extremeClockwiseDirectionDegrees">The extreme clockwise direction of a varying wind in degrees; <c>null</c> when not reported.</param>
+        /// <param name="extremeCounterClockwiseDirectionDegrees">The extreme counter-clockwise direction of a varying wind in degrees; <c>null</c> when not reported.</param>
         public SurfaceWind(
             bool isVariableDirection,
             double? meanDirectionDegrees,
@@ -49,6 +62,7 @@ namespace Iwxxm.Net.Reports
             ExtremeCounterClockwiseDirectionDegrees = extremeCounterClockwiseDirectionDegrees;
         }
 
+        /// <inheritdoc />
         public bool Equals(SurfaceWind? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -63,8 +77,10 @@ namespace Iwxxm.Net.Reports
                    Nullable.Equals(ExtremeCounterClockwiseDirectionDegrees, other.ExtremeCounterClockwiseDirectionDegrees);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is SurfaceWind other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.Add(ValueEquality.Seed, IsVariableDirection);
@@ -77,8 +93,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.AddDouble(hash, ExtremeCounterClockwiseDirectionDegrees);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="SurfaceWind"/> operands are equal by value.</summary>
         public static bool operator ==(SurfaceWind? left, SurfaceWind? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="SurfaceWind"/> operands differ by value.</summary>
         public static bool operator !=(SurfaceWind? left, SurfaceWind? right) => !Equals(left, right);
     }
 }

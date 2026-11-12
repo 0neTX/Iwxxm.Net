@@ -13,6 +13,13 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class ItemMappingError : IEquatable<ItemMappingError>
     {
+        /// <summary>Creates the description of one item that could not be mapped.</summary>
+        /// <param name="index">The zero-based position of the item in its container; must not be negative.</param>
+        /// <param name="itemId">The <c>gml:id</c> of the item; a blank value is stored as <c>null</c>.</param>
+        /// <param name="errors">The mapping errors of the item; must contain at least one.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="errors"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="errors"/> is empty.</exception>
         public ItemMappingError(int index, string? itemId, IEnumerable<ValidationError> errors)
         {
             if (index < 0)
@@ -48,6 +55,7 @@ namespace Iwxxm.Net.Reports
                 e.LineNumber,
                 e.LinePosition));
 
+        /// <inheritdoc />
         public bool Equals(ItemMappingError? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -57,8 +65,10 @@ namespace Iwxxm.Net.Reports
                    ValueEquality.SequenceEqual(Errors, other.Errors);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is ItemMappingError other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.Add(ValueEquality.Seed, Index);
@@ -66,8 +76,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.AddSequence(hash, Errors);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="ItemMappingError"/> operands are equal by value.</summary>
         public static bool operator ==(ItemMappingError? left, ItemMappingError? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="ItemMappingError"/> operands differ by value.</summary>
         public static bool operator !=(ItemMappingError? left, ItemMappingError? right) => !Equals(left, right);
     }
 }

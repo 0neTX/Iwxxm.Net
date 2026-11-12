@@ -8,9 +8,13 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class RadiationIncident : IEquatable<RadiationIncident>
     {
+        /// <summary>Gets the <c>gml:id</c> of the feature.</summary>
         public string Id { get; }
+        /// <summary>Gets the name of the incident site (<c>iwxxm:siteName</c>, the incident location), trimmed, or <c>null</c> when blank or not reported.</summary>
         public string? SiteName { get; }
+        /// <summary>Gets the position of the radiation incident symbol.</summary>
         public GeoCoordinate Position { get; }
+        /// <summary>Gets the time of the incident (<c>iwxxm:incidentTime</c>), or <c>null</c> when not reported.</summary>
         public DateTimeOffset? IncidentTimeUtc { get; }
 
         private RadiationIncident(
@@ -25,6 +29,12 @@ namespace Iwxxm.Net.Reports
             IncidentTimeUtc = incidentTimeUtc;
         }
 
+        /// <summary>Creates a radiation incident symbol, enforcing the identifier.</summary>
+        /// <param name="id">The <c>gml:id</c> of the feature; required (not blank).</param>
+        /// <param name="siteName">The incident site name; a blank value is stored as <c>null</c>.</param>
+        /// <param name="position">The position of the symbol.</param>
+        /// <param name="incidentTimeUtc">The incident time in UTC; <c>null</c> when not reported.</param>
+        /// <returns>The incident, or a failure with code <c>DOMAIN-RADIATION-ID</c>.</returns>
         public static Result<RadiationIncident> Create(
             string id,
             string? siteName,
@@ -44,6 +54,7 @@ namespace Iwxxm.Net.Reports
                 new RadiationIncident(id, normalizedSite, position, incidentTimeUtc));
         }
 
+        /// <inheritdoc />
         public bool Equals(RadiationIncident? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -54,8 +65,10 @@ namespace Iwxxm.Net.Reports
                    Nullable.Equals(IncidentTimeUtc, other.IncidentTimeUtc);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is RadiationIncident other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -64,8 +77,10 @@ namespace Iwxxm.Net.Reports
             }
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="RadiationIncident"/> operands are equal by value.</summary>
         public static bool operator ==(RadiationIncident? left, RadiationIncident? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="RadiationIncident"/> operands differ by value.</summary>
         public static bool operator !=(RadiationIncident? left, RadiationIncident? right) => !Equals(left, right);
     }
 }

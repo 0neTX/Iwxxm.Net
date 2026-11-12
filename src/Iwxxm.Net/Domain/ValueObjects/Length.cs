@@ -11,6 +11,10 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public readonly struct Length : IEquatable<Length>
     {
+        /// <summary>Creates a length exactly as reported, without conversion.</summary>
+        /// <param name="amount">The magnitude in <paramref name="unit"/>; must be finite and may be negative (for example an elevation below mean sea level).</param>
+        /// <param name="unit">The unit of measure; must be a defined <see cref="LengthUnit"/>.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="amount"/> is not finite or <paramref name="unit"/> is not supported.</exception>
         public Length(double amount, LengthUnit unit)
         {
             if (double.IsNaN(amount) || double.IsInfinity(amount))
@@ -32,17 +36,23 @@ namespace Iwxxm.Net.Reports
         /// <summary>UCUM code of <see cref="Unit"/> as used by IWXXM (e.g. <c>m</c>, <c>[ft_i]</c>).</summary>
         public string UnitOfMeasure => GetUcumCode(Unit);
 
+        /// <summary>Returns the length in metres.</summary>
         public double ToMeters() => Amount * MetersPer(Unit);
 
+        /// <summary>Returns the length in international feet (1 ft = 0.3048 m).</summary>
         public double ToFeet() => Unit == LengthUnit.Feet ? Amount : ToMeters() / 0.3048;
 
+        /// <summary>Returns the length in kilometres.</summary>
         public double ToKilometers() => Unit == LengthUnit.Kilometers ? Amount : ToMeters() / 1000.0;
 
+        /// <summary>Returns the length in international nautical miles (1 NM = 1852 m).</summary>
         public double ToNauticalMiles() => Unit == LengthUnit.NauticalMiles ? Amount : ToMeters() / 1852.0;
 
         /// <summary>Returns the amount converted to <paramref name="unit"/>.</summary>
         public double To(LengthUnit unit) => unit == Unit ? Amount : ToMeters() / MetersPer(unit);
 
+        /// <summary>Returns the UCUM code IWXXM uses for <paramref name="unit"/> (<c>m</c>, <c>[ft_i]</c>, <c>km</c>, <c>[nmi_i]</c> or <c>[mi_i]</c>).</summary>
+        /// <param name="unit">The unit of measure.</param>
         public static string GetUcumCode(LengthUnit unit) => unit switch
         {
             LengthUnit.Feet => "[ft_i]",
@@ -62,10 +72,13 @@ namespace Iwxxm.Net.Reports
             _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, "Unsupported length unit.")
         };
 
+        /// <inheritdoc />
         public bool Equals(Length other) => Amount.Equals(other.Amount) && Unit == other.Unit;
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is Length other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -74,9 +87,12 @@ namespace Iwxxm.Net.Reports
             }
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="Length"/> operands are equal by value.</summary>
         public static bool operator ==(Length left, Length right) => left.Equals(right);
+        /// <summary>Returns <c>true</c> when the two <see cref="Length"/> operands differ by value.</summary>
         public static bool operator !=(Length left, Length right) => !left.Equals(right);
 
+        /// <inheritdoc />
         public override string ToString() =>
             string.Format(CultureInfo.InvariantCulture, "{0} {1}", Amount, UnitOfMeasure);
     }

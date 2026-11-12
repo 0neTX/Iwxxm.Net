@@ -11,25 +11,40 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class Qvaci : IwxxmReport
     {
+        /// <inheritdoc />
         public override string Id { get; }
+        /// <inheritdoc />
         public override IwxxmReportType ReportType => IwxxmReportType.QuantitativeVolcanicAshConcentration;
+        /// <inheritdoc />
         public override DateTimeOffset IssueTimeUtc { get; }
+        /// <inheritdoc />
         public override ReportStatus ReportStatus { get; }
+        /// <inheritdoc />
         public override PermissibleUsage PermissibleUsage { get; }
+        /// <inheritdoc />
         public override PermissibleUsageReason? PermissibleUsageReason { get; }
+        /// <inheritdoc />
         public override string? PermissibleUsageSupplementary { get; }
+        /// <summary>Gets the name of the institution that created the information (<c>aixm:name</c> of <c>iwxxm:originatingCentre</c>, falling back to its designator); empty only when the document carries neither.</summary>
         public string OriginatingCentre { get; }
+        /// <summary>Gets the designator of the originating centre (<c>aixm:designator</c> of <c>iwxxm:originatingCentre</c>), or <c>null</c> when not reported.</summary>
         public string? OriginatingCentreDesignator { get; }
+        /// <summary>Gets the start of the dispersion model forecast integration (<c>iwxxm:dispersionModelInitialisationTime</c>), or <c>null</c> when not reported.</summary>
         public DateTimeOffset? DispersionModelInitialisationTimeUtc { get; }
+        /// <summary>Gets the additional free-text information provided with the QVA-CI (<c>iwxxm:remarks</c>), or <c>null</c> when absent or nil.</summary>
         public string? Remarks { get; }
+        /// <inheritdoc />
         public override bool IsTranslationFailed { get; }
+        /// <inheritdoc />
         public override string? TranslationFailedTac { get; }
 
         /// <inheritdoc />
         public override TResult Accept<TResult>(IIwxxmDocumentVisitor<TResult> visitor) =>
             (visitor ?? throw new ArgumentNullException(nameof(visitor))).Visit(this);
 
+        /// <summary>Gets the erupting volcanoes of the information (features whose phenomenon is <c>VOLCANO</c>), in document order; empty when none is reported.</summary>
         public IReadOnlyList<Volcano> Volcanoes { get; }
+        /// <summary>Gets the modelled ash concentration areas (features whose phenomenon is <c>VOLCANIC_ASH</c>), each with its polygon, vertical limits, concentration and time, in document order; empty when none is reported.</summary>
         public IReadOnlyList<VolcanicAshConcentrationCloud> AshConcentrationClouds { get; }
 
         private Qvaci(
@@ -64,6 +79,21 @@ namespace Iwxxm.Net.Reports
             AshConcentrationClouds = ashConcentrationClouds;
         }
 
+        /// <summary>Creates a QVA-CI report, enforcing the minimal domain invariants and collecting every violation in the returned <see cref="Result{T}"/>.</summary>
+        /// <param name="id">The <c>gml:id</c> of the report root element; required (not blank).</param>
+        /// <param name="issueTimeUtc">The <c>iwxxm:issueTime</c> instant; required (not <c>default</c>) and expressed in UTC (offset zero).</param>
+        /// <param name="reportStatus">The <c>reportStatus</c> attribute (<c>NORMAL</c>, <c>AMENDMENT</c> or <c>CORRECTION</c>); must be a defined value.</param>
+        /// <param name="permissibleUsage">The <c>permissibleUsage</c> attribute (<c>OPERATIONAL</c> or <c>NON-OPERATIONAL</c>); must be a defined value.</param>
+        /// <param name="permissibleUsageReason">The optional <c>permissibleUsageReason</c> (<c>TEST</c> or <c>EXERCISE</c>), meaningful for non-operational data; <c>null</c> when not reported. When given it must be a defined value.</param>
+        /// <param name="permissibleUsageSupplementary">The optional free-text <c>permissibleUsageSupplementary</c>; <c>null</c> when not reported.</param>
+        /// <param name="originatingCentre">The name of the originating centre (the designator when no name is given).</param>
+        /// <param name="originatingCentreDesignator">The designator of the originating centre; <c>null</c> when not reported.</param>
+        /// <param name="dispersionModelInitialisationTimeUtc">The dispersion model initialisation time in UTC; <c>null</c> when not reported.</param>
+        /// <param name="remarks">Additional free-text information; <c>null</c> when absent.</param>
+        /// <param name="isTranslationFailed">Whether the TAC-to-XML translation failed (<c>translationFailedTAC</c> present).</param>
+        /// <param name="translationFailedTac">The original TAC text that could not be translated; <c>null</c> when the translation succeeded.</param>
+        /// <param name="volcanoes">The erupting volcanoes; <c>null</c> is treated as empty.</param>
+        /// <param name="ashConcentrationClouds">The ash concentration areas; <c>null</c> is treated as empty.</param>
         public static Result<Qvaci> Create(
             string id,
             DateTimeOffset issueTimeUtc,

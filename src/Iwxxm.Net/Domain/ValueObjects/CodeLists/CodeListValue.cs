@@ -53,6 +53,7 @@ namespace Iwxxm.Net.Reports
         internal static readonly TCode UnknownCode =
             Enum.IsDefined(typeof(TCode), "Unknown") ? (TCode)Enum.Parse(typeof(TCode), "Unknown") : default;
 
+        /// <inheritdoc />
         public bool Equals(CodeListValue<TCode>? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -60,14 +61,19 @@ namespace Iwxxm.Net.Reports
             return Code.Equals(other.Code) && string.Equals(Notation, other.Notation, StringComparison.Ordinal);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is CodeListValue<TCode> other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode() => ValueEquality.Add(ValueEquality.Add(ValueEquality.Seed, Code), Notation);
 
+        /// <inheritdoc />
         public override string ToString() => IsKnown ? Code + " (" + Notation + ")" : "Unknown (" + Notation + ")";
 
+        /// <summary>Returns <c>true</c> when the two <see cref="CodeListValue{TCode}"/> operands are equal by value.</summary>
         public static bool operator ==(CodeListValue<TCode>? left, CodeListValue<TCode>? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="CodeListValue{TCode}"/> operands differ by value.</summary>
         public static bool operator !=(CodeListValue<TCode>? left, CodeListValue<TCode>? right) => !Equals(left, right);
     }
 }

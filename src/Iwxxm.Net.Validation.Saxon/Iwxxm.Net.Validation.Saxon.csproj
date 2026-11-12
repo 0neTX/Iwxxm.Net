@@ -13,7 +13,6 @@
     <Description>Optional Iwxxm.Net add-on that runs the complete, unmodified official WMO IWXXM 2025-2 Schematron (iwxxm.sch, queryBinding xslt2, all 165 rules) with SaxonCS-HE (MPL-2.0) and the vendored SchXslt 1.10.1 compiler (MIT). Code-list lookups resolve to the official WMO RDF files embedded in Iwxxm.Net; no network or file-system access at runtime. Register with IwxxmParserBuilder.UseOfficialSchematron().</Description>
     <PackageTags>IWXXM;IWXXM-2025-2;Iwxxm.Net;Schematron;SVRL;SaxonCS;XSLT2;WMO;ICAO;Aviation;Meteorology</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

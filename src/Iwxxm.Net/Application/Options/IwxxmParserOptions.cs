@@ -45,7 +45,7 @@ namespace Iwxxm.Net
         /// <summary>
         /// Maximum size in bytes of the SVRL report a Schematron validator may produce for one document. Larger reports
         /// stop the rule evaluation with <c>SCHEMATRON-REPORT-SIZE-LIMIT</c> (a business-rule error, not malformed input).
-        /// Defaults to 4 MB (<c>4,194,304</c> bytes).
+        /// Defaults to 4 MiB (<c>4,194,304</c> bytes).
         /// </summary>
         public long MaxRuleReportBytes { get; }
 
@@ -59,6 +59,14 @@ namespace Iwxxm.Net
         /// </summary>
         public int MaxElementDepth { get; }
 
+        /// <summary>Initializes the parser limits. Every argument must be positive, except <paramref name="maxCharactersFromEntities"/>, which may be zero.</summary>
+        /// <param name="maxDocumentBytes">The maximum input stream length in bytes (see <see cref="MaxDocumentBytes"/>); defaults to 50 MiB.</param>
+        /// <param name="maxCharactersInDocument">The maximum number of characters of the XML document (see <see cref="MaxCharactersInDocument"/>); defaults to 52,428,800.</param>
+        /// <param name="maxCharactersFromEntities">The maximum number of characters produced by entity expansion (see <see cref="MaxCharactersFromEntities"/>); defaults to 1024 and must not be negative.</param>
+        /// <param name="maxValidationErrors">The maximum number of findings reported per document (see <see cref="MaxValidationErrors"/>); defaults to 100.</param>
+        /// <param name="maxRuleReportBytes">The maximum size in bytes of a Schematron SVRL report (see <see cref="MaxRuleReportBytes"/>); defaults to 4 MiB.</param>
+        /// <param name="maxElementDepth">The maximum element nesting depth (see <see cref="MaxElementDepth"/>); defaults to 128.</param>
+        /// <exception cref="ArgumentOutOfRangeException">An argument is outside its allowed range.</exception>
         public IwxxmParserOptions(
             long maxDocumentBytes = 50L * 1024L * 1024L,
             long maxCharactersInDocument = 52_428_800L,

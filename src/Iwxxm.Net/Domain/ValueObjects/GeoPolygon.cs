@@ -14,6 +14,7 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class GeoPolygon : GeoSurface, IEquatable<GeoPolygon>
     {
+        /// <summary>Gets the closed exterior ring: the first and the last vertex are equal and there are at least four positions.</summary>
         public IReadOnlyList<GeoCoordinate> ExteriorRing { get; }
 
         /// <summary>
@@ -29,11 +30,22 @@ namespace Iwxxm.Net.Reports
             InteriorRings = interiorRings;
         }
 
+        /// <summary>Creates a polygon without interior rings. The exterior ring is closed when its last vertex differs from the first.</summary>
+        /// <param name="coordinates">The exterior ring vertices; at least three distinct vertices are required.</param>
+        /// <param name="location">The location attached to the error when the creation fails; <c>null</c> when unknown.</param>
+        /// <returns>The polygon, or a failure with code <c>GEO-POLYGON-MIN-VERTICES</c> or <c>GEO-POLYGON-DEGENERATE</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="coordinates"/> is <c>null</c>.</exception>
         public static Result<GeoPolygon> Create(IEnumerable<GeoCoordinate> coordinates, string? location = null)
         {
             return Create(coordinates, null, location);
         }
 
+        /// <summary>Creates a polygon with optional interior rings. The exterior ring and every interior ring are closed when their last vertex differs from the first.</summary>
+        /// <param name="coordinates">The exterior ring vertices; at least three distinct vertices are required.</param>
+        /// <param name="interiorRings">The holes; <c>null</c> for none, a <c>null</c> ring is skipped and each ring needs at least four positions once closed.</param>
+        /// <param name="location">The location attached to the error when the creation fails; <c>null</c> when unknown.</param>
+        /// <returns>The polygon, or a failure with code <c>GEO-POLYGON-MIN-VERTICES</c>, <c>GEO-POLYGON-DEGENERATE</c> or <c>GEO-POLYGON-HOLE-DEGENERATE</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="coordinates"/> is <c>null</c>.</exception>
         public static Result<GeoPolygon> Create(
             IEnumerable<GeoCoordinate> coordinates,
             IEnumerable<IEnumerable<GeoCoordinate>>? interiorRings,
@@ -103,6 +115,7 @@ namespace Iwxxm.Net.Reports
         public override TResult Match<TResult>(Func<GeoPolygon, TResult> polygon, Func<GeoCircle, TResult> circle) =>
             (polygon ?? throw new ArgumentNullException(nameof(polygon)))(this);
 
+        /// <inheritdoc />
         public bool Equals(GeoPolygon? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -119,8 +132,10 @@ namespace Iwxxm.Net.Reports
             return true;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is GeoPolygon other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -144,8 +159,10 @@ namespace Iwxxm.Net.Reports
             }
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="GeoPolygon"/> operands are equal by value.</summary>
         public static bool operator ==(GeoPolygon? left, GeoPolygon? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="GeoPolygon"/> operands differ by value.</summary>
         public static bool operator !=(GeoPolygon? left, GeoPolygon? right) => !Equals(left, right);
     }
 }

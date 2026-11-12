@@ -22,6 +22,11 @@ namespace Iwxxm.Net.Reports
     /// </remarks>
     public sealed class AerodromeCloud : IEquatable<AerodromeCloud>
     {
+        /// <summary>Creates the cloud group of an aerodrome report or forecast group.</summary>
+        /// <param name="layers">The cloud layers in document order; <c>null</c> is treated as empty.</param>
+        /// <param name="verticalVisibility">The vertical visibility into an obscuring medium (<c>VVnnn</c>); <c>null</c> when not reported or nil. The schema does not allow it together with cloud layers; a negative value is rejected by the report factories.</param>
+        /// <param name="verticalVisibilityNilReason">Why the vertical visibility is nil (for example <c>notObservable</c> for <c>VV///</c>); <c>null</c> otherwise.</param>
+        /// <param name="nilReason">Why the whole cloud group is nil (<c>nothingOfOperationalSignificance</c> for <c>NSC</c>, <c>notDetectedByAutoSystem</c> for <c>NCD</c>); <c>null</c> when cloud is reported.</param>
         public AerodromeCloud(
             IEnumerable<AerodromeCloudLayer>? layers = null,
             Length? verticalVisibility = null,
@@ -52,6 +57,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Gets a value indicating whether the automatic system detected no cloud (TAC <c>NCD</c>).</summary>
         public bool IsNoCloudDetected => NilReason?.Code == Reports.NilReason.NotDetectedByAutoSystem;
 
+        /// <inheritdoc />
         public bool Equals(AerodromeCloud? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -62,8 +68,10 @@ namespace Iwxxm.Net.Reports
                    Equals(NilReason, other.NilReason);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is AerodromeCloud other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.AddSequence(ValueEquality.Seed, Layers);
@@ -72,8 +80,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.Add(hash, NilReason);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AerodromeCloud"/> operands are equal by value.</summary>
         public static bool operator ==(AerodromeCloud? left, AerodromeCloud? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AerodromeCloud"/> operands differ by value.</summary>
         public static bool operator !=(AerodromeCloud? left, AerodromeCloud? right) => !Equals(left, right);
     }
 }

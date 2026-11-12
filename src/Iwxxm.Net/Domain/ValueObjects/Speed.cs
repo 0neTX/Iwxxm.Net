@@ -15,6 +15,10 @@ namespace Iwxxm.Net.Reports
         private const double MetersPerSecondPerKnot = 1852.0 / 3600.0;
         private const double MetersPerSecondPerKilometerPerHour = 1000.0 / 3600.0;
 
+        /// <summary>Creates a speed exactly as reported, without conversion.</summary>
+        /// <param name="amount">The magnitude in <paramref name="unit"/>; must be finite. The report factories reject negative speeds.</param>
+        /// <param name="unit">The unit of measure; must be a defined <see cref="SpeedUnit"/>.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="amount"/> is not finite or <paramref name="unit"/> is not supported.</exception>
         public Speed(double amount, SpeedUnit unit)
         {
             if (double.IsNaN(amount) || double.IsInfinity(amount))
@@ -36,6 +40,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>UCUM code of <see cref="Unit"/> as used by IWXXM (<c>m/s</c>, <c>[kn_i]</c>, <c>km/h</c>).</summary>
         public string UnitOfMeasure => GetUcumCode(Unit);
 
+        /// <summary>Returns the speed in metres per second (1 kt = 1852/3600 m/s).</summary>
         public double ToMetersPerSecond() => Unit switch
         {
             SpeedUnit.Knots => Amount * MetersPerSecondPerKnot,
@@ -43,6 +48,7 @@ namespace Iwxxm.Net.Reports
             _ => Amount
         };
 
+        /// <summary>Returns the speed in international knots.</summary>
         public double ToKnots() => Unit switch
         {
             SpeedUnit.Knots => Amount,
@@ -50,6 +56,7 @@ namespace Iwxxm.Net.Reports
             _ => Amount * 3600.0 / 1852.0
         };
 
+        /// <summary>Returns the speed in kilometres per hour.</summary>
         public double ToKilometersPerHour() => Unit switch
         {
             SpeedUnit.KilometersPerHour => Amount,
@@ -66,6 +73,8 @@ namespace Iwxxm.Net.Reports
             _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, "Unsupported speed unit.")
         };
 
+        /// <summary>Returns the UCUM code IWXXM uses for <paramref name="unit"/> (<c>m/s</c>, <c>[kn_i]</c> or <c>km/h</c>).</summary>
+        /// <param name="unit">The unit of measure.</param>
         public static string GetUcumCode(SpeedUnit unit) => unit switch
         {
             SpeedUnit.Knots => "[kn_i]",
@@ -73,10 +82,13 @@ namespace Iwxxm.Net.Reports
             _ => "m/s"
         };
 
+        /// <inheritdoc />
         public bool Equals(Speed other) => Amount.Equals(other.Amount) && Unit == other.Unit;
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is Speed other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -85,9 +97,12 @@ namespace Iwxxm.Net.Reports
             }
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="Speed"/> operands are equal by value.</summary>
         public static bool operator ==(Speed left, Speed right) => left.Equals(right);
+        /// <summary>Returns <c>true</c> when the two <see cref="Speed"/> operands differ by value.</summary>
         public static bool operator !=(Speed left, Speed right) => !left.Equals(right);
 
+        /// <inheritdoc />
         public override string ToString() =>
             string.Format(CultureInfo.InvariantCulture, "{0} {1}", Amount, UnitOfMeasure);
     }

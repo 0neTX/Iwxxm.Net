@@ -31,6 +31,10 @@ namespace Iwxxm.Net.Reports
         /// </summary>
         public double Lon { get; }
 
+        /// <summary>Creates a geographic position. Both values are quantized to <see cref="DecimalPlaces"/> decimal places.</summary>
+        /// <param name="lat">The latitude in decimal degrees, from -90 to +90.</param>
+        /// <param name="lon">The longitude in decimal degrees, from -180 to +180.</param>
+        /// <exception cref="ArgumentOutOfRangeException">A value is not finite or is outside its range.</exception>
         public GeoCoordinate(double lat, double lon)
         {
             if (double.IsNaN(lat) || double.IsInfinity(lat) || lat < -90.0 || lat > 90.0)
@@ -43,6 +47,11 @@ namespace Iwxxm.Net.Reports
             Lon = Quantize(lon);
         }
 
+        /// <summary>Creates a geographic position without throwing: an out-of-range or non-finite value yields a failed result.</summary>
+        /// <param name="lat">The latitude in decimal degrees, from -90 to +90.</param>
+        /// <param name="lon">The longitude in decimal degrees, from -180 to +180.</param>
+        /// <param name="location">The location (for example a <c>gml:id</c>) attached to the error when the creation fails; <c>null</c> when unknown.</param>
+        /// <returns>The position, or a failure with code <c>GEO-INVALID-LAT</c> or <c>GEO-INVALID-LON</c>.</returns>
         public static Result<GeoCoordinate> Create(double lat, double lon, string? location = null)
         {
             if (double.IsNaN(lat) || double.IsInfinity(lat) || lat < -90.0 || lat > 90.0)
@@ -66,10 +75,13 @@ namespace Iwxxm.Net.Reports
             return Result<GeoCoordinate>.Success(new GeoCoordinate(lat, lon));
         }
 
+        /// <inheritdoc />
         public bool Equals(GeoCoordinate other) => Lat.Equals(other.Lat) && Lon.Equals(other.Lon);
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is GeoCoordinate other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -96,9 +108,12 @@ namespace Iwxxm.Net.Reports
             return degrees < 0.0 ? -magnitude : magnitude;
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="GeoCoordinate"/> operands are equal by value.</summary>
         public static bool operator ==(GeoCoordinate left, GeoCoordinate right) => left.Equals(right);
+        /// <summary>Returns <c>true</c> when the two <see cref="GeoCoordinate"/> operands differ by value.</summary>
         public static bool operator !=(GeoCoordinate left, GeoCoordinate right) => !left.Equals(right);
 
+        /// <inheritdoc />
         public override string ToString() =>
             string.Format(CultureInfo.InvariantCulture, "({0:F4}, {1:F4})", Lat, Lon);
     }

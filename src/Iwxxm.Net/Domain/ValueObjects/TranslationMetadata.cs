@@ -11,6 +11,12 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class TranslationMetadata : IEquatable<TranslationMetadata>
     {
+        /// <summary>Creates the TAC translation metadata of a report.</summary>
+        /// <param name="translatedBulletinId">The identifier of the translated TAC bulletin, of the form <c>TTAAiiCCCYYGGgg</c>; <c>null</c> when absent.</param>
+        /// <param name="translatedBulletinReceptionTimeUtc">The time the translation centre received the TAC bulletin, in UTC; <c>null</c> when absent.</param>
+        /// <param name="translationCentreDesignator">The ICAO designator of the translation centre; <c>null</c> when absent.</param>
+        /// <param name="translationCentreName">The name of the translation centre; <c>null</c> when absent.</param>
+        /// <param name="translationTimeUtc">The time the translation was performed, in UTC; <c>null</c> when absent.</param>
         public TranslationMetadata(
             string? translatedBulletinId,
             DateTimeOffset? translatedBulletinReceptionTimeUtc,
@@ -40,6 +46,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Time at which the translation was performed (<c>translationTime</c>).</summary>
         public DateTimeOffset? TranslationTimeUtc { get; }
 
+        /// <inheritdoc />
         public bool Equals(TranslationMetadata? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -51,8 +58,10 @@ namespace Iwxxm.Net.Reports
                    Nullable.Equals(TranslationTimeUtc, other.TranslationTimeUtc);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is TranslationMetadata other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.Add(ValueEquality.Seed, TranslatedBulletinId);
@@ -62,8 +71,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.Add(hash, TranslationTimeUtc);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="TranslationMetadata"/> operands are equal by value.</summary>
         public static bool operator ==(TranslationMetadata? left, TranslationMetadata? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="TranslationMetadata"/> operands differ by value.</summary>
         public static bool operator !=(TranslationMetadata? left, TranslationMetadata? right) => !Equals(left, right);
     }
 }

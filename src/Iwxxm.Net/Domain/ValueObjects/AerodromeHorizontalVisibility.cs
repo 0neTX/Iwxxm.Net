@@ -10,6 +10,11 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class AerodromeHorizontalVisibility : IEquatable<AerodromeHorizontalVisibility>
     {
+        /// <summary>Creates the horizontal visibility of an observation. The report factories reject negative distances and directions outside 0-360 degrees.</summary>
+        /// <param name="prevailingMeters">The prevailing visibility in metres; <c>null</c> when nil or not reported.</param>
+        /// <param name="prevailingOperator">The qualifier of the prevailing visibility (<see cref="RelationalOperator.Above"/> for 10 km or more, reported as 10000 m); <c>null</c> for an exact value.</param>
+        /// <param name="minimumMeters">The minimum visibility in metres; <c>null</c> when not reported.</param>
+        /// <param name="minimumDirectionDegrees">The direction of the minimum visibility in degrees from true north; <c>null</c> when not reported.</param>
         public AerodromeHorizontalVisibility(
             double? prevailingMeters,
             RelationalOperator? prevailingOperator = null,
@@ -34,6 +39,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Direction of the minimum visibility in degrees; <c>null</c> when not reported.</summary>
         public double? MinimumDirectionDegrees { get; }
 
+        /// <inheritdoc />
         public bool Equals(AerodromeHorizontalVisibility? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -44,8 +50,10 @@ namespace Iwxxm.Net.Reports
                    Nullable.Equals(MinimumDirectionDegrees, other.MinimumDirectionDegrees);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is AerodromeHorizontalVisibility other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.AddDouble(ValueEquality.Seed, PrevailingMeters);
@@ -54,8 +62,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.AddDouble(hash, MinimumDirectionDegrees);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AerodromeHorizontalVisibility"/> operands are equal by value.</summary>
         public static bool operator ==(AerodromeHorizontalVisibility? left, AerodromeHorizontalVisibility? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AerodromeHorizontalVisibility"/> operands differ by value.</summary>
         public static bool operator !=(AerodromeHorizontalVisibility? left, AerodromeHorizontalVisibility? right) => !Equals(left, right);
     }
 }

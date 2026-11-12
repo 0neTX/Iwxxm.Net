@@ -42,6 +42,7 @@ namespace Iwxxm.Net.Reports
         public override TResult Match<TResult>(Func<GeoPolygon, TResult> polygon, Func<GeoCircle, TResult> circle) =>
             (circle ?? throw new ArgumentNullException(nameof(circle)))(this);
 
+        /// <inheritdoc />
         public bool Equals(GeoCircle? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -49,14 +50,19 @@ namespace Iwxxm.Net.Reports
             return Centre.Equals(other.Centre) && Radius.Equals(other.Radius);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is GeoCircle other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode() => ValueEquality.Add(ValueEquality.Add(ValueEquality.Seed, Centre), Radius);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="GeoCircle"/> operands are equal by value.</summary>
         public static bool operator ==(GeoCircle? left, GeoCircle? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="GeoCircle"/> operands differ by value.</summary>
         public static bool operator !=(GeoCircle? left, GeoCircle? right) => !Equals(left, right);
 
+        /// <inheritdoc />
         public override string ToString() =>
             string.Format(CultureInfo.InvariantCulture, "Circle({0}, {1} {2})", Centre, Radius.Amount, Radius.UnitOfMeasure);
     }

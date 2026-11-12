@@ -21,6 +21,12 @@ namespace Iwxxm.Net.Reports
         /// <summary>The nil reason meaning that no space weather of operational significance is expected.</summary>
         public const string NothingOfOperationalSignificance = "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance";
 
+        /// <summary>Creates one space weather analysis.</summary>
+        /// <param name="id">The <c>gml:id</c> of the analysis; <c>null</c> is stored as an empty string.</param>
+        /// <param name="timeIndicator">Whether the analysis is an observation or a forecast; <c>null</c> when not reported.</param>
+        /// <param name="phenomenonTimeUtc">The time the analysis applies to; <c>null</c> when nil or unresolved.</param>
+        /// <param name="regions">The intensity and region groups in document order; <c>null</c> is treated as empty.</param>
+        /// <param name="nilReason">The <c>nilReason</c> of a nil <c>intensityAndRegion</c>; a blank value is stored as <c>null</c>.</param>
         public SpaceWeatherAnalysis(
             string id,
             TimeIndicator? timeIndicator,
@@ -54,6 +60,7 @@ namespace Iwxxm.Net.Reports
         public bool IsNothingOfOperationalSignificance =>
             string.Equals(NilReason, NothingOfOperationalSignificance, StringComparison.Ordinal);
 
+        /// <inheritdoc />
         public bool Equals(SpaceWeatherAnalysis? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -65,8 +72,10 @@ namespace Iwxxm.Net.Reports
                    string.Equals(NilReason, other.NilReason, StringComparison.Ordinal);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is SpaceWeatherAnalysis other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.Add(ValueEquality.Seed, Id);
@@ -76,8 +85,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.Add(hash, NilReason);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="SpaceWeatherAnalysis"/> operands are equal by value.</summary>
         public static bool operator ==(SpaceWeatherAnalysis? left, SpaceWeatherAnalysis? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="SpaceWeatherAnalysis"/> operands differ by value.</summary>
         public static bool operator !=(SpaceWeatherAnalysis? left, SpaceWeatherAnalysis? right) => !Equals(left, right);
     }
 }

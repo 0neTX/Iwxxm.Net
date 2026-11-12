@@ -219,6 +219,7 @@ namespace Iwxxm.Net.Reports
             _ => throw new ArgumentOutOfRangeException(nameof(reference), reference, "Unsupported vertical reference.")
         };
 
+        /// <inheritdoc />
         public bool Equals(VerticalLimit other) =>
             Nullable.Equals(Amount, other.Amount) &&
             Unit == other.Unit &&
@@ -227,8 +228,10 @@ namespace Iwxxm.Net.Reports
             IsNil == other.IsNil &&
             string.Equals(NilReason, other.NilReason, StringComparison.Ordinal);
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is VerticalLimit other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -243,7 +246,9 @@ namespace Iwxxm.Net.Reports
             }
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="VerticalLimit"/> operands are equal by value.</summary>
         public static bool operator ==(VerticalLimit left, VerticalLimit right) => left.Equals(right);
+        /// <summary>Returns <c>true</c> when the two <see cref="VerticalLimit"/> operands differ by value.</summary>
         public static bool operator !=(VerticalLimit left, VerticalLimit right) => !left.Equals(right);
 
         /// <summary>Formats the limit as reported, e.g. <c>FL390 STD</c>, <c>15000 M MSL</c>, <c>GND SFC</c>, <c>NIL(unknown)</c>.</summary>

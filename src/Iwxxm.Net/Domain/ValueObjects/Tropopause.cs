@@ -12,12 +12,14 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class Tropopause : IEquatable<Tropopause>
     {
+        /// <summary>Gets the <c>gml:id</c> of the feature.</summary>
         public string Id { get; }
         /// <summary>Level type reported by the compact format (e.g. <c>SPOT</c>); <c>null</c> when the source does not
         /// report one (WAFSSignificantWeatherForecast). Never invented.</summary>
         public string? LevelType { get; }
         /// <summary>Isolated spot heights (points with their own level); empty for a contour.</summary>
         public IReadOnlyList<TropopauseSpotHeight> SpotHeights { get; }
+        /// <summary>Gets the contour of a tropopause height line as a closed polygon, or <c>null</c> when the feature is a set of spot heights.</summary>
         public GeoPolygon? ContourPolygon { get; }
         /// <summary>Level of the whole contour as reported (value, unit and vertical reference); set exactly when <see cref="ContourPolygon"/> is.</summary>
         public VerticalLimit? ContourLevel { get; }
@@ -36,6 +38,13 @@ namespace Iwxxm.Net.Reports
             ContourLevel = contourLevel;
         }
 
+        /// <summary>Creates a tropopause feature as either spot heights or a contour, enforcing that one of them is present and that a contour reports its level.</summary>
+        /// <param name="id">The <c>gml:id</c> of the feature; required (not blank).</param>
+        /// <param name="levelType">The level type reported by the compact format (for example <c>SPOT</c>); a blank value is stored as <c>null</c>.</param>
+        /// <param name="spotHeights">The isolated spot heights; <c>null</c> is treated as empty. Without a contour at least one is required.</param>
+        /// <param name="contourPolygon">The contour polygon; <c>null</c> for a set of spot heights.</param>
+        /// <param name="contourLevel">The level of the whole contour; required when <paramref name="contourPolygon"/> is given and ignored otherwise.</param>
+        /// <returns>The tropopause, or a failure with code <c>DOMAIN-TROPOPAUSE-ID</c>, <c>DOMAIN-TROPOPAUSE-EMPTY</c> or <c>DOMAIN-TROPOPAUSE-CONTOUR-LEVEL</c>.</returns>
         public static Result<Tropopause> Create(
             string id,
             string? levelType,
@@ -75,6 +84,7 @@ namespace Iwxxm.Net.Reports
                 new Tropopause(id, normalizedType, new ReadOnlyCollection<TropopauseSpotHeight>(list), contourPolygon, contourPolygon == null ? null : contourLevel));
         }
 
+        /// <inheritdoc />
         public bool Equals(Tropopause? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -86,8 +96,10 @@ namespace Iwxxm.Net.Reports
                    Nullable.Equals(ContourLevel, other.ContourLevel);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is Tropopause other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
@@ -96,8 +108,10 @@ namespace Iwxxm.Net.Reports
             }
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="Tropopause"/> operands are equal by value.</summary>
         public static bool operator ==(Tropopause? left, Tropopause? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="Tropopause"/> operands differ by value.</summary>
         public static bool operator !=(Tropopause? left, Tropopause? right) => !Equals(left, right);
     }
 }

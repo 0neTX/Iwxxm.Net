@@ -14,6 +14,16 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public sealed class AirmetEvolvingCondition : IEquatable<AirmetEvolvingCondition>
     {
+        /// <summary>Creates an AIRMET evolving condition. The report factory checks the volume motion and the surface wind and visibility ranges.</summary>
+        /// <param name="volume">The phenomenon volume shared with SIGMET (geometry, vertical limits, motion, intensity change); required.</param>
+        /// <param name="cloudBase">The cloud base of a cloud phenomenon with its unit; <c>null</c> when not reported.</param>
+        /// <param name="cloudTop">The cloud top of a cloud phenomenon with its unit; <c>null</c> when not reported.</param>
+        /// <param name="isCloudTopAbove">Whether the cloud top is above the reported value; <c>null</c> when not reported.</param>
+        /// <param name="surfaceVisibility">The widespread surface visibility of a <c>SFC VIS</c> AIRMET with its unit; <c>null</c> when not reported.</param>
+        /// <param name="surfaceVisibilityCauses">The weather conditions causing the reduced visibility (WMO code list <c>WeatherCausingVisibilityReduction</c>); <c>null</c> is treated as empty.</param>
+        /// <param name="surfaceWindDirectionDegrees">The widespread surface wind direction in degrees from true north (360 is a north wind) of a <c>SFC WIND</c> AIRMET; <c>null</c> when not reported.</param>
+        /// <param name="surfaceWindSpeed">The widespread surface wind speed of a <c>SFC WIND</c> AIRMET; <c>null</c> when not reported.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="volume"/> is <c>null</c>.</exception>
         public AirmetEvolvingCondition(
             EnRoutePhenomenonVolume volume,
             VerticalLimit? cloudBase = null,
@@ -62,6 +72,7 @@ namespace Iwxxm.Net.Reports
         /// <summary><c>surfaceWindSpeed</c> as reported (<c>m/s</c> or <c>[kn_i]</c>), or <c>null</c>.</summary>
         public Speed? SurfaceWindSpeed { get; }
 
+        /// <inheritdoc />
         public bool Equals(AirmetEvolvingCondition? other)
         {
             if (ReferenceEquals(null, other)) return false;
@@ -76,8 +87,10 @@ namespace Iwxxm.Net.Reports
                    Nullable.Equals(SurfaceWindSpeed, other.SurfaceWindSpeed);
         }
 
+        /// <inheritdoc />
         public override bool Equals(object? obj) => obj is AirmetEvolvingCondition other && Equals(other);
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             int hash = ValueEquality.Add(ValueEquality.Seed, Volume);
@@ -90,8 +103,10 @@ namespace Iwxxm.Net.Reports
             return ValueEquality.Add(hash, SurfaceWindSpeed);
         }
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AirmetEvolvingCondition"/> operands are equal by value.</summary>
         public static bool operator ==(AirmetEvolvingCondition? left, AirmetEvolvingCondition? right) => Equals(left, right);
 
+        /// <summary>Returns <c>true</c> when the two <see cref="AirmetEvolvingCondition"/> operands differ by value.</summary>
         public static bool operator !=(AirmetEvolvingCondition? left, AirmetEvolvingCondition? right) => !Equals(left, right);
     }
 }

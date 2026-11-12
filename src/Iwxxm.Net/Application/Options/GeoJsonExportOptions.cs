@@ -26,6 +26,9 @@ namespace Iwxxm.Net
         /// </summary>
         public bool IncludeBoundingBox { get; }
 
+        /// <summary>Initializes the export options.</summary>
+        /// <param name="indented"><c>true</c> to write indented, multi-line GeoJSON; <c>false</c> (default) for a single compact line.</param>
+        /// <param name="includeBoundingBox"><c>true</c> (default) to add the RFC 7946 <c>bbox</c> member to the root <c>FeatureCollection</c> when it has coordinates.</param>
         public GeoJsonExportOptions(bool indented = false, bool includeBoundingBox = true)
         {
             Indented = indented;
