@@ -589,10 +589,38 @@ namespace Iwxxm.Net.Tests.DataFidelity
         }
 
         [Fact]
-        public void HoleWithASingleVertexOutsideTheExterior_IsDroppedAndCounted()
+        public void HoleWithASingleVertexOutsideTheExteriorBoundingBox_IsDroppedAndCounted()
         {
+            // Latitude 11 is above the box of the exterior (0 to 10): the bounding-box prefilter rejects the ring, not the even-odd test.
             (double Lat, double X)[] h = { (4, 175), (4, 185), (11, 183), (6, 175), (4, 175) };
             AssertHoleDroppedAndExteriorKept(Box, h, 2);
+        }
+
+        [Fact]
+        public void HoleWithASingleVertexOutsideAConcaveExterior_ButInsideItsBoundingBox_IsDroppedAndCounted()
+        {
+            // (8, 183) lies in the gap between the teeth of the comb (latitude 5 to 25, east of 175): outside the exterior but inside its
+            // bounding box, so the even-odd test is what rejects this ring. The other vertices are inside the lower tooth.
+            (double Lat, double X)[] h = { (1, 175), (1, 185), (8, 183), (3, 175), (1, 175) };
+            AssertHoleDroppedAndExteriorKept(Comb, h, 3);
+        }
+
+        [Fact]
+        public void HoleWithAVertexOnASlopedShellEdge_IsKeptAsANotchAndNotCounted()
+        {
+            // The edge (10,190)-(20,170) is sloped; (13,184) lies exactly on it (latitude = 10 + (190 - longitude) / 2) and is on the
+            // boundary, which the containment test allows. The other vertices are inside, so the ring crosses 180 and is cut out.
+            (double Lat, double X)[] exterior = { (0, 170), (0, 190), (10, 190), (20, 170), (0, 170) };
+            (double Lat, double X)[] h = { (4, 175), (4, 185), (13, 184), (6, 175), (4, 175) };
+            using (JsonDocument json = ExportArea(Polygon(exterior, h)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(0, Dropped(json));
+                Assert.Equal(ExpectedArea(exterior, h), PlanarArea(polygons), 6);
+                Assert.All(Rings(polygons), ring => Assert.DoesNotContain(ring, c => Math.Abs(c[1]) == 90.0));
+                AssertValidRings(polygons);
+            }
         }
 
         [Fact]

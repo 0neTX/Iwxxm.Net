@@ -535,6 +535,12 @@ IWXXM arrives from networks, so the parser enforces limits *before* it allocates
 
 DTDs are always refused and no external resource is ever resolved; XML bombs and XXE attacks cannot even start.
 
+These limits bound size, nesting and memory; they do not bound CPU time. The library is synchronous and has no time limit or cancellation token, and a hostile but within-limit document can still be slow. When you parse untrusted input, bound it on your side:
+
+- run the parse on a worker (a `Task.Run` or a job queue) that you can abandon after a timeout, so a slow document cannot hold a request thread;
+- cap the size before the parser sees it (the 50 MiB default is a ceiling, not a target; lower `MaxDocumentBytes` and `MaxCharactersInDocument` together to what your feeds need);
+- limit how many documents are parsed at once: transient allocation is about 46 times the document size for a real SIGWX parse (see `TECHNICAL_DEBT.md`, section 12.15), and [SECURITY.md](../SECURITY.md#memory-cost-of-the-default-size-limit) gives the budget per concurrent request.
+
 ```csharp
 using System;
 using Iwxxm.Net;
