@@ -19,7 +19,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             {
                 var vProps = CreateBase(sigmet, "ERUPTING_VOLCANO", bulletinId);
                 vProps.Add(("name", sigmet.EruptingVolcano.Name));
-                vProps.Add(("wmoNumber", sigmet.EruptingVolcano.WmoNumber));
+                vProps.Add(("iavceiNumber", sigmet.EruptingVolcano.IavceiNumber));
                 vProps.Add(("firDesignator", sigmet.FirDesignator));
                 vProps.Add(("sequenceNumber", sigmet.SequenceNumber));
                 features.Add(GeoJsonFeature.ForPoint(sigmet.EruptingVolcano.Id, sigmet.EruptingVolcano.Position, vProps));

@@ -22,7 +22,7 @@
         "reportType": "QuantitativeVolcanicAshConcentration",
         "issueTimeUtc": "2021-12-16T23:47:00.0000000+00:00",
         "name": "KRAKATAU",
-        "wmoNumber": "262000",
+        "iavceiNumber": "262000",
         "originatingCentre": "DARWIN"
       }
     },

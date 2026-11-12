@@ -24,7 +24,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
 
             // iwxxm:name is nillable: a nil or absent name stays null (never invented).
             string? name = string.IsNullOrWhiteSpace(volcanoProp?.Name?.NilReason) ? volcanoProp?.Name?.Value : null;
-            string? wmoNumber = volcanoProp?.IAVCEINumber?.Value ?? volcanoProp?.WmoNumber;
+            string? iavceiNumber = volcanoProp?.IAVCEINumber?.Value ?? volcanoProp?.WmoNumber;
 
             // activityStatus and sourceElevation (AUD-L3) are optional; an unknown status is a feature error.
             var errors = new List<ValidationError>();
@@ -39,7 +39,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             return Volcano.Create(
                 id: feature.Id,
                 name: name,
-                wmoNumber: wmoNumber,
+                iavceiNumber: iavceiNumber,
                 position: ptRes.Value,
                 eruptionTimeUtc: null,
                 activityStatus: status,
@@ -92,7 +92,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
             return Volcano.Create(
                 id: dto.Id,
                 name: string.IsNullOrWhiteSpace(dto.Name?.NilReason) ? dto.Name?.Value : null,
-                wmoNumber: dto.WmoNumber ?? dto.IAVCEINumber?.Value,
+                iavceiNumber: dto.WmoNumber ?? dto.IAVCEINumber?.Value,
                 position: posResult.Value,
                 eruptionTimeUtc: eruptionUtc);
         }

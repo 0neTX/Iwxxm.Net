@@ -354,7 +354,7 @@ namespace Iwxxm.Net.Demo
         }
 
         private static string VolcanoText(Volcano v) =>
-            $"{Fmt.Or(v.Name)} (WMO {Fmt.Or(v.WmoNumber)}) at {v.Position}, elevation {Fmt.Text(v.SourceElevation)}, status {Fmt.Text(v.ActivityStatus)}";
+            $"{Fmt.Or(v.Name)} (IAVCEI {Fmt.Or(v.IavceiNumber)}) at {v.Position}, elevation {Fmt.Text(v.SourceElevation)}, status {Fmt.Text(v.ActivityStatus)}";
 
         // ---- volcano family -----------------------------------------------------------------------------------
 

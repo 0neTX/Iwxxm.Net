@@ -22,7 +22,7 @@
         "reportType": "VolcanoObservatoryNotice",
         "issueTimeUtc": "2024-02-16T01:30:00.0000000+00:00",
         "name": "KARYMSKY",
-        "wmoNumber": "300130",
+        "iavceiNumber": "300130",
         "noticeNumber": "2021/4",
         "currentColourCodeUri": "http://codes.wmo.int/iwxxm/AviationColourCode/YELLOW",
         "previousColourCodeUri": "http://codes.wmo.int/iwxxm/AviationColourCode/ORANGE",

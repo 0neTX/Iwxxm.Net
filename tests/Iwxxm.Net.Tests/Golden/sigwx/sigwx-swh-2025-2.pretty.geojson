@@ -100,7 +100,7 @@
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2026-10-28T18:00:00.0000000+00:00",
         "name": "ETNA",
-        "wmoNumber": "211060"
+        "iavceiNumber": "211060"
       }
     }
   ]

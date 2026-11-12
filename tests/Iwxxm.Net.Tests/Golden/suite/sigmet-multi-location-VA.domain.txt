@@ -7,6 +7,7 @@ Sigmet {
   EruptingVolcano = Volcano {
     ActivityStatus = null
     EruptionTimeUtc = null
+    IavceiNumber = null
     Id = "uuid.8c2bf282-1268-4066-bfc9-a56f7ae999f5"
     Name = "MT ASHVAL"
     Position = GeoCoordinate {
@@ -14,7 +15,6 @@ Sigmet {
       Lon = 21.25
     }
     SourceElevation = null
-    WmoNumber = null
   }
   EvolvingConditions = [
     EnRoutePhenomenonVolume {

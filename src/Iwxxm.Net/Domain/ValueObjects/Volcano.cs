@@ -13,8 +13,8 @@ namespace Iwxxm.Net.Reports
         public string Id { get; }
         /// <summary>Gets the volcano name (<c>iwxxm:name</c>), trimmed, or <c>null</c> when nil or blank (unknown).</summary>
         public string? Name { get; }
-        /// <summary>Gets the IAVCEI number of the volcano (<c>iwxxm:IAVCEINumber</c>, the International Association of Volcanology and Chemistry of the Earth's Interior identifier), or <c>null</c> when not reported or nil (unknown). The member name is historical: it holds the IAVCEI number. The compact SIGWX report reads <c>iwxxm:wmoNumber</c> first and falls back to <c>iwxxm:IAVCEINumber</c>; <c>iwxxm:wmoNumber</c> is a legacy element of the compact SIGWX schema that is not in the official IWXXM 2025-2 schemas. The WAFS SIGWX path reads <c>iwxxm:IAVCEINumber</c> first and falls back to <c>iwxxm:wmoNumber</c>. Volcanoes read from SIGMET and VAA (<c>metce:Volcano</c>) never carry the number, so <c>null</c> does not always mean it was not reported.</summary>
-        public string? WmoNumber { get; }
+        /// <summary>Gets the IAVCEI number of the volcano (<c>iwxxm:IAVCEINumber</c>, the International Association of Volcanology and Chemistry of the Earth's Interior identifier), or <c>null</c> when not reported or nil (unknown). The compact SIGWX report reads <c>iwxxm:iavceiNumber</c> first and falls back to <c>iwxxm:IAVCEINumber</c>; <c>iwxxm:iavceiNumber</c> is a legacy element of the compact SIGWX schema that is not in the official IWXXM 2025-2 schemas. The WAFS SIGWX path reads <c>iwxxm:IAVCEINumber</c> first and falls back to <c>iwxxm:iavceiNumber</c>. Volcanoes read from SIGMET and VAA (<c>metce:Volcano</c>) never carry the number, so <c>null</c> does not always mean it was not reported.</summary>
+        public string? IavceiNumber { get; }
         /// <summary>Gets the position of the volcano: the <c>iwxxm:phenomenonGeometry</c> point for WAFS SIGWX, VONA and QVACI, the <c>metce:position</c> point for SIGMET and VAA, and the <c>iwxxm:location</c> point for the compact SIGWX report.</summary>
         public GeoCoordinate Position { get; }
         /// <summary>Gets the eruption time in UTC, or <c>null</c> when not reported.</summary>
@@ -29,7 +29,7 @@ namespace Iwxxm.Net.Reports
         private Volcano(
             string id,
             string? name,
-            string? wmoNumber,
+            string? iavceiNumber,
             GeoCoordinate position,
             DateTimeOffset? eruptionTimeUtc,
             VolcanoActivityStatus? activityStatus,
@@ -37,7 +37,7 @@ namespace Iwxxm.Net.Reports
         {
             Id = id;
             Name = name;
-            WmoNumber = wmoNumber;
+            IavceiNumber = iavceiNumber;
             Position = position;
             EruptionTimeUtc = eruptionTimeUtc;
             ActivityStatus = activityStatus;
@@ -47,7 +47,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Creates a volcano, enforcing the identifier and a UTC eruption time.</summary>
         /// <param name="id">The <c>gml:id</c> of the feature; required (not blank).</param>
         /// <param name="name">The volcano name; a blank value is stored as <c>null</c>.</param>
-        /// <param name="wmoNumber">The IAVCEI number; <c>null</c> when not reported.</param>
+        /// <param name="iavceiNumber">The IAVCEI number; <c>null</c> when not reported.</param>
         /// <param name="position">The position of the volcano.</param>
         /// <param name="eruptionTimeUtc">The eruption time; <c>null</c> when not reported, otherwise expressed in UTC (offset zero).</param>
         /// <param name="activityStatus">The activity status; <c>null</c> when not reported.</param>
@@ -56,7 +56,7 @@ namespace Iwxxm.Net.Reports
         public static Result<Volcano> Create(
             string id,
             string? name,
-            string? wmoNumber,
+            string? iavceiNumber,
             GeoCoordinate position,
             DateTimeOffset? eruptionTimeUtc = null,
             VolcanoActivityStatus? activityStatus = null,
@@ -81,7 +81,7 @@ namespace Iwxxm.Net.Reports
 
             string? normalizedName = string.IsNullOrWhiteSpace(name) ? null : name!.Trim();
             return Result<Volcano>.Success(
-                new Volcano(id, normalizedName, wmoNumber, position, eruptionTimeUtc, activityStatus, sourceElevation));
+                new Volcano(id, normalizedName, iavceiNumber, position, eruptionTimeUtc, activityStatus, sourceElevation));
         }
 
         /// <inheritdoc />
@@ -91,7 +91,7 @@ namespace Iwxxm.Net.Reports
             if (ReferenceEquals(this, other)) return true;
             return Id == other.Id &&
                    Name == other.Name &&
-                   WmoNumber == other.WmoNumber &&
+                   IavceiNumber == other.IavceiNumber &&
                    Position == other.Position &&
                    Nullable.Equals(EruptionTimeUtc, other.EruptionTimeUtc) &&
                    ActivityStatus == other.ActivityStatus &&

@@ -92,7 +92,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             {
                 var props = CreateBase(sigwx, "VOLCANO", bulletinId);
                 props.Add(("name", vol.Name));
-                props.Add(("wmoNumber", vol.WmoNumber));
+                props.Add(("iavceiNumber", vol.IavceiNumber));
                 features.Add(GeoJsonFeature.ForPoint(vol.Id, vol.Position, props));
             }
 

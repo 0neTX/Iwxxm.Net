@@ -147,7 +147,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(IwxxmReportType.VolcanoObservatoryNotice, vona.ReportType);
             Assert.Single(vona.Volcanoes);
             Assert.Equal("KARYMSKY", vona.Volcanoes[0].Name);
-            Assert.Equal("300130", vona.Volcanoes[0].WmoNumber);
+            Assert.Equal("300130", vona.Volcanoes[0].IavceiNumber);
             Assert.Equal(AviationColourCode.Yellow, vona.CurrentColourCode!.Code);
             Assert.Equal("YELLOW", vona.CurrentColourCode.Notation);
             Assert.Equal(AviationColourCode.Orange, vona.PreviousColourCode!.Code);
@@ -166,7 +166,7 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(IwxxmReportType.QuantitativeVolcanicAshConcentration, qvaci.ReportType);
             Assert.Single(qvaci.Volcanoes);
             Assert.Equal("KRAKATAU", qvaci.Volcanoes[0].Name);
-            Assert.Equal("262000", qvaci.Volcanoes[0].WmoNumber);
+            Assert.Equal("262000", qvaci.Volcanoes[0].IavceiNumber);
             Assert.NotEmpty(qvaci.AshConcentrationClouds);
             Assert.Contains(qvaci.AshConcentrationClouds, c => c.Area.InteriorRings.Count > 0);
         }

@@ -263,6 +263,7 @@ Sigwx {
     Volcano {
       ActivityStatus = null
       EruptionTimeUtc = 2026-10-28T16:30:00.0000000+00:00
+      IavceiNumber = "211060"
       Id = "volcano-etna-01"
       Name = "ETNA"
       Position = GeoCoordinate {
@@ -270,7 +271,6 @@ Sigwx {
         Lon = 15
       }
       SourceElevation = null
-      WmoNumber = "211060"
     }
   ]
 }

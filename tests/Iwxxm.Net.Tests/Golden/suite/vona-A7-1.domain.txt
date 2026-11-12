@@ -43,6 +43,7 @@ Vona {
     Volcano {
       ActivityStatus = null
       EruptionTimeUtc = null
+      IavceiNumber = "300130"
       Id = "uuid.a2885938-cbd0-4953-bd07-c813ce918b1d"
       Name = "KARYMSKY"
       Position = GeoCoordinate {
@@ -50,7 +51,6 @@ Vona {
         Lon = 159.27
       }
       SourceElevation = null
-      WmoNumber = "300130"
     }
   ]
 }

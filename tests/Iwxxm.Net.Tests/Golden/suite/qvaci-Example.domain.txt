@@ -590,6 +590,7 @@ Qvaci {
     Volcano {
       ActivityStatus = null
       EruptionTimeUtc = null
+      IavceiNumber = "262000"
       Id = "uuid.48ec622f-338c-4653-8df4-2646afd2a703"
       Name = "KRAKATAU"
       Position = GeoCoordinate {
@@ -597,7 +598,6 @@ Qvaci {
         Lon = 105.423
       }
       SourceElevation = null
-      WmoNumber = "262000"
     }
   ]
 }

@@ -17,7 +17,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             {
                 var props = CreateBase(vona, "VONA_VOLCANO", bulletinId);
                 props.Add(("name", vol.Name));
-                props.Add(("wmoNumber", vol.WmoNumber));
+                props.Add(("iavceiNumber", vol.IavceiNumber));
                 props.Add(("noticeNumber", vona.NoticeNumber));
                 props.Add(("currentColourCodeUri", CodeListTables.AviationColourCodes.ToReference(vona.CurrentColourCode)));
                 props.Add(("previousColourCodeUri", CodeListTables.AviationColourCodes.ToReference(vona.PreviousColourCode)));
@@ -35,7 +35,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             {
                 var props = CreateBase(qvaci, "VOLCANO", bulletinId);
                 props.Add(("name", vol.Name));
-                props.Add(("wmoNumber", vol.WmoNumber));
+                props.Add(("iavceiNumber", vol.IavceiNumber));
                 props.Add(("originatingCentre", qvaci.OriginatingCentre));
                 features.Add(GeoJsonFeature.ForPoint(vol.Id, vol.Position, props));
             }

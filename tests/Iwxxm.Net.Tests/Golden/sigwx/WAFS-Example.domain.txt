@@ -924,6 +924,7 @@ Sigwx {
     Volcano {
       ActivityStatus = null
       EruptionTimeUtc = null
+      IavceiNumber = null
       Id = "uuid.bb8c4828-5d6e-41fb-ac96-130a8c3a7cf2"
       Name = "ETNA"
       Position = GeoCoordinate {
@@ -931,7 +932,6 @@ Sigwx {
         Lon = 15
       }
       SourceElevation = null
-      WmoNumber = null
     }
   ]
 }
