@@ -22,8 +22,8 @@
     <FileVersion Condition="'$(FileVersion)' == ''">1.0.0.1</FileVersion>
 
     <!-- Common NuGet Package Metadata -->
-    <Authors>IWXXM .NET Contributors</Authors>
-    <Copyright>Copyright (c) 2026 IWXXM .NET Contributors</Copyright>
+    <Authors>0neTX</Authors>
+    <Copyright>Copyright (c) 2026 0neTX</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -32,6 +32,12 @@
     <RepositoryUrl>https://github.com/0neTX/Iwxxm.Net.git</RepositoryUrl>
     <PackageProjectUrl>https://github.com/0neTX/Iwxxm.Net</PackageProjectUrl>
     <PackageReleaseNotes>See CHANGELOG.md at $(PackageProjectUrl)/blob/main/CHANGELOG.md for the release notes of this version.</PackageReleaseNotes>
+
+    <!-- NuGet Package Validation (packable projects only): `dotnet pack` checks that the package is consistent across its
+         target frameworks (for example netstandard2.0 vs netstandard2.1 API differences). No baseline yet: only release
+         candidates exist. After v1.0.0 is published, enable the baseline (see docs/RELEASING.md, "API compatibility baseline"):
+    <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->
+    <EnablePackageValidation Condition="'$(IsPackable)' == 'true'">true</EnablePackageValidation>
 
     <!-- Symbol Package (.snupkg) & SourceLink Best Practices -->
     <IncludeSymbols>true</IncludeSymbols>

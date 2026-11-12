@@ -33,6 +33,18 @@ Move the `## [Unreleased]` entries of `CHANGELOG.md` under a dated version headi
 
 The `Dockerfile` pack stage fails the build if the core nuspec declares a dependency, if the symbols lack SourceLink, or if either package lacks `THIRD-PARTY-NOTICES.md` or `LICENSE`.
 
+## API compatibility baseline
+
+`Directory.Build.props` enables NuGet Package Validation (`EnablePackageValidation`) for the two packable projects, so `dotnet pack` checks that each package is consistent across its target frameworks (for example `netstandard2.0` against `netstandard2.1`). No baseline version is set yet: only release candidates exist and the API still changes.
+
+After v1.0.0 is published, set the baseline in `Directory.Build.props` (a commented-out example is already there):
+
+```xml
+<PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
+```
+
+From then on `dotnet pack` fails on a breaking API change against 1.0.0, which keeps minor and patch releases compatible; a deliberate breaking change needs a new major version. A justified exception is recorded in a `CompatibilitySuppressions.xml` next to the project (generate it with `dotnet pack -p:GenerateCompatibilitySuppressionFile=true`), reviewed like any other change. Move the baseline forward after each stable release.
+
 ## Private phase (until v1.0.0)
 
 - The repository is private. Packages published to GitHub Packages from a private repository are visible only to users with access to the repository. A consumer needs a token with the `read:packages` scope (see "Installation" in the [README](../README.md)).

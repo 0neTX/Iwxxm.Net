@@ -1,6 +1,6 @@
 # Third-party notices
 
-Iwxxm.Net is licensed under the [MIT License](LICENSE) (Copyright (c) 2026 IWXXM .NET Contributors). The two NuGet
+Iwxxm.Net is licensed under the [MIT License](LICENSE) (Copyright (c) 2026 0neTX). The two NuGet
 packages, `Iwxxm.Net` and `Iwxxm.Net.Validation.Saxon`, and the repository also contain or depend on material from
 other parties. This file lists it, the terms it comes with, and how this project meets them.
 
