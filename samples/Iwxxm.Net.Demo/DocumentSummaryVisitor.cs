@@ -64,7 +64,7 @@ namespace Iwxxm.Net.Demo
 
             if (obs.IsNilObservation)
             {
-                s.Add("NIL observation", "yes, reason: " + Fmt.Or(obs.ObservationNilReason));
+                s.Add("NIL observation", "yes, reason: " + Fmt.Or(obs.ObservationNilReason?.ToString()));
                 return s;
             }
 
@@ -128,7 +128,7 @@ namespace Iwxxm.Net.Demo
 
             if (taf.IsNilForecast)
             {
-                s.Add("NIL forecast", "yes, reason: " + Fmt.Or(taf.BaseForecastNilReason));
+                s.Add("NIL forecast", "yes, reason: " + Fmt.Or(taf.BaseForecastNilReason?.ToString()));
                 return s;
             }
 

@@ -18,27 +18,24 @@ namespace Iwxxm.Net.Reports
     /// </remarks>
     public sealed class SpaceWeatherAnalysis : IEquatable<SpaceWeatherAnalysis>
     {
-        /// <summary>The nil reason meaning that no space weather of operational significance is expected.</summary>
-        public const string NothingOfOperationalSignificance = "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance";
-
         /// <summary>Creates one space weather analysis.</summary>
         /// <param name="id">The <c>gml:id</c> of the analysis; <c>null</c> is stored as an empty string.</param>
         /// <param name="timeIndicator">Whether the analysis is an observation or a forecast; <c>null</c> when not reported.</param>
         /// <param name="phenomenonTimeUtc">The time the analysis applies to; <c>null</c> when nil or unresolved.</param>
         /// <param name="regions">The intensity and region groups in document order; <c>null</c> is treated as empty.</param>
-        /// <param name="nilReason">The <c>nilReason</c> of a nil <c>intensityAndRegion</c>; a blank value is stored as <c>null</c>.</param>
+        /// <param name="nilReason">The <c>nilReason</c> of a nil <c>intensityAndRegion</c> (<see cref="Reports.NilReason.NothingOfOperationalSignificance"/> for "NO SWX EXP"); <c>null</c> when the group is not nil.</param>
         public SpaceWeatherAnalysis(
             string id,
             TimeIndicator? timeIndicator,
             DateTimeOffset? phenomenonTimeUtc,
             IEnumerable<SpaceWeatherAnalysisRegion>? regions = null,
-            string? nilReason = null)
+            CodeListValue<NilReason>? nilReason = null)
         {
             Id = id ?? string.Empty;
             TimeIndicator = timeIndicator;
             PhenomenonTimeUtc = phenomenonTimeUtc;
             Regions = new ReadOnlyCollection<SpaceWeatherAnalysisRegion>(regions?.ToList() ?? new List<SpaceWeatherAnalysisRegion>(0));
-            NilReason = string.IsNullOrWhiteSpace(nilReason) ? null : nilReason;
+            NilReason = nilReason;
         }
 
         /// <summary><c>gml:id</c> of the <c>SpaceWeatherAnalysis</c>.</summary>
@@ -53,12 +50,12 @@ namespace Iwxxm.Net.Reports
         /// <summary>Intensity and region groups (<c>iwxxm:intensityAndRegion</c>), in document order.</summary>
         public IReadOnlyList<SpaceWeatherAnalysisRegion> Regions { get; }
 
-        /// <summary><c>@nilReason</c> of a nil <c>intensityAndRegion</c>, or <c>null</c>.</summary>
-        public string? NilReason { get; }
+        /// <summary><c>@nilReason</c> of a nil <c>intensityAndRegion</c> as a code of the WMO register <c>http://codes.wmo.int/common/nil</c> (e.g. <c>nothingOfOperationalSignificance</c>), or <c>null</c>. A reason outside the register is kept as <c>Unknown</c> with its raw value in <see cref="CodeListValue{TCode}.Notation"/>.</summary>
+        public CodeListValue<NilReason>? NilReason { get; }
 
         /// <summary>Gets a value indicating whether the analysis states that no operationally significant space weather is expected.</summary>
         public bool IsNothingOfOperationalSignificance =>
-            string.Equals(NilReason, NothingOfOperationalSignificance, StringComparison.Ordinal);
+            NilReason?.Code == Reports.NilReason.NothingOfOperationalSignificance;
 
         /// <inheritdoc />
         public bool Equals(SpaceWeatherAnalysis? other)
@@ -69,7 +66,7 @@ namespace Iwxxm.Net.Reports
                    TimeIndicator == other.TimeIndicator &&
                    Nullable.Equals(PhenomenonTimeUtc, other.PhenomenonTimeUtc) &&
                    ValueEquality.SequenceEqual(Regions, other.Regions) &&
-                   string.Equals(NilReason, other.NilReason, StringComparison.Ordinal);
+                   Equals(NilReason, other.NilReason);
         }
 
         /// <inheritdoc />

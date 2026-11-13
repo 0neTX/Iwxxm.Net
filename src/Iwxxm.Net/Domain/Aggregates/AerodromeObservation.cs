@@ -75,8 +75,8 @@ namespace Iwxxm.Net.Reports
         public GeoCoordinate? AerodromePosition { get; }
         /// <summary>Gets a value indicating whether <c>iwxxm:observation</c> is nil (a missing report): the element carries a <c>nilReason</c> and no observed conditions, see <see cref="ObservationNilReason"/>.</summary>
         public bool IsNilObservation { get; }
-        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:observation</c> (a URI or token of the WMO nil-reason code list, kept as written), or <c>null</c> when conditions are reported.</summary>
-        public string? ObservationNilReason { get; }
+        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:observation</c> as a code of the WMO nil-reason register <c>http://codes.wmo.int/common/nil</c> (typically <see cref="NilReason.Missing"/>: the whole report is missing), or <c>null</c> when conditions are reported. A reason outside the official register is kept as <c>Unknown</c> with its raw value in <see cref="CodeListValue{TCode}.Notation"/>.</summary>
+        public CodeListValue<NilReason>? ObservationNilReason { get; }
         /// <inheritdoc />
         public sealed override bool IsTranslationFailed { get; }
         /// <inheritdoc />
@@ -137,7 +137,7 @@ namespace Iwxxm.Net.Reports
             string? aerodromeName,
             GeoCoordinate? aerodromePosition,
             bool isNilObservation,
-            string? observationNilReason,
+            CodeListValue<NilReason>? observationNilReason,
             bool isTranslationFailed,
             string? translationFailedTac,
             bool cloudAndVisibilityOk,
@@ -228,7 +228,7 @@ namespace Iwxxm.Net.Reports
             internal string? AerodromeName;
             internal GeoCoordinate? AerodromePosition;
             internal bool IsNilObservation;
-            internal string? ObservationNilReason;
+            internal CodeListValue<NilReason>? ObservationNilReason;
             internal bool IsTranslationFailed;
             internal string? TranslationFailedTac;
             internal bool CloudAndVisibilityOk;

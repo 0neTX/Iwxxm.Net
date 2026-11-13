@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Infrastructure.GeoJson
@@ -92,8 +93,16 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             props.Add((name + "Uom", value.UnitOfMeasure));
             props.Add((name + "Reference", value.ReferenceCode));
             props.Add((name + "SpecialValue", value.SpecialValueCode));
-            props.Add((name + "NilReason", value.IsNil ? (value.NilReason ?? "nil") : null));
+            props.Add((name + "NilReason", value.IsNil ? (NilReasonText(value.NilReason) ?? "nil") : null));
             props.Add((name + "FlightLevel", value.AsFlightLevel()?.ToString()));
         }
+
+        /// <summary>
+        /// The <c>@nilReason</c> as it was reported, for the GeoJSON output: the full reference of an official code of
+        /// <c>http://codes.wmo.int/common/nil</c>, otherwise the raw value kept in <see cref="CodeListValue{TCode}.Notation"/>
+        /// (a foreign URI or a bare token is never rewritten); <c>null</c> when no reason was reported.
+        /// </summary>
+        public static string? NilReasonText(CodeListValue<NilReason>? reason) =>
+            reason == null ? null : reason.IsKnown ? CodeListTables.NilReasons.ToReference(reason) : reason.Notation;
     }
 }

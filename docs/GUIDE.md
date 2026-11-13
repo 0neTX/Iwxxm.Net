@@ -705,7 +705,7 @@ VerticalLimit fl390 = VerticalLimit.Create(390, VerticalUnit.FlightLevel, Vertic
 VerticalLimit fl250 = VerticalLimit.Create(250, VerticalUnit.FlightLevel, VerticalReference.Std).Value;
 VerticalLimit km15 = VerticalLimit.Create(15, VerticalUnit.Kilometers, VerticalReference.Msl).Value;
 VerticalLimit ground = VerticalLimit.FromSpecialValue(VerticalSpecialValue.Ground, VerticalReference.Sfc);
-VerticalLimit absent = VerticalLimit.Nil("inapplicable");
+VerticalLimit absent = VerticalLimit.Nil(new CodeListValue<NilReason>(NilReason.Inapplicable, "inapplicable"));
 
 Console.WriteLine($"{fl390} | {km15} | {ground} | {absent}");
 
@@ -810,7 +810,7 @@ weather FG, official: True
 
 ### Nil reasons: "nothing" is information
 
-In IWXXM an absent value can come with a *reason*, and the reason is operationally important. `NSC` ("no significant cloud") is not the same as `NCD` ("no cloud detected by the automatic system") and neither is the same as "the cloud group is missing". These reasons are `CodeListValue<NilReason>`, with convenience flags where they matter. The official SPECI example has a trend forecast that says "no significant weather, no significant cloud":
+In IWXXM an absent value can come with a *reason*, and the reason is operationally important. `NSC` ("no significant cloud") is not the same as `NCD` ("no cloud detected by the automatic system") and neither is the same as "the cloud group is missing". These reasons are `CodeListValue<NilReason>`, with convenience flags where they matter. Every nil reason of the model has this type: the cloud, weather and vertical-visibility reasons, the reason of a nil METAR/SPECI `observation` (`ObservationNilReason`) or TAF `baseForecast` (`BaseForecastNilReason`), of a nil space weather `intensityAndRegion` (`SpaceWeatherAnalysis.NilReason`) and of a nil `VerticalLimit` (`NilReason`). A reason that is not a code of the official register (a foreign URI, or a bare token such as `unknown`) is never dropped: `Code` is `Unknown` and `Notation` holds the value exactly as reported; no warning is added. The official SPECI example has a trend forecast that says "no significant weather, no significant cloud":
 
 ```csharp
 using System;
@@ -938,7 +938,7 @@ public static class Levels
         if (l.IsNil)
         {
             // The reason is a URL such as http://codes.wmo.int/iwxxm/nil/inapplicable; keep its last segment.
-            return "nil: " + (l.NilReason ?? "no reason").Split('/')[^1];
+            return "nil: " + (l.NilReason?.Notation ?? "no reason").Split('/')[^1];
         }
 
         return ApproxFeet(l) is { } feet ? $"FL{feet / 100:000}~ ({l})" : l.ToString();
@@ -1111,7 +1111,7 @@ Cloud area uuid.6f770e58-488b-4d89-b828-4c952b7d6a65
   patches      : 1
 ```
 
-`Base` is `VerticalLimit?` and here it is a **nil limit** (`IsNil` is true and `NilReason` holds the reason; `ToString()` prints it as `NIL(...)`). It is `null` only when the element is missing altogether. `Top` is mandatory. When `Base` is a number, the library checks that `Top` is above it (`DOMAIN-CLOUD-VERTICAL-EXTENT`).
+`Base` is `VerticalLimit?` and here it is a **nil limit** (`IsNil` is true and `NilReason` holds the reason as a `CodeListValue<NilReason>`, here `Unknown` with the foreign URI `http://codes.wmo.int/iwxxm/nil/inapplicable` kept in `Notation`; `ToString()` prints it as `NIL(...)`). It is `null` only when the element is missing altogether. `Top` is mandatory. When `Base` is a number, the library checks that `Top` is above it (`DOMAIN-CLOUD-VERTICAL-EXTENT`).
 
 ### Turbulence and icing: separate features
 
@@ -1368,7 +1368,7 @@ FROM                     12:30-18:00Z  vis Above 10000 m, wind 150/4 m/s, weathe
 
 Things worth noticing: `ChangeIndicator` keeps the IWXXM word (`TEMPORARY_FLUCTUATIONS`, not `TEMPO`); `PrevailingVisibilityOperator` is `Above` when the visibility is "10 km or more" (TAC `9999`); a `TEMPO` with `CB` in the cloud type is the thunderstorm the weather group `TSRA` announced. A group that has no visibility or wind simply inherits the base values, as in the TAC; `null` means "not stated here", never "zero".
 
-Other TAF shapes are modelled as well: a cancellation (`IsCancelReport`, with the `CancelledReportValidFromUtc` and `...UntilUtc` of the TAF being cancelled) and a NIL forecast (`IsNilForecast`, `BaseForecastNilReason`).
+Other TAF shapes are modelled as well: a cancellation (`IsCancelReport`, with the `CancelledReportValidFromUtc` and `...UntilUtc` of the TAF being cancelled) and a NIL forecast (`IsNilForecast`, `BaseForecastNilReason`, a `CodeListValue<NilReason>`, usually `Missing`).
 
 ## 13. Worked example: SIGMET
 

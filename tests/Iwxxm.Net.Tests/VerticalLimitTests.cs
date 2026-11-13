@@ -20,6 +20,9 @@ namespace Iwxxm.Net.Tests
         private static readonly XNamespace Aixm = "http://www.aixm.aero/schema/5.1.1";
         private static readonly XNamespace Xsi = "http://www.w3.org/2001/XMLSchema-instance";
 
+        private static CodeListValue<NilReason> Reason(string notation) =>
+            new CodeListValue<NilReason>(NilReason.Unknown, notation);
+
         // ---------------------------------------------------------------------
         // Domain value object
         // ---------------------------------------------------------------------
@@ -78,9 +81,9 @@ namespace Iwxxm.Net.Tests
             VerticalLimit b = VerticalLimit.Create(250, VerticalUnit.FlightLevel, VerticalReference.Std).Value;
             VerticalLimit otherReference = VerticalLimit.Create(250, VerticalUnit.FlightLevel, VerticalReference.Msl).Value;
             VerticalLimit otherUnit = VerticalLimit.Create(250, VerticalUnit.Meters, VerticalReference.Std).Value;
-            VerticalLimit nil = VerticalLimit.Nil("unknown");
-            VerticalLimit nil2 = VerticalLimit.Nil("unknown");
-            VerticalLimit nilOther = VerticalLimit.Nil("missing");
+            VerticalLimit nil = VerticalLimit.Nil(Reason("unknown"));
+            VerticalLimit nil2 = VerticalLimit.Nil(Reason("unknown"));
+            VerticalLimit nilOther = VerticalLimit.Nil(Reason("missing"));
 
             Assert.Equal(a, b);
             Assert.True(a == b);
@@ -96,10 +99,10 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void Nil_KeepsTheNilReasonAndHasNoValue()
         {
-            VerticalLimit nil = VerticalLimit.Nil("unknown", null, null);
+            VerticalLimit nil = VerticalLimit.Nil(Reason("unknown"), null, null);
 
             Assert.True(nil.IsNil);
-            Assert.Equal("unknown", nil.NilReason);
+            Assert.Equal(Reason("unknown"), nil.NilReason);
             Assert.Null(nil.Amount);
             Assert.Null(nil.AsFlightLevel());
         }
@@ -126,7 +129,7 @@ namespace Iwxxm.Net.Tests
             Assert.True(m10363.TryCompareTo(ft41000, out int c2));
             Assert.True(c2 < 0);
             Assert.False(fl100.TryCompareTo(m10363, out _));
-            Assert.False(VerticalLimit.Nil("unknown").TryCompareTo(fl100, out _));
+            Assert.False(VerticalLimit.Nil(Reason("unknown")).TryCompareTo(fl100, out _));
         }
 
         // ---------------------------------------------------------------------
@@ -196,7 +199,8 @@ namespace Iwxxm.Net.Tests
 
             Assert.Empty(errors);
             Assert.True(limit!.Value.IsNil);
-            Assert.Equal("unknown", limit.Value.NilReason);
+            Assert.Equal(NilReason.Unknown, limit.Value.NilReason!.Code); // a bare token is not a URI of the register: kept as reported
+            Assert.Equal("unknown", limit.Value.NilReason.Notation);
             Assert.Null(limit.Value.Unit);
         }
 
@@ -313,7 +317,8 @@ namespace Iwxxm.Net.Tests
 
             Cloud cloud = report.Clouds[0];
             Assert.True(cloud.Base!.Value.IsNil);
-            Assert.Equal("http://codes.wmo.int/iwxxm/nil/inapplicable", cloud.Base.Value.NilReason);
+            Assert.Equal(NilReason.Unknown, cloud.Base.Value.NilReason!.Code); // foreign register: kept verbatim
+            Assert.Equal("http://codes.wmo.int/iwxxm/nil/inapplicable", cloud.Base.Value.NilReason.Notation);
             Assert.Equal(VerticalLimit.Create(12496.8, VerticalUnit.Meters, VerticalReference.Msl).Value, cloud.Top);
 
             JetStream jet = report.JetStreams[0];

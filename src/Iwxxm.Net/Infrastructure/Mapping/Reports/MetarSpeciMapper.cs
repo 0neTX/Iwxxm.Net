@@ -28,7 +28,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             string? aerodromeName,
             GeoCoordinate? aerodromePosition,
             bool isNilObservation,
-            string? observationNilReason,
+            CodeListValue<NilReason>? observationNilReason,
             bool isTranslationFailed,
             string? translationFailedTac,
             bool cloudAndVisibilityOk,
@@ -68,9 +68,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 out GeoCoordinate? position);
 
             XElement? obsProp = root.Element(IwxxmNs + "observation");
-            string? obsNilReason = obsProp?.Attribute("nilReason")?.Value;
+            CodeListValue<NilReason>? obsNilReason = AerodromeConditionsReader.ReadNilReason(obsProp);
             XElement? obsElem = obsProp?.Element(IwxxmNs + "MeteorologicalAerodromeObservation");
-            bool isNilObs = obsElem == null && !string.IsNullOrWhiteSpace(obsNilReason);
+            bool isNilObs = obsElem == null && obsNilReason != null;
 
             bool cavok = false;
             double? airTemp = null;

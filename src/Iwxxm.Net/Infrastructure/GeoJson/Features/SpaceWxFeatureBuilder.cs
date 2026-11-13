@@ -22,7 +22,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 if (analysis.Regions.Count == 0 && analysis.NilReason != null)
                 {
                     var nilProps = CreateAnalysisBase(swx, analysis, "SPACE_WEATHER_ANALYSIS_NIL", bulletinId);
-                    nilProps.Add(("nilReason", analysis.NilReason));
+                    nilProps.Add(("nilReason", NilReasonText(analysis.NilReason)));
                     features.Add(GeoJsonFeature.WithoutGeometry($"{analysis.Id}#nil", nilProps));
                     continue;
                 }

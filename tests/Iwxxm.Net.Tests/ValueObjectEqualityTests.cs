@@ -333,7 +333,7 @@ namespace Iwxxm.Net.Tests
                 r.Next(3) == 0 ? (TimeIndicator?)null : (r.Next(2) == 0 ? TimeIndicator.Observation : TimeIndicator.Forecast),
                 r.Next(3) == 0 ? (DateTimeOffset?)null : Epoch.AddHours(r.Next(24)),
                 Enumerable.Range(0, r.Next(3)).Select(_ => SpaceWeatherRegion(r)).ToList(),
-                MaybeText(r, SpaceWeatherAnalysis.NothingOfOperationalSignificance, "http://codes.wmo.int/common/nil/missing"));
+                MaybeNilReason(r));
 
         private static VolcanicAshConditions AshConditions(Random r) =>
             new VolcanicAshConditions(

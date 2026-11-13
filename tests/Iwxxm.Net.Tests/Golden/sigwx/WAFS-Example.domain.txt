@@ -305,7 +305,11 @@ Sigwx {
         IsGround = false
         IsNil = true
         IsUnlimited = false
-        NilReason = "http://codes.wmo.int/iwxxm/nil/inapplicable"
+        NilReason = CodeListValue<NilReason> {
+          Code = NilReason.Unknown
+          IsKnown = false
+          Notation = "http://codes.wmo.int/iwxxm/nil/inapplicable"
+        }
         Reference = null
         ReferenceCode = null
         SpecialValue = VerticalSpecialValue.None

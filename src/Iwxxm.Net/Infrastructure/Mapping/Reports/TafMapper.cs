@@ -30,9 +30,9 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             GmlTimeReader.ReadPeriod(root.Element(IwxxmNs + "cancelledReportValidPeriod"), "cancelledReportValidPeriod", null, id, errors, out DateTimeOffset? cancelFrom, out DateTimeOffset? cancelUntil);
 
             XElement? baseProp = root.Element(IwxxmNs + "baseForecast");
-            string? baseNilReason = baseProp?.Attribute("nilReason")?.Value;
+            CodeListValue<NilReason>? baseNilReason = AerodromeConditionsReader.ReadNilReason(baseProp);
             XElement? baseElem = baseProp?.Element(IwxxmNs + "MeteorologicalAerodromeForecast");
-            bool isNilForecast = baseElem == null && !string.IsNullOrWhiteSpace(baseNilReason);
+            bool isNilForecast = baseElem == null && baseNilReason != null;
 
             AerodromeForecastGroup? baseForecast = baseElem != null ? AerodromeConditionsReader.ReadForecastGroup(baseElem, errors, aliases) : null;
 

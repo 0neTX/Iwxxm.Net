@@ -16,7 +16,11 @@ MeteorologicalBulletin {
         AerodromeName = "DONLON/INTERNATIONAL"
         AerodromePosition = null
         BaseForecast = null
-        BaseForecastNilReason = "http://codes.wmo.int/common/nil/missing"
+        BaseForecastNilReason = CodeListValue<NilReason> {
+          Code = NilReason.Missing
+          IsKnown = true
+          Notation = "missing"
+        }
         CancelledReportValidFromUtc = null
         CancelledReportValidUntilUtc = null
         ChangeForecasts = []
@@ -46,7 +50,11 @@ MeteorologicalBulletin {
       AerodromeName = "DONLON/INTERNATIONAL"
       AerodromePosition = null
       BaseForecast = null
-      BaseForecastNilReason = "http://codes.wmo.int/common/nil/missing"
+      BaseForecastNilReason = CodeListValue<NilReason> {
+        Code = NilReason.Missing
+        IsKnown = true
+        Notation = "missing"
+      }
       CancelledReportValidFromUtc = null
       CancelledReportValidUntilUtc = null
       ChangeForecasts = []

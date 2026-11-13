@@ -25,7 +25,11 @@ MeteorologicalBulletin {
         IsNilObservation = true
         IsTranslationFailed = false
         IssueTimeUtc = 2012-08-22T16:30:00.0000000+00:00
-        ObservationNilReason = "http://codes.wmo.int/common/nil/missing"
+        ObservationNilReason = CodeListValue<NilReason> {
+          Code = NilReason.Missing
+          IsKnown = true
+          Notation = "missing"
+        }
         ObservationTimeUtc = 2012-08-22T16:30:00.0000000+00:00
         PermissibleUsage = PermissibleUsage.Operational
         PermissibleUsageReason = null
@@ -63,7 +67,11 @@ MeteorologicalBulletin {
       IsNilObservation = true
       IsTranslationFailed = false
       IssueTimeUtc = 2012-08-22T16:30:00.0000000+00:00
-      ObservationNilReason = "http://codes.wmo.int/common/nil/missing"
+      ObservationNilReason = CodeListValue<NilReason> {
+        Code = NilReason.Missing
+        IsKnown = true
+        Notation = "missing"
+      }
       ObservationTimeUtc = 2012-08-22T16:30:00.0000000+00:00
       PermissibleUsage = PermissibleUsage.Operational
       PermissibleUsageReason = null

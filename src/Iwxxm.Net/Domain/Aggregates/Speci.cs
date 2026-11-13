@@ -33,7 +33,7 @@ namespace Iwxxm.Net.Reports
             string? aerodromeName,
             GeoCoordinate? aerodromePosition,
             bool isNilObservation = false,
-            string? observationNilReason = null,
+            CodeListValue<NilReason>? observationNilReason = null,
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
             bool cloudAndVisibilityOk = false,

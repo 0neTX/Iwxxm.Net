@@ -71,7 +71,8 @@ namespace Iwxxm.Net.Tests.DataFidelity
             {
                 Assert.Empty(a.Regions);
                 Assert.True(a.IsNothingOfOperationalSignificance);
-                Assert.Equal(SpaceWeatherAnalysis.NothingOfOperationalSignificance, a.NilReason);
+                Assert.Equal(NilReason.NothingOfOperationalSignificance, a.NilReason!.Code);
+                Assert.Equal("nothingOfOperationalSignificance", a.NilReason.Notation);
             });
         }
 

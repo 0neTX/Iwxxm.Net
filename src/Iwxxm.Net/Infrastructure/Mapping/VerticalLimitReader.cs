@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Xml.Linq;
+using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 
 namespace Iwxxm.Net.Infrastructure.Mapping
@@ -75,7 +76,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping
 
             if (isNil || !string.IsNullOrWhiteSpace(nilReason) || text.Length == 0)
             {
-                return VerticalLimit.Nil(nilReason, reference, unit);
+                return VerticalLimit.Nil(CodeListTables.NilReasons.Translate(nilReason?.Trim()), reference, unit);
             }
 
             VerticalSpecialValue special = ParseSpecialValue(text);

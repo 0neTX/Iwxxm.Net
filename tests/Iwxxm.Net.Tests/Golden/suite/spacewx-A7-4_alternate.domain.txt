@@ -158,7 +158,11 @@ SpaceWx {
     SpaceWeatherAnalysis {
       Id = "uuid.8fc8a55b-e730-4d84-bb44-6e7b7dc3dd32"
       IsNothingOfOperationalSignificance = true
-      NilReason = "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
+      NilReason = CodeListValue<NilReason> {
+        Code = NilReason.NothingOfOperationalSignificance
+        IsKnown = true
+        Notation = "nothingOfOperationalSignificance"
+      }
       PhenomenonTimeUtc = 2020-11-08T13:00:00.0000000+00:00
       Regions = []
       TimeIndicator = TimeIndicator.Forecast
@@ -166,7 +170,11 @@ SpaceWx {
     SpaceWeatherAnalysis {
       Id = "uuid.6a1f263b-5aeb-4002-af1b-9c3ef2812f8d"
       IsNothingOfOperationalSignificance = true
-      NilReason = "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
+      NilReason = CodeListValue<NilReason> {
+        Code = NilReason.NothingOfOperationalSignificance
+        IsKnown = true
+        Notation = "nothingOfOperationalSignificance"
+      }
       PhenomenonTimeUtc = 2020-11-08T19:00:00.0000000+00:00
       Regions = []
       TimeIndicator = TimeIndicator.Forecast
@@ -174,7 +182,11 @@ SpaceWx {
     SpaceWeatherAnalysis {
       Id = "uuid.ba259410-18a3-4074-92e5-1fd09dccedd4"
       IsNothingOfOperationalSignificance = true
-      NilReason = "http://codes.wmo.int/common/nil/nothingOfOperationalSignificance"
+      NilReason = CodeListValue<NilReason> {
+        Code = NilReason.NothingOfOperationalSignificance
+        IsKnown = true
+        Notation = "nothingOfOperationalSignificance"
+      }
       PhenomenonTimeUtc = 2020-11-09T01:00:00.0000000+00:00
       Regions = []
       TimeIndicator = TimeIndicator.Forecast

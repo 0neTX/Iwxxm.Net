@@ -43,8 +43,8 @@ namespace Iwxxm.Net.Reports
         public DateTimeOffset? CancelledReportValidUntilUtc { get; }
         /// <summary>Gets a value indicating whether the <c>iwxxm:baseForecast</c> is nil (a missing report): the element carries a <c>nilReason</c> instead of a forecast, see <see cref="BaseForecastNilReason"/>.</summary>
         public bool IsNilForecast { get; }
-        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:baseForecast</c> (a URI or token of the WMO nil-reason code list, kept as written), or <c>null</c> when a forecast is present.</summary>
-        public string? BaseForecastNilReason { get; }
+        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:baseForecast</c> as a code of the WMO nil-reason register <c>http://codes.wmo.int/common/nil</c> (typically <see cref="NilReason.Missing"/>: the whole report is missing), or <c>null</c> when a forecast is present. A reason outside the official register is kept as <c>Unknown</c> with its raw value in <see cref="CodeListValue{TCode}.Notation"/>.</summary>
+        public CodeListValue<NilReason>? BaseForecastNilReason { get; }
         /// <inheritdoc />
         public override bool IsTranslationFailed { get; }
         /// <inheritdoc />
@@ -75,7 +75,7 @@ namespace Iwxxm.Net.Reports
             DateTimeOffset? cancelledReportValidFromUtc,
             DateTimeOffset? cancelledReportValidUntilUtc,
             bool isNilForecast,
-            string? baseForecastNilReason,
+            CodeListValue<NilReason>? baseForecastNilReason,
             bool isTranslationFailed,
             string? translationFailedTac,
             AerodromeForecastGroup? baseForecast,
@@ -138,7 +138,7 @@ namespace Iwxxm.Net.Reports
             DateTimeOffset? cancelledReportValidFromUtc = null,
             DateTimeOffset? cancelledReportValidUntilUtc = null,
             bool isNilForecast = false,
-            string? baseForecastNilReason = null,
+            CodeListValue<NilReason>? baseForecastNilReason = null,
             bool isTranslationFailed = false,
             string? translationFailedTac = null,
             AerodromeForecastGroup? baseForecast = null,

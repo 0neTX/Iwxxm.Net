@@ -75,13 +75,13 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             DateTimeOffset? phenTime = GmlTimeReader.ReadOptionalInstant(analysisElem.Element(IwxxmNs + "phenomenonTime"), "phenomenonTime", analysisId, errors);
 
             var regions = new List<SpaceWeatherAnalysisRegion>();
-            string? nilReason = null;
+            CodeListValue<NilReason>? nilReason = null;
             foreach (XElement irProp in analysisElem.Elements(IwxxmNs + "intensityAndRegion"))
             {
                 XElement? irElem = GmlReferenceResolver.Content(irProp, IwxxmNs + "SpaceWeatherIntensityAndRegion");
                 if (irElem == null)
                 {
-                    nilReason ??= irProp.Attribute("nilReason")?.Value;
+                    nilReason ??= AerodromeConditionsReader.ReadNilReason(irProp);
                     continue;
                 }
 

@@ -25,7 +25,7 @@ namespace Iwxxm.Net.Reports
             VerticalReference? reference,
             VerticalSpecialValue specialValue,
             bool isNil,
-            string? nilReason)
+            CodeListValue<NilReason>? nilReason)
         {
             Amount = amount.HasValue && amount.Value == 0.0 ? 0.0 : amount; // normalize negative zero
             Unit = unit;
@@ -50,8 +50,8 @@ namespace Iwxxm.Net.Reports
         /// <summary>Gets a value indicating whether the limit is explicitly nil (<c>xsi:nil</c> / <c>nilReason</c>).</summary>
         public bool IsNil { get; }
 
-        /// <summary>The reported <c>nilReason</c> when <see cref="IsNil"/> is <c>true</c>.</summary>
-        public string? NilReason { get; }
+        /// <summary>The reported <c>nilReason</c> when <see cref="IsNil"/> is <c>true</c>, as a code of the WMO register <c>http://codes.wmo.int/common/nil</c>; <c>null</c> when none was reported. A reason outside the register is kept as <c>Unknown</c> with its raw value in <see cref="CodeListValue{TCode}.Notation"/>.</summary>
+        public CodeListValue<NilReason>? NilReason { get; }
 
         /// <summary>Gets a value indicating whether the limit is the ground / surface (<c>GND</c>).</summary>
         public bool IsGround => SpecialValue == VerticalSpecialValue.Ground;
@@ -120,11 +120,10 @@ namespace Iwxxm.Net.Reports
             return new VerticalLimit(null, unit, reference, specialValue, false, null);
         }
 
-        /// <summary>Creates an explicitly nil limit keeping the reported <paramref name="nilReason"/> (which may be absent).</summary>
-        public static VerticalLimit Nil(string? nilReason, VerticalReference? reference = null, VerticalUnit? unit = null)
+        /// <summary>Creates an explicitly nil limit keeping the reported <paramref name="nilReason"/> (a code of the WMO register <c>http://codes.wmo.int/common/nil</c>; <c>null</c> when absent).</summary>
+        public static VerticalLimit Nil(CodeListValue<NilReason>? nilReason, VerticalReference? reference = null, VerticalUnit? unit = null)
         {
-            string? reason = string.IsNullOrWhiteSpace(nilReason) ? null : nilReason!.Trim();
-            return new VerticalLimit(null, unit, reference, VerticalSpecialValue.None, true, reason);
+            return new VerticalLimit(null, unit, reference, VerticalSpecialValue.None, true, nilReason);
         }
 
         /// <summary>
@@ -226,7 +225,7 @@ namespace Iwxxm.Net.Reports
             Reference == other.Reference &&
             SpecialValue == other.SpecialValue &&
             IsNil == other.IsNil &&
-            string.Equals(NilReason, other.NilReason, StringComparison.Ordinal);
+            Equals(NilReason, other.NilReason);
 
         /// <inheritdoc />
         public override bool Equals(object? obj) => obj is VerticalLimit other && Equals(other);
@@ -241,7 +240,7 @@ namespace Iwxxm.Net.Reports
                 hash = (hash * 397) ^ (Reference.HasValue ? (int)Reference.Value : -1);
                 hash = (hash * 397) ^ (int)SpecialValue;
                 hash = (hash * 397) ^ (IsNil ? 1 : 0);
-                hash = (hash * 397) ^ (NilReason == null ? 0 : StringComparer.Ordinal.GetHashCode(NilReason));
+                hash = (hash * 397) ^ (NilReason == null ? 0 : NilReason.GetHashCode());
                 return hash;
             }
         }
@@ -257,7 +256,7 @@ namespace Iwxxm.Net.Reports
             string referenceSuffix = Reference.HasValue ? " " + GetReferenceCode(Reference.Value) : string.Empty;
 
             if (IsNil)
-                return "NIL" + (NilReason != null ? "(" + NilReason + ")" : string.Empty);
+                return "NIL" + (NilReason != null ? "(" + NilReason.Notation + ")" : string.Empty);
 
             if (SpecialValue != VerticalSpecialValue.None)
                 return SpecialValueCode + referenceSuffix;
