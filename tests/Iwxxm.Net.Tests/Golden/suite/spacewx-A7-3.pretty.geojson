@@ -28,7 +28,7 @@
         "timeIndicator": "OBSERVATION",
         "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
         "intensity": "SEV",
-        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH", "http://codes.wmo.int/49-2/SpaceWxLocation/EQN", "http://codes.wmo.int/49-2/SpaceWxLocation/EQS", "http://codes.wmo.int/49-2/SpaceWxLocation/MSH", "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"]
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH"]
       }
     },
     {
@@ -50,7 +50,7 @@
         "timeIndicator": "OBSERVATION",
         "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
         "intensity": "SEV",
-        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH", "http://codes.wmo.int/49-2/SpaceWxLocation/EQN", "http://codes.wmo.int/49-2/SpaceWxLocation/EQS", "http://codes.wmo.int/49-2/SpaceWxLocation/MSH", "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"]
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/EQN"]
       }
     },
     {
@@ -72,7 +72,7 @@
         "timeIndicator": "OBSERVATION",
         "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
         "intensity": "SEV",
-        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH", "http://codes.wmo.int/49-2/SpaceWxLocation/EQN", "http://codes.wmo.int/49-2/SpaceWxLocation/EQS", "http://codes.wmo.int/49-2/SpaceWxLocation/MSH", "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"]
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/EQS"]
       }
     },
     {
@@ -94,7 +94,7 @@
         "timeIndicator": "OBSERVATION",
         "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
         "intensity": "SEV",
-        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH", "http://codes.wmo.int/49-2/SpaceWxLocation/EQN", "http://codes.wmo.int/49-2/SpaceWxLocation/EQS", "http://codes.wmo.int/49-2/SpaceWxLocation/MSH", "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"]
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MSH"]
       }
     },
     {
@@ -116,11 +116,28 @@
         "timeIndicator": "OBSERVATION",
         "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
         "intensity": "SEV",
-        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/MNH", "http://codes.wmo.int/49-2/SpaceWxLocation/EQN", "http://codes.wmo.int/49-2/SpaceWxLocation/EQS", "http://codes.wmo.int/49-2/SpaceWxLocation/MSH", "http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"],
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/DAYSIDE"],
         "center": [70.94, -16.71],
         "radius": 10100,
         "radiusUom": "km",
         "circleSegments": 64
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90#uuid.c1bfa3fa-9728-4d82-b629-059d6d340267#noextent-1",
+      "geometry": null,
+      "properties": {
+        "featureType": "SPACE_WEATHER_REGION",
+        "reportId": "uuid.dea6234c-f57f-4ccf-be7a-bb00a0265af2",
+        "reportType": "SpaceWeatherAdvisory",
+        "issueTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "issuingSwxcName": "DONLON",
+        "advisoryNumber": "2020/1",
+        "timeIndicator": "OBSERVATION",
+        "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
+        "intensity": "MOD",
+        "locationIndicatorUris": ["http://codes.wmo.int/49-2/SpaceWxLocation/NIGHTSIDE"]
       }
     },
     {

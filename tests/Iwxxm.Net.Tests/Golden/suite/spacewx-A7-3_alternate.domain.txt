@@ -3,672 +3,687 @@ SpaceWx {
   Analyses = [
     SpaceWeatherAnalysis {
       Id = "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90"
-      IsNothingOfOperationalSignificance = false
-      NilReason = null
-      PhenomenonTimeUtc = 2020-11-08T01:00:00.0000000+00:00
-      Regions = [
-        SpaceWeatherAnalysisRegion {
-          Areas = [
-            GeoPolygon {
-              ExteriorRing = [
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = -78
-                }
-                GeoCoordinate {
-                  Lat = -56.1
-                  Lon = -82.8
-                }
-                GeoCoordinate {
-                  Lat = -51.8
-                  Lon = -86.9
-                }
-                GeoCoordinate {
-                  Lat = -47.3
-                  Lon = -90.3
-                }
-                GeoCoordinate {
-                  Lat = -42.7
-                  Lon = -93.2
-                }
-                GeoCoordinate {
-                  Lat = -38.1
-                  Lon = -95.7
-                }
-                GeoCoordinate {
-                  Lat = -33.4
-                  Lon = -97.8
-                }
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = -99.2
-                }
-                GeoCoordinate {
-                  Lat = -28.6
-                  Lon = -99.8
-                }
-                GeoCoordinate {
-                  Lat = -23.9
-                  Lon = -101.6
-                }
-                GeoCoordinate {
-                  Lat = -19.1
-                  Lon = -103.2
-                }
-                GeoCoordinate {
-                  Lat = -14.3
-                  Lon = -104.8
-                }
-                GeoCoordinate {
-                  Lat = -9.5
-                  Lon = -106.2
-                }
-                GeoCoordinate {
-                  Lat = -4.7
-                  Lon = -107.7
-                }
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = -109.1
-                }
-                GeoCoordinate {
-                  Lat = 0.1
-                  Lon = -109.1
-                }
-                GeoCoordinate {
-                  Lat = 4.9
-                  Lon = -110.5
-                }
-                GeoCoordinate {
-                  Lat = 9.7
-                  Lon = -112
-                }
-                GeoCoordinate {
-                  Lat = 14.5
-                  Lon = -113.5
-                }
-                GeoCoordinate {
-                  Lat = 19.3
-                  Lon = -115
-                }
-                GeoCoordinate {
-                  Lat = 24.1
-                  Lon = -116.6
-                }
-                GeoCoordinate {
-                  Lat = 28.8
-                  Lon = -118.4
-                }
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = -118.9
-                }
-                GeoCoordinate {
-                  Lat = 33.5
-                  Lon = -120.3
-                }
-                GeoCoordinate {
-                  Lat = 38.2
-                  Lon = -122.5
-                }
-                GeoCoordinate {
-                  Lat = 42.9
-                  Lon = -124.9
-                }
-                GeoCoordinate {
-                  Lat = 47.4
-                  Lon = -127.7
-                }
-                GeoCoordinate {
-                  Lat = 51.9
-                  Lon = -131.1
-                }
-                GeoCoordinate {
-                  Lat = 56.3
-                  Lon = -135.2
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = -139.7
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = -78
-                }
-              ]
-              InteriorRings = []
-            }
-            GeoPolygon {
-              ExteriorRing = [
-                GeoCoordinate {
-                  Lat = 56.3
-                  Lon = 97
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = 101.5
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = 39.8
-                }
-                GeoCoordinate {
-                  Lat = -56.1
-                  Lon = 44.6
-                }
-                GeoCoordinate {
-                  Lat = -51.8
-                  Lon = 48.7
-                }
-                GeoCoordinate {
-                  Lat = -47.3
-                  Lon = 52.1
-                }
-                GeoCoordinate {
-                  Lat = -42.7
-                  Lon = 55
-                }
-                GeoCoordinate {
-                  Lat = -38.1
-                  Lon = 57.5
-                }
-                GeoCoordinate {
-                  Lat = -33.4
-                  Lon = 59.6
-                }
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = 61
-                }
-                GeoCoordinate {
-                  Lat = -28.6
-                  Lon = 61.6
-                }
-                GeoCoordinate {
-                  Lat = -23.9
-                  Lon = 63.4
-                }
-                GeoCoordinate {
-                  Lat = -19.1
-                  Lon = 65
-                }
-                GeoCoordinate {
-                  Lat = -14.3
-                  Lon = 66.6
-                }
-                GeoCoordinate {
-                  Lat = -9.5
-                  Lon = 68
-                }
-                GeoCoordinate {
-                  Lat = -4.7
-                  Lon = 69.5
-                }
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = 70.9
-                }
-                GeoCoordinate {
-                  Lat = 0.1
-                  Lon = 70.9
-                }
-                GeoCoordinate {
-                  Lat = 4.9
-                  Lon = 72.3
-                }
-                GeoCoordinate {
-                  Lat = 9.7
-                  Lon = 73.8
-                }
-                GeoCoordinate {
-                  Lat = 14.5
-                  Lon = 75.3
-                }
-                GeoCoordinate {
-                  Lat = 19.3
-                  Lon = 76.8
-                }
-                GeoCoordinate {
-                  Lat = 24.1
-                  Lon = 78.4
-                }
-                GeoCoordinate {
-                  Lat = 28.8
-                  Lon = 80.2
-                }
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = 80.7
-                }
-                GeoCoordinate {
-                  Lat = 33.5
-                  Lon = 82.1
-                }
-                GeoCoordinate {
-                  Lat = 38.2
-                  Lon = 84.3
-                }
-                GeoCoordinate {
-                  Lat = 42.9
-                  Lon = 86.7
-                }
-                GeoCoordinate {
-                  Lat = 47.4
-                  Lon = 89.5
-                }
-                GeoCoordinate {
-                  Lat = 51.9
-                  Lon = 92.9
-                }
-                GeoCoordinate {
-                  Lat = 56.3
-                  Lon = 97
-                }
-              ]
-              InteriorRings = []
-            }
-          ]
+      IntensityAndRegions = [
+        SpaceWeatherIntensityAndRegion {
           Id = "uuid.34415dca-6fab-45e4-8225-c45960b1e9d2"
           Intensity = "SEV"
-          LocationIndicators = [
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.MiddleLatitudesNorth
-              IsKnown = true
-              Notation = "MNH"
-            }
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.EquatorialLatitudesNorth
-              IsKnown = true
-              Notation = "EQN"
-            }
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.EquatorialLatitudesSouth
-              IsKnown = true
-              Notation = "EQS"
-            }
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.MiddleLatitudesSouth
-              IsKnown = true
-              Notation = "MSH"
-            }
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.Dayside
-              IsKnown = true
-              Notation = "DAYSIDE"
+          Regions = [
+            SpaceWeatherRegion {
+              Areas = [
+                GeoPolygon {
+                  ExteriorRing = [
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = -78
+                    }
+                    GeoCoordinate {
+                      Lat = -56.1
+                      Lon = -82.8
+                    }
+                    GeoCoordinate {
+                      Lat = -51.8
+                      Lon = -86.9
+                    }
+                    GeoCoordinate {
+                      Lat = -47.3
+                      Lon = -90.3
+                    }
+                    GeoCoordinate {
+                      Lat = -42.7
+                      Lon = -93.2
+                    }
+                    GeoCoordinate {
+                      Lat = -38.1
+                      Lon = -95.7
+                    }
+                    GeoCoordinate {
+                      Lat = -33.4
+                      Lon = -97.8
+                    }
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = -99.2
+                    }
+                    GeoCoordinate {
+                      Lat = -28.6
+                      Lon = -99.8
+                    }
+                    GeoCoordinate {
+                      Lat = -23.9
+                      Lon = -101.6
+                    }
+                    GeoCoordinate {
+                      Lat = -19.1
+                      Lon = -103.2
+                    }
+                    GeoCoordinate {
+                      Lat = -14.3
+                      Lon = -104.8
+                    }
+                    GeoCoordinate {
+                      Lat = -9.5
+                      Lon = -106.2
+                    }
+                    GeoCoordinate {
+                      Lat = -4.7
+                      Lon = -107.7
+                    }
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = -109.1
+                    }
+                    GeoCoordinate {
+                      Lat = 0.1
+                      Lon = -109.1
+                    }
+                    GeoCoordinate {
+                      Lat = 4.9
+                      Lon = -110.5
+                    }
+                    GeoCoordinate {
+                      Lat = 9.7
+                      Lon = -112
+                    }
+                    GeoCoordinate {
+                      Lat = 14.5
+                      Lon = -113.5
+                    }
+                    GeoCoordinate {
+                      Lat = 19.3
+                      Lon = -115
+                    }
+                    GeoCoordinate {
+                      Lat = 24.1
+                      Lon = -116.6
+                    }
+                    GeoCoordinate {
+                      Lat = 28.8
+                      Lon = -118.4
+                    }
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = -118.9
+                    }
+                    GeoCoordinate {
+                      Lat = 33.5
+                      Lon = -120.3
+                    }
+                    GeoCoordinate {
+                      Lat = 38.2
+                      Lon = -122.5
+                    }
+                    GeoCoordinate {
+                      Lat = 42.9
+                      Lon = -124.9
+                    }
+                    GeoCoordinate {
+                      Lat = 47.4
+                      Lon = -127.7
+                    }
+                    GeoCoordinate {
+                      Lat = 51.9
+                      Lon = -131.1
+                    }
+                    GeoCoordinate {
+                      Lat = 56.3
+                      Lon = -135.2
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = -139.7
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = -78
+                    }
+                  ]
+                  InteriorRings = []
+                }
+                GeoPolygon {
+                  ExteriorRing = [
+                    GeoCoordinate {
+                      Lat = 56.3
+                      Lon = 97
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = 101.5
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = 39.8
+                    }
+                    GeoCoordinate {
+                      Lat = -56.1
+                      Lon = 44.6
+                    }
+                    GeoCoordinate {
+                      Lat = -51.8
+                      Lon = 48.7
+                    }
+                    GeoCoordinate {
+                      Lat = -47.3
+                      Lon = 52.1
+                    }
+                    GeoCoordinate {
+                      Lat = -42.7
+                      Lon = 55
+                    }
+                    GeoCoordinate {
+                      Lat = -38.1
+                      Lon = 57.5
+                    }
+                    GeoCoordinate {
+                      Lat = -33.4
+                      Lon = 59.6
+                    }
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = 61
+                    }
+                    GeoCoordinate {
+                      Lat = -28.6
+                      Lon = 61.6
+                    }
+                    GeoCoordinate {
+                      Lat = -23.9
+                      Lon = 63.4
+                    }
+                    GeoCoordinate {
+                      Lat = -19.1
+                      Lon = 65
+                    }
+                    GeoCoordinate {
+                      Lat = -14.3
+                      Lon = 66.6
+                    }
+                    GeoCoordinate {
+                      Lat = -9.5
+                      Lon = 68
+                    }
+                    GeoCoordinate {
+                      Lat = -4.7
+                      Lon = 69.5
+                    }
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = 70.9
+                    }
+                    GeoCoordinate {
+                      Lat = 0.1
+                      Lon = 70.9
+                    }
+                    GeoCoordinate {
+                      Lat = 4.9
+                      Lon = 72.3
+                    }
+                    GeoCoordinate {
+                      Lat = 9.7
+                      Lon = 73.8
+                    }
+                    GeoCoordinate {
+                      Lat = 14.5
+                      Lon = 75.3
+                    }
+                    GeoCoordinate {
+                      Lat = 19.3
+                      Lon = 76.8
+                    }
+                    GeoCoordinate {
+                      Lat = 24.1
+                      Lon = 78.4
+                    }
+                    GeoCoordinate {
+                      Lat = 28.8
+                      Lon = 80.2
+                    }
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = 80.7
+                    }
+                    GeoCoordinate {
+                      Lat = 33.5
+                      Lon = 82.1
+                    }
+                    GeoCoordinate {
+                      Lat = 38.2
+                      Lon = 84.3
+                    }
+                    GeoCoordinate {
+                      Lat = 42.9
+                      Lon = 86.7
+                    }
+                    GeoCoordinate {
+                      Lat = 47.4
+                      Lon = 89.5
+                    }
+                    GeoCoordinate {
+                      Lat = 51.9
+                      Lon = 92.9
+                    }
+                    GeoCoordinate {
+                      Lat = 56.3
+                      Lon = 97
+                    }
+                  ]
+                  InteriorRings = []
+                }
+              ]
+              Id = "uuid.0dc02601-d889-4b94-9619-0bddf4f47182"
+              LocationIndicators = [
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.MiddleLatitudesNorth
+                  IsKnown = true
+                  Notation = "MNH"
+                }
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.EquatorialLatitudesNorth
+                  IsKnown = true
+                  Notation = "EQN"
+                }
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.EquatorialLatitudesSouth
+                  IsKnown = true
+                  Notation = "EQS"
+                }
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.MiddleLatitudesSouth
+                  IsKnown = true
+                  Notation = "MSH"
+                }
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.Dayside
+                  IsKnown = true
+                  Notation = "DAYSIDE"
+                }
+              ]
+              LowerLimit = null
+              UpperLimit = null
             }
           ]
         }
-        SpaceWeatherAnalysisRegion {
-          Areas = [
-            GeoPolygon {
-              ExteriorRing = [
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = -140
-                }
-                GeoCoordinate {
-                  Lat = 56.2
-                  Lon = -135.3
-                }
-                GeoCoordinate {
-                  Lat = 51.8
-                  Lon = -131.2
-                }
-                GeoCoordinate {
-                  Lat = 47.3
-                  Lon = -127.8
-                }
-                GeoCoordinate {
-                  Lat = 42.7
-                  Lon = -124.9
-                }
-                GeoCoordinate {
-                  Lat = 38.1
-                  Lon = -122.5
-                }
-                GeoCoordinate {
-                  Lat = 33.4
-                  Lon = -120.3
-                }
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = -118.9
-                }
-                GeoCoordinate {
-                  Lat = 28.7
-                  Lon = -118.3
-                }
-                GeoCoordinate {
-                  Lat = 23.9
-                  Lon = -116.6
-                }
-                GeoCoordinate {
-                  Lat = 19.1
-                  Lon = -114.9
-                }
-                GeoCoordinate {
-                  Lat = 14.4
-                  Lon = -113.4
-                }
-                GeoCoordinate {
-                  Lat = 9.6
-                  Lon = -111.9
-                }
-                GeoCoordinate {
-                  Lat = 4.7
-                  Lon = -110.4
-                }
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = -109
-                }
-                GeoCoordinate {
-                  Lat = -0.1
-                  Lon = -109
-                }
-                GeoCoordinate {
-                  Lat = -4.9
-                  Lon = -107.6
-                }
-                GeoCoordinate {
-                  Lat = -9.7
-                  Lon = -106.1
-                }
-                GeoCoordinate {
-                  Lat = -14.5
-                  Lon = -104.7
-                }
-                GeoCoordinate {
-                  Lat = -19.3
-                  Lon = -103.1
-                }
-                GeoCoordinate {
-                  Lat = -24
-                  Lon = -101.5
-                }
-                GeoCoordinate {
-                  Lat = -28.8
-                  Lon = -99.7
-                }
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = -99.2
-                }
-                GeoCoordinate {
-                  Lat = -33.5
-                  Lon = -97.8
-                }
-                GeoCoordinate {
-                  Lat = -38.2
-                  Lon = -95.7
-                }
-                GeoCoordinate {
-                  Lat = -42.8
-                  Lon = -93.2
-                }
-                GeoCoordinate {
-                  Lat = -47.4
-                  Lon = -90.4
-                }
-                GeoCoordinate {
-                  Lat = -51.9
-                  Lon = -87
-                }
-                GeoCoordinate {
-                  Lat = -56.3
-                  Lon = -82.9
-                }
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = -78.4
-                }
-                GeoCoordinate {
-                  Lat = -60.5
-                  Lon = -77.8
-                }
-                GeoCoordinate {
-                  Lat = -64.4
-                  Lon = -71.2
-                }
-                GeoCoordinate {
-                  Lat = -68
-                  Lon = -62.5
-                }
-                GeoCoordinate {
-                  Lat = -70.9
-                  Lon = -51
-                }
-                GeoCoordinate {
-                  Lat = -72.9
-                  Lon = -36.3
-                }
-                GeoCoordinate {
-                  Lat = -73.6
-                  Lon = -19.1
-                }
-                GeoCoordinate {
-                  Lat = -72.9
-                  Lon = -1.9
-                }
-                GeoCoordinate {
-                  Lat = -70.9
-                  Lon = 12.8
-                }
-                GeoCoordinate {
-                  Lat = -68
-                  Lon = 24.3
-                }
-                GeoCoordinate {
-                  Lat = -64.4
-                  Lon = 33
-                }
-                GeoCoordinate {
-                  Lat = -60.5
-                  Lon = 39.6
-                }
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = 40.2
-                }
-                GeoCoordinate {
-                  Lat = -56.3
-                  Lon = 44.7
-                }
-                GeoCoordinate {
-                  Lat = -51.9
-                  Lon = 48.8
-                }
-                GeoCoordinate {
-                  Lat = -47.4
-                  Lon = 52.2
-                }
-                GeoCoordinate {
-                  Lat = -42.8
-                  Lon = 55
-                }
-                GeoCoordinate {
-                  Lat = -38.2
-                  Lon = 57.5
-                }
-                GeoCoordinate {
-                  Lat = -33.5
-                  Lon = 59.6
-                }
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = 61
-                }
-                GeoCoordinate {
-                  Lat = -28.8
-                  Lon = 61.5
-                }
-                GeoCoordinate {
-                  Lat = -24
-                  Lon = 63.3
-                }
-                GeoCoordinate {
-                  Lat = -19.3
-                  Lon = 64.9
-                }
-                GeoCoordinate {
-                  Lat = -14.5
-                  Lon = 66.5
-                }
-                GeoCoordinate {
-                  Lat = -9.7
-                  Lon = 67.9
-                }
-                GeoCoordinate {
-                  Lat = -4.9
-                  Lon = 69.4
-                }
-                GeoCoordinate {
-                  Lat = -0.1
-                  Lon = 70.8
-                }
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = 70.8
-                }
-                GeoCoordinate {
-                  Lat = 4.7
-                  Lon = 72.2
-                }
-                GeoCoordinate {
-                  Lat = 9.6
-                  Lon = 73.7
-                }
-                GeoCoordinate {
-                  Lat = 14.4
-                  Lon = 75.2
-                }
-                GeoCoordinate {
-                  Lat = 19.1
-                  Lon = 76.7
-                }
-                GeoCoordinate {
-                  Lat = 23.9
-                  Lon = 78.4
-                }
-                GeoCoordinate {
-                  Lat = 28.7
-                  Lon = 80.1
-                }
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = 80.7
-                }
-                GeoCoordinate {
-                  Lat = 33.4
-                  Lon = 82.1
-                }
-                GeoCoordinate {
-                  Lat = 38.1
-                  Lon = 84.3
-                }
-                GeoCoordinate {
-                  Lat = 42.7
-                  Lon = 86.7
-                }
-                GeoCoordinate {
-                  Lat = 47.3
-                  Lon = 89.6
-                }
-                GeoCoordinate {
-                  Lat = 51.8
-                  Lon = 93
-                }
-                GeoCoordinate {
-                  Lat = 56.2
-                  Lon = 97.1
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = 101.8
-                }
-                GeoCoordinate {
-                  Lat = 60.4
-                  Lon = 102.3
-                }
-                GeoCoordinate {
-                  Lat = 64.3
-                  Lon = 108.9
-                }
-                GeoCoordinate {
-                  Lat = 67.9
-                  Lon = 117.6
-                }
-                GeoCoordinate {
-                  Lat = 70.8
-                  Lon = 129.1
-                }
-                GeoCoordinate {
-                  Lat = 72.8
-                  Lon = 143.8
-                }
-                GeoCoordinate {
-                  Lat = 73.5
-                  Lon = 160.9
-                }
-                GeoCoordinate {
-                  Lat = 72.8
-                  Lon = 178
-                }
-                GeoCoordinate {
-                  Lat = 70.8
-                  Lon = -167.3
-                }
-                GeoCoordinate {
-                  Lat = 67.9
-                  Lon = -155.8
-                }
-                GeoCoordinate {
-                  Lat = 64.3
-                  Lon = -147.1
-                }
-                GeoCoordinate {
-                  Lat = 60.4
-                  Lon = -140.5
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = -140
-                }
-              ]
-              InteriorRings = []
-            }
-          ]
+        SpaceWeatherIntensityAndRegion {
           Id = "uuid.c1bfa3fa-9728-4d82-b629-059d6d340267"
           Intensity = "MOD"
-          LocationIndicators = [
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.Nightside
-              IsKnown = true
-              Notation = "NIGHTSIDE"
+          Regions = [
+            SpaceWeatherRegion {
+              Areas = [
+                GeoPolygon {
+                  ExteriorRing = [
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = -140
+                    }
+                    GeoCoordinate {
+                      Lat = 56.2
+                      Lon = -135.3
+                    }
+                    GeoCoordinate {
+                      Lat = 51.8
+                      Lon = -131.2
+                    }
+                    GeoCoordinate {
+                      Lat = 47.3
+                      Lon = -127.8
+                    }
+                    GeoCoordinate {
+                      Lat = 42.7
+                      Lon = -124.9
+                    }
+                    GeoCoordinate {
+                      Lat = 38.1
+                      Lon = -122.5
+                    }
+                    GeoCoordinate {
+                      Lat = 33.4
+                      Lon = -120.3
+                    }
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = -118.9
+                    }
+                    GeoCoordinate {
+                      Lat = 28.7
+                      Lon = -118.3
+                    }
+                    GeoCoordinate {
+                      Lat = 23.9
+                      Lon = -116.6
+                    }
+                    GeoCoordinate {
+                      Lat = 19.1
+                      Lon = -114.9
+                    }
+                    GeoCoordinate {
+                      Lat = 14.4
+                      Lon = -113.4
+                    }
+                    GeoCoordinate {
+                      Lat = 9.6
+                      Lon = -111.9
+                    }
+                    GeoCoordinate {
+                      Lat = 4.7
+                      Lon = -110.4
+                    }
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = -109
+                    }
+                    GeoCoordinate {
+                      Lat = -0.1
+                      Lon = -109
+                    }
+                    GeoCoordinate {
+                      Lat = -4.9
+                      Lon = -107.6
+                    }
+                    GeoCoordinate {
+                      Lat = -9.7
+                      Lon = -106.1
+                    }
+                    GeoCoordinate {
+                      Lat = -14.5
+                      Lon = -104.7
+                    }
+                    GeoCoordinate {
+                      Lat = -19.3
+                      Lon = -103.1
+                    }
+                    GeoCoordinate {
+                      Lat = -24
+                      Lon = -101.5
+                    }
+                    GeoCoordinate {
+                      Lat = -28.8
+                      Lon = -99.7
+                    }
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = -99.2
+                    }
+                    GeoCoordinate {
+                      Lat = -33.5
+                      Lon = -97.8
+                    }
+                    GeoCoordinate {
+                      Lat = -38.2
+                      Lon = -95.7
+                    }
+                    GeoCoordinate {
+                      Lat = -42.8
+                      Lon = -93.2
+                    }
+                    GeoCoordinate {
+                      Lat = -47.4
+                      Lon = -90.4
+                    }
+                    GeoCoordinate {
+                      Lat = -51.9
+                      Lon = -87
+                    }
+                    GeoCoordinate {
+                      Lat = -56.3
+                      Lon = -82.9
+                    }
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = -78.4
+                    }
+                    GeoCoordinate {
+                      Lat = -60.5
+                      Lon = -77.8
+                    }
+                    GeoCoordinate {
+                      Lat = -64.4
+                      Lon = -71.2
+                    }
+                    GeoCoordinate {
+                      Lat = -68
+                      Lon = -62.5
+                    }
+                    GeoCoordinate {
+                      Lat = -70.9
+                      Lon = -51
+                    }
+                    GeoCoordinate {
+                      Lat = -72.9
+                      Lon = -36.3
+                    }
+                    GeoCoordinate {
+                      Lat = -73.6
+                      Lon = -19.1
+                    }
+                    GeoCoordinate {
+                      Lat = -72.9
+                      Lon = -1.9
+                    }
+                    GeoCoordinate {
+                      Lat = -70.9
+                      Lon = 12.8
+                    }
+                    GeoCoordinate {
+                      Lat = -68
+                      Lon = 24.3
+                    }
+                    GeoCoordinate {
+                      Lat = -64.4
+                      Lon = 33
+                    }
+                    GeoCoordinate {
+                      Lat = -60.5
+                      Lon = 39.6
+                    }
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = 40.2
+                    }
+                    GeoCoordinate {
+                      Lat = -56.3
+                      Lon = 44.7
+                    }
+                    GeoCoordinate {
+                      Lat = -51.9
+                      Lon = 48.8
+                    }
+                    GeoCoordinate {
+                      Lat = -47.4
+                      Lon = 52.2
+                    }
+                    GeoCoordinate {
+                      Lat = -42.8
+                      Lon = 55
+                    }
+                    GeoCoordinate {
+                      Lat = -38.2
+                      Lon = 57.5
+                    }
+                    GeoCoordinate {
+                      Lat = -33.5
+                      Lon = 59.6
+                    }
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = 61
+                    }
+                    GeoCoordinate {
+                      Lat = -28.8
+                      Lon = 61.5
+                    }
+                    GeoCoordinate {
+                      Lat = -24
+                      Lon = 63.3
+                    }
+                    GeoCoordinate {
+                      Lat = -19.3
+                      Lon = 64.9
+                    }
+                    GeoCoordinate {
+                      Lat = -14.5
+                      Lon = 66.5
+                    }
+                    GeoCoordinate {
+                      Lat = -9.7
+                      Lon = 67.9
+                    }
+                    GeoCoordinate {
+                      Lat = -4.9
+                      Lon = 69.4
+                    }
+                    GeoCoordinate {
+                      Lat = -0.1
+                      Lon = 70.8
+                    }
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = 70.8
+                    }
+                    GeoCoordinate {
+                      Lat = 4.7
+                      Lon = 72.2
+                    }
+                    GeoCoordinate {
+                      Lat = 9.6
+                      Lon = 73.7
+                    }
+                    GeoCoordinate {
+                      Lat = 14.4
+                      Lon = 75.2
+                    }
+                    GeoCoordinate {
+                      Lat = 19.1
+                      Lon = 76.7
+                    }
+                    GeoCoordinate {
+                      Lat = 23.9
+                      Lon = 78.4
+                    }
+                    GeoCoordinate {
+                      Lat = 28.7
+                      Lon = 80.1
+                    }
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = 80.7
+                    }
+                    GeoCoordinate {
+                      Lat = 33.4
+                      Lon = 82.1
+                    }
+                    GeoCoordinate {
+                      Lat = 38.1
+                      Lon = 84.3
+                    }
+                    GeoCoordinate {
+                      Lat = 42.7
+                      Lon = 86.7
+                    }
+                    GeoCoordinate {
+                      Lat = 47.3
+                      Lon = 89.6
+                    }
+                    GeoCoordinate {
+                      Lat = 51.8
+                      Lon = 93
+                    }
+                    GeoCoordinate {
+                      Lat = 56.2
+                      Lon = 97.1
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = 101.8
+                    }
+                    GeoCoordinate {
+                      Lat = 60.4
+                      Lon = 102.3
+                    }
+                    GeoCoordinate {
+                      Lat = 64.3
+                      Lon = 108.9
+                    }
+                    GeoCoordinate {
+                      Lat = 67.9
+                      Lon = 117.6
+                    }
+                    GeoCoordinate {
+                      Lat = 70.8
+                      Lon = 129.1
+                    }
+                    GeoCoordinate {
+                      Lat = 72.8
+                      Lon = 143.8
+                    }
+                    GeoCoordinate {
+                      Lat = 73.5
+                      Lon = 160.9
+                    }
+                    GeoCoordinate {
+                      Lat = 72.8
+                      Lon = 178
+                    }
+                    GeoCoordinate {
+                      Lat = 70.8
+                      Lon = -167.3
+                    }
+                    GeoCoordinate {
+                      Lat = 67.9
+                      Lon = -155.8
+                    }
+                    GeoCoordinate {
+                      Lat = 64.3
+                      Lon = -147.1
+                    }
+                    GeoCoordinate {
+                      Lat = 60.4
+                      Lon = -140.5
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = -140
+                    }
+                  ]
+                  InteriorRings = []
+                }
+              ]
+              Id = "uuid.8d3833f3-a5d5-40e4-9eb8-d05b3348c083"
+              LocationIndicators = [
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.Nightside
+                  IsKnown = true
+                  Notation = "NIGHTSIDE"
+                }
+              ]
+              LowerLimit = null
+              UpperLimit = null
             }
           ]
         }
       ]
+      IsNothingOfOperationalSignificance = false
+      NilReason = null
+      PhenomenonTimeUtc = 2020-11-08T01:00:00.0000000+00:00
       TimeIndicator = TimeIndicator.Observation
     }
     SpaceWeatherAnalysis {
       Id = "uuid.96cfc825-3f5d-40f0-b9bd-46d790ee9f50"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -676,11 +691,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T07:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.8fc8a55b-e730-4d84-bb44-6e7b7dc3dd32"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -688,11 +703,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T13:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.6a1f263b-5aeb-4002-af1b-9c3ef2812f8d"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -700,11 +715,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T19:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.ba259410-18a3-4074-92e5-1fd09dccedd4"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -712,7 +727,6 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-09T01:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
   ]

@@ -111,16 +111,17 @@ namespace Iwxxm.Net.Tests.DataFidelity
             var result = IwxxmParser.ParseFileAs<SpaceWx>(PathOf("spacewx-A7-3.xml"));
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
-            SpaceWeatherAnalysisRegion severe = result.Value.Analyses[0].Regions.Single(a => a.Intensity == "SEV");
-            Assert.Contains(severe.LocationIndicators, l => l.Code == SpaceWeatherLocation.Dayside);
-            GeoCircle dayside = Assert.Single(severe.Areas.OfType<GeoCircle>());
+            SpaceWeatherIntensityAndRegion severe = result.Value.Analyses[0].IntensityAndRegions.Single(a => a.Intensity == "SEV");
+            SpaceWeatherRegion daysideRegion = Assert.Single(severe.Regions, r => r.LocationIndicators.Any(l => l.Code == SpaceWeatherLocation.Dayside));
+            GeoCircle dayside = Assert.Single(daysideRegion.Areas.OfType<GeoCircle>());
             Assert.Equal(new GeoCoordinate(-16.71, 70.94), dayside.Centre);
             Assert.Equal(new Length(10100.0, LengthUnit.Kilometers), dayside.Radius);
-            Assert.Equal(4, severe.Areas.OfType<GeoPolygon>().Count());
+            Assert.Equal(4, severe.Regions.SelectMany(r => r.Areas).OfType<GeoPolygon>().Count());
 
-            SpaceWeatherAnalysisRegion moderate = result.Value.Analyses[0].Regions.Single(a => a.Intensity == "MOD");
-            Assert.Contains(moderate.LocationIndicators, l => l.Code == SpaceWeatherLocation.Nightside);
-            Assert.Empty(moderate.Areas);
+            SpaceWeatherIntensityAndRegion moderate = result.Value.Analyses[0].IntensityAndRegions.Single(a => a.Intensity == "MOD");
+            SpaceWeatherRegion nightside = Assert.Single(moderate.Regions);
+            Assert.Contains(nightside.LocationIndicators, l => l.Code == SpaceWeatherLocation.Nightside);
+            Assert.Empty(nightside.Areas);
         }
 
         [Fact]

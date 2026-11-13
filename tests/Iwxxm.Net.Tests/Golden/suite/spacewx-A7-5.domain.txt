@@ -3,47 +3,83 @@ SpaceWx {
   Analyses = [
     SpaceWeatherAnalysis {
       Id = "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90"
+      IntensityAndRegions = [
+        SpaceWeatherIntensityAndRegion {
+          Id = "uuid.c264db5c-3f0b-4444-ab5e-71f48a514644"
+          Intensity = "MOD"
+          Regions = [
+            SpaceWeatherRegion {
+              Areas = [
+                GeoPolygon {
+                  ExteriorRing = [
+                    GeoCoordinate {
+                      Lat = 80
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = 70
+                      Lon = 75
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = 15
+                    }
+                    GeoCoordinate {
+                      Lat = 70
+                      Lon = -75
+                    }
+                    GeoCoordinate {
+                      Lat = 80
+                      Lon = -180
+                    }
+                  ]
+                  InteriorRings = []
+                }
+              ]
+              Id = "uuid.a836ba07-4d37-4352-a8d3-49882fc4b3a7"
+              LocationIndicators = []
+              LowerLimit = VerticalLimit {
+                IsGround = false
+                IsNil = false
+                IsUnlimited = false
+                NilReason = null
+                Reference = VerticalReference.Std
+                ReferenceCode = "STD"
+                SpecialValue = VerticalSpecialValue.None
+                SpecialValueCode = null
+                Unit = VerticalUnit.FlightLevel
+                UnitOfMeasure = "FL"
+                Value = 400
+              }
+              UpperLimit = VerticalLimit {
+                IsGround = false
+                IsNil = true
+                IsUnlimited = false
+                NilReason = CodeListValue<NilReason> {
+                  Code = NilReason.Unknown
+                  IsKnown = false
+                  Notation = "unknown"
+                }
+                Reference = null
+                ReferenceCode = null
+                SpecialValue = VerticalSpecialValue.None
+                SpecialValueCode = null
+                Unit = null
+                UnitOfMeasure = null
+                Value = null
+              }
+            }
+          ]
+        }
+      ]
       IsNothingOfOperationalSignificance = false
       NilReason = null
       PhenomenonTimeUtc = 2020-11-08T01:00:00.0000000+00:00
-      Regions = [
-        SpaceWeatherAnalysisRegion {
-          Areas = [
-            GeoPolygon {
-              ExteriorRing = [
-                GeoCoordinate {
-                  Lat = 80
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = 70
-                  Lon = 75
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = 15
-                }
-                GeoCoordinate {
-                  Lat = 70
-                  Lon = -75
-                }
-                GeoCoordinate {
-                  Lat = 80
-                  Lon = -180
-                }
-              ]
-              InteriorRings = []
-            }
-          ]
-          Id = "uuid.c264db5c-3f0b-4444-ab5e-71f48a514644"
-          Intensity = "MOD"
-          LocationIndicators = []
-        }
-      ]
       TimeIndicator = TimeIndicator.Observation
     }
     SpaceWeatherAnalysis {
       Id = "uuid.96cfc825-3f5d-40f0-b9bd-46d790ee9f50"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -51,11 +87,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T07:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.8fc8a55b-e730-4d84-bb44-6e7b7dc3dd32"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -63,11 +99,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T13:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.6a1f263b-5aeb-4002-af1b-9c3ef2812f8d"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -75,11 +111,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T19:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.ba259410-18a3-4074-92e5-1fd09dccedd4"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -87,7 +123,6 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2016-11-09T01:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
   ]

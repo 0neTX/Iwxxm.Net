@@ -78,7 +78,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             var areaCounts = Assert.IsType<SpaceWx>(result.Value).Analyses
-                .SelectMany(a => a.Regions).Select(r => r.Areas.Count).ToList();
+                .SelectMany(a => a.IntensityAndRegions).SelectMany(g => g.Regions).Select(r => r.Areas.Count).ToList();
             Assert.Contains(2, areaCounts);
         }
     }

@@ -27,7 +27,12 @@
         "advisoryNumber": "2020/15",
         "timeIndicator": "OBSERVATION",
         "phenomenonTimeUtc": "2020-11-08T01:00:00.0000000+00:00",
-        "intensity": "MOD"
+        "intensity": "MOD",
+        "lowerLimit": 400,
+        "lowerLimitUom": "FL",
+        "lowerLimitReference": "STD",
+        "lowerLimitFlightLevel": "FL400",
+        "upperLimitNilReason": "unknown"
       }
     },
     {

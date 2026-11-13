@@ -495,14 +495,22 @@ namespace Iwxxm.Net.Demo
                         (analysis.IsNothingOfOperationalSignificance ? ": no space weather expected" : string.Empty));
                     s.Nest(() =>
                     {
-                        foreach (SpaceWeatherAnalysisRegion region in analysis.Regions)
+                        foreach (SpaceWeatherIntensityAndRegion group in analysis.IntensityAndRegions)
                         {
-                            s.Add("Region", $"{Fmt.Or(region.Intensity)}, locations [{Fmt.List(region.LocationIndicators.Select(l => l.ToString()))}]");
+                            s.Add("Intensity", Fmt.Or(group.Intensity));
                             s.Nest(() =>
                             {
-                                foreach (GeoSurface area in region.Areas)
+                                foreach (SpaceWeatherRegion region in group.Regions)
                                 {
-                                    s.Add("Area", Fmt.Surface(area));
+                                    s.Add("Region", $"locations [{Fmt.List(region.LocationIndicators.Select(l => l.ToString()))}]" +
+                                        (region.LowerLimit.HasValue || region.UpperLimit.HasValue ? $", levels {Fmt.Levels(region.LowerLimit, region.UpperLimit)}" : string.Empty));
+                                    s.Nest(() =>
+                                    {
+                                        foreach (GeoSurface area in region.Areas)
+                                        {
+                                            s.Add("Area", Fmt.Surface(area));
+                                        }
+                                    });
                                 }
                             });
                         }

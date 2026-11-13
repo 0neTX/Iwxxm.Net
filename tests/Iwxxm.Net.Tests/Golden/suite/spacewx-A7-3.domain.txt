@@ -3,171 +3,222 @@ SpaceWx {
   Analyses = [
     SpaceWeatherAnalysis {
       Id = "uuid.e10181fb-ff0a-40cf-865c-bb209fc49b90"
-      IsNothingOfOperationalSignificance = false
-      NilReason = null
-      PhenomenonTimeUtc = 2020-11-08T01:00:00.0000000+00:00
-      Regions = [
-        SpaceWeatherAnalysisRegion {
-          Areas = [
-            GeoPolygon {
-              ExteriorRing = [
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = 60
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = 180
-                }
-              ]
-              InteriorRings = []
-            }
-            GeoPolygon {
-              ExteriorRing = [
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = 30
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = 180
-                }
-              ]
-              InteriorRings = []
-            }
-            GeoPolygon {
-              ExteriorRing = [
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = 0
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = 180
-                }
-              ]
-              InteriorRings = []
-            }
-            GeoPolygon {
-              ExteriorRing = [
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = 180
-                }
-                GeoCoordinate {
-                  Lat = -30
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = -180
-                }
-                GeoCoordinate {
-                  Lat = -60
-                  Lon = 180
-                }
-              ]
-              InteriorRings = []
-            }
-            GeoCircle {
-              Centre = GeoCoordinate {
-                Lat = -16.71
-                Lon = 70.94
-              }
-              Radius = Length {
-                Unit = LengthUnit.Kilometers
-                UnitOfMeasure = "km"
-                Value = 10100
-              }
-            }
-          ]
+      IntensityAndRegions = [
+        SpaceWeatherIntensityAndRegion {
           Id = "uuid.34415dca-6fab-45e4-8225-c45960b1e9d2"
           Intensity = "SEV"
-          LocationIndicators = [
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.MiddleLatitudesNorth
-              IsKnown = true
-              Notation = "MNH"
+          Regions = [
+            SpaceWeatherRegion {
+              Areas = [
+                GeoPolygon {
+                  ExteriorRing = [
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = 60
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = 180
+                    }
+                  ]
+                  InteriorRings = []
+                }
+              ]
+              Id = "uuid.0dc02601-d889-4b94-9619-0bddf4f47182"
+              LocationIndicators = [
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.MiddleLatitudesNorth
+                  IsKnown = true
+                  Notation = "MNH"
+                }
+              ]
+              LowerLimit = null
+              UpperLimit = null
             }
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.EquatorialLatitudesNorth
-              IsKnown = true
-              Notation = "EQN"
+            SpaceWeatherRegion {
+              Areas = [
+                GeoPolygon {
+                  ExteriorRing = [
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = 30
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = 180
+                    }
+                  ]
+                  InteriorRings = []
+                }
+              ]
+              Id = "uuid.03f257e6-63ea-4604-a896-0545c63be45b"
+              LocationIndicators = [
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.EquatorialLatitudesNorth
+                  IsKnown = true
+                  Notation = "EQN"
+                }
+              ]
+              LowerLimit = null
+              UpperLimit = null
             }
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.EquatorialLatitudesSouth
-              IsKnown = true
-              Notation = "EQS"
+            SpaceWeatherRegion {
+              Areas = [
+                GeoPolygon {
+                  ExteriorRing = [
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = 0
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = 180
+                    }
+                  ]
+                  InteriorRings = []
+                }
+              ]
+              Id = "uuid.bf8c0ce9-0e3c-4926-9ada-404c7a377844"
+              LocationIndicators = [
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.EquatorialLatitudesSouth
+                  IsKnown = true
+                  Notation = "EQS"
+                }
+              ]
+              LowerLimit = null
+              UpperLimit = null
             }
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.MiddleLatitudesSouth
-              IsKnown = true
-              Notation = "MSH"
+            SpaceWeatherRegion {
+              Areas = [
+                GeoPolygon {
+                  ExteriorRing = [
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = 180
+                    }
+                    GeoCoordinate {
+                      Lat = -30
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = -180
+                    }
+                    GeoCoordinate {
+                      Lat = -60
+                      Lon = 180
+                    }
+                  ]
+                  InteriorRings = []
+                }
+              ]
+              Id = "uuid.0cfde53e-07ae-41dd-ac1a-9f0a53789d0a"
+              LocationIndicators = [
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.MiddleLatitudesSouth
+                  IsKnown = true
+                  Notation = "MSH"
+                }
+              ]
+              LowerLimit = null
+              UpperLimit = null
             }
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.Dayside
-              IsKnown = true
-              Notation = "DAYSIDE"
+            SpaceWeatherRegion {
+              Areas = [
+                GeoCircle {
+                  Centre = GeoCoordinate {
+                    Lat = -16.71
+                    Lon = 70.94
+                  }
+                  Radius = Length {
+                    Unit = LengthUnit.Kilometers
+                    UnitOfMeasure = "km"
+                    Value = 10100
+                  }
+                }
+              ]
+              Id = "uuid.0a7f155f-e952-4747-a318-877b46187186"
+              LocationIndicators = [
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.Dayside
+                  IsKnown = true
+                  Notation = "DAYSIDE"
+                }
+              ]
+              LowerLimit = null
+              UpperLimit = null
             }
           ]
         }
-        SpaceWeatherAnalysisRegion {
-          Areas = []
+        SpaceWeatherIntensityAndRegion {
           Id = "uuid.c1bfa3fa-9728-4d82-b629-059d6d340267"
           Intensity = "MOD"
-          LocationIndicators = [
-            CodeListValue<SpaceWeatherLocation> {
-              Code = SpaceWeatherLocation.Nightside
-              IsKnown = true
-              Notation = "NIGHTSIDE"
+          Regions = [
+            SpaceWeatherRegion {
+              Areas = []
+              Id = "uuid.8d3833f3-a5d5-40e4-9eb8-d05b3348c083"
+              LocationIndicators = [
+                CodeListValue<SpaceWeatherLocation> {
+                  Code = SpaceWeatherLocation.Nightside
+                  IsKnown = true
+                  Notation = "NIGHTSIDE"
+                }
+              ]
+              LowerLimit = null
+              UpperLimit = null
             }
           ]
         }
       ]
+      IsNothingOfOperationalSignificance = false
+      NilReason = null
+      PhenomenonTimeUtc = 2020-11-08T01:00:00.0000000+00:00
       TimeIndicator = TimeIndicator.Observation
     }
     SpaceWeatherAnalysis {
       Id = "uuid.96cfc825-3f5d-40f0-b9bd-46d790ee9f50"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -175,11 +226,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T07:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.8fc8a55b-e730-4d84-bb44-6e7b7dc3dd32"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -187,11 +238,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T13:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.6a1f263b-5aeb-4002-af1b-9c3ef2812f8d"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -199,11 +250,11 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-08T19:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
     SpaceWeatherAnalysis {
       Id = "uuid.ba259410-18a3-4074-92e5-1fd09dccedd4"
+      IntensityAndRegions = []
       IsNothingOfOperationalSignificance = true
       NilReason = CodeListValue<NilReason> {
         Code = NilReason.NothingOfOperationalSignificance
@@ -211,7 +262,6 @@ SpaceWx {
         Notation = "nothingOfOperationalSignificance"
       }
       PhenomenonTimeUtc = 2020-11-09T01:00:00.0000000+00:00
-      Regions = []
       TimeIndicator = TimeIndicator.Forecast
     }
   ]

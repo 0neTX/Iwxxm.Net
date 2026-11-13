@@ -54,14 +54,14 @@ namespace Iwxxm.Net.Tests.DataFidelity
             SpaceWeatherAnalysis observation = analyses[0];
             Assert.Equal(TimeIndicator.Observation, observation.TimeIndicator);
             Assert.Equal(new DateTimeOffset(2020, 11, 8, 1, 0, 0, TimeSpan.Zero), observation.PhenomenonTimeUtc);
-            Assert.Equal(2, observation.Regions.Count);
+            Assert.Equal(2, observation.IntensityAndRegions.Count);
 
             SpaceWeatherAnalysis plus6 = analyses[1];
             Assert.Equal(TimeIndicator.Forecast, plus6.TimeIndicator);
             Assert.Equal(new DateTimeOffset(2020, 11, 8, 7, 0, 0, TimeSpan.Zero), plus6.PhenomenonTimeUtc);
-            Assert.Equal(new[] { "uuid.c264db5c-3f0b-4444-ab5e-71f48a514644", "uuid.00f9026a-845a-4472-acee-9ec5d7ba6839" }, plus6.Regions.Select(r => r.Id).ToArray());
-            Assert.Equal(observation.Regions, plus6.Regions);
-            Assert.All(plus6.Regions, r => Assert.Equal("MOD", r.Intensity));
+            Assert.Equal(new[] { "uuid.c264db5c-3f0b-4444-ab5e-71f48a514644", "uuid.00f9026a-845a-4472-acee-9ec5d7ba6839" }, plus6.IntensityAndRegions.Select(r => r.Id).ToArray());
+            Assert.Equal(observation.IntensityAndRegions, plus6.IntensityAndRegions);
+            Assert.All(plus6.IntensityAndRegions, r => Assert.Equal("MOD", r.Intensity));
             Assert.Null(plus6.NilReason);
 
             Assert.Equal(
@@ -69,7 +69,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
                 analyses.Skip(2).Select(a => a.PhenomenonTimeUtc!.Value).ToArray());
             Assert.All(analyses.Skip(2), a =>
             {
-                Assert.Empty(a.Regions);
+                Assert.Empty(a.IntensityAndRegions);
                 Assert.True(a.IsNothingOfOperationalSignificance);
                 Assert.Equal(NilReason.NothingOfOperationalSignificance, a.NilReason!.Code);
                 Assert.Equal("nothingOfOperationalSignificance", a.NilReason.Notation);

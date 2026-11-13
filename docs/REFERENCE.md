@@ -337,7 +337,10 @@ foreach (SpaceWeatherAnalysis analysis in swx.Analyses) // the observation and e
 {
     Console.WriteLine(analysis.IsNothingOfOperationalSignificance
         ? $"  {analysis.TimeIndicator} {analysis.PhenomenonTimeUtc:O}: NO SWX EXP"
-        : $"  {analysis.TimeIndicator} {analysis.PhenomenonTimeUtc:O}: {analysis.Regions.Count} intensity/region groups");
+        : $"  {analysis.TimeIndicator} {analysis.PhenomenonTimeUtc:O}: {analysis.IntensityAndRegions.Count} intensity/region groups");
+    foreach (SpaceWeatherIntensityAndRegion group in analysis.IntensityAndRegions)
+        foreach (SpaceWeatherRegion region in group.Regions) // each region pairs its own indicators with its own extent
+            Console.WriteLine($"    {group.Intensity}: [{string.Join(", ", region.LocationIndicators)}] {region.Areas.Count} area(s) {region.LowerLimit}");
 }
 ```
 ```output
@@ -864,7 +867,7 @@ Reproduce them with `dotnet run --project tests/Iwxxm.Net.Benchmarks -c Release 
 | Value object | Description |
 | :--- | :--- |
 | **`GeoCoordinate`** | Immutable `readonly struct` enforcing WGS84 bounds (latitude in [-90, 90], longitude in [-180, 180]). Values are quantised once at construction to 7 decimal degrees (`GeoCoordinate.Precision` = 1e-7, about 1.1 cm) and compared exactly, so `Equals` and `GetHashCode` agree and equality is transitive. |
-| **`GeoSurface`** | Closed union of horizontal surfaces: `GeoPolygon` or `GeoCircle`. Two consumption styles: `Match(polygon => ..., circle => ...)` with two functions (a value) or two actions (statements), which forces a handler per case; or pattern matching (`switch (area) { case GeoPolygon p: ...; case GeoCircle c: ...; }`) on the public sealed subtypes, which the compiler does not check for completeness. Used by `EnRoutePhenomenonVolume.Area`, `SpaceWeatherAnalysisRegion.Areas` and the SIGWX `Cloud`, `Turbulence` and `AirframeIcing` areas. |
+| **`GeoSurface`** | Closed union of horizontal surfaces: `GeoPolygon` or `GeoCircle`. Two consumption styles: `Match(polygon => ..., circle => ...)` with two functions (a value) or two actions (statements), which forces a handler per case; or pattern matching (`switch (area) { case GeoPolygon p: ...; case GeoCircle c: ...; }`) on the public sealed subtypes, which the compiler does not check for completeness. Used by `EnRoutePhenomenonVolume.Area`, `SpaceWeatherRegion.Areas` and the SIGWX `Cloud`, `Turbulence` and `AirframeIcing` areas. |
 | **`GeoCircle`** | Circle from `gml:CircleByCenterPoint`: `Centre` and `Radius` (a `Length`, amount and unit as reported, strictly positive). |
 | **`GeoPolygon`** | Immutable polygon with at least 3 distinct vertices, automatic ring closure and optional `InteriorRings` for hollow contours. Equality and hash code cover every exterior and interior vertex. |
 | **`VerticalLimit`** | Immutable `readonly struct` keeping a limit exactly as reported: `Amount` (`double?`; `null` for special values and nil limits), `Unit` (`FlightLevel`, `Feet`, `Meters`, `Kilometers`, `StandardMeters`), `Reference` (`Sfc`, `Msl`, `W84`, `Std`, `Other`; `null` when not reported), `SpecialValue` (`GND`, `UNL`, `FLOOR`, `CEILING`) and `NilReason`. "15 km AMSL" is not FL492 and `GND SFC` is not FL000. `TryCompareTo` compares only commensurable limits. |

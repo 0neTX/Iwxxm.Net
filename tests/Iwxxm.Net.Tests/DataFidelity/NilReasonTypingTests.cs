@@ -59,7 +59,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             string xml = SampleDocuments.Text("spacewx-A7-5.xml");
             SpaceWx swx = Assert.IsType<SpaceWx>(Parse(xml));
 
-            SpaceWeatherAnalysis nil = swx.Analyses.First(a => a.Regions.Count == 0);
+            SpaceWeatherAnalysis nil = swx.Analyses.First(a => a.IntensityAndRegions.Count == 0);
             Assert.True(nil.IsNothingOfOperationalSignificance);
             Assert.Equal(NilReason.NothingOfOperationalSignificance, nil.NilReason!.Code);
 
@@ -75,7 +75,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
                 .Replace("http://codes.wmo.int/common/nil/nothingOfOperationalSignificance", Foreign);
             SpaceWx swx = Assert.IsType<SpaceWx>(Parse(xml));
 
-            SpaceWeatherAnalysis nil = swx.Analyses.First(a => a.Regions.Count == 0);
+            SpaceWeatherAnalysis nil = swx.Analyses.First(a => a.IntensityAndRegions.Count == 0);
             Assert.False(nil.IsNothingOfOperationalSignificance);
             Assert.Equal(NilReason.Unknown, nil.NilReason!.Code);
             Assert.Equal(Foreign, nil.NilReason.Notation);
@@ -97,7 +97,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
                 .Replace("http://codes.wmo.int/common/nil/nothingOfOperationalSignificance", reason);
             SpaceWx swx = Assert.IsType<SpaceWx>(Parse(xml));
 
-            SpaceWeatherAnalysis nil = swx.Analyses.First(a => a.Regions.Count == 0);
+            SpaceWeatherAnalysis nil = swx.Analyses.First(a => a.IntensityAndRegions.Count == 0);
             Assert.Equal(NilReason.Unknown, nil.NilReason!.Code);
             Assert.Equal(reason, nil.NilReason.Notation);
             Assert.Contains("\"nilReason\":\"" + reason + "\"", IwxxmParser.ParseToGeoJson(xml).Value);
