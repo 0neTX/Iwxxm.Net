@@ -739,7 +739,7 @@ The library emits exactly these strings and refers to them through the constants
 | `ACL-OPERATOR-INVALID` | A relational operator other than `ABOVE` / `BELOW`. | Correct the value. |
 | `ACL-RVR-TENDENCY-INVALID` | An RVR tendency that is not an official code. | Correct the value. |
 | `ACL-ASH-DENSITY-MISSING`, `ACL-VOLCANO-NAME-MISSING` | Mandatory QVACI density / volcano name absent. | Supply the element. |
-| `ACL-VAA-STATUS-INVALID`, `ACL-TCA-VALUE-INVALID` | A VAA conditions status / TCA trend value outside the official set. | Correct the value. |
+| `ACL-VAA-STATUS-INVALID`, `ACL-TCA-VALUE-INVALID`, `ACL-ENROUTE-INTENSITY-CHANGE-INVALID` | A VAA conditions status / TCA trend value / SIGMET or AIRMET `intensityChange` outside the official set (`NO_CHANGE`, `WEAKEN`, `INTENSIFY`); the value is left `null`. | Correct the value. |
 | `DOMAIN-ISSUE-TIME-MISSING`, `DOMAIN-TIME-NOT-UTC` | A default issue time was supplied / a `*Utc` value has a non-zero offset. | Pass a real UTC time. |
 | `DOMAIN-REPORT-STATUS-INVALID`, `DOMAIN-PERMISSIBLE-USAGE-INVALID`, `DOMAIN-PERMISSIBLE-USAGE-REASON-INVALID` | An undefined enumeration value reached an aggregate factory. | Use the defined enum members. |
 

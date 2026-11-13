@@ -22,8 +22,8 @@ namespace Iwxxm.Net.Reports
         public VerticalLimit? LowerLimit { get; }
         /// <summary>Gets the upper vertical limit of the volume (<c>aixm:upperLimit</c> with its reference) as reported, or <c>null</c> when missing.</summary>
         public VerticalLimit? UpperLimit { get; }
-        /// <summary>Gets the expected change in intensity (<c>intensityChange</c> attribute, WMO BUFR code table 0 20 028) as written in the document: <c>NO_CHANGE</c>, <c>WEAKEN</c> or <c>INTENSIFY</c>; <c>null</c> when not reported.</summary>
-        public string? IntensityChange { get; }
+        /// <summary>Gets the expected change in intensity (<c>intensityChange</c> attribute, WMO BUFR code table 0 20 028): <see cref="Reports.IntensityChange.NoChange"/> (no change), <see cref="Reports.IntensityChange.Weaken"/> (forecast to weaken) or <see cref="Reports.IntensityChange.Intensify"/> (forecast to intensify); <c>null</c> when not reported.</summary>
+        public IntensityChange? IntensityChange { get; }
         /// <summary>Gets the direction the phenomenon is moving towards, in degrees from true north (<c>iwxxm:directionOfMotion</c>), or <c>null</c> when not reported or nil (a stationary phenomenon has a nil direction and a speed of zero).</summary>
         public double? DirectionOfMotionDegrees { get; }
         /// <summary>Gets the speed of movement (<c>iwxxm:speedOfMotion</c>) in the unit reported (<c>km/h</c> or knots), or <c>null</c> when not reported. Zero denotes a stationary phenomenon.</summary>
@@ -45,7 +45,7 @@ namespace Iwxxm.Net.Reports
         /// <param name="area">The horizontal projection (polygon or circle); <c>null</c> when not reported.</param>
         /// <param name="lowerLimit">The lower vertical limit; <c>null</c> when missing.</param>
         /// <param name="upperLimit">The upper vertical limit; <c>null</c> when missing.</param>
-        /// <param name="intensityChange">The expected intensity change as written in the document; a blank value is stored as <c>null</c>.</param>
+        /// <param name="intensityChange">The expected intensity change; <c>null</c> when not reported.</param>
         /// <param name="directionOfMotionDegrees">The direction of motion in degrees from true north; <c>null</c> when not reported.</param>
         /// <param name="speedOfMotion">The speed of motion; <c>null</c> when not reported.</param>
         /// <param name="tropicalCycloneCentre">The tropical cyclone centre; <c>null</c> for other phenomena.</param>
@@ -56,7 +56,7 @@ namespace Iwxxm.Net.Reports
             GeoSurface? area,
             VerticalLimit? lowerLimit,
             VerticalLimit? upperLimit,
-            string? intensityChange = null,
+            IntensityChange? intensityChange = null,
             double? directionOfMotionDegrees = null,
             Speed? speedOfMotion = null,
             GeoCoordinate? tropicalCycloneCentre = null,
@@ -67,7 +67,6 @@ namespace Iwxxm.Net.Reports
             Area = area;
             LowerLimit = lowerLimit;
             UpperLimit = upperLimit;
-            intensityChange = string.IsNullOrWhiteSpace(intensityChange) ? null : intensityChange;
             IntensityChange = intensityChange;
             DirectionOfMotionDegrees = directionOfMotionDegrees;
             SpeedOfMotion = speedOfMotion;
@@ -85,7 +84,7 @@ namespace Iwxxm.Net.Reports
                    Equals(Area, other.Area) &&
                    Nullable.Equals(LowerLimit, other.LowerLimit) &&
                    Nullable.Equals(UpperLimit, other.UpperLimit) &&
-                   string.Equals(IntensityChange, other.IntensityChange, StringComparison.Ordinal) &&
+                   IntensityChange == other.IntensityChange &&
                    Nullable.Equals(DirectionOfMotionDegrees, other.DirectionOfMotionDegrees) &&
                    Nullable.Equals(SpeedOfMotion, other.SpeedOfMotion) &&
                    Nullable.Equals(TropicalCycloneCentre, other.TropicalCycloneCentre) &&

@@ -46,6 +46,15 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             _ => null
         };
 
+        /// <summary>Formats an intensity change as its schema token (<c>NO_CHANGE</c>, <c>WEAKEN</c>, <c>INTENSIFY</c>); <c>null</c> when not reported.</summary>
+        public static string? FormatIntensityChange(IntensityChange? change) => change switch
+        {
+            IntensityChange.NoChange => "NO_CHANGE",
+            IntensityChange.Weaken => "WEAKEN",
+            IntensityChange.Intensify => "INTENSIFY",
+            _ => null
+        };
+
         /// <summary>
         /// Emits a speed as reported: <c>{name}</c> holds the numeric value and <c>{name}Uom</c> the UCUM unit
         /// (<c>m/s</c>, <c>[kn_i]</c> or <c>km/h</c>). No unit conversion is applied.

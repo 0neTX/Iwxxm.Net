@@ -81,7 +81,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             Assert.Equal(TropicalCycloneMovement.Moving, observed.Movement);
             Assert.Equal(315, observed.MovementDirectionDegrees);
             Assert.Equal(new Speed(20, SpeedUnit.KilometersPerHour), observed.MovementSpeed);
-            Assert.Equal(TropicalCycloneIntensityChange.Intensify, observed.IntensityChange);
+            Assert.Equal(IntensityChange.Intensify, observed.IntensityChange);
             Assert.All(tca.Forecasts, p => Assert.Null(p.Movement));
         }
 

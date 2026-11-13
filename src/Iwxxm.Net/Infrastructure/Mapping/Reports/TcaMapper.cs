@@ -41,8 +41,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                     ("MOVING", TropicalCycloneMovement.Moving), ("STATIONARY", TropicalCycloneMovement.Stationary));
                 double? movementDirection = UomMeasureReader.ReadFixedUnit(obsElem.Element(IwxxmNs + "movementDirection"), UcumUnits.Degree, id, errors);
                 Speed? movementSpeed = UomMeasureReader.ReadSpeed(obsElem.Element(IwxxmNs + "movementSpeed"), id, errors, UomMeasureReader.Subsets.SpeedOfMotion, aliases);
-                TropicalCycloneIntensityChange? intensityChange = ReadEnum(GetText(obsElem.Element(IwxxmNs + "intensityChange")), "intensityChange", id, errors,
-                    ("NO_CHANGE", TropicalCycloneIntensityChange.NoChange), ("WEAKEN", TropicalCycloneIntensityChange.Weaken), ("INTENSIFY", TropicalCycloneIntensityChange.Intensify));
+                IntensityChange? intensityChange = IntensityChangeReader.Read(GetText(obsElem.Element(IwxxmNs + "intensityChange")), id, errors, "ACL-TCA-VALUE-INVALID");
 
                 if (pos.HasValue)
                 {

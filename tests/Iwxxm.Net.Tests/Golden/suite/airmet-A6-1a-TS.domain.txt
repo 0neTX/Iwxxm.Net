@@ -42,7 +42,7 @@ Airmet {
         }
         DirectionOfMotionDegrees = null
         Id = "uuid.deeb1ae5-0094-4ec8-af92-aa7b3f156a3f"
-        IntensityChange = "WEAKEN"
+        IntensityChange = IntensityChange.Weaken
         LowerLimit = null
         PhenomenonTimeUtc = null
         SpeedOfMotion = null

@@ -106,7 +106,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 props.Add(("phenomenonTimeUtc", FormatInstant(vol.PhenomenonTimeUtc)));
                 AddVerticalLimit(props, "lowerLimit", vol.LowerLimit);
                 AddVerticalLimit(props, "upperLimit", vol.UpperLimit);
-                props.Add(("intensityChange", vol.IntensityChange));
+                props.Add(("intensityChange", FormatIntensityChange(vol.IntensityChange)));
                 props.Add(("directionOfMotionDegrees", vol.DirectionOfMotionDegrees));
                 AddSpeed(props, "speedOfMotion", vol.SpeedOfMotion);
                 addSpecificContent?.Invoke(props);

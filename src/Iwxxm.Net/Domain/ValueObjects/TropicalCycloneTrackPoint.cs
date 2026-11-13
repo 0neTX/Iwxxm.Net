@@ -24,7 +24,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Gets the observed speed of movement (<c>iwxxm:movementSpeed</c>, <c>km/h</c> or knots; only reported when the cyclone moves at least 2 km/h or 1 knot), or <c>null</c> when not reported.</summary>
         public Speed? MovementSpeed { get; }
         /// <summary>Gets the change of the maximum surface wind speed at the time of observation (<c>iwxxm:intensityChange</c>), or <c>null</c> when not reported or for a forecast position.</summary>
-        public TropicalCycloneIntensityChange? IntensityChange { get; }
+        public IntensityChange? IntensityChange { get; }
 
         /// <summary>Creates a cyclone track point. The advisory factory requires the time to be in UTC and the wind speed to be non-negative.</summary>
         /// <param name="phenomenonTimeUtc">The observation or forecast time; <c>null</c> when not reported.</param>
@@ -43,7 +43,7 @@ namespace Iwxxm.Net.Reports
             TropicalCycloneMovement? movement = null,
             double? movementDirectionDegrees = null,
             Speed? movementSpeed = null,
-            TropicalCycloneIntensityChange? intensityChange = null)
+            IntensityChange? intensityChange = null)
         {
             PhenomenonTimeUtc = phenomenonTimeUtc;
             Position = position;

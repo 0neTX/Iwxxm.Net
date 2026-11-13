@@ -34,7 +34,7 @@ Sigmet {
       }
       DirectionOfMotionDegrees = 90
       Id = "uuid.10f68782-703d-43a6-a4e5-af27469edc6e"
-      IntensityChange = "WEAKEN"
+      IntensityChange = IntensityChange.Weaken
       LowerLimit = null
       PhenomenonTimeUtc = null
       SpeedOfMotion = Speed {

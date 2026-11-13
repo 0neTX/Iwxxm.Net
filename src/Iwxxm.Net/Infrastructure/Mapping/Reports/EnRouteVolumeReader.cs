@@ -23,7 +23,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
             UomAliasCollector aliases)
         {
             string id = GetGmlId(condElem);
-            string? intensityChange = condElem.Attribute("intensityChange")?.Value;
+            IntensityChange? intensityChange = IntensityChangeReader.Read(condElem.Attribute("intensityChange")?.Value, id, errors, IntensityChangeReader.EnRouteInvalidCode);
             double? dir = UomMeasureReader.ReadFixedUnit(condElem.Element(IwxxmNs + "directionOfMotion"), UcumUnits.Degree, id, errors);
             Speed? spd = UomMeasureReader.ReadSpeed(condElem.Element(IwxxmNs + "speedOfMotion"), id, errors, UomMeasureReader.Subsets.SpeedOfMotion, aliases);
 

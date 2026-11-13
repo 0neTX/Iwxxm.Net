@@ -1411,7 +1411,7 @@ Sigmet YUDD (SHANLON FIR/UIR), #2
   phenomenon ObscuredThunderstorm (OBSC_TS), MWO YUSO
   Forecast: polygon of 4 vertices
     vertical: (no lower limit given) to FL390 STD
-    moving 90 degrees at 20 [kn_i] (20 kt), intensity WEAKEN
+    moving 90 degrees at 20 [kn_i] (20 kt), intensity Weaken
   forecast positions: 0
 TropicalCycloneSigmet YUCC (AMSWELL FIR), #3
   valid 2012-08-25 16:00:00Z to 2012-08-25 22:00:00Z

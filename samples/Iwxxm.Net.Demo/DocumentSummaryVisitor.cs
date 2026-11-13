@@ -332,7 +332,7 @@ namespace Iwxxm.Net.Demo
             {
                 s.Add("Area", Fmt.Surface(v.Area));
                 s.Add("Levels", Fmt.Levels(v.LowerLimit, v.UpperLimit));
-                s.Add("Intensity change", v.IntensityChange);
+                s.Add("Intensity change", v.IntensityChange?.ToString());
                 if (v.DirectionOfMotionDegrees != null || v.SpeedOfMotion != null)
                 {
                     s.Add("Motion", $"{Fmt.Number(v.DirectionOfMotionDegrees, " deg")} at {Fmt.SpeedText(v.SpeedOfMotion)}");

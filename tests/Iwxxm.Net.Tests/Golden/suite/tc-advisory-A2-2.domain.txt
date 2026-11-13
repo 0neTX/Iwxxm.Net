@@ -114,7 +114,7 @@ Tca {
   NextAdvisoryTimeUtc = 2004-09-25T20:00:00.0000000+00:00
   Observation = TropicalCycloneTrackPoint {
     CentralPressureHpa = 965
-    IntensityChange = TropicalCycloneIntensityChange.Intensify
+    IntensityChange = IntensityChange.Intensify
     MaxSurfaceWindSpeed = Speed {
       Unit = SpeedUnit.MetersPerSecond
       UnitOfMeasure = "m/s"

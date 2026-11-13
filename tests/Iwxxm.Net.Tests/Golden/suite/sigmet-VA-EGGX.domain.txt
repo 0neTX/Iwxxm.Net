@@ -41,7 +41,7 @@ Sigmet {
       }
       DirectionOfMotionDegrees = null
       Id = "uuid.b3f301d8-e8b4-4d24-91b1-78f52672edcb"
-      IntensityChange = "NO_CHANGE"
+      IntensityChange = IntensityChange.NoChange
       LowerLimit = VerticalLimit {
         IsGround = true
         IsNil = false

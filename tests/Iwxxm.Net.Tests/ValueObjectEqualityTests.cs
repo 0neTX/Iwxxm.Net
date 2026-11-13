@@ -136,7 +136,7 @@ namespace Iwxxm.Net.Tests
         {
             var volume = Volume(new Random(7));
             var changed = new EnRoutePhenomenonVolume(
-                volume.Id, volume.Area, volume.LowerLimit, volume.UpperLimit, "WKN",
+                volume.Id, volume.Area, volume.LowerLimit, volume.UpperLimit, IntensityChange.Weaken,
                 volume.DirectionOfMotionDegrees, volume.SpeedOfMotion, volume.TropicalCycloneCentre);
 
             Assert.NotEqual(volume.IntensityChange, changed.IntensityChange);
@@ -278,7 +278,7 @@ namespace Iwxxm.Net.Tests
                 r.Next(3) == 0 ? null : Polygon(r),
                 r.Next(3) == 0 ? (VerticalLimit?)null : Limit(r),
                 r.Next(3) == 0 ? (VerticalLimit?)null : Limit(r),
-                MaybeText(r, "INTSF", "NC"),
+                r.Next(3) == 0 ? (IntensityChange?)null : (r.Next(2) == 0 ? IntensityChange.Intensify : IntensityChange.NoChange),
                 MaybeDouble(r, 360),
                 MaybeSpeed(r),
                 r.Next(3) == 0 ? (GeoCoordinate?)null : Coordinate(r),

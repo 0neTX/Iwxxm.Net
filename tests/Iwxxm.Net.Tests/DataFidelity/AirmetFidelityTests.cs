@@ -77,7 +77,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
             Assert.Null(result.Value.CancelledReportValidFromUtc);
             AirmetEvolvingCondition condition = Assert.Single(result.Value.EvolvingConditions);
             Assert.Equal("uuid.deeb1ae5-0094-4ec8-af92-aa7b3f156a3f", condition.Id);
-            Assert.Equal("WEAKEN", condition.Volume.IntensityChange);
+            Assert.Equal(IntensityChange.Weaken, condition.Volume.IntensityChange);
             Assert.Null(condition.CloudBase);
             Assert.Null(condition.SurfaceVisibility);
             Assert.Empty(condition.SurfaceVisibilityCauses);
