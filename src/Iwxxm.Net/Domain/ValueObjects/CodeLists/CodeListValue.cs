@@ -13,12 +13,12 @@ namespace Iwxxm.Net.Reports
     /// </typeparam>
     /// <remarks>
     /// <para>The Domain never stores a code-list URI as its model of a code: <see cref="Code"/> carries the meaning and
-    /// <see cref="Notation"/> keeps the code as reported, for information.</para>
+    /// <see cref="Notation"/> keeps the code as reported (the reference as written when the value is <c>Unknown</c>).</para>
     /// <para>A reference that is not a code of the official list valid for IWXXM 2025-2 is never dropped: it yields
-    /// <c>Unknown</c> together with the raw value. For a reference into the official register, <see cref="Notation"/>
-    /// is the code that follows the register (e.g. <c>XYZ</c>); for a reference into any other register it is the
-    /// reference exactly as reported, because a code cannot be detached from a foreign register without changing its
-    /// meaning.</para>
+    /// <c>Unknown</c> together with the reference as written. A known code maps to its member and <see cref="Notation"/>
+    /// is the code that follows the register (e.g. <c>VA</c>); anything else (an unlisted code of the register such as
+    /// <c>.../XYZ</c>, a case variant, a foreign URI, a bare token) is <c>Unknown</c> and <see cref="Notation"/> is the
+    /// reference exactly as reported, so it can be restored byte for byte.</para>
     /// <para>Equality is structural and exact: two values are equal when <see cref="Code"/> and <see cref="Notation"/>
     /// (ordinal) are equal.</para>
     /// </remarks>

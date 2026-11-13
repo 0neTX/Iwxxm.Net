@@ -35,8 +35,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.CodeLists
         internal IReadOnlyDictionary<string, TCode> Codes => _codes;
 
         /// <summary>
-        /// Translates a reference: <c>null</c> for an absent or blank reference (absent / nil element); otherwise a value
-        /// that is <c>Unknown</c>, with the raw notation, when the reference is not an official code of the register.
+        /// Translates a reference: <c>null</c> for an absent or blank reference (absent / nil element). An official code of
+        /// the register maps to its member with the code as <see cref="CodeListValue{TCode}.Notation"/>; anything else (an
+        /// unlisted code of the register, a case variant, another register, a bare token) is <c>Unknown</c> with the
+        /// reference exactly as written, so that <see cref="ToReference"/> restores it byte for byte.
         /// </summary>
         internal CodeListValue<TCode>? Translate(string? href)
         {
@@ -44,10 +46,10 @@ namespace Iwxxm.Net.Infrastructure.Mapping.CodeLists
                 return null;
 
             string? code = CodeListReference.TryGetCode(href!, RegisterUri);
-            if (code == null)
-                return new CodeListValue<TCode>(CodeListValue<TCode>.UnknownCode, href!);
+            if (code != null && _codes.TryGetValue(code, out TCode member))
+                return new CodeListValue<TCode>(member, code);
 
-            return new CodeListValue<TCode>(_codes.TryGetValue(code, out TCode member) ? member : CodeListValue<TCode>.UnknownCode, code);
+            return new CodeListValue<TCode>(CodeListValue<TCode>.UnknownCode, href!);
         }
 
         /// <summary>Rebuilds the exact original reference of a translated value, or <c>null</c>.</summary>

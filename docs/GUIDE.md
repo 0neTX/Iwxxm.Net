@@ -776,7 +776,7 @@ A `GeoCoordinate` rejects latitudes outside [-90, 90] and longitudes outside [-1
 
 ### Code lists: `CodeListValue<T>`
 
-Fields such as cloud amount, SIGMET phenomenon or colour code are references into official WMO registers. The library translates each into an enum (`Code`) and keeps the code as reported (`Notation`). A code that is not in the official list for IWXXM 2025-2 is **never dropped**: it becomes `Unknown` with its raw notation.
+Fields such as cloud amount, SIGMET phenomenon or colour code are references into official WMO registers. The library translates each into an enum (`Code`) and keeps the code as reported (`Notation`). A known code maps to its member and `Notation` is the code. Anything else (a code that is not in the official list for IWXXM 2025-2, a foreign URI, a bare token) is **never dropped**: it becomes `Unknown` and `Notation` is the reference as written.
 
 ```csharp
 using System;
@@ -810,7 +810,7 @@ weather FG, official: True
 
 ### Nil reasons: "nothing" is information
 
-In IWXXM an absent value can come with a *reason*, and the reason is operationally important. `NSC` ("no significant cloud") is not the same as `NCD` ("no cloud detected by the automatic system") and neither is the same as "the cloud group is missing". These reasons are `CodeListValue<NilReason>`, with convenience flags where they matter. Every nil reason of the model has this type: the cloud, weather and vertical-visibility reasons, the reason of a nil METAR/SPECI `observation` (`ObservationNilReason`) or TAF `baseForecast` (`BaseForecastNilReason`), of a nil space weather `intensityAndRegion` (`SpaceWeatherAnalysis.NilReason`) and of a nil `VerticalLimit` (`NilReason`). A reason that is not a code of the official register (a foreign URI, or a bare token such as `unknown`) is never dropped: `Code` is `Unknown` and `Notation` holds the value exactly as reported; no warning is added. The official SPECI example has a trend forecast that says "no significant weather, no significant cloud":
+In IWXXM an absent value can come with a *reason*, and the reason is operationally important. `NSC` ("no significant cloud") is not the same as `NCD` ("no cloud detected by the automatic system") and neither is the same as "the cloud group is missing". These reasons are `CodeListValue<NilReason>`, with convenience flags where they matter. Every nil reason of the model has this type: the cloud, weather and vertical-visibility reasons, the reason of a nil METAR/SPECI `observation` (`ObservationNilReason`) or TAF `baseForecast` (`BaseForecastNilReason`), of a nil space weather `intensityAndRegion` (`SpaceWeatherAnalysis.NilReason`) and of a nil `VerticalLimit` (`NilReason`). A known code maps to its member (`Notation` = the code); any other reason (an unlisted register code, a foreign URI, a bare token such as `unknown`) is never dropped: `Code` is `Unknown` and `Notation` holds the reference as written; no warning is added. The official SPECI example has a trend forecast that says "no significant weather, no significant cloud":
 
 ```csharp
 using System;

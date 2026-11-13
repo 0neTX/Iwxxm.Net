@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Iwxxm.Net.Infrastructure.GeoJson;
 using Iwxxm.Net.Infrastructure.Mapping.CodeLists;
 using Iwxxm.Net.Reports;
 using Xunit;
@@ -61,12 +62,12 @@ namespace Iwxxm.Net.Tests
             Assert.NotNull(value);
             Assert.Equal(SpaceWeatherLocation.Unknown, value!.Code);
             Assert.False(value.IsKnown);
-            Assert.Equal("DAYLIGHT_SIDE", value.Notation);
+            Assert.Equal("http://codes.wmo.int/49-2/SpaceWxLocation/DAYLIGHT_SIDE", value.Notation);
         }
 
         [Theory]
         [InlineData("http://codes.wmo.int/49-2/SigWxPhenomena/VA", SigmetPhenomenon.VolcanicAsh, "VA")]
-        [InlineData("http://codes.wmo.int/49-2/SigWxPhenomena/XYZ", SigmetPhenomenon.Unknown, "XYZ")]
+        [InlineData("http://codes.wmo.int/49-2/SigWxPhenomena/XYZ", SigmetPhenomenon.Unknown, "http://codes.wmo.int/49-2/SigWxPhenomena/XYZ")]
         [InlineData("http://codes.wmo.int/49-2/AirWxPhenomena/ISOL_TS", SigmetPhenomenon.Unknown, "http://codes.wmo.int/49-2/AirWxPhenomena/ISOL_TS")]
         [InlineData("http://codes.wmo.int/49-2/SigWxPhenomena/VA/extra", SigmetPhenomenon.Unknown, "http://codes.wmo.int/49-2/SigWxPhenomena/VA/extra")]
         [InlineData("http://codes.wmo.int/49-2/SigWxPhenomena/", SigmetPhenomenon.Unknown, "http://codes.wmo.int/49-2/SigWxPhenomena/")]
@@ -80,6 +81,28 @@ namespace Iwxxm.Net.Tests
             Assert.Equal(expectedCode != SigmetPhenomenon.Unknown, value.IsKnown);
             Assert.Equal(expectedNotation, value.Notation);
             Assert.Equal(href, CodeListTables.SigmetPhenomena.ToReference(value));
+        }
+
+        [Theory]
+        [InlineData("http://codes.wmo.int/common/nil/missing", NilReason.Missing, "missing")]
+        [InlineData("http://codes.wmo.int/common/nil/foo", NilReason.Unknown, "http://codes.wmo.int/common/nil/foo")]
+        [InlineData("http://codes.wmo.int/common/nil/Missing", NilReason.Unknown, "http://codes.wmo.int/common/nil/Missing")]
+        [InlineData("http://codes.wmo.int/common/nil/missing ", NilReason.Unknown, "http://codes.wmo.int/common/nil/missing ")]
+        [InlineData(" http://codes.wmo.int/common/nil/missing", NilReason.Unknown, " http://codes.wmo.int/common/nil/missing")]
+        [InlineData("http://example.org/nil/lost", NilReason.Unknown, "http://example.org/nil/lost")]
+        [InlineData("unknown", NilReason.Unknown, "unknown")]
+        public void NilReasons_RoundTrip_ByteForByte_ExceptTheBareToken(string href, NilReason expectedCode, string expectedNotation)
+        {
+            CodeListValue<NilReason>? value = CodeListTables.NilReasons.Translate(href);
+
+            Assert.NotNull(value);
+            Assert.Equal(expectedCode, value!.Code);
+            Assert.Equal(expectedNotation, value.Notation);
+
+            // GeoJSON text is the reference as written for every case (a bare token is never rewritten).
+            Assert.Equal(href, GeoJsonProperties.NilReasonText(value));
+            if (href != "unknown")
+                Assert.Equal(href, CodeListTables.NilReasons.ToReference(value));
         }
 
         [Theory]

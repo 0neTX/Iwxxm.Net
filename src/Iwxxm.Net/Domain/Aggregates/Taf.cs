@@ -43,7 +43,7 @@ namespace Iwxxm.Net.Reports
         public DateTimeOffset? CancelledReportValidUntilUtc { get; }
         /// <summary>Gets a value indicating whether the <c>iwxxm:baseForecast</c> is nil (a missing report): the element carries a <c>nilReason</c> instead of a forecast, see <see cref="BaseForecastNilReason"/>.</summary>
         public bool IsNilForecast { get; }
-        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:baseForecast</c> as a code of the WMO nil-reason register <c>http://codes.wmo.int/common/nil</c> (typically <see cref="NilReason.Missing"/>: the whole report is missing), or <c>null</c> when a forecast is present. A reason outside the official register is kept as <c>Unknown</c> with its raw value in <see cref="CodeListValue{TCode}.Notation"/>.</summary>
+        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:baseForecast</c> as a code of the WMO nil-reason register <c>http://codes.wmo.int/common/nil</c> (typically <see cref="NilReason.Missing"/>: the whole report is missing), or <c>null</c> when a forecast is present. A reason outside the official register is kept as <c>Unknown</c> with the reference as written in <see cref="CodeListValue{TCode}.Notation"/> (a known code has its code as notation).</summary>
         public CodeListValue<NilReason>? BaseForecastNilReason { get; }
         /// <inheritdoc />
         public override bool IsTranslationFailed { get; }

@@ -50,7 +50,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Intensity and region groups (<c>iwxxm:intensityAndRegion</c>), in document order.</summary>
         public IReadOnlyList<SpaceWeatherAnalysisRegion> Regions { get; }
 
-        /// <summary><c>@nilReason</c> of a nil <c>intensityAndRegion</c> as a code of the WMO register <c>http://codes.wmo.int/common/nil</c> (e.g. <c>nothingOfOperationalSignificance</c>), or <c>null</c>. A reason outside the register is kept as <c>Unknown</c> with its raw value in <see cref="CodeListValue{TCode}.Notation"/>.</summary>
+        /// <summary><c>@nilReason</c> of a nil <c>intensityAndRegion</c> as a code of the WMO register <c>http://codes.wmo.int/common/nil</c> (e.g. <c>nothingOfOperationalSignificance</c>), or <c>null</c>. A reason outside the register is kept as <c>Unknown</c> with the reference as written in <see cref="CodeListValue{TCode}.Notation"/> (a known code has its code as notation).</summary>
         public CodeListValue<NilReason>? NilReason { get; }
 
         /// <summary>Gets a value indicating whether the analysis states that no operationally significant space weather is expected.</summary>

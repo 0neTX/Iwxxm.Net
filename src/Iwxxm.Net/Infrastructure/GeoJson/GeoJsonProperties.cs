@@ -99,8 +99,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
 
         /// <summary>
         /// The <c>@nilReason</c> as it was reported, for the GeoJSON output: the full reference of an official code of
-        /// <c>http://codes.wmo.int/common/nil</c>, otherwise the raw value kept in <see cref="CodeListValue{TCode}.Notation"/>
-        /// (a foreign URI or a bare token is never rewritten); <c>null</c> when no reason was reported.
+        /// <c>http://codes.wmo.int/common/nil</c>, otherwise the reference as written, kept in <see cref="CodeListValue{TCode}.Notation"/>
+        /// (an unlisted register code, a foreign URI or a bare token is never rewritten); <c>null</c> when no reason was reported.
         /// </summary>
         public static string? NilReasonText(CodeListValue<NilReason>? reason) =>
             reason == null ? null : reason.IsKnown ? CodeListTables.NilReasons.ToReference(reason) : reason.Notation;

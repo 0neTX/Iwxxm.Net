@@ -47,7 +47,7 @@ namespace Iwxxm.Net.Reports
 
         /// <summary>End of <c>validPeriod</c> (mandatory in <c>airmet.xsd</c>); <c>null</c> only when given by an unresolved <c>xlink:href</c>.</summary>
         public DateTimeOffset? ValidUntilUtc { get; }
-        /// <summary>Reported phenomenon (WMO code list), or <c>null</c> when absent or nil; a non-official code is kept as <c>Unknown</c> with its raw notation.</summary>
+        /// <summary>Reported phenomenon (WMO code list), or <c>null</c> when absent or nil; a non-official code is kept as <c>Unknown</c> with the reference as written as notation.</summary>
         public CodeListValue<AirmetPhenomenon>? Phenomenon { get; }
 
         /// <summary><c>@isCancelReport</c>: <c>true</c> for a cancellation (<c>CNL</c>) of an earlier AIRMET.</summary>

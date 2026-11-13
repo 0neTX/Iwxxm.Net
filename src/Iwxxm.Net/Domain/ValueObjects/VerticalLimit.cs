@@ -50,7 +50,7 @@ namespace Iwxxm.Net.Reports
         /// <summary>Gets a value indicating whether the limit is explicitly nil (<c>xsi:nil</c> / <c>nilReason</c>).</summary>
         public bool IsNil { get; }
 
-        /// <summary>The reported <c>nilReason</c> when <see cref="IsNil"/> is <c>true</c>, as a code of the WMO register <c>http://codes.wmo.int/common/nil</c>; <c>null</c> when none was reported. A reason outside the register is kept as <c>Unknown</c> with its raw value in <see cref="CodeListValue{TCode}.Notation"/>.</summary>
+        /// <summary>The reported <c>nilReason</c> when <see cref="IsNil"/> is <c>true</c>, as a code of the WMO register <c>http://codes.wmo.int/common/nil</c>; <c>null</c> when none was reported. A reason outside the register is kept as <c>Unknown</c> with the reference as written in <see cref="CodeListValue{TCode}.Notation"/> (a known code has its code as notation).</summary>
         public CodeListValue<NilReason>? NilReason { get; }
 
         /// <summary>Gets a value indicating whether the limit is the ground / surface (<c>GND</c>).</summary>

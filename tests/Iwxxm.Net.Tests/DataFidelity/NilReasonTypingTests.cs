@@ -82,6 +82,44 @@ namespace Iwxxm.Net.Tests.DataFidelity
             Assert.Contains("\"nilReason\":\"" + Foreign + "\"", IwxxmParser.ParseToGeoJson(xml).Value);
         }
 
+        private const string Register = "http://codes.wmo.int/common/nil/";
+
+        [Theory]
+        [InlineData(Register + "foo")]
+        [InlineData(Register + "Missing")]
+        [InlineData(Register + "missing ")]
+        [InlineData(" " + Register + "missing")]
+        [InlineData("unknown")]
+        [InlineData(Foreign)]
+        public void SpaceWeatherAnalysis_NonOfficialReason_GeoJsonTextEqualsTheInputExactly(string reason)
+        {
+            string xml = SampleDocuments.Text("spacewx-A7-5.xml")
+                .Replace("http://codes.wmo.int/common/nil/nothingOfOperationalSignificance", reason);
+            SpaceWx swx = Assert.IsType<SpaceWx>(Parse(xml));
+
+            SpaceWeatherAnalysis nil = swx.Analyses.First(a => a.Regions.Count == 0);
+            Assert.Equal(NilReason.Unknown, nil.NilReason!.Code);
+            Assert.Equal(reason, nil.NilReason.Notation);
+            Assert.Contains("\"nilReason\":\"" + reason + "\"", IwxxmParser.ParseToGeoJson(xml).Value);
+        }
+
+        [Theory]
+        [InlineData(Register + "foo", Register + "foo")]
+        [InlineData(Register + "Missing", Register + "Missing")]
+        [InlineData(Register + "missing ", Register + "missing")] // the vertical-limit reader trims the attribute, as before
+        [InlineData("unknown", "unknown")]
+        [InlineData(Foreign, Foreign)]
+        [InlineData(Register + "missing", Register + "missing")]
+        public void VerticalLimit_NilReason_GeoJsonTextIsTheReportedReference(string reason, string expected)
+        {
+            var errors = new System.Collections.Generic.List<Iwxxm.Net.ValidationError>();
+            VerticalLimit? limit = Infrastructure.Mapping.VerticalLimitReader.Read(
+                null, "OTHER", reason, true, null, "test", errors);
+
+            Assert.Empty(errors);
+            Assert.Equal(expected, Infrastructure.GeoJson.GeoJsonProperties.NilReasonText(limit!.Value.NilReason));
+        }
+
         [Fact]
         public void VerticalLimit_OfficialExample_KeepsForeignUri_AndGeoJsonIsUnchanged()
         {

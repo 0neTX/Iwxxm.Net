@@ -8,7 +8,7 @@ namespace Iwxxm.Net.Reports
     /// </summary>
     public enum NilReason
     {
-        /// <summary>The reported reason is not a code of the official register (kept with its raw value).</summary>
+        /// <summary>The reported reason is not a code of the official register (kept with the reference as written).</summary>
         Unknown = 0,
 
         /// <summary><c>inapplicable</c>: there is no value (e.g. cloud base of a clear sky, TAC <c>SKC</c>/<c>CLR</c>).</summary>

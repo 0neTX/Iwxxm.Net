@@ -75,7 +75,7 @@ namespace Iwxxm.Net.Reports
         public GeoCoordinate? AerodromePosition { get; }
         /// <summary>Gets a value indicating whether <c>iwxxm:observation</c> is nil (a missing report): the element carries a <c>nilReason</c> and no observed conditions, see <see cref="ObservationNilReason"/>.</summary>
         public bool IsNilObservation { get; }
-        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:observation</c> as a code of the WMO nil-reason register <c>http://codes.wmo.int/common/nil</c> (typically <see cref="NilReason.Missing"/>: the whole report is missing), or <c>null</c> when conditions are reported. A reason outside the official register is kept as <c>Unknown</c> with its raw value in <see cref="CodeListValue{TCode}.Notation"/>.</summary>
+        /// <summary>Gets the <c>nilReason</c> of a nil <c>iwxxm:observation</c> as a code of the WMO nil-reason register <c>http://codes.wmo.int/common/nil</c> (typically <see cref="NilReason.Missing"/>: the whole report is missing), or <c>null</c> when conditions are reported. A reason outside the official register is kept as <c>Unknown</c> with the reference as written in <see cref="CodeListValue{TCode}.Notation"/> (a known code has its code as notation).</summary>
         public CodeListValue<NilReason>? ObservationNilReason { get; }
         /// <inheritdoc />
         public sealed override bool IsTranslationFailed { get; }
