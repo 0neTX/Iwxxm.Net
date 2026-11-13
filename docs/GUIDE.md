@@ -379,7 +379,7 @@ public sealed class DescribeVisitor : IIwxxmDocumentVisitor<string>
     public string Visit(Sigmet sigmet) => $"{sigmet.ReportType} {sigmet.FirDesignator}";
     public string Visit(Airmet airmet) => $"AIRMET {airmet.FirDesignator}";
     public string Visit(Vona vona) => $"VONA {vona.NoticeNumber}";
-    public string Visit(Qvaci qvaci) => $"QVACI {qvaci.OriginatingCentre}";
+    public string Visit(Qvaci qvaci) => $"QVACI {qvaci.OriginatingCentreName}";
     public string Visit(Vaa vaa) => $"VAA {vaa.AdvisoryNumber}";
     public string Visit(Tca tca) => $"TCA {tca.CycloneName}";
     public string Visit(SpaceWx swx) => $"SWX {swx.AdvisoryNumber}";
@@ -616,7 +616,7 @@ The complete table of codes, with meaning, typical cause and remediation, is in 
 
 ## 8. GeoJSON export
 
-Every document with geometry can be exported as an RFC 7946 `FeatureCollection`: `[longitude, latitude]` coordinates (GML uses latitude first), polygon holes, a `bbox`, antimeridian splitting and circles densified to 64-segment polygons. Measures are written **as reported**, with a sibling `...Uom` property; nothing is converted. Volcano features carry the IAVCEI number (`Volcano.IavceiNumber`) as the property `iavceiNumber`.
+Every document with geometry can be exported as an RFC 7946 `FeatureCollection`: `[longitude, latitude]` coordinates (GML uses latitude first), polygon holes, a `bbox`, antimeridian splitting and circles densified to 64-segment polygons. Measures are written **as reported**, with a sibling `...Uom` property; nothing is converted. Volcano features carry the IAVCEI number (`Volcano.IavceiNumber`) as the property `iavceiNumber`. QVACI ash clouds carry `ashDensityEqualsOrExceedsMgPerM3`, a lower bound rather than a measured density, and QVACI volcanoes carry `originatingCentreName`.
 
 ```csharp
 using System;

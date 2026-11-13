@@ -58,7 +58,7 @@ Qvaci {
         ]
         InteriorRings = []
       }
-      AshDensityMgPerM3 = 10
+      AshDensityEqualsOrExceedsMgPerM3 = 10
       Id = "uuid.04c7ee5a-d98d-468d-88e1-68ee978cfb37"
       LowerLimit = VerticalLimit {
         IsGround = false
@@ -150,7 +150,7 @@ Qvaci {
         ]
         InteriorRings = []
       }
-      AshDensityMgPerM3 = 5
+      AshDensityEqualsOrExceedsMgPerM3 = 5
       Id = "uuid.9c54f440-823f-480c-9e24-c6c1e9c0274e"
       LowerLimit = VerticalLimit {
         IsGround = false
@@ -222,7 +222,7 @@ Qvaci {
         ]
         InteriorRings = []
       }
-      AshDensityMgPerM3 = 5
+      AshDensityEqualsOrExceedsMgPerM3 = 5
       Id = "uuid.c577b58b-3030-4a98-8e90-b457e27df414"
       LowerLimit = VerticalLimit {
         IsGround = false
@@ -370,7 +370,7 @@ Qvaci {
         ]
         InteriorRings = []
       }
-      AshDensityMgPerM3 = 2
+      AshDensityEqualsOrExceedsMgPerM3 = 2
       Id = "uuid.8de68047-c8ac-43bd-9275-bae76cf7f558"
       LowerLimit = VerticalLimit {
         IsGround = false
@@ -541,7 +541,7 @@ Qvaci {
           ]
         ]
       }
-      AshDensityMgPerM3 = 0.2
+      AshDensityEqualsOrExceedsMgPerM3 = 0.2
       Id = "uuid.2a225503-e2aa-4e4d-a21e-dc2a8267cb9c"
       LowerLimit = VerticalLimit {
         IsGround = false
@@ -576,8 +576,8 @@ Qvaci {
   Id = "uuid.bf9c0a92-c909-4efc-8558-472d8aad209f"
   IsTranslationFailed = false
   IssueTimeUtc = 2021-12-16T23:47:00.0000000+00:00
-  OriginatingCentre = "DARWIN"
   OriginatingCentreDesignator = "ADRM"
+  OriginatingCentreName = "DARWIN"
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null

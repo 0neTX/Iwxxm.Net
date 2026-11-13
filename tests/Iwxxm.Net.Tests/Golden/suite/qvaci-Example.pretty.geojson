@@ -23,7 +23,7 @@
         "issueTimeUtc": "2021-12-16T23:47:00.0000000+00:00",
         "name": "KRAKATAU",
         "iavceiNumber": "262000",
-        "originatingCentre": "DARWIN"
+        "originatingCentreName": "DARWIN"
       }
     },
     {
@@ -40,7 +40,7 @@
         "reportId": "uuid.bf9c0a92-c909-4efc-8558-472d8aad209f",
         "reportType": "QuantitativeVolcanicAshConcentration",
         "issueTimeUtc": "2021-12-16T23:47:00.0000000+00:00",
-        "ashDensityMgPerM3": 10,
+        "ashDensityEqualsOrExceedsMgPerM3": 10,
         "lowerLimit": 300,
         "lowerLimitUom": "FL",
         "lowerLimitReference": "STD",
@@ -67,7 +67,7 @@
         "reportId": "uuid.bf9c0a92-c909-4efc-8558-472d8aad209f",
         "reportType": "QuantitativeVolcanicAshConcentration",
         "issueTimeUtc": "2021-12-16T23:47:00.0000000+00:00",
-        "ashDensityMgPerM3": 5,
+        "ashDensityEqualsOrExceedsMgPerM3": 5,
         "lowerLimit": 250,
         "lowerLimitUom": "FL",
         "lowerLimitReference": "STD",
@@ -94,7 +94,7 @@
         "reportId": "uuid.bf9c0a92-c909-4efc-8558-472d8aad209f",
         "reportType": "QuantitativeVolcanicAshConcentration",
         "issueTimeUtc": "2021-12-16T23:47:00.0000000+00:00",
-        "ashDensityMgPerM3": 5,
+        "ashDensityEqualsOrExceedsMgPerM3": 5,
         "lowerLimit": 200,
         "lowerLimitUom": "FL",
         "lowerLimitReference": "STD",
@@ -121,7 +121,7 @@
         "reportId": "uuid.bf9c0a92-c909-4efc-8558-472d8aad209f",
         "reportType": "QuantitativeVolcanicAshConcentration",
         "issueTimeUtc": "2021-12-16T23:47:00.0000000+00:00",
-        "ashDensityMgPerM3": 2,
+        "ashDensityEqualsOrExceedsMgPerM3": 2,
         "lowerLimit": 150,
         "lowerLimitUom": "FL",
         "lowerLimitReference": "STD",
@@ -149,7 +149,7 @@
         "reportId": "uuid.bf9c0a92-c909-4efc-8558-472d8aad209f",
         "reportType": "QuantitativeVolcanicAshConcentration",
         "issueTimeUtc": "2021-12-16T23:47:00.0000000+00:00",
-        "ashDensityMgPerM3": 0.2,
+        "ashDensityEqualsOrExceedsMgPerM3": 0.2,
         "lowerLimit": 150,
         "lowerLimitUom": "FL",
         "lowerLimitReference": "STD",

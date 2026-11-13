@@ -44,6 +44,7 @@ namespace Iwxxm.Net.Tests
         }
 
         private static readonly XNamespace Iwxxm = "http://icao.int/iwxxm/2025-2";
+        private static readonly XNamespace Aixm = "http://www.aixm.aero/schema/5.1.1";
         private static readonly XNamespace Gml = "http://www.opengis.net/gml/3.2";
         private static readonly XNamespace Collect = "http://def.wmo.int/collect/2014";
 
@@ -320,7 +321,64 @@ namespace Iwxxm.Net.Tests
             var qvaci = IwxxmParser.ParseFileAs<Qvaci>("Samples/wmo-examples/qvaci-Example.xml");
 
             Assert.True(qvaci.IsSuccess, string.Join(" | ", qvaci.Errors));
-            Assert.Equal(expected, qvaci.Value.AshConcentrationClouds[0].AshDensityMgPerM3);
+            Assert.Equal(expected, qvaci.Value.AshConcentrationClouds[0].AshDensityEqualsOrExceedsMgPerM3);
+        }
+
+        [Fact]
+        public void Qvaci_OriginatingCentreName_IsTheAixmName_AndDesignatorIsKept()
+        {
+            var qvaci = IwxxmParser.ParseFileAs<Qvaci>("Samples/wmo-examples/qvaci-Example.xml");
+
+            Assert.True(qvaci.IsSuccess, string.Join(" | ", qvaci.Errors));
+            Assert.Equal("DARWIN", qvaci.Value.OriginatingCentreName);
+            Assert.Equal("ADRM", qvaci.Value.OriginatingCentreDesignator);
+        }
+
+        [Fact]
+        public void Qvaci_OriginatingCentreName_FallsBackToDesignatorWithoutName()
+        {
+            XDocument doc = XDocument.Load("Samples/wmo-examples/qvaci-Example.xml");
+            doc.Descendants(Aixm + "name").First(n => n.Parent!.Name.LocalName == "UnitTimeSlice").Remove();
+
+            var result = MapDirectly(doc.ToString());
+
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            var qvaci = Assert.IsType<Qvaci>(result.Value);
+            Assert.Equal("ADRM", qvaci.OriginatingCentreName);
+            Assert.Equal("ADRM", qvaci.OriginatingCentreDesignator);
+        }
+
+        [Fact]
+        public void Vona_OriginatingCentreName_FallsBackToDesignatorWithoutName()
+        {
+            XDocument doc = XDocument.Load("Samples/wmo-examples/vona-A7-1.xml");
+            XElement unit = doc.Descendants(Iwxxm + "originatingCentre").First();
+            unit.Descendants(Aixm + "name").First().Remove();
+
+            var result = MapDirectly(doc.ToString());
+
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            var vona = Assert.IsType<Vona>(result.Value);
+            Assert.Equal("UHPP", vona.OriginatingCentreName);
+            Assert.Equal("UHPP", vona.OriginatingCentreDesignator);
+        }
+
+        [Fact]
+        public void Qvaci_GeoJson_UsesRenamedKeysAndOmitsOldOnes()
+        {
+            var result = IwxxmParser.ParseFileToGeoJson("Samples/wmo-examples/qvaci-Example.xml");
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+            using var json = System.Text.Json.JsonDocument.Parse(result.Value);
+            var props = json.RootElement.GetProperty("features").EnumerateArray()
+                .Select(f => f.GetProperty("properties")).ToList();
+
+            var volcano = props.First(p => p.TryGetProperty("originatingCentreName", out _));
+            Assert.Equal("DARWIN", volcano.GetProperty("originatingCentreName").GetString());
+            var cloud = props.First(p => p.TryGetProperty("ashDensityEqualsOrExceedsMgPerM3", out _));
+            Assert.True(cloud.GetProperty("ashDensityEqualsOrExceedsMgPerM3").GetDouble() > 0);
+
+            Assert.DoesNotContain(props, p => p.TryGetProperty("originatingCentre", out _));
+            Assert.DoesNotContain(props, p => p.TryGetProperty("ashDensityMgPerM3", out _));
         }
 
         [Fact]

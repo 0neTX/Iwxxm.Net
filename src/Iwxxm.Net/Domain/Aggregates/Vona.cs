@@ -26,7 +26,7 @@ namespace Iwxxm.Net.Reports
         /// <inheritdoc />
         public override string? PermissibleUsageSupplementary { get; }
         /// <summary>Gets the name of the originating volcano observatory (<c>aixm:name</c> of <c>iwxxm:originatingCentre</c>, falling back to its designator); empty only when the document carries neither.</summary>
-        public string OriginatingCentre { get; }
+        public string OriginatingCentreName { get; }
         /// <summary>Gets the designator of the originating volcano observatory (<c>aixm:designator</c> of <c>iwxxm:originatingCentre</c>), or <c>null</c> when not reported.</summary>
         public string? OriginatingCentreDesignator { get; }
         /// <summary>Gets the State or region involved (<c>iwxxm:stateOrRegion</c>), or <c>null</c> when absent or nil.</summary>
@@ -65,7 +65,7 @@ namespace Iwxxm.Net.Reports
             PermissibleUsage permissibleUsage,
             PermissibleUsageReason? permissibleUsageReason,
             string? permissibleUsageSupplementary,
-            string originatingCentre,
+            string originatingCentreName,
             string? originatingCentreDesignator,
             string? stateOrRegion,
             string? noticeNumber,
@@ -85,7 +85,7 @@ namespace Iwxxm.Net.Reports
             PermissibleUsage = permissibleUsage;
             PermissibleUsageReason = permissibleUsageReason;
             PermissibleUsageSupplementary = permissibleUsageSupplementary;
-            OriginatingCentre = originatingCentre;
+            OriginatingCentreName = originatingCentreName;
             OriginatingCentreDesignator = originatingCentreDesignator;
             StateOrRegion = stateOrRegion;
             NoticeNumber = noticeNumber;
@@ -107,7 +107,7 @@ namespace Iwxxm.Net.Reports
         /// <param name="permissibleUsage">The <c>permissibleUsage</c> attribute (<c>OPERATIONAL</c> or <c>NON-OPERATIONAL</c>); must be a defined value.</param>
         /// <param name="permissibleUsageReason">The optional <c>permissibleUsageReason</c> (<c>TEST</c> or <c>EXERCISE</c>), meaningful for non-operational data; <c>null</c> when not reported. When given it must be a defined value.</param>
         /// <param name="permissibleUsageSupplementary">The optional free-text <c>permissibleUsageSupplementary</c>; <c>null</c> when not reported.</param>
-        /// <param name="originatingCentre">The name of the originating volcano observatory (the designator when no name is given).</param>
+        /// <param name="originatingCentreName">The name of the originating volcano observatory (the designator when no name is given).</param>
         /// <param name="originatingCentreDesignator">The designator of the originating observatory; <c>null</c> when not reported.</param>
         /// <param name="stateOrRegion">The State or region involved; <c>null</c> when absent.</param>
         /// <param name="noticeNumber">The notice number; <c>null</c> when absent.</param>
@@ -125,7 +125,7 @@ namespace Iwxxm.Net.Reports
             DateTimeOffset issueTimeUtc,
             ReportStatus reportStatus,
             PermissibleUsage permissibleUsage,
-            string originatingCentre,
+            string originatingCentreName,
             string? originatingCentreDesignator = null,
             string? stateOrRegion = null,
             string? noticeNumber = null,
@@ -158,7 +158,7 @@ namespace Iwxxm.Net.Reports
                 permissibleUsage,
                 permissibleUsageReason,
                 permissibleUsageSupplementary,
-                originatingCentre ?? string.Empty,
+                originatingCentreName ?? string.Empty,
                 originatingCentreDesignator,
                 stateOrRegion,
                 noticeNumber,

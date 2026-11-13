@@ -401,7 +401,7 @@ namespace Iwxxm.Net.Demo
         public FactSheet Visit(Vona vona)
         {
             var s = new FactSheet();
-            s.Add("Originating centre", $"{vona.OriginatingCentre} ({Fmt.Or(vona.OriginatingCentreDesignator)})");
+            s.Add("Originating centre", $"{vona.OriginatingCentreName} ({Fmt.Or(vona.OriginatingCentreDesignator)})");
             s.Add("State or region", vona.StateOrRegion);
             s.Add("Notice number", vona.NoticeNumber);
             s.Add("Colour code", $"{Fmt.Text(vona.CurrentColourCode)} (previous {Fmt.Text(vona.PreviousColourCode)})");
@@ -420,7 +420,7 @@ namespace Iwxxm.Net.Demo
         public FactSheet Visit(Qvaci qvaci)
         {
             var s = new FactSheet();
-            s.Add("Originating centre", $"{qvaci.OriginatingCentre} ({Fmt.Or(qvaci.OriginatingCentreDesignator)})");
+            s.Add("Originating centre", $"{qvaci.OriginatingCentreName} ({Fmt.Or(qvaci.OriginatingCentreDesignator)})");
             s.Add("Model initialised (UTC)", Fmt.Time(qvaci.DispersionModelInitialisationTimeUtc));
             s.Add("Remarks", qvaci.Remarks);
             foreach (Volcano volcano in qvaci.Volcanoes)
@@ -433,7 +433,7 @@ namespace Iwxxm.Net.Demo
             {
                 foreach (VolcanicAshConcentrationCloud cloud in qvaci.AshConcentrationClouds.Take(MaxListed))
                 {
-                    s.Add("Contour", $"{Fmt.Number(cloud.AshDensityMgPerM3, " mg/m3")}, levels {Fmt.Levels(cloud.LowerLimit, cloud.UpperLimit)}, at {Fmt.Time(cloud.PhenomenonTimeUtc)}");
+                    s.Add("Contour", $"{"density >= " + Fmt.Number(cloud.AshDensityEqualsOrExceedsMgPerM3, " mg/m3")}, levels {Fmt.Levels(cloud.LowerLimit, cloud.UpperLimit)}, at {Fmt.Time(cloud.PhenomenonTimeUtc)}");
                     s.Nest(() => s.Add("Area", Fmt.Polygon(cloud.Area)));
                 }
 

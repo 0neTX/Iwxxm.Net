@@ -36,14 +36,14 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 var props = CreateBase(qvaci, "VOLCANO", bulletinId);
                 props.Add(("name", vol.Name));
                 props.Add(("iavceiNumber", vol.IavceiNumber));
-                props.Add(("originatingCentre", qvaci.OriginatingCentre));
+                props.Add(("originatingCentreName", qvaci.OriginatingCentreName));
                 features.Add(GeoJsonFeature.ForPoint(vol.Id, vol.Position, props));
             }
 
             foreach (var cloud in qvaci.AshConcentrationClouds)
             {
                 var props = CreateBase(qvaci, "ASH_CONCENTRATION_CLOUD", bulletinId);
-                props.Add(("ashDensityMgPerM3", cloud.AshDensityMgPerM3));
+                props.Add(("ashDensityEqualsOrExceedsMgPerM3", cloud.AshDensityEqualsOrExceedsMgPerM3));
                 AddVerticalLimit(props, "lowerLimit", cloud.LowerLimit);
                 AddVerticalLimit(props, "upperLimit", cloud.UpperLimit);
                 props.Add(("interiorHoleCount", cloud.Area.InteriorRings.Count));

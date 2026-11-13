@@ -5,7 +5,7 @@ namespace Iwxxm.Net.Reports
     /// <summary>
     /// Immutable Value Object representing a quantitative volcanic ash concentration cloud contour
     /// inside a <see cref="Qvaci"/> (<c>QuantitativeVolcanicAshConcentrationInformation</c>).
-    /// <see cref="AshDensityMgPerM3"/> is the reported <c>ashDensityEqualsOrExceeds</c> (mandatory in <c>qvaci.xsd</c>);
+    /// <see cref="AshDensityEqualsOrExceedsMgPerM3"/> is the reported <c>ashDensityEqualsOrExceeds</c> (mandatory in <c>qvaci.xsd</c>), a lower bound: the ash density within the cloud equals or exceeds it;
     /// vertical limits keep the reported value, unit and reference.
     /// </summary>
     public sealed class VolcanicAshConcentrationCloud : IEquatable<VolcanicAshConcentrationCloud>
@@ -18,8 +18,8 @@ namespace Iwxxm.Net.Reports
         public VerticalLimit? LowerLimit { get; }
         /// <summary>Gets the upper vertical limit of the ash cloud (<c>upperElevation</c> with its vertical reference) as reported, or <c>null</c> when not reported.</summary>
         public VerticalLimit? UpperLimit { get; }
-        /// <summary>Gets the quantitative threshold of ash density within the cloud (<c>iwxxm:ashDensityEqualsOrExceeds</c>) in milligrams per cubic metre; the mapper rejects a cloud without it and accepts no other unit.</summary>
-        public double AshDensityMgPerM3 { get; }
+        /// <summary>Gets the lower bound of the ash density within the cloud (<c>iwxxm:ashDensityEqualsOrExceeds</c>, "equals or exceeds") in milligrams per cubic metre; it is a threshold, not the density itself: higher values are possible within the cloud. the mapper rejects a cloud without it and accepts no other unit.</summary>
+        public double AshDensityEqualsOrExceedsMgPerM3 { get; }
 
         /// <summary>
         /// <c>phenomenonTime</c> of the ash cloud feature (inline or by local <c>xlink:href="#id"</c>, e.g. the shared
@@ -32,7 +32,7 @@ namespace Iwxxm.Net.Reports
         /// <param name="area">The horizontal extent; required.</param>
         /// <param name="lowerLimit">The lower vertical limit; <c>null</c> when not reported.</param>
         /// <param name="upperLimit">The upper vertical limit; <c>null</c> when not reported.</param>
-        /// <param name="ashDensityMgPerM3">The ash density threshold in milligrams per cubic metre.</param>
+        /// <param name="ashDensityEqualsOrExceedsMgPerM3">The lower bound of the ash density in milligrams per cubic metre (the density equals or exceeds it; higher values are possible).</param>
         /// <param name="phenomenonTimeUtc">The time the cloud applies to; <c>null</c> when absent, nil or unresolved.</param>
         /// <exception cref="ArgumentNullException"><paramref name="area"/> is <c>null</c>.</exception>
         public VolcanicAshConcentrationCloud(
@@ -40,14 +40,14 @@ namespace Iwxxm.Net.Reports
             GeoPolygon area,
             VerticalLimit? lowerLimit,
             VerticalLimit? upperLimit,
-            double ashDensityMgPerM3,
+            double ashDensityEqualsOrExceedsMgPerM3,
             DateTimeOffset? phenomenonTimeUtc = null)
         {
             Id = id ?? string.Empty;
             Area = area ?? throw new ArgumentNullException(nameof(area));
             LowerLimit = lowerLimit;
             UpperLimit = upperLimit;
-            AshDensityMgPerM3 = ashDensityMgPerM3;
+            AshDensityEqualsOrExceedsMgPerM3 = ashDensityEqualsOrExceedsMgPerM3;
             PhenomenonTimeUtc = phenomenonTimeUtc;
         }
 
@@ -60,7 +60,7 @@ namespace Iwxxm.Net.Reports
                    Area.Equals(other.Area) &&
                    Nullable.Equals(LowerLimit, other.LowerLimit) &&
                    Nullable.Equals(UpperLimit, other.UpperLimit) &&
-                   AshDensityMgPerM3.Equals(other.AshDensityMgPerM3) &&
+                   AshDensityEqualsOrExceedsMgPerM3.Equals(other.AshDensityEqualsOrExceedsMgPerM3) &&
                    Nullable.Equals(PhenomenonTimeUtc, other.PhenomenonTimeUtc);
         }
 
@@ -75,7 +75,7 @@ namespace Iwxxm.Net.Reports
             hash = ValueEquality.Add(hash, Area);
             hash = ValueEquality.Add(hash, LowerLimit);
             hash = ValueEquality.Add(hash, UpperLimit);
-            hash = ValueEquality.AddDouble(hash, AshDensityMgPerM3);
+            hash = ValueEquality.AddDouble(hash, AshDensityEqualsOrExceedsMgPerM3);
             return ValueEquality.Add(hash, PhenomenonTimeUtc);
         }
 

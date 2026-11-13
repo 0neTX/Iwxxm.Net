@@ -23,8 +23,8 @@ Vona {
   IssueTimeUtc = 2024-02-16T01:30:00.0000000+00:00
   NextNotice = "WILL BE ISSUED BY 20240223/0130Z"
   NoticeNumber = "2021/4"
-  OriginatingCentre = "KVERT"
   OriginatingCentreDesignator = "UHPP"
+  OriginatingCentreName = "KVERT"
   PermissibleUsage = PermissibleUsage.Operational
   PermissibleUsageReason = null
   PermissibleUsageSupplementary = null
