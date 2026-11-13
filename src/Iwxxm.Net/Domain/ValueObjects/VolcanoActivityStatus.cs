@@ -1,6 +1,6 @@
 namespace Iwxxm.Net.Reports
 {
-    /// <summary>Activity status of a volcano in a WAFS SIGWX forecast (<c>metFeature.xsd</c> <c>VolcanoActivityStatusType</c>).</summary>
+    /// <summary>Activity status of a volcano in WAFS SIGWX forecasts, VONA and QVACI (<c>metFeature.xsd</c> <c>VolcanoActivityStatusType</c>).</summary>
     public enum VolcanoActivityStatus
     {
         /// <summary><c>NIL</c>.</summary>

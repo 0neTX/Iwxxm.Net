@@ -616,7 +616,7 @@ The complete table of codes, with meaning, typical cause and remediation, is in 
 
 ## 8. GeoJSON export
 
-Every document with geometry can be exported as an RFC 7946 `FeatureCollection`: `[longitude, latitude]` coordinates (GML uses latitude first), polygon holes, a `bbox`, antimeridian splitting and circles densified to 64-segment polygons. Measures are written **as reported**, with a sibling `...Uom` property; nothing is converted. Volcano features carry the IAVCEI number (`Volcano.IavceiNumber`) as the property `iavceiNumber`. QVACI ash clouds carry `ashDensityEqualsOrExceedsMgPerM3`, a lower bound rather than a measured density, and QVACI volcanoes carry `originatingCentreName`.
+Every document with geometry can be exported as an RFC 7946 `FeatureCollection`: `[longitude, latitude]` coordinates (GML uses latitude first), polygon holes, a `bbox`, antimeridian splitting and circles densified to 64-segment polygons. Measures are written **as reported**, with a sibling `...Uom` property; nothing is converted. Volcano features carry the IAVCEI number (`Volcano.IavceiNumber`) as the property `iavceiNumber`; VONA and QVACI volcanoes also carry `activityStatus` and `sourceElevation` (with `sourceElevationUom`) when reported. QVACI ash clouds carry `ashDensityEqualsOrExceedsMgPerM3`, a lower bound rather than a measured density, and QVACI volcanoes carry `originatingCentreName`.
 
 ```csharp
 using System;

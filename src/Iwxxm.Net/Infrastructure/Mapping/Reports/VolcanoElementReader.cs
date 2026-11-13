@@ -23,7 +23,21 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Reports
                 return;
             }
 
-            var vRes = Volcano.Create(featId, GetText(nameElem), GetText(volElem.Element(IwxxmNs + "IAVCEINumber")), position);
+            // activityStatus and sourceElevation are optional; they are read exactly as the WAFS SIGWX path does:
+            // an unsupported status, unit or reference is a mapping error, a nil elevation maps to null.
+            int errorsBefore = errors.Count;
+            VolcanoActivityStatus? status = VolcanoActivityStatusReader.Read(GetText(volElem.Element(IwxxmNs + "activityStatus")), featId, errors);
+            XElement? levelElem = volElem.Element(IwxxmNs + "sourceElevation")?.Element(IwxxmNs + "ElevatedLevel");
+            XElement? elevationElem = levelElem?.Element(IwxxmNs + "elevation");
+            VerticalLimit? sourceElevation = elevationElem == null
+                ? (VerticalLimit?)null
+                : VerticalLimitReader.Read(elevationElem, levelElem!.Element(IwxxmNs + "verticalReference"), $"MeteorologicalFeature[@gml:id='{featId}']/Volcano/sourceElevation", errors);
+            if (sourceElevation.HasValue && sourceElevation.Value.IsNil)
+                sourceElevation = null;
+            if (errors.Count > errorsBefore)
+                return;
+
+            var vRes = Volcano.Create(featId, GetText(nameElem), GetText(volElem.Element(IwxxmNs + "IAVCEINumber")), position, null, status, sourceElevation);
             if (vRes.IsSuccess) volcanoes.Add(vRes.Value);
             else errors.AddRange(vRes.Errors);
         }

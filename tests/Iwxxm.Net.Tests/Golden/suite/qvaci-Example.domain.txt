@@ -597,7 +597,19 @@ Qvaci {
         Lat = -6.102
         Lon = 105.423
       }
-      SourceElevation = null
+      SourceElevation = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.Meters
+        UnitOfMeasure = "M"
+        Value = 155
+      }
     }
   ]
 }

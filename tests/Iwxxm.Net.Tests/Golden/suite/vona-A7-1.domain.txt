@@ -41,7 +41,7 @@ Vona {
   TranslationFailedTac = null
   Volcanoes = [
     Volcano {
-      ActivityStatus = null
+      ActivityStatus = VolcanoActivityStatus.DecreasedActivity
       EruptionTimeUtc = null
       IavceiNumber = "300130"
       Id = "uuid.a2885938-cbd0-4953-bd07-c813ce918b1d"
@@ -50,7 +50,19 @@ Vona {
         Lat = 54.03
         Lon = 159.27
       }
-      SourceElevation = null
+      SourceElevation = VerticalLimit {
+        IsGround = false
+        IsNil = false
+        IsUnlimited = false
+        NilReason = null
+        Reference = VerticalReference.Msl
+        ReferenceCode = "MSL"
+        SpecialValue = VerticalSpecialValue.None
+        SpecialValueCode = null
+        Unit = VerticalUnit.Meters
+        UnitOfMeasure = "M"
+        Value = 1536
+      }
     }
   ]
 }

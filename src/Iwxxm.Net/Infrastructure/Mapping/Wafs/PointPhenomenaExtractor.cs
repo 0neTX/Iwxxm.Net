@@ -28,7 +28,7 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
 
             // activityStatus and sourceElevation (AUD-L3) are optional; an unknown status is a feature error.
             var errors = new List<ValidationError>();
-            VolcanoActivityStatus? status = ReadActivityStatus(volcanoProp?.ActivityStatus, feature.Id, errors);
+            VolcanoActivityStatus? status = VolcanoActivityStatusReader.Read(volcanoProp?.ActivityStatus, feature.Id, errors);
             ElevatedLevelType? source = volcanoProp?.SourceElevation?.ElevatedLevel;
             VerticalLimit? sourceElevation = source?.Elevation == null || source.Elevation.IsNil
                 ? (VerticalLimit?)null
@@ -44,36 +44,6 @@ namespace Iwxxm.Net.Infrastructure.Mapping.Wafs
                 eruptionTimeUtc: null,
                 activityStatus: status,
                 sourceElevation: sourceElevation);
-        }
-
-        private static VolcanoActivityStatus? ReadActivityStatus(string? value, string id, List<ValidationError> errors)
-        {
-            switch (value?.Trim())
-            {
-                case null:
-                case "":
-                    return null;
-                case "NIL":
-                    return VolcanoActivityStatus.Nil;
-                case "UNKNOWN":
-                    return VolcanoActivityStatus.Unknown;
-                case "DECREASED_ACTIVITY":
-                    return VolcanoActivityStatus.DecreasedActivity;
-                case "HEIGHTENED_UNREST":
-                    return VolcanoActivityStatus.HeightenedUnrest;
-                case "ERUPTION_ONGOING":
-                    return VolcanoActivityStatus.EruptionOngoing;
-                case "ERUPTION_OCCURRED":
-                    return VolcanoActivityStatus.EruptionOccurred;
-                default:
-                    errors.Add(new ValidationError(
-                        "ACL-VOLCANO-ACTIVITY-INVALID",
-                        $"Unsupported volcano activityStatus '{value}'.",
-                        ErrorCategory.DomainMapping,
-                        ValidationSeverity.Error,
-                        id));
-                    return null;
-            }
         }
 
         public static Result<Volcano> VolcanoFromCompact(WAFSVolcanoType dto)

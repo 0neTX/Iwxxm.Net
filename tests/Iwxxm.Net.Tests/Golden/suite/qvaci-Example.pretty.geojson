@@ -23,6 +23,9 @@
         "issueTimeUtc": "2021-12-16T23:47:00.0000000+00:00",
         "name": "KRAKATAU",
         "iavceiNumber": "262000",
+        "sourceElevation": 155,
+        "sourceElevationUom": "M",
+        "sourceElevationReference": "MSL",
         "originatingCentreName": "DARWIN"
       }
     },

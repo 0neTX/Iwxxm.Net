@@ -20,10 +20,10 @@ namespace Iwxxm.Net.Reports
         /// <summary>Gets the eruption time in UTC, or <c>null</c> when not reported.</summary>
         public DateTimeOffset? EruptionTimeUtc { get; }
 
-        /// <summary>Activity status (WAFS SIGWX <c>activityStatus</c>); <c>null</c> when not reported.</summary>
+        /// <summary>Activity status (<c>iwxxm:activityStatus</c>), read for WAFS SIGWX, VONA and QVACI volcanoes; <c>null</c> when not reported (always <c>null</c> for SIGMET and VAA <c>metce:Volcano</c>, which has no such element).</summary>
         public VolcanoActivityStatus? ActivityStatus { get; }
 
-        /// <summary>Elevation of the ash source (WAFS SIGWX <c>sourceElevation</c>) as reported; <c>null</c> when not reported.</summary>
+        /// <summary>Elevation of the vent (<c>iwxxm:sourceElevation</c>) as reported, read for WAFS SIGWX, VONA and QVACI volcanoes; <c>null</c> when not reported or nil (always <c>null</c> for SIGMET and VAA <c>metce:Volcano</c>; the VAA elevation is <c>Vaa.SourceElevation</c>).</summary>
         public VerticalLimit? SourceElevation { get; }
 
         private Volcano(

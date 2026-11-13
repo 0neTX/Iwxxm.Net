@@ -18,6 +18,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 var props = CreateBase(vona, "VONA_VOLCANO", bulletinId);
                 props.Add(("name", vol.Name));
                 props.Add(("iavceiNumber", vol.IavceiNumber));
+                AddVolcanoStatus(props, vol);
                 props.Add(("noticeNumber", vona.NoticeNumber));
                 props.Add(("currentColourCodeUri", CodeListTables.AviationColourCodes.ToReference(vona.CurrentColourCode)));
                 props.Add(("previousColourCodeUri", CodeListTables.AviationColourCodes.ToReference(vona.PreviousColourCode)));
@@ -36,6 +37,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 var props = CreateBase(qvaci, "VOLCANO", bulletinId);
                 props.Add(("name", vol.Name));
                 props.Add(("iavceiNumber", vol.IavceiNumber));
+                AddVolcanoStatus(props, vol);
                 props.Add(("originatingCentreName", qvaci.OriginatingCentreName));
                 features.Add(GeoJsonFeature.ForPoint(vol.Id, vol.Position, props));
             }
@@ -50,6 +52,12 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 props.Add(("phenomenonTimeUtc", FormatInstant(cloud.PhenomenonTimeUtc)));
                 features.Add(GeoJsonFeature.ForPolygon(cloud.Id, cloud.Area, props));
             }
+        }
+
+        private static void AddVolcanoStatus(List<(string Key, object? Value)> props, Volcano vol)
+        {
+            props.Add(("activityStatus", vol.ActivityStatus?.ToString()));
+            AddVerticalLimit(props, "sourceElevation", vol.SourceElevation);
         }
 
         public static void AddVaaFeatures(
