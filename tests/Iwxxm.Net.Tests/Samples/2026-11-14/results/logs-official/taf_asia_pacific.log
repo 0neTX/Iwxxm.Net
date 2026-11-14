@@ -1,0 +1,18 @@
+file=taf_asia_pacific_iwxxm.xml size_bytes=656840 exit_code=1 seconds=0.53 (includes container start)
+----
+== Iwxxm.Net demo ========================================================
+Input:                    /samples/taf_asia_pacific_iwxxm.xml
+Validation:               XSD + official WMO Schematron (all 165 rules, SaxonCS-HE)
+Parse + validate:         0.3 s (the first run includes compiling the official rules)
+
+Diagnostics
+  Errors: 2
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 23
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 300
+      The element 'MeteorologicalBulletin' in namespace 'http://def.wmo.int/collect/2014' has invalid child element 'TAF' in namespace 'http://icao.int/iwxxm/2025-2'. List of possible elements expected: 'metaDataProperty, description, descriptionReference, identifier, name, boundedBy, location, priorityLocation' in namespace 'http://www.opengis.net/gml/3.2' as well as 'meteorologicalInformation' in namespace 'http://def.wmo.int/collect/2014'.
+  Warnings: 0
+
+FAILED: 2 error(s), 0 warning(s).

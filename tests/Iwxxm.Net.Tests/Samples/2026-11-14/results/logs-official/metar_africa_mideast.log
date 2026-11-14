@@ -1,0 +1,315 @@
+file=metar_africa_mideast_iwxxm.xml size_bytes=1129060 exit_code=1 seconds=0.54 (includes container start)
+----
+== Iwxxm.Net demo ========================================================
+Input:                    /samples/metar_africa_mideast_iwxxm.xml
+Validation:               XSD + official WMO Schematron (all 165 rules, SaxonCS-HE)
+Parse + validate:         0.3 s (the first run includes compiling the official rules)
+
+Diagnostics
+  Errors: 101
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 40
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 352
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 1622
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 2057
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 2196
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 3004
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 4297
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 4731
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 4870
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 5945
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 7242
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 7676
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 7815
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 8888
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 10180
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 10612
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 10751
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 12019
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 13319
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 13755
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 13894
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 15232
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 16515
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 16951
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 17090
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 17895
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 19169
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 19604
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 19743
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 20549
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 21835
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 22272
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 22411
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 23218
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 24497
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 24933
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 25072
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 25878
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 27159
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 27593
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 27732
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 28807
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 30085
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 30519
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 30658
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 31464
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 32740
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 33175
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 33314
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 34120
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 35411
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 35847
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 35986
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 37060
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 38364
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 38800
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 38939
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 39814
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 41101
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 41536
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 41675
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 42750
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 44030
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 44468
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 44607
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 44678
+      The 'http://icao.int/iwxxm/2025-2:airTemperature' element is invalid - The value '' is invalid according to its datatype 'http://icao.int/iwxxm/2025-2:MeasureWithNilReasonType' - The string '' is not a valid Double value.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 44733
+      The 'http://icao.int/iwxxm/2025-2:dewpointTemperature' element is invalid - The value '' is invalid according to its datatype 'http://icao.int/iwxxm/2025-2:MeasureWithNilReasonType' - The string '' is not a valid Double value.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 44798
+      The 'http://icao.int/iwxxm/2025-2:qnh' element is invalid - The value '' is invalid according to its datatype 'http://icao.int/iwxxm/2025-2:MeasureWithNilReasonType' - The string '' is not a valid Double value.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 44607
+      The element 'MeteorologicalAerodromeObservation' in namespace 'http://icao.int/iwxxm/2025-2' has incomplete content. List of possible elements expected: 'surfaceWind' in namespace 'http://icao.int/iwxxm/2025-2'.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 44979
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 46256
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 46692
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 46831
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 47637
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 48916
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 49352
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 49491
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 50298
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 51592
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 52028
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 52167
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 52975
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 54141
+      The 'http://www.aixm.aero/schema/5.1.1:name' element is invalid - The value 'IN AMÉNAS ARPT' is invalid according to its datatype 'http://www.aixm.aero/schema/5.1.1:TextNameType' - The Pattern constraint failed.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 54249
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 54684
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 54823
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 55628
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 56914
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 57349
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 57488
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 58563
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 59835
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 60270
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 60409
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 61216
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 62496
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 62932
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 63071
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 64144
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-SCHEMA-VIOLATION  (SchemaViolation)
+      location: -  position: line 1, pos 65439
+      The required attribute 'http://www.opengis.net/gml/3.2:id' is missing.
+    ERROR   XSD-TOO-MANY-ERRORS  (SchemaViolation)
+      location: -  position: -
+      Too many validation findings: only the first 100 are reported.
+  Warnings: 0
+
+FAILED: 101 error(s), 0 warning(s).
