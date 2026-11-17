@@ -142,7 +142,8 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | [Getting started guide](docs/GUIDE.md) | A didactic tour: pipeline, `Result<T>`, document types, validation, value objects, and worked SIGWX (jet streams, clouds), METAR/TAF and SIGMET examples. |
 | [Reference](docs/REFERENCE.md) | One example per product family, the composition root and ports, the complete error-code table (every stable code, checked against the source by a test), value-object catalogue and namespace map. |
 | [Documentation index](docs/README.md) | The map of everything under `docs/`. |
-| [Contributing](CONTRIBUTING.md) | Local setup, architecture rules, how to add a report family, golden-master tests. |
+| [Contributing](CONTRIBUTING.md) | Pull request workflow, local setup, architecture rules, how to add a report family, golden-master tests. |
+| [Code of conduct](CODE_OF_CONDUCT.md) | Contributor Covenant v2.1 community standards and reporting guidelines. |
 | [Releasing](docs/RELEASING.md) | Versioning, the tag procedure, package contents and the v1.0.0 publication checklist. |
 | [Third-party notices](THIRD-PARTY-NOTICES.md) | Licences and notices of the schemas, code lists, rules and packages that are redistributed or depended on. |
 | [Security policy](SECURITY.md) | Supported versions, how to report a vulnerability privately, scope and secure-usage guidance. |

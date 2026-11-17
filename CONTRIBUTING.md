@@ -1,6 +1,20 @@
 # Contributing to Iwxxm.Net
 
-Thank you for contributing to **Iwxxm.Net**, the ICAO/WMO IWXXM 2025-2 library for .NET! This document outlines the development setup, architectural guidelines, documentation checks and build/packaging workflows. For a map of the documentation itself, see [docs/README.md](docs/README.md).
+Thank you for contributing to **Iwxxm.Net**, the ICAO/WMO IWXXM 2025-2 library for .NET! This document outlines the pull request workflow, development setup, architectural guidelines, documentation checks and build/packaging workflows. For a map of the documentation itself, see [docs/README.md](docs/README.md).
+
+## Code of Conduct
+
+This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code and keep discussions constructive and respectful.
+
+## Submitting a Pull Request
+
+1. **Fork and branch**: Fork the repository and create a descriptive branch from `main` (e.g., `fix/sigmet-circle-geometry`, `feat/taf-cancellation`, `docs/guide-typo`).
+2. **Keep changes focused**: Follow the hexagonal architecture rules below and keep commits logical. Use [Conventional Commits](https://www.conventionalcommits.org/) style (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `build:`, `chore:`).
+3. **Verify locally**:
+   - Build in `Release` with zero warnings (`dotnet build Iwxxm.Net.slnx -c Release`).
+   - Ensure all unit, integration, `HexagonalArchitectureTests`, and golden-master tests pass (`dotnet test Iwxxm.Net.slnx -c Release`).
+   - If you changed public APIs or documented behaviour, update the runnable snippets in `README.md`, `docs/GUIDE.md`, or `docs/REFERENCE.md`.
+4. **Open the PR**: Fill in the pull request template, explain *what* changed and *why*, and link any related issue.
 
 ---
 
