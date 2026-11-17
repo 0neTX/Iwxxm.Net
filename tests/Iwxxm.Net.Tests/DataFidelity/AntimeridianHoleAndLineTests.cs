@@ -13,8 +13,7 @@ namespace Iwxxm.Net.Tests.DataFidelity
     /// The assertions describe the behaviour a consumer needs: the exported area equals the exterior minus the holes, no hole
     /// shares a segment with the exterior of its polygon (a hole that touches its shell along an edge is invalid for GEOS and
     /// PostGIS: the correct output is a notch in the exterior), and a hole that cannot be attached to a piece is counted in
-    /// <c>droppedInteriorRings</c> (docs/REFERENCE.md), never lost silently. They pin the fixes of TD-GEO-1 and TD-GEO-2
-    /// (TECHNICAL_DEBT.md section 12.17).
+    /// <c>droppedInteriorRings</c> (docs/REFERENCE.md), never lost silently. They pin the antimeridian hole and line fixes.
     /// </summary>
     public sealed class AntimeridianHoleAndLineTests
     {

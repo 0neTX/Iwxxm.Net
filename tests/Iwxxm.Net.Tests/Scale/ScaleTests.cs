@@ -94,7 +94,7 @@ namespace Iwxxm.Net.Tests.Scale
         // TD-SCALE-1 (resolved): the export used to be quadratic in the number of crossings, because StripClipper.Clip scanned every arc
         // for every arc it appended to a ring (8,000 crossings 105 ms; 16,000 241 ms; 32,000 930 ms; 64,000 3,972 ms; exponent 1.77).
         // The successor is now found with a sorted index (SuccessorIndex), so the cost is O(n log n); the rings are identical to the
-        // scanning algorithm (StripClipperDifferentialTests). See TECHNICAL_DEBT.md for the measured table.
+        // scanning algorithm (StripClipperDifferentialTests).
         [Fact]
         public void AntimeridianZigZag_Crossings_Export_IsSubQuadratic()
         {

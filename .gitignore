@@ -29,3 +29,6 @@ TestResults/
 *.swp
 *~
 .directory
+
+## Internal documentation (not tracked publicly)
+.internal/

@@ -64,7 +64,7 @@ Conventions:
 - A ` ```output ` block directly after a snippet is its real output. Shorten long outputs with a line that contains only `...`; every other line must appear, in order, in the actual output.
 - Paths such as `samples/metar-A3-1.xml` refer to the official examples under `tests/Iwxxm.Net.Tests/Samples/` copied into the snippet project's `samples/` folder.
 - Diagrams are Mermaid blocks (rendered by GitHub) or hand-written SVG files in `docs/assets/` with an explicit neutral background rect (they must read well in light and dark themes). Do not commit third-party images; link to the original page and state its licence.
-- Documentation is written in English. (`docs/ARCHITECTURE_ANALYSIS.md` is a historical audit in Spanish.)
+- Documentation is written in English.
 
 To verify the snippets, pack the library and compile them in a throwaway project outside the repository, ideally inside a container so that nothing depends on your local SDK:
 
@@ -141,7 +141,7 @@ podman run --rm iwxxm-net-build dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Test
   --filter "Category=Scale" --logger "console;verbosity=detailed"
 ```
 
-A scenario that is skipped documents a measured finding (see `TECHNICAL_DEBT.md`); remove its `Skip` to reproduce it. At present no scenario is skipped (TD-SCALE-1 is resolved).
+A scenario that is skipped documents a measured finding; remove its `Skip` to reproduce it. At present no scenario is skipped (TD-SCALE-1 is resolved).
 
 ---
 

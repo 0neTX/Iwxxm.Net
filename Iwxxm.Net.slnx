@@ -13,7 +13,6 @@
     <File Path="LICENSE" />
     <File Path="nuget.config" />
     <File Path="README.md" />
-    <File Path="TECHNICAL_DEBT.md" />
     <File Path=".config/dotnet-tools.json" />
     <File Path=".github/workflows/ci-cd.yml" />
   </Folder>

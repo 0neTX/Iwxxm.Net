@@ -130,7 +130,7 @@ flowchart LR
     B -.wires.-> A
 ```
 
-The same picture, in more detail (and in Spanish), lives in [ARCHITECTURE_ANALYSIS.md](ARCHITECTURE_ANALYSIS.md); the dependency rules are enforced by tests (see [CONTRIBUTING.md](../CONTRIBUTING.md#hexagonal-architecture-rules)).
+The dependency rules across layers are enforced by automated architecture tests (see [CONTRIBUTING.md](../CONTRIBUTING.md#hexagonal-architecture-rules)).
 
 ## 3. Your first parse
 
@@ -539,7 +539,7 @@ These limits bound size, nesting and memory; they do not bound CPU time. The lib
 
 - run the parse on a worker (a `Task.Run` or a job queue) that you can abandon after a timeout, so a slow document cannot hold a request thread;
 - cap the size before the parser sees it (the 50 MiB default is a ceiling, not a target; lower `MaxDocumentBytes` and `MaxCharactersInDocument` together to what your feeds need);
-- limit how many documents are parsed at once: transient allocation is about 46 times the document size for a real SIGWX parse (see `TECHNICAL_DEBT.md`, section 12.15), and [SECURITY.md](../SECURITY.md#memory-cost-of-the-default-size-limit) gives the budget per concurrent request.
+- limit how many documents are parsed at once: transient allocation is about 46 times the document size for a real SIGWX parse, and [SECURITY.md](../SECURITY.md#memory-cost-of-the-default-size-limit) gives the budget per concurrent request.
 
 ```csharp
 using System;
@@ -1505,7 +1505,6 @@ Never. Schemas, code lists and rules are embedded resources, and every external 
 - [REFERENCE.md](REFERENCE.md): one example per product family (VAA, TCA, SpaceWx, QVACI, AIRMET...), the full error-code table, value-object and namespace reference.
 - [README.md](../README.md): installation, status and packaging.
 - [CONTRIBUTING.md](../CONTRIBUTING.md): build, tests, golden masters and the architecture rules.
-- [ARCHITECTURE_ANALYSIS.md](ARCHITECTURE_ANALYSIS.md) and [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md): why the code looks the way it does, and what is still open.
 - [CHANGELOG.md](../CHANGELOG.md): what changed between versions.
 
 ## 17. Further reading and visual references
