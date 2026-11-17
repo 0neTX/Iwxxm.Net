@@ -224,8 +224,8 @@ namespace Iwxxm.Net.Tests.Scale
         [Fact]
         public void MetOfficeSigwx_RealProduct_IsOneDataPoint_WithAGenerousCeiling()
         {
-            // The 14.2 MB product, as in ExternalSigwxMetOfficeTests (the missing gml:id values are added to a copy in memory).
-            string xml = AddMissingIds(File.ReadAllText("Samples/external/metoffice/NEW(2025-2)SIGWX-260826T0600-06-48.xml", Encoding.UTF8));
+            // The ~14 MB synthetic SIGWX bulletin.
+            string xml = File.ReadAllText("Samples/external/metoffice/example-iwxxm-2025-2-sigwx-non-operational.xml", Encoding.UTF8);
 
             Result<MeteorologicalBulletin>? parsed = null;
             string? geoJson = null;

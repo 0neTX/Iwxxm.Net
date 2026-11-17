@@ -352,37 +352,27 @@ VAAC TOKYO #2024/4: 2 observed clouds at 2024-09-23T01:00:00.0000000+00:00
 
 Partial-result behaviour, `ReportResults` and `ItemErrors` are explained with a runnable example in the [guide](GUIDE.md#bulletins-many-reports-one-envelope). A bulletin succeeds as long as one report maps; each skipped report is also a warning in `Result.Warnings`. The same applies per feature to WAFS charts (`Sigwx.FeatureErrors`). Schema and rule validation remain document-level.
 
-### Real-world sample: Met Office WAFS SIGWX
+### Large-scale sample: synthetic WAFS SIGWX
 
-`tests/Iwxxm.Net.Tests/Samples/external/metoffice/` holds an unmodified operational WAFS SIGWX package published by the UK Met Office (2026-08-26 06:00Z, T+06 to T+48): one `collect:MeteorologicalBulletin` with 15 `iwxxm:WAFSSignificantWeatherForecast` reports and 4252 features, 14.2 MB. Its [README](../tests/Iwxxm.Net.Tests/Samples/external/metoffice/README.md) gives the origin, the SHA-256, the known data defects, the licence statement (no licence file in the package; redistribution confirmed by the maintainer; attribution to the UK Met Office) and the attribution request. It is below the default 50 MiB size limit, so the default parser processes it:
+`tests/Iwxxm.Net.Tests/Samples/external/metoffice/example-iwxxm-2025-2-sigwx-non-operational.xml` holds a synthetic, anonymized 14.1 MB `collect:MeteorologicalBulletin` (`NON-OPERATIONAL`, `TEST`) with 15 `iwxxm:WAFSSignificantWeatherForecast` reports and 4252 features. It is below the default 50 MiB size limit, so the default parser processes it (and emits one aggregated `ACL-MEASURE-UOM-NON-UCUM-ALIAS` warning for the legacy `kn_i` unit on wind symbols):
 
 ```csharp
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 
-string path = "samples/NEW(2025-2)SIGWX-260826T0600-06-48.xml";
+string path = "samples/example-iwxxm-2025-2-sigwx-non-operational.xml";
 
 Result<MeteorologicalBulletin> result = IwxxmParser.ParseBulletinFile(path);
-Console.WriteLine($"success: {result.IsSuccess}, errors: {result.Errors.Count}");
-foreach (var group in result.Errors.GroupBy(e => e.Code))
-{
-    Console.WriteLine($"{group.Key} x{group.Count()}");
-}
-
-ValidationError first = result.Errors[0];
-Console.WriteLine($"{first.Message} (line {first.LineNumber}, position {first.LinePosition})");
+Console.WriteLine($"success: {result.IsSuccess}, warnings: {result.Warnings.Count}");
 ```
 
 ```output
-success: False, errors: 30
-XSD-SCHEMA-VIOLATION x30
-The required attribute 'http://www.opengis.net/gml/3.2:id' is missing. (line 4, position 10)
+success: True, warnings: 1
 ```
 
-What the file shows (library 1.0.0-rc.1, official XSD, built-in Schematron subset, `Iwxxm.Net.Validation.Saxon`, measured in a container with the SDK 10.0.403 image):
+What the file shows (official XSD, built-in Schematron subset, `Iwxxm.Net.Validation.Saxon`):
 
-- **The product as published is not valid IWXXM 2025-2.** The 30 XSD violations are the missing mandatory `gml:id` on each of the 15 reports (`line:10`) and on each of the 15 `gml:TimePeriod` elements (`line:18`). The official Schematron (165 rules) reports no finding on it. This is a defect of the data, not of the library; the library rightly refuses it, and the default pipeline therefore cannot process the file unmodified.
-- **With only those ids added** (done in memory by the tests) the XSD and the Schematron pass and the bulletin maps: 15 reports, no item errors, and per feature type 574 jet streams (1850 core points), 733 clouds, 585 turbulence areas, 1903 airframe icing areas, 301 tropopause contours, 135 volcanoes and 21 tropical cyclones, equal to an independent count of the XML. `RADIATION` is listed in `phenomenaList` but the product contains no radiation feature.
+- **The XSD and the official Schematron (165 rules) both pass** and the bulletin maps all 15 reports with no item errors: 574 jet streams (1850 core points), 733 clouds, 585 turbulence areas, 1903 airframe icing areas, 301 tropopause contours, 135 volcanoes and 21 tropical cyclones. `RADIATION` is listed in `phenomenaList` but the bulletin contains no radiation feature.
 - **Each chart is an instant** (`gml:TimePeriod` with `beginPosition == endPosition`, equal to `phenomenonTime`). The schema allows it and so does the SIGWX domain (`ValidFromUtc == ValidUntilUtc`); only an end before the start is `DOMAIN-SIGWX-VALID-PERIOD`. Forecast groups of aerodrome reports accept an instant too; the validity period of a SIGMET, AIRMET or TAF must still end after it starts.
 - **The wind speed unit is `kn_i`, not the UCUM `[kn_i]`.** Neither the XSD nor the official Schematron checks it. The unit readers accept `kn_i` as a recognised legacy alias of `[kn_i]` (knots) and always report it: the whole bulletin gets one `ACL-MEASURE-UOM-NON-UCUM-ALIAS` warning in `Result.Warnings` that names the field (`windSpeed`), the alias, the UCUM code and the count (1850). All 574 jet streams map.
 - **GeoJSON**: 6,102 features (4252 phenomena and 1850 jet stream core points), valid JSON; positions are `[longitude, latitude]`, rings are closed and counter-clockwise, and the antimeridian crossings of the source are split at 180 without losing a vertex (the three south polar tropopause contours whose ring has a lobe across 180 keep all their vertices). Each tropopause contour is one polygon that carries its level; the `bbox` of this global collection is `[-180, south, 180, north]`.

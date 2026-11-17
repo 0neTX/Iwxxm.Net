@@ -228,7 +228,7 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void TheMetOfficeSample_PassesTheDepthCheck_AtDepth16()
         {
-            var context = new IwxxmDocumentContext(File.ReadAllBytes("Samples/external/metoffice/NEW(2025-2)SIGWX-260826T0600-06-48.xml"));
+            var context = new IwxxmDocumentContext(File.ReadAllBytes("Samples/external/metoffice/example-iwxxm-2025-2-sigwx-non-operational.xml"));
 
             Assert.Empty(SecureXml.Parser.Parse(context));
             Assert.Equal(16, DepthOf(SecureXml.Load(context).Root));

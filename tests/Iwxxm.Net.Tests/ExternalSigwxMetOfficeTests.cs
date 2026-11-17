@@ -27,9 +27,9 @@ namespace Iwxxm.Net.Tests
     public sealed class ExternalSigwxMetOfficeTests
     {
         private const string SampleDirectory = "Samples/external/metoffice";
-        private const string FilePath = SampleDirectory + "/NEW(2025-2)SIGWX-260826T0600-06-48.xml";
-        private const string ExpectedSha256 = "70d84973a7a2ef67b0f24eaa647ffa327ff786aff6f534d32f0aba3fdc6c6490";
-        private const long ExpectedLength = 14227220;
+        private const string FilePath = SampleDirectory + "/example-iwxxm-2025-2-sigwx-non-operational.xml";
+        private const string ExpectedSha256 = "561b8884148eb715f8c0bb2f540c069ba2d7e0b1aa1cdc0134cb0a9d43caa30c";
+        private const long ExpectedLength = 14068939;
 
         private static readonly XNamespace Iwxxm = "http://icao.int/iwxxm/2025-2";
         private static readonly XNamespace Gml = "http://www.opengis.net/gml/3.2";
@@ -51,12 +51,12 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void DefaultLimits_DoNotRejectTheBulletinBySize()
         {
-            // 14.2 MB is below the default 50 MiB cap: the product is judged on its content (it fails the XSD on gml:id).
+            // ~14 MB is below the default 50 MiB cap: the synthetic bulletin parses cleanly.
             var result = IwxxmParser.ParseBulletinFile(FilePath);
 
             Assert.True(ExpectedLength < IwxxmParserOptions.Default.MaxDocumentBytes);
             Assert.DoesNotContain(result.Errors, e => e.Code == "XML-SIZE-LIMIT");
-            Assert.All(result.Errors, e => Assert.Equal("XSD-SCHEMA-VIOLATION", e.Code));
+            Assert.True(result.IsSuccess, string.Join(" | ", result.Errors.Take(3)));
         }
 
         [Fact]
@@ -69,7 +69,7 @@ namespace Iwxxm.Net.Tests
             ValidationError error = Assert.Single(bulletin.Errors);
             Assert.Equal("XML-SIZE-LIMIT", error.Code);
             Assert.Equal(ErrorCategory.MalformedInput, error.Category);
-            Assert.Contains("14227220", error.Message);
+            Assert.Contains("14068939", error.Message);
             Assert.Contains("10485760", error.Message);
         }
 
@@ -111,8 +111,12 @@ namespace Iwxxm.Net.Tests
         [Fact]
         public void TheProductAsPublished_IsRejectedByTheXsdBecauseGmlIdIsMissing()
         {
-            // Defect of the product: gml:id is mandatory on every feature/GML object (and the official WAFS example has them).
-            var result = IwxxmParser.ParseBulletinFile(FilePath);
+            // Simulate missing gml:id on every report and TimePeriod to verify XSD rejection and line/position reporting.
+            string withoutIds = Regex.Replace(
+                OriginalText.Value,
+                @"(<(?:iwxxm:WAFSSignificantWeatherForecast|gml:TimePeriod)\b[^>]*?)\s+gml:id=""[^""]+""",
+                "$1");
+            var result = IwxxmParser.ParseBulletin(withoutIds);
 
             Assert.True(result.IsFailure);
             Assert.Equal(30, result.Errors.Count); // 15 reports + 15 time periods, below MaxValidationErrors (100)
@@ -123,7 +127,7 @@ namespace Iwxxm.Net.Tests
             });
 
             // Independent check: the offending elements are exactly the reports and the bounding periods of the file.
-            string[] lines = OriginalText.Value.Split('\n');
+            string[] lines = withoutIds.Split('\n');
             var expected = new List<(int, int)>();
             for (int i = 0; i < lines.Length; i++)
             {
@@ -169,24 +173,24 @@ namespace Iwxxm.Net.Tests
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors.Take(3)));
             Assert.Empty(result.Warnings);
             MeteorologicalBulletin bulletin = result.Value;
-            Assert.Equal("uuid.edea10e3-b5e9-4036-8c30-821932c914ab", bulletin.Id);
-            Assert.Equal("uuid.8e37954b-9d15-448d-b4a0-bc7fe6cddfb1", bulletin.BulletinIdentifier);
+            Assert.Equal("uuid.00000000-0000-0000-0000-000000000001", bulletin.Id);
+            Assert.Equal("uuid.00000000-0000-0000-0000-000000016261", bulletin.BulletinIdentifier);
             Assert.Equal(15, bulletin.Reports.Count);
             Assert.Equal(15, bulletin.ReportResults.Count);
             Assert.Empty(bulletin.ItemErrors);
 
-            var lower = VerticalLimit.Create(100, VerticalUnit.FlightLevel, VerticalReference.Std).Value;
+            var lower = VerticalLimit.Create(110, VerticalUnit.FlightLevel, VerticalReference.Std).Value;
             var upper = VerticalLimit.Create(600, VerticalUnit.FlightLevel, VerticalReference.Std).Value;
-            var issue = new DateTimeOffset(2026, 8, 26, 11, 32, 57, TimeSpan.Zero);
-            var firstValid = new DateTimeOffset(2026, 8, 26, 12, 0, 0, TimeSpan.Zero);
+            var issue = new DateTimeOffset(2099, 1, 1, 5, 32, 57, TimeSpan.Zero);
+            var firstValid = new DateTimeOffset(2099, 1, 1, 6, 0, 0, TimeSpan.Zero);
 
-            // T+06, T+09, ... T+48 from the 06:00Z base time: one chart every three hours, valid at an instant.
+            // T+06, T+09, ... T+48 from the 00:00Z base time: one chart every three hours, valid at an instant.
             for (int i = 0; i < 15; i++)
             {
                 var sigwx = Assert.IsType<Sigwx>(bulletin.Reports[i]);
                 Assert.Equal("London", sigwx.IssuingCentre);
                 Assert.Equal(ReportStatus.Normal, sigwx.ReportStatus);
-                Assert.Equal(PermissibleUsage.Operational, sigwx.PermissibleUsage);
+                Assert.Equal(PermissibleUsage.NonOperational, sigwx.PermissibleUsage);
                 Assert.Equal(issue, sigwx.IssueTimeUtc);
                 Assert.Equal(firstValid.AddHours(3 * i), sigwx.ValidFromUtc);
                 Assert.Equal(sigwx.ValidFromUtc, sigwx.ValidUntilUtc); // an instant, as published
@@ -269,12 +273,12 @@ namespace Iwxxm.Net.Tests
         {
             var first = (Sigwx)Repaired.Value.Value.Reports[0];
 
-            // First jet stream of the first chart: core FL350 MSL, max wind 190 kt as reported (no conversion).
+            // First jet stream of the first chart: core FL360 MSL, max wind 195 kt as reported (no conversion).
             JetStream jet = first.JetStreams[0];
-            Assert.Equal("uuid.620d1d06-6f9d-4fd0-89ca-72bbfc265d9d", jet.Id);
-            Assert.Equal(new Speed(190, SpeedUnit.Knots), jet.MaxWindSpeed);
-            Assert.Equal(VerticalLimit.Create(350, VerticalUnit.FlightLevel, VerticalReference.Msl).Value, jet.CoreLevel);
-            Assert.Equal(new GeoCoordinate(-19, 46.5), jet.AxisTrajectory[0]); // "Lat Long" order in the source
+            Assert.Equal("uuid.00000000-0000-0000-0000-000000000574", jet.Id);
+            Assert.Equal(new Speed(195, SpeedUnit.Knots), jet.MaxWindSpeed);
+            Assert.Equal(VerticalLimit.Create(360, VerticalUnit.FlightLevel, VerticalReference.Msl).Value, jet.CoreLevel);
+            Assert.Equal(new GeoCoordinate(-17.75, 49.0), jet.AxisTrajectory[0]); // "Lat Long" order in the source
 
             // Every mapped coordinate is a valid WGS 84 position.
             foreach (Sigwx report in Repaired.Value.Value.Reports)
@@ -386,9 +390,9 @@ namespace Iwxxm.Net.Tests
         }
 
         [Theory]
-        [InlineData("uuid.b67b3dc1-9bc4-4811-b77e-cc52264c2374")]
-        [InlineData("uuid.e05967c0-dd5c-4df1-aa77-f3f4ffa8fa11")]
-        [InlineData("uuid.7a143d01-b79b-498c-afc6-f2ee92fb87b7")]
+        [InlineData("uuid.00000000-0000-0000-0000-000000000910")]
+        [InlineData("uuid.00000000-0000-0000-0000-000000001990")]
+        [InlineData("uuid.00000000-0000-0000-0000-000000003034")]
         public void Repaired_SouthPolarContoursWithALobeAcrossTheAntimeridian_KeepAllVerticesAndStayValidPolygons_AudR1(string featureId)
         {
             Assert.DoesNotContain(featureId, MissingVerticesPerFeature().Keys);
@@ -498,17 +502,9 @@ namespace Iwxxm.Net.Tests
         /// </summary>
         private static string AddMissingIds(string xml, bool bracketKnots)
         {
-            int report = 0;
-            xml = Regex.Replace(xml, "<iwxxm:WAFSSignificantWeatherForecast reportStatus",
-                m => $"<iwxxm:WAFSSignificantWeatherForecast gml:id=\"uuid.00000000-0000-4000-8000-{++report:D12}\" reportStatus");
-            int period = 0;
-            xml = Regex.Replace(xml, "<gml:TimePeriod>", m => $"<gml:TimePeriod gml:id=\"uuid.00000000-0000-4000-8001-{++period:D12}\">");
-
             if (bracketKnots)
                 xml = xml.Replace("uom=\"kn_i\"", "uom=\"[kn_i]\"");
 
-            Assert.Equal(15, report);
-            Assert.Equal(15, period);
             return xml;
         }
 #endif

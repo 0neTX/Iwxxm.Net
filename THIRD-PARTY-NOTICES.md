@@ -411,19 +411,11 @@ listed for completeness. Licence data comes from the nuspec files in the build c
   reference scaffold.
 - Mermaid diagrams in the Markdown files are rendered by GitHub; no Mermaid code is stored.
 
-## 10. UK Met Office WAFS SIGWX sample (test data)
+## 10. Synthetic large-scale WAFS SIGWX sample (test data)
 
-- What: `tests/Iwxxm.Net.Tests/Samples/external/metoffice/NEW(2025-2)SIGWX-260826T0600-06-48.xml`
-  (14,227,220 bytes; SHA-256 `70d84973a7a2ef67b0f24eaa647ffa327ff786aff6f534d32f0aba3fdc6c6490`), an unmodified
-  operational WAFS SIGWX product of the UK Met Office (World Area Forecast Centre London), product time 2026-08-26
-  06:00Z, taken from the Met Office WAFS SIGWX update package. Test data only; not packed in any NuGet package.
-- Terms: the downloaded zip carried **no licence file**. The maintainer confirmed on 2026-11-05 that the data is
-  redistributable. This file records that statement; it is not a licence text from the Met Office.
-- Attribution: the data is the work of the UK Met Office. Keep the attribution in
-  `tests/Iwxxm.Net.Tests/Samples/external/metoffice/README.md`.
-- **To be confirmed by the maintainer**: where the confirmation comes from (for example a Met Office page or message) so
-  that it can be cited here; this file currently cites only the maintainer's statement. The download URL was not
-  recorded.
+- `tests/Iwxxm.Net.Tests/Samples/external/metoffice/example-iwxxm-2025-2-sigwx-non-operational.xml` is a synthetic,
+  anonymized non-operational (`TEST`) WAFS SIGWX bulletin used for large-scale and antimeridian test coverage. Test
+  data only; not packed in any NuGet package.
 
 ## 11. Images linked from the documentation
 
@@ -447,7 +439,6 @@ The SVG diagrams in `docs/assets/` are drawn by hand for this project (MIT).
 3. ISO 19139 schemas (2.5): whether redistribution in a package is covered by the ISO electronic-insert terms.
 4. UCAR-copyrighted `xlink.xsd` and the W3C `xml.xsd` (2.7).
 5. DotNet.Bundle licence (7.2) and the location of the SaxonCS 13.1.0 source (7.1).
-6. Source of the Met Office confirmation (10).
 
 None of these blocks the MIT licence of the project's own code; they concern the redistributed third-party files.
 
