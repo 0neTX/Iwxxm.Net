@@ -30,7 +30,7 @@ Facts checked on 2026-11-05. Web pages fetched on that date are marked "(fetched
 7. [SaxonCS-HE 13.1.0 and its dependencies](#7-saxoncs-he-1310-and-its-dependencies)
 8. [Test and benchmark dependencies (not redistributed)](#8-test-and-benchmark-dependencies-not-redistributed)
 9. [Tooling that is not shipped](#9-tooling-that-is-not-shipped)
-10. [UK Met Office WAFS SIGWX sample (test data)](#10-uk-met-office-wafs-sigwx-sample-test-data)
+10. [Synthetic large-scale WAFS SIGWX sample (test data)](#10-synthetic-large-scale-wafs-sigwx-sample-test-data)
 11. [Images linked from the documentation](#11-images-linked-from-the-documentation)
 12. [Open points for the maintainer](#12-open-points-for-the-maintainer)
 13. [How to update this file](#13-how-to-update-this-file)

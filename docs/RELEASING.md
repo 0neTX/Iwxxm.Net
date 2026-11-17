@@ -54,8 +54,7 @@ From then on `dotnet pack` fails on a breaking API change against 1.0.0, which k
 ## Publication checklist for v1.0.0
 
 1. Resolve or consciously accept each open point in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md#12-open-points-for-the-maintainer); confirm the file is current for the versions being released.
-2. Confirm the Met Office statement (section 10 of the notices and the README of the sample): the maintainer's confirmation of redistribution and the attribution to the UK Met Office.
-3. Make the repository public.
+2. Make the repository public.
 4. Enable GitHub private vulnerability reporting (repository **Settings**, **Advanced Security**, **Private vulnerability reporting**), then check that <https://github.com/0neTX/Iwxxm.Net/security/advisories/new> works. [SECURITY.md](../SECURITY.md) already says to use it from v1.0.0.
 5. Verify that the SourceLink and symbol links resolve for the public repository: download the `.snupkg`, or restore the package in a clean project and step into the library source from a debugger. They return 404 for outsiders while the repository is private.
 6. Update the README badges and URLs if the project location or name changed; check the links in the package metadata (`PackageProjectUrl`, `RepositoryUrl`, release notes link).
