@@ -53,23 +53,19 @@ Every parsed document derives from the closed abstract root `IwxxmDocument`: eit
 
 Packages are published to **GitHub Packages** only for release tags `vMAJOR.MINOR.PATCH[-PRERELEASE]` (the tag is the package version) or a deliberate manual workflow run; pull requests and pushes to `main` build and test `-ci.<run>.<attempt>` prereleases that are never published.
 
-The repository is **private until the v1.0.0 release**. While it is private, the packages on GitHub Packages are visible only to users who have been given access, and the token used below needs the `read:packages` scope. The links to the source in the package metadata and in the symbols (SourceLink) return 404 for everyone else until the repository becomes public; see [docs/RELEASING.md](docs/RELEASING.md).
+Packages are published on [NuGet.org](https://www.nuget.org/packages/Iwxxm.Net) (with `.snupkg` symbols and SourceLink) and mirrored on GitHub Packages.
 
-Add the NuGet source once:
-
-```bash
-dotnet nuget add source "https://nuget.pkg.github.com/0neTX/index.json" \
-  --name "github-0netx" \
-  --username "<GITHUB_USERNAME>" \
-  --password "<GITHUB_PAT>" \
-  --store-password-in-clear-text
-```
-
-Then install:
+Install directly from NuGet.org:
 
 ```bash
 dotnet add package Iwxxm.Net --prerelease
 dotnet add package Iwxxm.Net.Validation.Saxon --prerelease   # optional: the complete official Schematron
+```
+
+If your environment does not have `nuget.org` configured as a source, add it once:
+
+```bash
+dotnet nuget add source "https://api.nuget.org/v3/index.json" --name "nuget.org"
 ```
 
 | Package | Targets | Runtime dependencies |
