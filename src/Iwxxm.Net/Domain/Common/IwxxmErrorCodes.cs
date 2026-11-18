@@ -99,5 +99,10 @@ namespace Iwxxm.Net
 
         /// <summary>The GeoJSON exporter threw or returned nothing.</summary>
         public const string GeoJsonExportError = "GEOJSON-EXPORT-ERROR";
+
+        // ---- CSV export (ErrorCategory.DomainMapping) ----
+
+        /// <summary>The CSV exporter threw or returned nothing.</summary>
+        public const string CsvExportError = "CSV-EXPORT-ERROR";
     }
 }

@@ -168,7 +168,7 @@ namespace Iwxxm.Net.Tests
             Type schematron = CoreAssembly.GetType(ArchitectureLayers.ExtensibilityNamespace + ".ISchematronValidator", throwOnError: true)!;
             Assert.True(schematron.IsInterface && schematron.IsPublic, "ISchematronValidator must be a public interface.");
 
-            foreach (string portName in new[] { "ISchemaValidator", "IIwxxmDocumentMapper", "ISigwxDocumentMapper", "IGeoJsonExporter" })
+            foreach (string portName in new[] { "ISchemaValidator", "IIwxxmDocumentMapper", "ISigwxDocumentMapper", "IGeoJsonExporter", "ICsvExporter" })
             {
                 Type port = CoreAssembly.GetType(OutboundPortsNamespace + "." + portName, throwOnError: true)!;
                 Assert.True(port.IsInterface && !port.IsVisible, $"'{port.FullName}' must be an internal interface.");
@@ -304,11 +304,13 @@ namespace Iwxxm.Net.Tests
             // Application (Application/Options)
             ["IwxxmParserOptions"] = Layer.Application,
             ["GeoJsonExportOptions"] = Layer.Application,
+            ["CsvExportOptions"] = Layer.Application,
 
             // Presentation (Presentation)
             ["IwxxmParser"] = Layer.Presentation,
             ["IwxxmSigwxParser"] = Layer.Presentation,
             ["IwxxmGeoJsonExporter"] = Layer.Presentation,
+            ["IwxxmCsvExporter"] = Layer.Presentation,
 
             // Composition root (Composition)
             ["IwxxmParserBuilder"] = Layer.Composition
