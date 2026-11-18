@@ -6,6 +6,7 @@ using System.Text.Json;
 using Iwxxm.Net;
 using Iwxxm.Net.Reports;
 using Iwxxm.Net.Validation.Saxon;
+using Microsoft.VisualBasic.FileIO;
 
 namespace Iwxxm.Net.Demo
 {
@@ -291,15 +292,23 @@ Exit codes:
 
         private static int CountCsvDataRows(string csv)
         {
-            int lines = 0;
-            for (int i = 0; i < csv.Length; i++)
+            using var reader = new StringReader(csv);
+            using var parser = new TextFieldParser(reader)
             {
-                if (csv[i] == '\n')
-                    lines++;
+                TextFieldType = FieldType.Delimited,
+                HasFieldsEnclosedInQuotes = true
+            };
+            parser.SetDelimiters(",");
+
+            int records = 0;
+            while (!parser.EndOfData)
+            {
+                parser.ReadFields();
+                records++;
             }
 
-            // First line is the header row.
-            return Math.Max(0, lines - 1);
+            // First record is the header row.
+            return Math.Max(0, records - 1);
         }
 
         private static int CountFeatures(string geoJson)

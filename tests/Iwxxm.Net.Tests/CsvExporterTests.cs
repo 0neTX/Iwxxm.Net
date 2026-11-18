@@ -130,11 +130,10 @@ namespace Iwxxm.Net.Tests
 
             Assert.True(csv.IsSuccess);
             Assert.DoesNotContain("\r\n", csv.Value, StringComparison.Ordinal);
-            string[] lines = csv.Value.TrimEnd('\n').Split('\n');
-            Assert.Single(lines);
-            string[] cols = lines[0].Split(';');
-            Assert.Equal(CsvColumns.Headers.Length, cols.Length);
-            Assert.Equal(string.Empty, cols[CsvColumns.GeometryWkt]);
+            List<string[]> rows = ParseCsv(csv.Value, ';');
+            Assert.Single(rows);
+            Assert.Equal(CsvColumns.Headers.Length, rows[0].Length);
+            Assert.Equal(string.Empty, rows[0][CsvColumns.GeometryWkt]);
         }
 
         [Fact]
@@ -162,12 +161,25 @@ namespace Iwxxm.Net.Tests
             Assert.Throws<ArgumentException>(() => new CsvExportOptions(newLine: ""));
         }
 
-        private static List<string[]> ParseCsv(string csv)
+        private static List<string[]> ParseCsv(string csv, char delimiter = ',')
         {
             var rows = new List<string[]>();
             var currentRow = new List<string>();
             var field = new StringBuilder();
             bool inQuotes = false;
+
+            void CommitField()
+            {
+                currentRow.Add(field.ToString());
+                field.Clear();
+            }
+
+            void CommitRow()
+            {
+                CommitField();
+                rows.Add(currentRow.ToArray());
+                currentRow.Clear();
+            }
 
             for (int i = 0; i < csv.Length; i++)
             {
@@ -197,25 +209,15 @@ namespace Iwxxm.Net.Tests
                 {
                     inQuotes = true;
                 }
-                else if (ch == ',')
+                else if (ch == delimiter)
                 {
-                    currentRow.Add(field.ToString());
-                    field.Clear();
+                    CommitField();
                 }
-                else if (ch == '\r' && i + 1 < csv.Length && csv[i + 1] == '\n')
+                else if (ch == '\r' || ch == '\n')
                 {
-                    currentRow.Add(field.ToString());
-                    field.Clear();
-                    rows.Add(currentRow.ToArray());
-                    currentRow.Clear();
-                    i++;
-                }
-                else if (ch == '\n')
-                {
-                    currentRow.Add(field.ToString());
-                    field.Clear();
-                    rows.Add(currentRow.ToArray());
-                    currentRow.Clear();
+                    if (ch == '\r' && i + 1 < csv.Length && csv[i + 1] == '\n')
+                        i++;
+                    CommitRow();
                 }
                 else
                 {
@@ -223,11 +225,11 @@ namespace Iwxxm.Net.Tests
                 }
             }
 
+            if (inQuotes)
+                throw new FormatException("Unterminated quoted field in CSV.");
+
             if (field.Length > 0 || currentRow.Count > 0)
-            {
-                currentRow.Add(field.ToString());
-                rows.Add(currentRow.ToArray());
-            }
+                CommitRow();
 
             return rows;
         }
