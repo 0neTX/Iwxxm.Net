@@ -40,6 +40,7 @@ namespace Iwxxm.Net
         private readonly ISchematronValidator _schematronValidator;
         private readonly IIwxxmDocumentMapper _documentMapper;
         private readonly IwxxmGeoJsonExporter _geoJsonExporter;
+        private readonly IwxxmCsvExporter _csvExporter;
         private readonly IDocumentParser _parser;
         private readonly IwxxmParserOptions _options;
 
@@ -48,6 +49,7 @@ namespace Iwxxm.Net
             ISchematronValidator schematronValidator,
             IIwxxmDocumentMapper documentMapper,
             IGeoJsonExporter geoJsonExporter,
+            ICsvExporter csvExporter,
             IDocumentParser parser,
             IwxxmParserOptions? options = null)
         {
@@ -55,6 +57,7 @@ namespace Iwxxm.Net
             _schematronValidator = schematronValidator ?? throw new ArgumentNullException(nameof(schematronValidator));
             _documentMapper = documentMapper ?? throw new ArgumentNullException(nameof(documentMapper));
             _geoJsonExporter = new IwxxmGeoJsonExporter(geoJsonExporter ?? throw new ArgumentNullException(nameof(geoJsonExporter)));
+            _csvExporter = new IwxxmCsvExporter(csvExporter ?? throw new ArgumentNullException(nameof(csvExporter)));
             _parser = parser ?? throw new ArgumentNullException(nameof(parser));
             _options = options ?? IwxxmParserOptions.Default;
         }
@@ -129,15 +132,27 @@ namespace Iwxxm.Net
 
         /// <summary>Validates, parses and exports a document from a stream to an RFC 7946 GeoJSON <c>FeatureCollection</c>.</summary>
         public Result<string> ProcessToGeoJson(Stream xmlStream, GeoJsonExportOptions? options = null) =>
-            ToGeoJsonResult(Process(xmlStream), options);
+            ExportResult(Process(xmlStream), doc => _geoJsonExporter.Export(doc, options));
 
         /// <summary>Validates, parses and exports a document from an XML string to an RFC 7946 GeoJSON <c>FeatureCollection</c>.</summary>
         public Result<string> ProcessToGeoJson(string xmlContent, GeoJsonExportOptions? options = null) =>
-            ToGeoJsonResult(Process(xmlContent), options);
+            ExportResult(Process(xmlContent), doc => _geoJsonExporter.Export(doc, options));
 
         /// <summary>Validates, parses and exports an XML file to an RFC 7946 GeoJSON <c>FeatureCollection</c>.</summary>
         public Result<string> ProcessFileToGeoJson(string filePath, GeoJsonExportOptions? options = null) =>
-            ToGeoJsonResult(ProcessFile(filePath), options);
+            ExportResult(ProcessFile(filePath), doc => _geoJsonExporter.Export(doc, options));
+
+        /// <summary>Validates, parses and exports a document from a stream to an RFC 4180 CSV string.</summary>
+        public Result<string> ProcessToCsv(Stream xmlStream, CsvExportOptions? options = null) =>
+            ExportResult(Process(xmlStream), doc => _csvExporter.Export(doc, options));
+
+        /// <summary>Validates, parses and exports a document from an XML string to an RFC 4180 CSV string.</summary>
+        public Result<string> ProcessToCsv(string xmlContent, CsvExportOptions? options = null) =>
+            ExportResult(Process(xmlContent), doc => _csvExporter.Export(doc, options));
+
+        /// <summary>Validates, parses and exports an XML file to an RFC 4180 CSV string.</summary>
+        public Result<string> ProcessFileToCsv(string filePath, CsvExportOptions? options = null) =>
+            ExportResult(ProcessFile(filePath), doc => _csvExporter.Export(doc, options));
 
         // =====================================================================
         // Static convenience API (wrappers over Default)
@@ -185,6 +200,18 @@ namespace Iwxxm.Net
         public static Result<string> ParseFileToGeoJson(string filePath, GeoJsonExportOptions? options = null) =>
             Default.ProcessFileToGeoJson(filePath, options);
 
+        /// <summary>Parses a stream and exports it to RFC 4180 CSV using <see cref="Default"/>.</summary>
+        public static Result<string> ParseToCsv(Stream xmlStream, CsvExportOptions? options = null) =>
+            Default.ProcessToCsv(xmlStream, options);
+
+        /// <summary>Parses an XML string and exports it to RFC 4180 CSV using <see cref="Default"/>.</summary>
+        public static Result<string> ParseToCsv(string xmlContent, CsvExportOptions? options = null) =>
+            Default.ProcessToCsv(xmlContent, options);
+
+        /// <summary>Parses an XML file and exports it to RFC 4180 CSV using <see cref="Default"/>.</summary>
+        public static Result<string> ParseFileToCsv(string filePath, CsvExportOptions? options = null) =>
+            Default.ProcessFileToCsv(filePath, options);
+
         // =====================================================================
         // Helpers
         // =====================================================================
@@ -218,12 +245,12 @@ namespace Iwxxm.Net
                 dispatchResult.Value.Id);
         }
 
-        private Result<string> ToGeoJsonResult(Result<IwxxmDocument> result, GeoJsonExportOptions? options)
+        private static Result<string> ExportResult(Result<IwxxmDocument> result, Func<IwxxmDocument, Result<string>> export)
         {
             if (result.IsFailure)
                 return Result<string>.Failure(result.Errors);
 
-            Result<string> exported = _geoJsonExporter.Export(result.Value, options);
+            Result<string> exported = export(result.Value);
             return exported.IsFailure
                 ? exported
                 : Result<string>.Success(exported.Value, result.Warnings);

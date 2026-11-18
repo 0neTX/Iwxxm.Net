@@ -654,6 +654,7 @@ The library emits exactly these strings and refers to them through the constants
 | `IwxxmErrorCodes.MapperError` | `MAPPER-ERROR` | `DomainMapping` | A document or report mapper threw or returned nothing (for a bulletin: the item error of that entry). |
 | `IwxxmErrorCodes.BulletinEmpty` | `DOMAIN-BULLETIN-EMPTY` | `DomainMapping` | No report of the bulletin could be mapped. |
 | `IwxxmErrorCodes.GeoJsonExportError` | `GEOJSON-EXPORT-ERROR` | `DomainMapping` | The GeoJSON exporter threw or returned nothing. |
+| `IwxxmErrorCodes.CsvExportError` | `CSV-EXPORT-ERROR` | `DomainMapping` | The CSV exporter threw or returned nothing. |
 
 ### Input, files and streams (`Io`, `MalformedInput`)
 
@@ -714,6 +715,7 @@ The library emits exactly these strings and refers to them through the constants
 | `IWXXM-UNEXPECTED-REPORT-TYPE` | `ParseAs<T>` parsed a different document type than `T`. | Ask for the right type or use `Parse`. |
 | `MAPPER-ERROR` | A document mapper threw or returned nothing. For a bulletin, the code is reported as the item error of that one entry and the other entries are kept. | Bug in a custom `ISigwxDocumentMapper` or report mapper. |
 | `GEOJSON-EXPORT-ERROR` | The GeoJSON exporter threw or returned nothing (`*ToGeoJson` members of the parser, `IwxxmGeoJsonExporter.Export` and `ToGeoJson`). The error is located at the document id. | Bug in a custom exporter. |
+| `CSV-EXPORT-ERROR` | The CSV exporter threw or returned nothing (`*ToCsv` members of the parser, `IwxxmCsvExporter.Export` and `ToCsv`). The error is located at the document id. | Bug in a custom exporter. |
 | `ACL-EMPTY-ENVELOPE` | The deserialized SIGWX envelope holds no report instance. | Empty `iwxxm:report` wrapper. |
 
 ### Metadata, time and measures (`DomainMapping`)

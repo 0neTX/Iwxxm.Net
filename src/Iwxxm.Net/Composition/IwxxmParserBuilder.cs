@@ -1,6 +1,7 @@
 using System;
 using Iwxxm.Net.Application.Ports.Out;
 using Iwxxm.Net.Extensibility;
+using Iwxxm.Net.Infrastructure.Csv;
 using Iwxxm.Net.Infrastructure.GeoJson;
 using Iwxxm.Net.Infrastructure.Mapping;
 using Iwxxm.Net.Infrastructure.Validation;
@@ -35,6 +36,7 @@ namespace Iwxxm.Net
         private IIwxxmDocumentMapper? _documentMapper;
         private ISigwxDocumentMapper? _sigwxDocumentMapper;
         private IGeoJsonExporter? _geoJsonExporter;
+        private ICsvExporter? _csvExporter;
 
         /// <summary>Gets the parser options that will be passed to the built-in adapters.</summary>
         public IwxxmParserOptions Options => _options;
@@ -106,6 +108,13 @@ namespace Iwxxm.Net
             return this;
         }
 
+        /// <summary>Replaces the CSV exporter.</summary>
+        internal IwxxmParserBuilder UseCsvExporter(ICsvExporter exporter)
+        {
+            _csvExporter = exporter ?? throw new ArgumentNullException(nameof(exporter));
+            return this;
+        }
+
         /// <summary>Builds the full-suite parser facade (all IWXXM 2025-2 reports and COLLECT bulletins).</summary>
         public IwxxmParser Build()
         {
@@ -115,6 +124,7 @@ namespace Iwxxm.Net
                 schematronValidator: CreateSchematronValidator(),
                 documentMapper: _documentMapper ?? new IwxxmSuiteMapper(sigwxMapper, _options),
                 geoJsonExporter: _geoJsonExporter ?? new Rfc7946GeoJsonExporter(),
+                csvExporter: _csvExporter ?? new Rfc4180CsvExporter(),
                 parser: SecureXml.Parser,
                 options: _options);
         }
@@ -132,6 +142,9 @@ namespace Iwxxm.Net
 
         /// <summary>Builds the GeoJSON exporter facade.</summary>
         public IwxxmGeoJsonExporter BuildGeoJsonExporter() => new IwxxmGeoJsonExporter(_geoJsonExporter ?? new Rfc7946GeoJsonExporter());
+
+        /// <summary>Builds the CSV exporter facade.</summary>
+        public IwxxmCsvExporter BuildCsvExporter() => new IwxxmCsvExporter(_csvExporter ?? new Rfc4180CsvExporter());
 
         private ISchematronValidator CreateSchematronValidator()
         {

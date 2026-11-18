@@ -63,6 +63,9 @@ Iwxxm.Net.Demo <file.xml> [options]
   --geojson [path|-]   Also export RFC 7946 GeoJSON. Default target: the input path with a
                        .geojson extension; '-' writes the GeoJSON to stdout (the report then
                        goes to stderr).
+  --csv [path|-]       Also export RFC 4180 CSV (with OGC WKT geometries). Default target: the
+                       input path with a .csv extension; '-' writes the CSV to stdout (the
+                       report then goes to stderr).
   -o, --output <path>  Same as --geojson <path>.
   --pretty             Indent the GeoJSON.
   --no-schematron      Skip the built-in business rules (XSD validation only).
@@ -80,6 +83,7 @@ Examples:
 ```bash
 Iwxxm.Net.Demo taf-A5-1.xml
 Iwxxm.Net.Demo sigmet-A6-2-TC.xml --geojson                  # writes sigmet-A6-2-TC.geojson
+Iwxxm.Net.Demo sigmet-A6-2-TC.xml --csv                      # writes sigmet-A6-2-TC.csv
 Iwxxm.Net.Demo spacewx-A7-4.xml -o out/swx.geojson --pretty
 Iwxxm.Net.Demo WAFS-Example.xml --geojson - > wafs.geojson   # report on stderr, GeoJSON on stdout
 Iwxxm.Net.Demo bulletin.xml --no-schematron

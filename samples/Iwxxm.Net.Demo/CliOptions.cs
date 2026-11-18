@@ -20,6 +20,12 @@ namespace Iwxxm.Net.Demo
 
         public bool PrettyGeoJson { get; private set; }
 
+        /// <summary>True when CSV output was requested (<c>--csv</c>).</summary>
+        public bool ExportCsv { get; private set; }
+
+        /// <summary>Explicit CSV target; <see cref="StdoutMarker"/> means standard output; null means "next to the input".</summary>
+        public string? CsvPath { get; private set; }
+
         public bool NoSchematron { get; private set; }
 
         /// <summary>True when the complete official WMO Schematron (Iwxxm.Net.Validation.Saxon) replaces the built-in subset.</summary>
@@ -45,13 +51,12 @@ namespace Iwxxm.Net.Demo
 
                     case "--geojson":
                         options.ExportGeoJson = true;
+                        options.GeoJsonPath = TryReadOptionalValue(args, ref i);
+                        break;
 
-                        // An optional value: a path, or "-" for stdout. Anything starting with '-' is the next option.
-                        if (i + 1 < args.Count && (args[i + 1] == StdoutMarker || !args[i + 1].StartsWith("-", StringComparison.Ordinal)))
-                        {
-                            options.GeoJsonPath = args[++i];
-                        }
-
+                    case "--csv":
+                        options.ExportCsv = true;
+                        options.CsvPath = TryReadOptionalValue(args, ref i);
                         break;
 
                     case "-o":
@@ -106,6 +111,13 @@ namespace Iwxxm.Net.Demo
                 return false;
             }
 
+            if (options.ExportGeoJson && options.ExportCsv &&
+                options.GeoJsonPath == StdoutMarker && options.CsvPath == StdoutMarker)
+            {
+                error = "Options '--geojson -' and '--csv -' cannot both write to standard output.";
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(options.InputPath))
             {
                 error = "Missing input file. The input comes first: Iwxxm.Net.Demo <file.xml> [--geojson [path|-]] [options].";
@@ -115,14 +127,23 @@ namespace Iwxxm.Net.Demo
             return true;
         }
 
-        public string ResolveGeoJsonPath()
+        public string ResolveGeoJsonPath() => ResolveOutputPath(GeoJsonPath, ".geojson");
+
+        public string ResolveCsvPath() => ResolveOutputPath(CsvPath, ".csv");
+
+        private string ResolveOutputPath(string? explicitPath, string extension) =>
+            !string.IsNullOrEmpty(explicitPath)
+                ? explicitPath!
+                : System.IO.Path.ChangeExtension(InputPath!, extension);
+
+        private static string? TryReadOptionalValue(IReadOnlyList<string> args, ref int index)
         {
-            if (!string.IsNullOrEmpty(GeoJsonPath))
+            if (index + 1 < args.Count && (args[index + 1] == StdoutMarker || !args[index + 1].StartsWith("-", StringComparison.Ordinal)))
             {
-                return GeoJsonPath!;
+                return args[++index];
             }
 
-            return System.IO.Path.ChangeExtension(InputPath!, ".geojson");
+            return null;
         }
     }
 }
