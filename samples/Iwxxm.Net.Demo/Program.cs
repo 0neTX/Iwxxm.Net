@@ -30,6 +30,9 @@ Options:
   --geojson [path|-]   Also export RFC 7946 GeoJSON. Default target: the input path
                        with a .geojson extension; '-' writes the GeoJSON to stdout
                        (the human-readable report then goes to stderr).
+  --csv [path|-]       Also export RFC 4180 CSV (with OGC WKT geometries). Default
+                       target: the input path with a .csv extension; '-' writes
+                       the CSV to stdout (the report then goes to stderr).
   -o, --output <path>  Same as --geojson <path> (use '-' for stdout).
   --pretty             Indent the GeoJSON.
   --no-schematron      Skip the built-in business rules (XSD validation only).
@@ -84,11 +87,13 @@ Exit codes:
             }
 
             string path = options.InputPath!;
-            bool geoJsonToStdout = options.ExportGeoJson && options.ResolveGeoJsonPath() == CliOptions.StdoutMarker;
+            bool anyToStdout =
+                (options.ExportGeoJson && options.ResolveGeoJsonPath() == CliOptions.StdoutMarker) ||
+                (options.ExportCsv && options.ResolveCsvPath() == CliOptions.StdoutMarker);
 
-            // With "--geojson -" stdout carries only GeoJSON, so the human-readable report moves to stderr.
-            TextWriter reportWriter = geoJsonToStdout ? Console.Error : Console.Out;
-            bool redirected = geoJsonToStdout ? Console.IsErrorRedirected : Console.IsOutputRedirected;
+            // With "--geojson -" or "--csv -" stdout carries only the exported payload, so the human-readable report moves to stderr.
+            TextWriter reportWriter = anyToStdout ? Console.Error : Console.Out;
+            bool redirected = anyToStdout ? Console.IsErrorRedirected : Console.IsOutputRedirected;
             var report = new ConsoleReport(reportWriter, ConsoleReport.ShouldUseColor(redirected, options.NoColor));
 
             report.Banner("Iwxxm.Net demo");
@@ -136,7 +141,21 @@ Exit codes:
             report.Diagnostics("Diagnostics", result.Errors, result.Warnings);
             report.Verdict(true, $"OK: {document.ReportType} parsed, {result.Warnings.Count} warning(s).");
 
-            return options.ExportGeoJson ? ExportGeoJson(document, builder, options, report) : ExitCode.Ok;
+            if (options.ExportGeoJson)
+            {
+                int geoExit = ExportGeoJson(document, builder, options, report);
+                if (geoExit != ExitCode.Ok)
+                    return geoExit;
+            }
+
+            if (options.ExportCsv)
+            {
+                int csvExit = ExportCsv(document, builder, options, report);
+                if (csvExit != ExitCode.Ok)
+                    return csvExit;
+            }
+
+            return ExitCode.Ok;
         }
 
         /// <summary>
@@ -203,44 +222,84 @@ Exit codes:
 
         private static int ExportGeoJson(IwxxmDocument document, IwxxmParserBuilder builder, CliOptions options, ConsoleReport report)
         {
-            string target = options.ResolveGeoJsonPath();
-            bool toStdout = target == CliOptions.StdoutMarker;
-
-            if (!toStdout && Path.GetFullPath(target) == Path.GetFullPath(options.InputPath!))
-            {
-                Console.Error.WriteLine("Error: the GeoJSON target is the input file; choose another path with -o.");
-                return ExitCode.UsageError;
-            }
-
-            // Export takes the already-parsed document (no second parse); a failure is a value, like a parse failure.
             Result<string> exported = builder.BuildGeoJsonExporter().Export(
                 document,
                 options.PrettyGeoJson ? GeoJsonExportOptions.Pretty : GeoJsonExportOptions.Default);
 
+            return WriteExport(
+                "GeoJSON",
+                options.ResolveGeoJsonPath(),
+                options.InputPath!,
+                exported,
+                content => $"{CountFeatures(content)} feature(s)",
+                report);
+        }
+
+        private static int ExportCsv(IwxxmDocument document, IwxxmParserBuilder builder, CliOptions options, ConsoleReport report)
+        {
+            Result<string> exported = builder.BuildCsvExporter().Export(document, CsvExportOptions.Default);
+
+            return WriteExport(
+                "CSV",
+                options.ResolveCsvPath(),
+                options.InputPath!,
+                exported,
+                content => $"{CountCsvDataRows(content)} row(s)",
+                report);
+        }
+
+        private static int WriteExport(
+            string label,
+            string target,
+            string inputPath,
+            Result<string> exported,
+            Func<string, string> describeCount,
+            ConsoleReport report)
+        {
+            bool toStdout = target == CliOptions.StdoutMarker;
+            if (!toStdout && Path.GetFullPath(target) == Path.GetFullPath(inputPath))
+            {
+                Console.Error.WriteLine($"Error: the {label} target is the input file; choose another path.");
+                return ExitCode.UsageError;
+            }
+
             if (exported.IsFailure)
             {
-                report.Diagnostics("GeoJSON export", exported.Errors, exported.Warnings);
-                report.Verdict(false, "FAILED: GeoJSON export.");
+                report.Diagnostics($"{label} export", exported.Errors, exported.Warnings);
+                report.Verdict(false, $"FAILED: {label} export.");
                 return ExitCode.ParseOrValidationErrors;
             }
 
-            string json = exported.Value;
-            int features = CountFeatures(json);
+            string payload = exported.Value;
+            string countSummary = describeCount(payload);
             var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-            byte[] bytes = utf8NoBom.GetBytes(json);
+            byte[] bytes = utf8NoBom.GetBytes(payload);
 
             if (toStdout)
             {
                 using Stream stdout = Console.OpenStandardOutput();
                 stdout.Write(bytes, 0, bytes.Length);
                 stdout.Flush();
-                report.Info("GeoJSON", $"{features} feature(s) written to standard output ({bytes.Length} bytes)");
+                report.Info(label, $"{countSummary} written to standard output ({bytes.Length} bytes)");
                 return ExitCode.Ok;
             }
 
             File.WriteAllBytes(target, bytes);
-            report.Info("GeoJSON", $"{features} feature(s) written to {target} ({bytes.Length} bytes)");
+            report.Info(label, $"{countSummary} written to {target} ({bytes.Length} bytes)");
             return ExitCode.Ok;
+        }
+
+        private static int CountCsvDataRows(string csv)
+        {
+            int lines = 0;
+            for (int i = 0; i < csv.Length; i++)
+            {
+                if (csv[i] == '\n')
+                    lines++;
+            }
+
+            // First line is the header row.
+            return Math.Max(0, lines - 1);
         }
 
         private static int CountFeatures(string geoJson)
