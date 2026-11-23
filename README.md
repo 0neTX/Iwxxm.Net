@@ -51,15 +51,15 @@ Every parsed document derives from the closed abstract root `IwxxmDocument`: eit
 
 ## Installation
 
-Packages are published to **GitHub Packages** only for release tags `vMAJOR.MINOR.PATCH[-PRERELEASE]` (the tag is the package version) or a deliberate manual workflow run; pull requests and pushes to `main` build and test `-ci.<run>.<attempt>` prereleases that are never published.
+Packages are published only for release tags `vMAJOR.MINOR.PATCH[-PRERELEASE]` (the tag is the package version) or a deliberate manual workflow run on a tag; pull requests and pushes to `main` build and test `-ci.<run>.<attempt>` prereleases that are never published.
 
 Packages are published on [NuGet.org](https://www.nuget.org/packages/Iwxxm.Net) (with `.snupkg` symbols and SourceLink) and mirrored on GitHub Packages.
 
 Install directly from NuGet.org:
 
 ```bash
-dotnet add package Iwxxm.Net --prerelease
-dotnet add package Iwxxm.Net.Validation.Saxon --prerelease   # optional: the complete official Schematron
+dotnet add package Iwxxm.Net
+dotnet add package Iwxxm.Net.Validation.Saxon   # optional: the complete official Schematron
 ```
 
 If your environment does not have `nuget.org` configured as a source, add it once:
@@ -163,7 +163,7 @@ The reference build is the container pipeline, which runs `restore`, `build` (wa
 
 ```bash
 podman build --target test -t iwxxm-net-test .        # or: docker build --target test .
-podman build --target pack --build-arg PACKAGE_VERSION=1.0.0-rc.2 .
+podman build --target pack --build-arg PACKAGE_VERSION=1.0.0 .
 
 bash tools/run-local-ci.sh                            # full pipeline, artifacts in ./artifacts
 BUILD_NUMBER=5 bash tools/run-local-ci.sh             # custom incremental build number

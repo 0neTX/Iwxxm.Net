@@ -4,29 +4,25 @@ Iwxxm.Net parses XML that usually arrives from networks (aeronautical meteorolog
 
 ## Supported versions
 
-The project is **pre-release** and has no long-term-support branches. Only the following receive security fixes:
+The project has no long-term-support branches. Only the following receive security fixes:
 
 | Version | Supported |
 | :--- | :---: |
 | Latest `main` | Yes |
-| Latest published `1.0.0` prerelease (currently `1.0.0-rc.1`) | Yes |
-| Any older prerelease or fork | No |
+| Latest published stable version (`1.x`) | Yes |
+| Any older version, any prerelease (`1.0.0-rc.*`) or fork | No |
 
-Fixes are released as a new prerelease (and, once it exists, a new stable version); we do not backport them. If you depend on an older build, update to the latest one first.
+Fixes are released as a new version; we do not backport them. If you depend on an older build, update to the latest one first.
 
 ## Reporting a vulnerability
 
 **Please do not open a public issue, discussion or pull request for a vulnerability.**
 
-How to report depends on the phase of the project.
-
-**Until the v1.0.0 release (the repository is private).** GitHub private vulnerability reporting exists only on public repositories, so it is not available yet. Report the problem directly to the maintainer (GitHub account [0neTX](https://github.com/0neTX)) through the same private channel through which you were given access to the repository or the packages. If you do not have such a channel, ask for one through the person who gave you access; do not use any public place.
-
-**From the v1.0.0 release (the repository is public).** Use GitHub private vulnerability reporting:
+The repository is public. Use GitHub private vulnerability reporting:
 
 <https://github.com/0neTX/Iwxxm.Net/security/advisories/new>
 
-(or the **Security** tab of the repository, then **Report a vulnerability**). The repository owner must enable the feature when the repository is made public; this is a step of the publication checklist in [docs/RELEASING.md](docs/RELEASING.md). Until it is enabled, keep using the private channel above.
+(or the **Security** tab of the repository, then **Report a vulnerability**). The repository owner must have enabled the feature (repository **Settings**, **Advanced Security**, **Private vulnerability reporting**); this is a step of the publication checklist in [docs/RELEASING.md](docs/RELEASING.md). If the link does not let you submit a report, contact the maintainer through the GitHub account [0neTX](https://github.com/0neTX) without putting any detail in a public place, and ask for a private channel.
 
 Please include, as far as you can:
 
@@ -39,7 +35,7 @@ What to expect (best effort, this is a volunteer-maintained project):
 
 - we aim to **acknowledge your report within about 7 days**;
 - we will tell you whether we consider it a vulnerability, ask for details if needed, and keep you informed while we work on a fix;
-- disclosure is **coordinated**: we publish the fix and, once the repository is public, a GitHub security advisory together, credit you if you wish, and ask you to keep the details private until then. If a report stays unresolved for a long time we will agree a disclosure date with you instead of leaving it open indefinitely.
+- disclosure is **coordinated**: we publish the fix and a GitHub security advisory together, credit you if you wish, and ask you to keep the details private until then. If a report stays unresolved for a long time we will agree a disclosure date with you instead of leaving it open indefinitely.
 
 We cannot offer a bug bounty or a guaranteed fix time.
 

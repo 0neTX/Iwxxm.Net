@@ -31,12 +31,12 @@ You need the **.NET 10 SDK** to build this guide's examples (the library itself 
 ```bash
 dotnet new console -n IwxxmTour
 cd IwxxmTour
-dotnet add package Iwxxm.Net --prerelease
+dotnet add package Iwxxm.Net
 # only needed for section 5, "official Schematron" (net10.0 applications):
-dotnet add package Iwxxm.Net.Validation.Saxon --prerelease
+dotnet add package Iwxxm.Net.Validation.Saxon
 ```
 
-The packages are published to GitHub Packages; the [README](../README.md#installation) shows how to add that NuGet source.
+The packages are published on NuGet.org (and mirrored on GitHub Packages); the [README](../README.md#installation) shows the install commands and how to add the NuGet.org source if your environment lacks it.
 
 The examples read the **official WMO example messages** that ship with this repository. Copy them next to your project once:
 

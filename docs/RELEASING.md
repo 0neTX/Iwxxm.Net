@@ -1,29 +1,51 @@
 # Releasing
 
-How a version is built and published, what the packages contain, and what must be done before the repository becomes public at v1.0.0.
+How a version is built and published, what the packages contain, what the workflow does when a tag is pushed, and what must be checked before and after the first stable version, v1.0.0.
 
 ## Versioning and tags
 
-- Versions follow [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html). The version of both packages is the tag name without the leading `v`: tag `v1.0.0-rc.26` publishes `1.0.0-rc.26`.
-- Only tags `vMAJOR.MINOR.PATCH[-PRERELEASE]` publish (for example `v1.0.0-rc.26`, `v1.0.0`). Any other tag name fails the version check of the workflow.
-- Tag only commits that are on `main`. The publish job of `.github/workflows/ci-cd.yml` refuses a tagged commit that is not reachable from `origin/main`.
+- Versions follow [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html). The version of both packages is the tag name without the leading `v`: tag `v1.0.0` publishes `1.0.0`; tag `v1.0.0-rc.3` publishes `1.0.0-rc.3`.
+- A stable version has no prerelease suffix (`v1.0.0`). Only a tag with a suffix (`v1.0.0-rc.3`) publishes a prerelease. Consumers need `--prerelease` (or an explicit `--version`) in `dotnet add package` only for a prerelease; once `1.0.0` is on the feed, `dotnet add package Iwxxm.Net` resolves it without any flag.
+- Only tags `vMAJOR.MINOR.PATCH[-PRERELEASE]` publish (for example `v1.0.0-rc.3`, `v1.0.0`). Any other tag name fails the version check of the workflow.
+- Tag only commits that are on `main`. Both publish jobs of `.github/workflows/ci-cd.yml` refuse a tagged commit that is not reachable from `origin/main`.
 - Pushes to `main` and pull requests build and test `-ci.<run>.<attempt>` prereleases that are never published.
-- The workflow pushes with `--skip-duplicate`: pushing a tag whose version already exists on the feed is not an error and publishes nothing new. To publish again, use a new version.
-- The release candidates are numbered in sequence: `v1.0.0-rc.1`, `v1.0.0-rc.2`, ... The next candidate is the last one plus one; v1.0.0 follows the last release candidate.
+- The release candidates are numbered in sequence (`v1.0.0-rc.1`, `v1.0.0-rc.2`, ...). The next candidate is the last one plus one; v1.0.0 follows the last release candidate.
+- **A published version is immutable.** Neither feed lets you replace a version with different content, and NuGet.org does not allow deleting one (it can only be unlisted). Do not move or re-push a release tag; if something is wrong after publication, fix it and publish a new version (for example `1.0.1`).
+- The workflow pushes with `--skip-duplicate`: pushing a tag whose version already exists on a feed is not an error and publishes nothing new on that feed.
 
-Procedure:
+## What the workflow does on a tag
+
+Pushing a tag `v*` starts `.github/workflows/ci-cd.yml` (a manual run selected on a tag does the same):
+
+1. **`build-and-test`** (Ubuntu and Windows): computes the package version from the tag, rejecting anything that is not `vMAJOR.MINOR.PATCH[-PRERELEASE]`; restores, builds in `Release` with warnings as errors, runs both test projects, packs the `.nupkg` and `.snupkg` files on Ubuntu, checks that `Iwxxm.Net` declares no dependency and uploads the packages as a workflow artifact.
+2. **`publish-github-packages`** (after `build-and-test`): checks that the tagged commit is reachable from `origin/main`, then pushes the packages to GitHub Packages with the workflow `GITHUB_TOKEN`.
+3. **`publish-nuget`** (after `build-and-test`, in parallel with the previous job): runs in the GitHub environment `nuget-release`, checks that the tagged commit is reachable from `origin/main`, obtains a short-lived NuGet API key with `NuGet/login` (Trusted Publishing, no stored secret) and pushes the packages to NuGet.org (`https://api.nuget.org/v3/index.json`).
+
+Both publish jobs run only on a tag ref. If the environment `nuget-release` has protection rules, `publish-nuget` waits for approval and does not start until a required reviewer approves the deployment in the Actions run; the run stays pending until then. The two publish jobs are independent: one can succeed while the other fails, and a failed job can be re-run for the same tag (`--skip-duplicate` makes the push idempotent).
+
+Confirm before tagging, because these live outside the repository and cannot be verified from it (to be confirmed by the maintainer):
+
+- **Trusted Publishing policy on nuget.org**: a policy exists for the `0neTX` nuget.org account (the `user` given to `NuGet/login` in the workflow) that trusts this repository (`0neTX/Iwxxm.Net`), the workflow file `ci-cd.yml` and the environment `nuget-release`, and it is active for both packages.
+- **Package ids**: `Iwxxm.Net` and `Iwxxm.Net.Validation.Saxon` are owned by that account or are still available on nuget.org, and the policy covers them. Whether the release candidates were published to nuget.org is not recorded in the repository.
+- **Environment `nuget-release`**: it exists under repository **Settings**, **Environments**; list who the required reviewers are (if any) and make sure one of them can approve the run.
+
+## Procedure
 
 ```bash
 git switch main && git pull --ff-only
 git status                      # must be clean
-podman build --target pack -t iwxxm-net-pack .   # local check: 0 warnings, all tests, package guards
-git tag -a v1.0.0-rc.26 -m "v1.0.0-rc.26"
-git push origin v1.0.0-rc.26    # the tag push starts the workflow, which tests, packs and publishes
+podman build --target pack --build-arg PACKAGE_VERSION=1.0.0 -t iwxxm-net-pack .   # local check: 0 warnings, all tests, package guards
+git tag -a v1.0.0 -m "v1.0.0"
+git push origin v1.0.0          # the tag push starts the workflow, which tests, packs and publishes
 ```
 
-Move the `## [Unreleased]` entries of `CHANGELOG.md` under a dated version heading in the commit that precedes the tag. The `Dockerfile` pack stage uses the default `PACKAGE_VERSION` for its local check; the real version is computed by the workflow from the tag.
+Before tagging, `CHANGELOG.md` must already have the release under a dated version heading (for example `## [1.0.0] - YYYY-MM-DD`, the real publication date) above an empty `## [Unreleased]` section, in the commit that precedes the tag and that is on `main`. The package contains `CHANGELOG.md` as of the tagged commit. The `Dockerfile` pack stage uses `PACKAGE_VERSION` (default `1.0.0-rc.1`) only for its local check; the real version is computed by the workflow from the tag.
+
+Optional dry run: before the stable tag, push a release candidate tag (for example `v1.0.0-rc.3`, the next number after the last existing candidate) from the same commit. It exercises the whole chain, including the environment approval and the Trusted Publishing login, and publishes only a prerelease that does not affect `1.0.0`. It is still a real publication and is immutable like any other version, so use a number that has not been used.
 
 ## What the packages contain
+
+The files bundled in every package come from `Directory.Build.targets` (README, `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md` and `assets/icon.png`, packed as `icon.png`) and from the project files.
 
 | Package | Contents |
 | :--- | :--- |
@@ -31,33 +53,46 @@ Move the `## [Unreleased]` entries of `CHANGELOG.md` under a dated version headi
 | `Iwxxm.Net.Validation.Saxon` | `lib/net10.0` assembly with the embedded `iwxxm.sch` and SchXslt; `README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md`, `icon.png`, `licenses/SchXslt/LICENSE`. Depends on `Iwxxm.Net` and `SaxonCS-HE`. |
 | `.snupkg` symbol packages | PDBs with SourceLink maps to the GitHub sources. |
 
-The `Dockerfile` pack stage fails the build if the core nuspec declares a dependency, if the symbols lack SourceLink, or if either package lacks `THIRD-PARTY-NOTICES.md` or `LICENSE`.
-
-## API compatibility baseline
-
-`Directory.Build.props` enables NuGet Package Validation (`EnablePackageValidation`) for the two packable projects, so `dotnet pack` checks that each package is consistent across its target frameworks (for example `netstandard2.0` against `netstandard2.1`). No baseline version is set yet: only release candidates exist and the API still changes.
-
-After v1.0.0 is published, set the baseline in `Directory.Build.props` (a commented-out example is already there):
-
-```xml
-<PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
-```
-
-From then on `dotnet pack` fails on a breaking API change against 1.0.0, which keeps minor and patch releases compatible; a deliberate breaking change needs a new major version. A justified exception is recorded in a `CompatibilitySuppressions.xml` next to the project (generate it with `dotnet pack -p:GenerateCompatibilitySuppressionFile=true`), reviewed like any other change. Move the baseline forward after each stable release.
-
-## Private phase (until v1.0.0)
-
-- The repository is private. Packages published to GitHub Packages from a private repository are visible only to users with access to the repository. A consumer needs a token with the `read:packages` scope (see "Installation" in the [README](../README.md)).
-- `PackageProjectUrl` and `RepositoryUrl` point to the GitHub repository on purpose. While it is private, those links, and the source links stored in the symbols (SourceLink), answer 404 to everyone without access. This is expected and needs no change; it disappears when the repository becomes public.
-- Vulnerability reports go directly to the maintainer, not through GitHub private vulnerability reporting (see [SECURITY.md](../SECURITY.md)).
+The `Dockerfile` pack stage (the local check) fails the build if the core nuspec declares a dependency, if the core symbol package lacks SourceLink, or if either package lacks `THIRD-PARTY-NOTICES.md` or `LICENSE`. The workflow itself checks only that the core package declares no dependency; the other guards run in the container build, so run it before tagging.
 
 ## Publication checklist for v1.0.0
 
+Before tagging:
+
 1. Resolve or consciously accept each open point in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md#12-open-points-for-the-maintainer); confirm the file is current for the versions being released.
-2. Make the repository public.
-4. Enable GitHub private vulnerability reporting (repository **Settings**, **Advanced Security**, **Private vulnerability reporting**), then check that <https://github.com/0neTX/Iwxxm.Net/security/advisories/new> works. [SECURITY.md](../SECURITY.md) already says to use it from v1.0.0.
-5. Verify that the SourceLink and symbol links resolve for the public repository: download the `.snupkg`, or restore the package in a clean project and step into the library source from a debugger. They return 404 for outsiders while the repository is private.
-6. Update the README badges and URLs if the project location or name changed; check the links in the package metadata (`PackageProjectUrl`, `RepositoryUrl`, release notes link).
-7. Decide where to publish: GitHub Packages only (what the workflow does today) or nuget.org as well. This decision belongs to the maintainer. A move to nuget.org needs a workflow change, an API key kept as a repository secret, and a check that the package id is available; `.snupkg` symbols are accepted by nuget.org, not by GitHub Packages.
-8. Create the GitHub Release for the tag with notes taken from `CHANGELOG.md`.
-9. After publication, install the package from the feed in a clean project and run a smoke test (parse an official example).
+2. Enable GitHub private vulnerability reporting (repository **Settings**, **Advanced Security**, **Private vulnerability reporting**), then check that <https://github.com/0neTX/Iwxxm.Net/security/advisories/new> works. [SECURITY.md](../SECURITY.md) tells reporters to use it.
+3. Confirm the prerequisites outside the repository listed under "What the workflow does on a tag" (Trusted Publishing policy, package ids, reviewers of `nuget-release`).
+4. Date the `## [1.0.0]` heading of `CHANGELOG.md` with the real publication date, and merge it to `main`.
+5. Check the README badges and URLs, and the links in the package metadata (`PackageProjectUrl`, `RepositoryUrl`, release notes link in `Directory.Build.props`).
+6. Optionally run the dry run with a release candidate tag (see "Procedure").
+
+Tag and publish (see "Procedure"), approve the `nuget-release` deployment if it is waiting, then after publication:
+
+7. Install both packages from the feed in a clean project and run a smoke test (parse an official example). Use nuget.org for the check: `dotnet add package Iwxxm.Net --version 1.0.0` (no `--prerelease` for a stable version). The GitHub Packages feed needs a token with the `read:packages` scope to be read (to be confirmed by the maintainer against the GitHub documentation).
+8. Verify that the SourceLink and symbol links resolve now that the repository is public: download the `.snupkg`, or restore the package in a clean project and step into the library source from a debugger.
+9. Create the GitHub Release for the tag (`v1.0.0`) with notes taken from the `## [1.0.0]` section of `CHANGELOG.md`. It is a stable release, so do not mark it as a prerelease; a release candidate tag would be marked as one.
+10. Apply the steps of "After v1.0.0 is published" below.
+
+## After v1.0.0 is published
+
+### API compatibility baseline
+
+`Directory.Build.props` enables NuGet Package Validation (`EnablePackageValidation`) for the two packable projects, so `dotnet pack` checks that each package is consistent across its target frameworks (for example `netstandard2.0` against `netstandard2.1`). No baseline version is set while only release candidates exist and the API still changes.
+
+Once `1.0.0` is on the feed, set the baseline in `Directory.Build.props`. The property is currently inside an XML comment, together with the explanation above it (the comment starts at `<!-- NuGet Package Validation` and ends after the commented `<PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->`). Edit it as follows:
+
+1. Move the line out of the comment, so that it is an active property next to `EnablePackageValidation`:
+
+   ```xml
+   <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
+   ```
+
+2. Close the comment before that line (remove the trailing `-->` from the old line) and rewrite its text so that it no longer says that no baseline exists yet.
+3. Run `dotnet pack` for both projects (or the container pack stage): the packages are compared with `1.0.0`, which is restored from the feed, so the version must already be published.
+
+From then on `dotnet pack` fails on a breaking API change against 1.0.0, which keeps minor and patch releases compatible; a deliberate breaking change needs a new major version. A justified exception is recorded in a `CompatibilitySuppressions.xml` next to the project (generate it with `dotnet pack -p:GenerateCompatibilitySuppressionFile=true`), reviewed like any other change. Move the baseline forward after each stable release.
+
+### Other follow-ups
+
+- Review the default `VersionSuffix` (`rc.1`) in `Directory.Build.props` and the `PACKAGE_VERSION` default of the `Dockerfile` (`1.0.0-rc.1`): they apply only to local builds that do not pass a version, but they still describe a release candidate (to be decided by the maintainer).
+- Update the README and the `docs/` examples if they still show a release candidate version.

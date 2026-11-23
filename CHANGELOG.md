@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-23
+
 ### Added
 
 - **Package validation**: NuGet Package Validation (`EnablePackageValidation`) is enabled for the packable projects, so `dotnet pack` checks that each package is consistent across its target frameworks. The compatibility baseline is documented in `docs/RELEASING.md` ("API compatibility baseline") and is set after v1.0.0 is published.

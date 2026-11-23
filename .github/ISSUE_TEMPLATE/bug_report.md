@@ -10,7 +10,7 @@ assignees: ''
 A clear and concise description of what happened vs. what you expected.
 
 ## Environment
-- `Iwxxm.Net` version: (e.g. `1.0.0-rc.1`)
+- `Iwxxm.Net` version: (e.g. `1.0.0`)
 - `Iwxxm.Net.Validation.Saxon` used? Yes / No
 - Target framework / OS: (e.g. `net10.0` on Linux, `net48` on Windows)
 
