@@ -1,0 +1,35 @@
+application_id=1196444487
+user_version=10400
+integrity_check=ok
+# schema
+index	sqlite_autoindex_gpkg_contents_1	gpkg_contents	NULL
+index	sqlite_autoindex_gpkg_contents_2	gpkg_contents	NULL
+index	sqlite_autoindex_gpkg_geometry_columns_1	gpkg_geometry_columns	NULL
+index	sqlite_autoindex_gpkg_geometry_columns_2	gpkg_geometry_columns	NULL
+index	sqlite_autoindex_iwxxm_metadata_1	iwxxm_metadata	NULL
+table	gpkg_contents	gpkg_contents	CREATE TABLE gpkg_contents (table_name TEXT NOT NULL PRIMARY KEY,data_type TEXT NOT NULL,identifier TEXT UNIQUE,description TEXT DEFAULT '',last_change DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),min_x DOUBLE, min_y DOUBLE,max_x DOUBLE, max_y DOUBLE,srs_id INTEGER,CONSTRAINT fk_gc_r_srs_id FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys(srs_id))
+table	gpkg_geometry_columns	gpkg_geometry_columns	CREATE TABLE gpkg_geometry_columns (table_name TEXT NOT NULL,column_name TEXT NOT NULL,geometry_type_name TEXT NOT NULL,srs_id INTEGER NOT NULL,z TINYINT NOT NULL,m TINYINT NOT NULL,CONSTRAINT pk_geom_cols PRIMARY KEY (table_name, column_name),CONSTRAINT uk_gc_table_name UNIQUE (table_name),CONSTRAINT fk_gc_tn FOREIGN KEY (table_name) REFERENCES gpkg_contents(table_name),CONSTRAINT fk_gc_srs FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys (srs_id))
+table	gpkg_spatial_ref_sys	gpkg_spatial_ref_sys	CREATE TABLE gpkg_spatial_ref_sys (srs_name TEXT NOT NULL,srs_id INTEGER NOT NULL PRIMARY KEY,organization TEXT NOT NULL,organization_coordsys_id INTEGER NOT NULL,definition  TEXT NOT NULL,description TEXT)
+table	iwxxm_attributes	iwxxm_attributes	CREATE TABLE "iwxxm_attributes" ("fid" INTEGER PRIMARY KEY NOT NULL, "feature_id" TEXT, "feature_type" TEXT, "report_id" TEXT, "report_type" TEXT, "bulletin_identifier" TEXT, "issue_time_utc" DATETIME, "properties" TEXT NOT NULL)
+table	iwxxm_metadata	iwxxm_metadata	CREATE TABLE "iwxxm_metadata" ("fid" INTEGER PRIMARY KEY NOT NULL, "key" TEXT NOT NULL UNIQUE, "value" TEXT NOT NULL)
+table	iwxxm_reports	iwxxm_reports	CREATE TABLE "iwxxm_reports" ("fid" INTEGER PRIMARY KEY NOT NULL, "report_id" TEXT NOT NULL, "report_type" TEXT NOT NULL, "report_status" TEXT NOT NULL, "permissible_usage" TEXT NOT NULL, "issue_time_utc" DATETIME NOT NULL, "bulletin_identifier" TEXT)
+# gpkg_contents: table_name, data_type, identifier, description, last_change, min_x, min_y, max_x, max_y, srs_id
+iwxxm_attributes	attributes	iwxxm_attributes	IWXXM features without a geometry	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
+iwxxm_reports	attributes	iwxxm_reports	One row per report of the exported document	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
+iwxxm_metadata	attributes	iwxxm_metadata	Library version, source document and GeoPackage version	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
+# gpkg_geometry_columns: table_name, column_name, geometry_type_name, srs_id, z, m
+# gpkg_spatial_ref_sys: srs_name, srs_id, organization, organization_coordsys_id, definition, description
+Undefined Cartesian SRS	-1	NONE	-1	undefined	undefined Cartesian coordinate reference system
+Undefined geographic SRS	0	NONE	0	undefined	undefined geographic coordinate reference system
+WGS 84 geodetic	4326	EPSG	4326	GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AXIS["Latitude",NORTH],AXIS["Longitude",EAST],AUTHORITY["EPSG","4326"]]	longitude/latitude coordinates in decimal degrees on the WGS 84 spheroid
+# iwxxm_attributes: fid, feature_id, feature_type, report_id, report_type, bulletin_identifier, issue_time_utc, properties
+1	uuid.15ff064a-6dc4-41e0-bafa-8ee78ed4dc25	METAR_OBSERVATION	uuid.15ff064a-6dc4-41e0-bafa-8ee78ed4dc25	Metar	A_LAYU31YUDO221630_C_YUDO_20120822163000.xml	2012-08-22T16:30:00.000Z	{"featureType":"METAR_OBSERVATION","reportId":"uuid.15ff064a-6dc4-41e0-bafa-8ee78ed4dc25","reportType":"Metar","issueTimeUtc":"2012-08-22T16:30:00.0000000+00:00","bulletinIdentifier":"A_LAYU31YUDO221630_C_YUDO_20120822163000.xml","aerodromeDesignator":"YUDO","aerodromeName":"DONLON/INTERNATIONAL","observationTimeUtc":"2012-08-22T16:30:00.0000000+00:00","isAutomatedStation":false,"isNilObservation":true,"cloudAndVisibilityOk":false}
+# iwxxm_metadata: fid, key, value
+1	geopackage_version	1.4
+2	library_version	<library version>
+3	source_document_id	uuid.6f353602-12a1-40a7-b6b5-3edb14c6241e
+4	source_document_type	MeteorologicalBulletin
+5	bulletin_identifier	A_LAYU31YUDO221630_C_YUDO_20120822163000.xml
+6	report_count	1
+# iwxxm_reports: fid, report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier
+1	uuid.15ff064a-6dc4-41e0-bafa-8ee78ed4dc25	Metar	NORMAL	OPERATIONAL	2012-08-22T16:30:00.000Z	A_LAYU31YUDO221630_C_YUDO_20120822163000.xml

@@ -182,3 +182,10 @@ podman build --target build -t iwxxm-net-build .
 podman run --rm -v "$PWD/tests/Iwxxm.Net.Tests/Golden:/golden:Z" -e IWXXM_UPDATE_GOLDEN=/golden iwxxm-net-build \
   dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~GoldenMaster"
 ```
+
+The GeoPackage package has the same kind of golden files, in `tests/Iwxxm.Net.Export.GeoPackage.Tests/Golden/`: `GeoPackageGoldenTests` writes a few samples through the public API with a fixed `LastChangeUtc` and compares a canonical text dump of the file (pragmas, schema, rows in rowid order, geometries as WKT with 17 significant digits; never the file bytes, whose header carries the SQLite version) with `<sample>.dump.txt`. The comparison runs on .NET only, like the core goldens. Regenerate with the same variable and review the diff:
+
+```bash
+IWXXM_UPDATE_GOLDEN=1 dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests -c Release -f net10.0 --filter "FullyQualifiedName~GeoPackageGoldenTests"
+git diff --stat tests/Iwxxm.Net.Export.GeoPackage.Tests/Golden
+```

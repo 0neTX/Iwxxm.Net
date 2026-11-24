@@ -131,29 +131,32 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         }
     }
 
-    /// <summary>Well-known text with the shortest round-trip number of each coordinate ("R"), made for comparing, not for storing.</summary>
+    /// <summary>
+    /// Well-known text made for comparing, not for storing. By default each coordinate is its shortest round-trip number
+    /// ("R"); the golden dumps pass "G17" (17 significant digits).
+    /// </summary>
     internal static class TestWkt
     {
-        public static string Format(GeoPackageGeometry geometry)
+        public static string Format(GeoPackageGeometry geometry, string numberFormat = "R")
         {
             var sb = new StringBuilder();
             switch (geometry.Kind)
             {
                 case GeoPackageGeometryKind.Point:
                     sb.Append("POINT (");
-                    AppendPosition(sb, geometry.Point);
+                    AppendPosition(sb, geometry.Point, numberFormat);
                     sb.Append(')');
                     break;
 
                 case GeoPackageGeometryKind.MultiLineString:
                     sb.Append("MULTILINESTRING (");
-                    sb.Append(string.Join(", ", geometry.Lines!.Select(Positions)));
+                    sb.Append(string.Join(", ", geometry.Lines!.Select(l => Positions(l, numberFormat))));
                     sb.Append(')');
                     break;
 
                 default:
                     sb.Append("MULTIPOLYGON (");
-                    sb.Append(string.Join(", ", geometry.Polygons!.Select(p => "(" + string.Join(", ", p.Select(Positions)) + ")")));
+                    sb.Append(string.Join(", ", geometry.Polygons!.Select(p => "(" + string.Join(", ", p.Select(r => Positions(r, numberFormat))) + ")")));
                     sb.Append(')');
                     break;
             }
@@ -161,21 +164,21 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             return sb.ToString();
         }
 
-        public static string Number(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+        public static string Number(double value, string numberFormat = "R") => value.ToString(numberFormat, CultureInfo.InvariantCulture);
 
-        private static string Positions(IReadOnlyList<GeoPackagePosition> positions)
+        private static string Positions(IReadOnlyList<GeoPackagePosition> positions, string numberFormat)
         {
             var sb = new StringBuilder("(");
             for (int i = 0; i < positions.Count; i++)
             {
                 if (i > 0) sb.Append(", ");
-                AppendPosition(sb, positions[i]);
+                AppendPosition(sb, positions[i], numberFormat);
             }
 
             return sb.Append(')').ToString();
         }
 
-        private static void AppendPosition(StringBuilder sb, GeoPackagePosition position) =>
-            sb.Append(Number(position.X)).Append(' ').Append(Number(position.Y));
+        private static void AppendPosition(StringBuilder sb, GeoPackagePosition position, string numberFormat) =>
+            sb.Append(Number(position.X, numberFormat)).Append(' ').Append(Number(position.Y, numberFormat));
     }
 }
