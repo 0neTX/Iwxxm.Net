@@ -18,9 +18,10 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
     /// </remarks>
     internal sealed class GeoPackageFeature
     {
-        public GeoPackageFeature(GeoJsonFeature feature)
+        public GeoPackageFeature(GeoJsonFeature feature, GeoPackageGeometry? geometry)
         {
             Feature = feature;
+            Geometry = geometry;
             FeatureId = string.IsNullOrWhiteSpace(feature.Id) ? null : feature.Id;
             FeatureType = StringProperty(feature.Properties, "featureType");
             ReportId = StringProperty(feature.Properties, "reportId");
@@ -32,6 +33,9 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
 
         /// <summary>The GeoJSON feature: geometry (already split at the antimeridian) and ordered properties.</summary>
         public GeoJsonFeature Feature { get; }
+
+        /// <summary>The geometry as the GeoPackage stores it (see <see cref="GeoPackageGeometry"/>), or <c>null</c> for a feature without geometry (it is written to the attributes table).</summary>
+        public GeoPackageGeometry? Geometry { get; }
 
         /// <summary>The feature id, or <c>null</c> when the GeoJSON feature carries none.</summary>
         public string? FeatureId { get; }

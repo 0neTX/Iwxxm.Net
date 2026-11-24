@@ -12,6 +12,15 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
     {
         private static readonly string Directory = Path.Combine(AppContext.BaseDirectory, "Samples", "wmo-examples");
 
+        private static readonly string ExtraDirectory = Path.Combine(AppContext.BaseDirectory, "Samples", "extra");
+
+        /// <summary>The full path of one of the extra samples (SIGWX documents).</summary>
+        internal static string ExtraPathOf(string fileName) => Path.Combine(ExtraDirectory, fileName);
+
+        /// <summary>The extra sample file names, ordered, as xunit theory data.</summary>
+        internal static IEnumerable<object[]> Extra() =>
+            System.IO.Directory.GetFiles(ExtraDirectory, "*.xml").Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).Select(n => new object[] { n! });
+
         /// <summary>The full path of one sample.</summary>
         internal static string PathOf(string fileName) => Path.Combine(Directory, fileName);
 

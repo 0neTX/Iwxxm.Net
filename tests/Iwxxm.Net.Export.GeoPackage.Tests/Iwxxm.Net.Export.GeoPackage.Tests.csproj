@@ -38,6 +38,15 @@
     <None Include="..\Iwxxm.Net.Tests\Samples\wmo-examples\*.xml" Link="Samples\wmo-examples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!--
+    More real documents with geometry from the same project, linked under Samples/extra: the SIGWX examples (the small one and
+    the 14 MB synthetic WAFS bulletin with 4252 features).
+  -->
+  <ItemGroup>
+    <None Include="..\Iwxxm.Net.Tests\Samples\sigwx-swh-2025-2.xml" Link="Samples\extra\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Iwxxm.Net.Tests\Samples\external\metoffice\example-iwxxm-2025-2-sigwx-non-operational.xml" Link="Samples\extra\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Iwxxm.Net.Export.GeoPackage\Iwxxm.Net.Export.GeoPackage.csproj" />
   </ItemGroup>
