@@ -47,7 +47,7 @@
     <None Include="..\Iwxxm.Net.Tests\Samples\external\metoffice\example-iwxxm-2025-2-sigwx-non-operational.xml" Link="Samples\extra\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- Golden canonical dumps; regenerate with IWXXM_UPDATE_GOLDEN=1 (see GeoPackageGoldenTests). -->
+  <!-- Golden canonical dumps; regenerate with IWXXM_GPKG_UPDATE_GOLDEN=1, see GeoPackageGoldenTests; that run fails on purpose. -->
   <ItemGroup>
     <None Update="Golden\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

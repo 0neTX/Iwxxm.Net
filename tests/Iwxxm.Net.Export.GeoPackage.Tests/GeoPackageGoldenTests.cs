@@ -19,14 +19,16 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
     /// byte for byte: its header carries the SQLite version and change counter.
     /// </summary>
     /// <remarks>
-    /// Regenerate after an intentional, CHANGELOG-documented change of the file layout with the same variable the core
-    /// golden-master tests use: <c>IWXXM_UPDATE_GOLDEN=1</c> writes to the source <c>Golden/</c> directory (found by walking
-    /// up from the test output directory to this project file), and a path as the value writes there. Then review the diff:
-    /// <c>IWXXM_UPDATE_GOLDEN=1 dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests -c Release -f net10.0 --filter FullyQualifiedName~GeoPackageGoldenTests</c>.
+    /// Regenerate after an intentional, CHANGELOG-documented change of the file layout with the variable
+    /// <c>IWXXM_GPKG_UPDATE_GOLDEN=1</c> (or <c>true</c>), which is this package's own: the core golden variable is not
+    /// read, and a value that is a path (or anything else) is rejected. The files are written to the source <c>Golden/</c>
+    /// directory, found by walking up from the test output directory to this project file. An update run always FAILS,
+    /// after writing, so that it cannot be mistaken for a passing run; rerun without the variable to compare, and review
+    /// the diff: <c>IWXXM_GPKG_UPDATE_GOLDEN=1 dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests -c Release -f net10.0 --filter FullyQualifiedName~GeoPackageGoldenTests</c>.
     /// </remarks>
     public sealed class GeoPackageGoldenTests : IDisposable
     {
-        private const string UpdateVariable = "IWXXM_UPDATE_GOLDEN";
+        private const string UpdateVariable = "IWXXM_GPKG_UPDATE_GOLDEN";
         private const string GoldenDirectoryName = "Golden";
         private const string ProjectFile = "Iwxxm.Net.Export.GeoPackage.Tests.csproj";
 
@@ -39,8 +41,9 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
         public void Dispose() => Directory.Delete(_directory, recursive: true);
 
-        // A METAR (points and attributes only), a SIGMET with a circle and a polygon, a small bulletin with several
-        // reports, and the small SIGWX example (lines and polygons); the 14 MB SIGWX sample is not a golden.
+        // A METAR (points and attributes only), a SIGMET with a circle and a polygon, a small bulletin of one NIL
+        // report (none of the small samples has several reports; the bulletin tables are checked for every sample by
+        // the parity tests), and the small SIGWX example (lines and polygons); the 14 MB SIGWX sample is not a golden.
         public static IEnumerable<object[]> Samples() => new[]
         {
             new object[] { "metar-A3-1.xml", false },
@@ -71,7 +74,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         public void Goldens_AreSmall_AndCoverTheGeometryFamilies()
         {
             if (ResolveUpdateDirectory() != null)
-                return; // regenerating: the files are being written, not yet copied to the output directory
+                Assert.Fail(RegeneratedMessage); // regenerating: the files are not yet copied to the output directory
 
             string[] files = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, GoldenDirectoryName), "*.dump.txt");
             Assert.Equal(Samples().Count(), files.Length);
@@ -89,7 +92,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             {
                 Directory.CreateDirectory(updateDirectory);
                 File.WriteAllText(Path.Combine(updateDirectory, name), actual, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-                return;
+                Assert.Fail(RegeneratedMessage);
             }
 
             string goldenPath = Path.Combine(AppContext.BaseDirectory, GoldenDirectoryName, name);
@@ -101,25 +104,26 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                             $"If the change is intentional and documented in CHANGELOG.md, regenerate with {UpdateVariable}=1.");
         }
 
+        private const string RegeneratedMessage =
+            "Golden files were regenerated (" + UpdateVariable + " is set). This run is not a comparison: rerun without " + UpdateVariable + ".";
+
         private static string? ResolveUpdateDirectory()
         {
             string? value = Environment.GetEnvironmentVariable(UpdateVariable);
             if (string.IsNullOrWhiteSpace(value) || value == "0" || value.Equals("false", StringComparison.OrdinalIgnoreCase))
                 return null;
 
-            if (value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase))
-            {
-                var directory = new DirectoryInfo(AppContext.BaseDirectory);
-                while (directory != null && !File.Exists(Path.Combine(directory.FullName, ProjectFile)))
-                    directory = directory.Parent;
+            if (!(value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException(UpdateVariable + " must be 1 or true (it is not a path); it is '" + value + "'.");
 
-                if (directory == null)
-                    throw new InvalidOperationException(ProjectFile + " was not found above the test output directory.");
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null && !File.Exists(Path.Combine(directory.FullName, ProjectFile)))
+                directory = directory.Parent;
 
-                return Path.Combine(directory.FullName, GoldenDirectoryName);
-            }
+            if (directory == null)
+                throw new InvalidOperationException(ProjectFile + " was not found above the test output directory.");
 
-            return value;
+            return Path.Combine(directory.FullName, GoldenDirectoryName);
         }
 
         private static string DescribeFirstDifference(string expected, string actual)

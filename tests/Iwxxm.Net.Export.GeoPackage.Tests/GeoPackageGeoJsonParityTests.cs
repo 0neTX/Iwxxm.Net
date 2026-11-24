@@ -150,6 +150,71 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Assert.True(expected.UtcDateTime == actual.UtcDateTime, where + ": issue_time_utc " + geoJsonValue + " vs " + column);
         }
 
+        [Theory]
+        [MemberData(nameof(Samples))]
+        public void ReportsAndMetadataTables_DescribeTheReportsOfTheDocument(string sample)
+        {
+            string path = Path.Combine(_directory, "reports.gpkg");
+            Result<string> written = IwxxmParserGeoPackageExtensions.ParseFileToGeoPackage(sample, path);
+            Assert.True(written.IsSuccess, string.Join(" | ", written.Errors));
+
+            Result<IwxxmDocument> parsed = IwxxmParser.ParseFile(sample);
+            Assert.True(parsed.IsSuccess, string.Join(" | ", parsed.Errors));
+            IwxxmDocument document = parsed.Value;
+            var bulletin = document as MeteorologicalBulletin;
+            IwxxmDocument[] reports = bulletin != null ? bulletin.Reports.Cast<IwxxmDocument>().ToArray() : new[] { document };
+            string? bulletinIdentifier = bulletin?.BulletinIdentifier;
+
+            using (JsonDocument geoJson = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(document, GeoJsonExportOptions.Default).Value))
+            using (SqliteConnection connection = GeoPackageSqlite.Open(path))
+            {
+                List<string?[]> rows = Rows(connection, "SELECT report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier FROM iwxxm_reports ORDER BY fid");
+                Assert.Equal(reports.Length, rows.Count);
+                for (int i = 0; i < reports.Length; i++)
+                {
+                    string where = sample + " / report " + i;
+                    Assert.True(reports[i].Id == rows[i][0], where + ": report_id");
+                    Assert.True(reports[i].ReportType.ToString() == rows[i][1], where + ": report_type");
+                    Assert.False(string.IsNullOrEmpty(rows[i][2]), where + ": report_status");
+                    Assert.False(string.IsNullOrEmpty(rows[i][3]), where + ": permissible_usage");
+                    Assert.EndsWith("Z", rows[i][4]);
+                    Assert.True(reports[i].IssueTimeUtc.UtcDateTime == DateTimeOffset.Parse(rows[i][4]!, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal).UtcDateTime, where + ": issue_time_utc");
+                    Assert.True(bulletinIdentifier == rows[i][5], where + ": bulletin_identifier");
+                }
+
+                // A standalone report: its status and usage are the ones of the GeoJSON metadata.
+                if (bulletin == null)
+                {
+                    JsonElement metadata = geoJson.RootElement.GetProperty("metadata");
+                    Assert.Equal(metadata.GetProperty("reportStatus").GetString(), rows[0][2]);
+                    Assert.Equal(metadata.GetProperty("permissibleUsage").GetString(), rows[0][3]);
+                }
+
+                // Every feature belongs to a report of the file.
+                var reportIds = new HashSet<string?>(rows.Select(r => r[0]));
+                foreach (JsonElement feature in geoJson.RootElement.GetProperty("features").EnumerateArray())
+                    Assert.Contains(Text(feature.GetProperty("properties"), "reportId"), reportIds);
+
+                Dictionary<string, string> metadataRows = Rows(connection, "SELECT key, value FROM iwxxm_metadata").ToDictionary(r => r[0]!, r => r[1]!);
+                Assert.Equal(document.Id, metadataRows["source_document_id"]);
+                Assert.Equal(document.ReportType.ToString(), metadataRows["source_document_type"]);
+                Assert.Equal(reports.Length.ToString(CultureInfo.InvariantCulture), metadataRows["report_count"]);
+                Assert.Equal("1.4", metadataRows["geopackage_version"]);
+                Assert.Equal(bulletinIdentifier != null, metadataRows.ContainsKey("bulletin_identifier"));
+                if (bulletinIdentifier != null)
+                    Assert.Equal(bulletinIdentifier, metadataRows["bulletin_identifier"]);
+            }
+        }
+
+        [Fact]
+        public void Samples_IncludeStandaloneReportsAndABulletinOfSeveralReports()
+        {
+            // Guards the test above against passing vacuously (the multi-report bulletin is the large SIGWX sample).
+            var parsed = SampleFiles.AllPaths().Select(p => IwxxmParser.ParseFile(p).Value).ToList();
+            Assert.Contains(parsed, d => !(d is MeteorologicalBulletin));
+            Assert.Contains(parsed, d => d is MeteorologicalBulletin b && b.Reports.Count > 1);
+        }
+
         [Fact]
         public void Samples_ReachEveryTableOfTheLayout()
         {
