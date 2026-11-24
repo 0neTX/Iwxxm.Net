@@ -239,6 +239,9 @@ namespace Iwxxm.Net.Tests
             Assert.Contains("STREAM-EMPTY", emitted);
             Assert.Contains("MAPPER-ERROR", emitted);
             Assert.Contains("SCHEMATRON-UNAVAILABLE", emitted);
+            // The GeoPackage package keeps its code as a constant of its own: it is scanned like the rest of src/.
+            Assert.Contains("GEOPACKAGE-EXPORT-ERROR", emitted);
+            Assert.Contains("GEOPACKAGE-EXPORT-ERROR", CodesDocumented());
             Assert.True(emitted.Count > 100, "The scan found only " + emitted.Count + " codes; the scan is broken.");
         }
     }
