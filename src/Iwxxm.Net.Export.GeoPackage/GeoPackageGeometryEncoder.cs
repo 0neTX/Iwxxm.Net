@@ -20,6 +20,9 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// </remarks>
     internal static class GeoPackageGeometryEncoder
     {
+        private const byte MagicG = 0x47;
+        private const byte MagicP = 0x50;
+        private const byte Version = 0x00;
         private const byte LittleEndianWkb = 0x01;
         private const byte FlagsWithoutEnvelope = 0x01;
         private const byte FlagsWithEnvelope = 0x03;
@@ -30,6 +33,11 @@ namespace Iwxxm.Net.Export.GeoPackage
         private const uint WkbMultiPolygon = 6;
         private const int HeaderLength = 8;
         private const int EnvelopeLength = 32;
+        private const int WkbByteOrderLength = 1;
+        private const int WkbTypeLength = 4;
+        private const int WkbCountLength = 4;
+        private const int WkbPositionLength = 16; // two doubles
+        private const int WkbHeaderLength = WkbByteOrderLength + WkbTypeLength;
         private const int MinimumRingPositions = 4;
         private const int MinimumLinePositions = 2;
 
@@ -53,9 +61,9 @@ namespace Iwxxm.Net.Export.GeoPackage
             var bytes = new byte[HeaderLength + envelopeLength + WkbLength(geometry)];
             int offset = 0;
 
-            bytes[offset++] = 0x47;
-            bytes[offset++] = 0x50;
-            bytes[offset++] = 0x00;
+            bytes[offset++] = MagicG;
+            bytes[offset++] = MagicP;
+            bytes[offset++] = Version;
             bytes[offset++] = isPoint ? FlagsWithoutEnvelope : FlagsWithEnvelope;
             WriteUInt32(bytes, ref offset, unchecked((uint)(int)srsId));
 
@@ -78,7 +86,8 @@ namespace Iwxxm.Net.Export.GeoPackage
             switch (geometry.Kind)
             {
                 case GeoPackageGeometryKind.Point:
-                    ValidatePosition(geometry.Point, "point");
+                    if (!IsFinite(geometry.Point))
+                        throw NotFinite("point");
                     break;
 
                 case GeoPackageGeometryKind.MultiLineString:
@@ -114,55 +123,67 @@ namespace Iwxxm.Net.Export.GeoPackage
             if (line.Count < MinimumLinePositions)
                 throw new ArgumentException($"Line {index} of the multi line string has {line.Count} position; a line needs at least {MinimumLinePositions}.");
             for (int i = 0; i < line.Count; i++)
-                ValidatePosition(line[i], $"line {index} position {i}");
+            {
+                if (!IsFinite(line[i]))
+                    throw NotFinite($"line {index} position {i}");
+            }
         }
 
         private static void ValidateRing(IReadOnlyList<GeoPackagePosition> ring, int polygon, int index)
         {
-            string name = $"ring {index} of polygon {polygon}";
+            // The messages are built only when a check fails, never per position on the success path.
             if (ring == null || ring.Count == 0)
-                throw new ArgumentException($"The {name} is empty.");
+                throw new ArgumentException($"The {RingName(polygon, index)} is empty.");
             if (ring.Count < MinimumRingPositions)
-                throw new ArgumentException($"The {name} has {ring.Count} positions; a ring needs at least {MinimumRingPositions} (including the closing position).");
+                throw new ArgumentException($"The {RingName(polygon, index)} has {ring.Count} positions; a ring needs at least {MinimumRingPositions} (including the closing position).");
             for (int i = 0; i < ring.Count; i++)
-                ValidatePosition(ring[i], $"{name} position {i}");
+            {
+                if (!IsFinite(ring[i]))
+                    throw NotFinite($"{RingName(polygon, index)} position {i}");
+            }
+
             if (ring[0].X != ring[ring.Count - 1].X || ring[0].Y != ring[ring.Count - 1].Y)
-                throw new ArgumentException($"The {name} is not closed: its last position differs from its first.");
+                throw new ArgumentException($"The {RingName(polygon, index)} is not closed: its last position differs from its first.");
         }
 
-        private static void ValidatePosition(GeoPackagePosition position, string where)
-        {
-            if (double.IsNaN(position.X) || double.IsInfinity(position.X) || double.IsNaN(position.Y) || double.IsInfinity(position.Y))
-                throw new ArgumentException($"The {where} has a coordinate that is NaN or infinite.");
-        }
+        private static string RingName(int polygon, int index) => $"ring {index} of polygon {polygon}";
+
+        private static bool IsFinite(GeoPackagePosition position) =>
+            !(double.IsNaN(position.X) || double.IsInfinity(position.X) || double.IsNaN(position.Y) || double.IsInfinity(position.Y));
+
+        private static ArgumentException NotFinite(string where) =>
+            new ArgumentException($"The {where} has a coordinate that is NaN or infinite.");
 
         private static int WkbLength(GeoPackageGeometry geometry)
         {
             switch (geometry.Kind)
             {
                 case GeoPackageGeometryKind.Point:
-                    return 1 + 4 + 16;
+                    return WkbHeaderLength + WkbPositionLength;
 
                 case GeoPackageGeometryKind.MultiLineString:
                 {
-                    int length = 1 + 4 + 4;
+                    int length = WkbHeaderLength + WkbCountLength;
                     foreach (IReadOnlyList<GeoPackagePosition> line in geometry.Lines!)
-                        length += 1 + 4 + 4 + (16 * line.Count);
+                        length += WkbHeaderLength + WkbCountLength + (WkbPositionLength * line.Count);
                     return length;
                 }
 
-                default:
+                case GeoPackageGeometryKind.MultiPolygon:
                 {
-                    int length = 1 + 4 + 4;
+                    int length = WkbHeaderLength + WkbCountLength;
                     foreach (IReadOnlyList<IReadOnlyList<GeoPackagePosition>> polygon in geometry.Polygons!)
                     {
-                        length += 1 + 4 + 4;
+                        length += WkbHeaderLength + WkbCountLength;
                         foreach (IReadOnlyList<GeoPackagePosition> ring in polygon)
-                            length += 4 + (16 * ring.Count);
+                            length += WkbCountLength + (WkbPositionLength * ring.Count);
                     }
 
                     return length;
                 }
+
+                default:
+                    throw UnsupportedKind(geometry.Kind);
             }
         }
 
@@ -186,7 +207,7 @@ namespace Iwxxm.Net.Export.GeoPackage
 
                     break;
 
-                default:
+                case GeoPackageGeometryKind.MultiPolygon:
                     WriteWkbHeader(bytes, ref offset, WkbMultiPolygon);
                     WriteUInt32(bytes, ref offset, (uint)geometry.Polygons!.Count);
                     foreach (IReadOnlyList<IReadOnlyList<GeoPackagePosition>> polygon in geometry.Polygons)
@@ -198,8 +219,15 @@ namespace Iwxxm.Net.Export.GeoPackage
                     }
 
                     break;
+
+                default:
+                    throw UnsupportedKind(geometry.Kind);
             }
         }
+
+        // Validate() rejects an unknown kind first, so this is only reached by a kind added without updating the encoder.
+        private static InvalidOperationException UnsupportedKind(GeoPackageGeometryKind kind) =>
+            new InvalidOperationException($"Unsupported geometry kind {kind}.");
 
         private static void WriteWkbHeader(byte[] bytes, ref int offset, uint type)
         {
@@ -222,7 +250,7 @@ namespace Iwxxm.Net.Export.GeoPackage
 
         private static void WriteUInt32(byte[] bytes, ref int offset, uint value)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < sizeof(uint); i++)
                 bytes[offset++] = (byte)(value >> (8 * i));
         }
 
@@ -230,7 +258,7 @@ namespace Iwxxm.Net.Export.GeoPackage
         private static void WriteDouble(byte[] bytes, ref int offset, double value)
         {
             ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < sizeof(ulong); i++)
                 bytes[offset++] = (byte)(bits >> (8 * i));
         }
     }

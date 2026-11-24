@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Text;
 using Iwxxm.Net.Export.GeoPackage.Model;
 using Xunit;
@@ -36,7 +35,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             }));
             Add(lines, "hand/negative-zero", "point,exactness", GeoPackageGeometry.ForPoint(new GeoPackagePosition(-0.0, 1.0 / 3.0)));
 
-            foreach (string path in GeoPackageGeometryWktTests.AllSamplePaths())
+            foreach (string path in SampleFiles.AllPaths())
             {
                 string sample = Path.GetFileName(path);
                 int index = 0;
@@ -45,12 +44,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                     if (feature.Geometry != null)
                     {
                         GeoPackageGeometry geometry = feature.Geometry;
-                        var tags = new System.Collections.Generic.List<string> { geometry.Kind.ToString().ToLowerInvariant() };
-                        if (feature.Properties.Any(p => p.Key == "circleSegments")) tags.Add("circle");
-                        if (geometry.Kind == GeoPackageGeometryKind.MultiPolygon && GeoPackageGeometryWktTests.IsAntimeridianSplit(geometry)) tags.Add("antimeridian");
-                        if (geometry.Kind == GeoPackageGeometryKind.MultiPolygon && GeoPackageGeometryWktTests.IsPolarCap(geometry)) tags.Add("polar-cap");
-                        if (geometry.Kind == GeoPackageGeometryKind.MultiPolygon && geometry.Polygons!.Any(p => p.Count > 1)) tags.Add("hole");
-                        Add(lines, sample + "/" + index, string.Join(",", tags), geometry);
+                        Add(lines, sample + "/" + index, string.Join(",", GeoPackageGeometryWktTests.TagsOf(feature)), geometry);
                     }
 
                     index++;

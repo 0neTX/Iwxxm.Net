@@ -110,7 +110,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         [Fact]
         public void EveryFeatureOfTheSamples_EncodesTwiceToTheSameBytes()
         {
-            foreach (string path in SampleFiles.All().Select(a => SampleFiles.PathOf((string)a[0])))
+            foreach (string path in SampleFiles.AllPaths())
             {
                 foreach (GeoPackageFeature feature in ReadFeatures(path).Where(f => f.Geometry != null))
                 {
@@ -316,7 +316,9 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Assert.Equal(1, flags & 1);             // little-endian
             int indicator = (flags >> 1) & 7;
             Assert.True(indicator == 0 || indicator == 1, "envelope indicator " + indicator);
-            Assert.Equal(4326, BitConverter.ToInt32(blob, p));
+            // srs_id: an int32, little-endian, read byte by byte (not with BitConverter, which follows the machine).
+            int srsId = blob[p] | (blob[p + 1] << 8) | (blob[p + 2] << 16) | (blob[p + 3] << 24);
+            Assert.Equal(4326, srsId);
             p += 4;
 
             envelope = null;
@@ -333,14 +335,14 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
         private static GeoPackageGeometry ReadWkb(byte[] b, ref int p)
         {
-            Assert.Equal(1, b[p++]);
+            Assert.Equal(1, b[p++]);                // byte order: 1 = little-endian (NDR)
             uint type = ReadUInt32(b, ref p);
             switch (type)
             {
-                case 1:
+                case 1:                             // Point
                     return GeoPackageGeometry.ForPoint(ReadPosition(b, ref p));
 
-                case 5:
+                case 5:                             // MultiLineString, members are LineStrings (2)
                 {
                     uint count = ReadUInt32(b, ref p);
                     var lines = new List<IReadOnlyList<GeoPackagePosition>>();
@@ -354,7 +356,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                     return GeoPackageGeometry.ForMultiLineString(lines);
                 }
 
-                case 6:
+                case 6:                             // MultiPolygon, members are Polygons (3)
                 {
                     uint count = ReadUInt32(b, ref p);
                     var polygons = new List<IReadOnlyList<IReadOnlyList<GeoPackagePosition>>>();

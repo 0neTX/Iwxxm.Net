@@ -4,11 +4,13 @@ Runs inside the GDAL container started by validate-geopackage-geometry.sh (pytho
 name, tags, blob (hex) and expected WKT, written by the GeoPackageGeometryCasesExport test. Steps:
 
 1. write a throwaway GeoPackage (a GEOMETRY column, SRS 4326) whose geom column holds the blobs exactly as encoded;
-2. run `ogrinfo -al` on it and compare the WKT GDAL prints with the expected WKT, token by token, every coordinate
-   bit-exact (GDAL is asked to print 17 significant digits, which round-trips a double);
-3. read the geometries with the GDAL Python bindings and compare the ISO WKB GDAL writes with the WKB inside the blob.
+2. run `ogrinfo -al` on it and compare the WKT GDAL prints with the expected WKT, token by token; every number must be
+   the same double (GDAL is asked to print 17 significant digits, which round-trips a double);
+3. read the geometries with the GDAL Python bindings and compare the ISO WKB GDAL writes (the WKB payload, hence every
+   coordinate) with the WKB inside the blob, and check the blob header independently of the encoder: the flags byte, the
+   srs_id (4326) and, for a non-point, the envelope doubles against the min/max GDAL computes from the geometry it read.
 
-Exit status 0 only when every case matches. Nothing here is part of the unit tests or a dependency of the projects.
+Exit status 0 only when every case matches and there is at least one case. Nothing here is part of the unit tests or a dependency of the projects.
 """
 import collections
 import os
@@ -28,15 +30,29 @@ GEOGCS = (
     'UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AXIS["Latitude",NORTH],AXIS["Longitude",EAST],'
     'AUTHORITY["EPSG","4326"]]'
 )
-TOKEN = re.compile(r"[A-Za-z]+|[(),]|[-+0-9.eE]+")
+NUMBER = r"[-+0-9.eE]+"
+TOKEN = re.compile(r"[A-Za-z]+|[(),]|" + NUMBER)
+
+# GeoPackage constants (OGC 12-128r18): the application_id is "GPKG" as an int32, user_version 10400 is version 1.4.0.
+GPKG_APPLICATION_ID = 1196444487
+GPKG_USER_VERSION = 10400
+# StandardGeoPackageBinary header: 'G' 'P', version, flags, int32 srs_id.
+HEADER_SIZE = 8
+# Envelope size in bytes by the envelope indicator in bits 1-3 of the flags byte: none, XY, XYZ, XYM, XYZM (doubles).
+ENVELOPE_SIZE = {0: 0, 1: 32, 2: 48, 3: 48, 4: 64}
+EXPECTED_SRS_ID = 4326
 
 
 def read_cases(path):
+    if not os.path.isfile(path):
+        sys.exit("cases file not found: %s (the export step of validate-geopackage-geometry.sh writes it)" % path)
     cases = []
     with open(path, encoding="utf-8") as handle:
         for line in handle:
             name, tags, blob_hex, wkt = line.rstrip("\n").split("\t")
             cases.append((name, tags, bytes.fromhex(blob_hex), wkt))
+    if not cases:
+        sys.exit("no cases in %s: nothing was validated" % path)
     return cases
 
 
@@ -45,7 +61,7 @@ def write_geopackage(path, cases):
         os.remove(path)
     db = sqlite3.connect(path)
     db.executescript(
-        "PRAGMA application_id = 1196444487; PRAGMA user_version = 10400;"
+        "PRAGMA application_id = %d; PRAGMA user_version = %d;" % (GPKG_APPLICATION_ID, GPKG_USER_VERSION) +
         "CREATE TABLE gpkg_spatial_ref_sys (srs_name TEXT NOT NULL,srs_id INTEGER NOT NULL PRIMARY KEY,"
         "organization TEXT NOT NULL,organization_coordsys_id INTEGER NOT NULL,definition  TEXT NOT NULL,description TEXT);"
         "CREATE TABLE gpkg_contents (table_name TEXT NOT NULL PRIMARY KEY,data_type TEXT NOT NULL,identifier TEXT UNIQUE,"
@@ -82,12 +98,12 @@ def tokens(wkt):
 
 
 def same_tokens(expected, actual):
-    """Words, brackets and commas must be equal; numbers must be the same double, bit for bit."""
+    """Words, brackets and commas must be equal; numbers must be the same double (same IEEE 754 bits)."""
     if len(expected) != len(actual):
         return False
     for e, a in zip(expected, actual):
-        if re.fullmatch(r"[-+0-9.eE]+", e):
-            if not re.fullmatch(r"[-+0-9.eE]+", a) or struct.pack("<d", float(e)) != struct.pack("<d", float(a)):
+        if re.fullmatch(NUMBER, e):
+            if not re.fullmatch(NUMBER, a) or struct.pack("<d", float(e)) != struct.pack("<d", float(a)):
                 return False
         elif e.upper() != a.upper():
             return False
@@ -112,6 +128,27 @@ def gdal_wkt(path):
     return result
 
 
+def header_problems(blob, geometry):
+    """Checks the blob header against what GDAL read: magic and version, flags byte, srs_id and the envelope doubles."""
+    problems = []
+    if blob[:3] != b"GP\x00":
+        problems.append("magic/version %r" % blob[:3])
+    is_point = geometry.GetGeometryType() == ogr.wkbPoint
+    # Little-endian, standard geometry, not empty; envelope indicator 0 (none) for a point, 1 (XY) for the others.
+    expected_flags = 0x01 if is_point else 0x03
+    if blob[3] != expected_flags:
+        problems.append("flags 0x%02x, expected 0x%02x" % (blob[3], expected_flags))
+    srs_id = struct.unpack("<i", blob[4:8])[0]
+    if srs_id != EXPECTED_SRS_ID:
+        problems.append("srs_id %d, expected %d" % (srs_id, EXPECTED_SRS_ID))
+    if not is_point and ((blob[3] >> 1) & 7) == 1:
+        # GDAL's envelope is (minx, maxx, miny, maxy), the order of the blob.
+        embedded = struct.unpack("<4d", blob[HEADER_SIZE:HEADER_SIZE + ENVELOPE_SIZE[1]])
+        if embedded != geometry.GetEnvelope():
+            problems.append("envelope %r, GDAL computes %r" % (embedded, geometry.GetEnvelope()))
+    return problems
+
+
 def main(cases_path, work_dir):
     cases = read_cases(cases_path)
     gpkg = os.path.join(work_dir, "cases.gpkg")
@@ -124,8 +161,10 @@ def main(cases_path, work_dir):
         if actual is None or not same_tokens(tokens(expected), tokens(actual)):
             wkt_failures.append((name, expected[:120], (actual or "<missing>")[:120]))
 
-    # The independent ISO WKB of GDAL must equal the WKB inside the blob (after the header and the envelope).
+    # The ISO WKB GDAL writes must equal the WKB inside the blob (after the header and the envelope), and the header must
+    # agree with the geometry GDAL read.
     wkb_failures = []
+    header_failures = []
     source = ogr.Open(gpkg)
     layer = source.GetLayer(0)
     by_name = {name: blob for name, _, blob, _ in cases}
@@ -133,24 +172,30 @@ def main(cases_path, work_dir):
     for feature in layer:
         count += 1
         blob = by_name[feature.GetField("name")]
-        envelope_bytes = {0: 0, 1: 32, 2: 48, 3: 48, 4: 64}[(blob[3] >> 1) & 7]
-        embedded = blob[8 + envelope_bytes:]
-        written = bytes(feature.GetGeometryRef().ExportToIsoWkb(ogr.wkbNDR))
+        geometry = feature.GetGeometryRef()
+        embedded = blob[HEADER_SIZE + ENVELOPE_SIZE[(blob[3] >> 1) & 7]:]
+        written = bytes(geometry.ExportToIsoWkb(ogr.wkbNDR))
         if written != embedded:
             wkb_failures.append(feature.GetField("name"))
+        for problem in header_problems(blob, geometry):
+            header_failures.append((feature.GetField("name"), problem))
 
     tag_counts = collections.Counter(tag for _, tags, _, _ in cases for tag in tags.split(","))
     print("GDAL %s: %d cases written, %d features read, layer extent %s" % (
         subprocess.run(["gdalinfo", "--version"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip(),
         len(cases), count, layer.GetExtent()))
     print("tags: " + ", ".join("%s=%d" % kv for kv in sorted(tag_counts.items())))
-    print("WKT from ogrinfo equal to the expected WKT (bit-exact numbers): %d/%d" % (len(cases) - len(wkt_failures), len(cases)))
-    print("ISO WKB of GDAL equal to the WKB of the blob:                  %d/%d" % (len(cases) - len(wkb_failures), len(cases)))
+    print("WKT from ogrinfo equal to the expected WKT (same doubles):  %d/%d" % (len(cases) - len(wkt_failures), len(cases)))
+    print("ISO WKB of GDAL equal to the WKB payload of the blob:       %d/%d" % (len(cases) - len(wkb_failures), len(cases)))
+    print("flags, srs_id and envelope of the blob agree with GDAL:     %d/%d" % (
+        len(cases) - len({name for name, _ in header_failures}), len(cases)))
     for failure in wkt_failures[:10]:
         print("WKT MISMATCH", failure)
     for name in wkb_failures[:10]:
         print("WKB MISMATCH", name)
-    return 1 if (wkt_failures or wkb_failures or count != len(cases)) else 0
+    for failure in header_failures[:10]:
+        print("HEADER MISMATCH", failure)
+    return 1 if (wkt_failures or wkb_failures or header_failures or count != len(cases)) else 0
 
 
 if __name__ == "__main__":

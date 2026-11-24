@@ -34,7 +34,11 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
         /// <summary>The GeoJSON feature: geometry (already split at the antimeridian) and ordered properties.</summary>
         public GeoJsonFeature Feature { get; }
 
-        /// <summary>The geometry as the GeoPackage stores it (see <see cref="GeoPackageGeometry"/>), or <c>null</c> for a feature without geometry (it is written to the attributes table).</summary>
+        /// <summary>
+        /// The geometry as the GeoPackage stores it (see <see cref="GeoPackageGeometry"/>), or <c>null</c> for a feature
+        /// without geometry (it is written to the attributes table). It is derived from <see cref="Feature"/>'s geometry
+        /// and is the authoritative geometry for writing: write this one, not <c>Feature.Geometry</c>.
+        /// </summary>
         public GeoPackageGeometry? Geometry { get; }
 
         /// <summary>The feature id, or <c>null</c> when the GeoJSON feature carries none.</summary>

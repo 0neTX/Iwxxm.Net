@@ -66,31 +66,37 @@ namespace Iwxxm.Net.Export.GeoPackage
 
                 case GeoJsonGeometryType.LineString:
                 case GeoJsonGeometryType.MultiLineString:
-                {
-                    var lines = new List<IReadOnlyList<GeoPackagePosition>>(geometry.Lines!.Count);
-                    foreach (IReadOnlyList<GeoJsonPosition> line in geometry.Lines)
-                        lines.Add(ConvertPositions(line));
-                    return GeoPackageGeometry.ForMultiLineString(lines);
-                }
+                    return ConvertLine(geometry.Lines!);
 
                 case GeoJsonGeometryType.Polygon:
                 case GeoJsonGeometryType.MultiPolygon:
-                {
-                    var polygons = new List<IReadOnlyList<IReadOnlyList<GeoPackagePosition>>>(geometry.Polygons!.Count);
-                    foreach (IReadOnlyList<IReadOnlyList<GeoJsonPosition>> polygon in geometry.Polygons)
-                    {
-                        var rings = new List<IReadOnlyList<GeoPackagePosition>>(polygon.Count);
-                        foreach (IReadOnlyList<GeoJsonPosition> ring in polygon)
-                            rings.Add(ConvertPositions(ring));
-                        polygons.Add(rings);
-                    }
-
-                    return GeoPackageGeometry.ForMultiPolygon(polygons);
-                }
+                    return ConvertPolygon(geometry.Polygons!);
 
                 default:
                     throw new InvalidOperationException($"Unsupported geometry type: {geometry.Type}.");
             }
+        }
+
+        private static GeoPackageGeometry ConvertLine(IReadOnlyList<IReadOnlyList<GeoJsonPosition>> source)
+        {
+            var lines = new List<IReadOnlyList<GeoPackagePosition>>(source.Count);
+            foreach (IReadOnlyList<GeoJsonPosition> line in source)
+                lines.Add(ConvertPositions(line));
+            return GeoPackageGeometry.ForMultiLineString(lines);
+        }
+
+        private static GeoPackageGeometry ConvertPolygon(IReadOnlyList<IReadOnlyList<IReadOnlyList<GeoJsonPosition>>> source)
+        {
+            var polygons = new List<IReadOnlyList<IReadOnlyList<GeoPackagePosition>>>(source.Count);
+            foreach (IReadOnlyList<IReadOnlyList<GeoJsonPosition>> polygon in source)
+            {
+                var rings = new List<IReadOnlyList<GeoPackagePosition>>(polygon.Count);
+                foreach (IReadOnlyList<GeoJsonPosition> ring in polygon)
+                    rings.Add(ConvertPositions(ring));
+                polygons.Add(rings);
+            }
+
+            return GeoPackageGeometry.ForMultiPolygon(polygons);
         }
 
         private static GeoPackagePosition ConvertPosition(GeoJsonPosition position) => new GeoPackagePosition(position.Lon, position.Lat);

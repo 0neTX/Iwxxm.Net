@@ -134,12 +134,15 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
                             Include(p);
                     break;
 
-                default:
+                case GeoPackageGeometryKind.MultiPolygon:
                     foreach (IReadOnlyList<IReadOnlyList<GeoPackagePosition>> polygon in Polygons!)
                         foreach (IReadOnlyList<GeoPackagePosition> ring in polygon)
                             foreach (GeoPackagePosition p in ring)
                                 Include(p);
                     break;
+
+                default:
+                    throw new InvalidOperationException($"Unsupported geometry kind {Kind}.");
             }
 
             return any ? new GeoPackageEnvelope(minX, maxX, minY, maxY) : (GeoPackageEnvelope?)null;

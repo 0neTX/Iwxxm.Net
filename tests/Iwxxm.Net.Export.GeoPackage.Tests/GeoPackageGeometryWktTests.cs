@@ -66,7 +66,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         [Fact]
         public void Wkt_OfTheDecodedBlob_EqualsTheWktOfTheGeometry_ForEveryFeatureOfTheSamples()
         {
-            foreach (string path in AllSamplePaths())
+            foreach (string path in SampleFiles.AllPaths())
             {
                 foreach (GeoPackageFeature feature in ReadFeatures(path).Where(f => f.Geometry != null))
                 {
@@ -80,7 +80,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         public void Samples_IncludeACircleAnAntimeridianSplitAndAPolarCap_ThatSurviveTheBlob()
         {
             int circles = 0, splits = 0, caps = 0;
-            foreach (string path in AllSamplePaths())
+            foreach (string path in SampleFiles.AllPaths())
             {
                 foreach (GeoPackageFeature feature in ReadFeatures(path).Where(f => f.Geometry != null))
                 {
@@ -88,11 +88,12 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                     if (geometry.Kind != GeoPackageGeometryKind.MultiPolygon)
                         continue;
 
-                    if (feature.Properties.Any(p => p.Key == "circleSegments"))
+                    IReadOnlyList<string> tags = TagsOf(feature);
+                    if (tags.Contains("circle"))
                         circles++;
-                    if (IsAntimeridianSplit(geometry))
+                    if (tags.Contains("antimeridian"))
                         splits++;
-                    if (IsPolarCap(geometry))
+                    if (tags.Contains("polar-cap"))
                         caps++;
 
                     AssertSameGeometry(geometry, Decode(GeoPackageGeometryEncoder.Encode(geometry, 4326), out _), path);
@@ -113,9 +114,21 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         internal static bool IsPolarCap(GeoPackageGeometry geometry) =>
             geometry.Polygons!.SelectMany(p => p).SelectMany(r => r).Any(p => Math.Abs(p.Y) == 90.0);
 
-        internal static IEnumerable<string> AllSamplePaths() =>
-            SampleFiles.All().Select(a => SampleFiles.PathOf((string)a[0]))
-                .Concat(SampleFiles.Extra().Select(a => SampleFiles.ExtraPathOf((string)a[0])));
+        /// <summary>The classification of a feature geometry by what the samples must cover: kind, circle, antimeridian, polar cap, hole.</summary>
+        internal static IReadOnlyList<string> TagsOf(GeoPackageFeature feature)
+        {
+            GeoPackageGeometry geometry = feature.Geometry!;
+            var tags = new List<string> { geometry.Kind.ToString().ToLowerInvariant() };
+            if (feature.Properties.Any(p => p.Key == "circleSegments")) tags.Add("circle");
+            if (geometry.Kind == GeoPackageGeometryKind.MultiPolygon)
+            {
+                if (IsAntimeridianSplit(geometry)) tags.Add("antimeridian");
+                if (IsPolarCap(geometry)) tags.Add("polar-cap");
+                if (geometry.Polygons!.Any(p => p.Count > 1)) tags.Add("hole");
+            }
+
+            return tags;
+        }
     }
 
     /// <summary>Well-known text with the shortest round-trip number of each coordinate ("R"), made for comparing, not for storing.</summary>

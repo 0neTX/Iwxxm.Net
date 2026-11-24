@@ -32,8 +32,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         public void Samples_CoverEveryKindIncludingPromotionAndSplitGeometries()
         {
             var all = new List<GeoPackageGeometry>();
-            foreach (string path in SampleFiles.All().Select(a => SampleFiles.PathOf((string)a[0]))
-                         .Concat(SampleFiles.Extra().Select(a => SampleFiles.ExtraPathOf((string)a[0]))))
+            foreach (string path in SampleFiles.AllPaths())
             {
                 all.AddRange(Read(path).Features.Where(f => f.Geometry != null).Select(f => f.Geometry!));
             }
