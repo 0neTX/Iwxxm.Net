@@ -26,6 +26,12 @@ namespace Iwxxm.Net.Demo
         /// <summary>Explicit CSV target; <see cref="StdoutMarker"/> means standard output; null means "next to the input".</summary>
         public string? CsvPath { get; private set; }
 
+        /// <summary>True when GeoPackage output was requested (<c>--geopackage</c>).</summary>
+        public bool ExportGeoPackage { get; private set; }
+
+        /// <summary>Explicit GeoPackage target; null means "next to the input". Standard output is not supported (a GeoPackage is a SQLite file).</summary>
+        public string? GeoPackagePath { get; private set; }
+
         public bool NoSchematron { get; private set; }
 
         /// <summary>True when the complete official WMO Schematron (Iwxxm.Net.Validation.Saxon) replaces the built-in subset.</summary>
@@ -57,6 +63,11 @@ namespace Iwxxm.Net.Demo
                     case "--csv":
                         options.ExportCsv = true;
                         options.CsvPath = TryReadOptionalValue(args, ref i);
+                        break;
+
+                    case "--geopackage":
+                        options.ExportGeoPackage = true;
+                        options.GeoPackagePath = TryReadOptionalValue(args, ref i);
                         break;
 
                     case "-o":
@@ -118,6 +129,12 @@ namespace Iwxxm.Net.Demo
                 return false;
             }
 
+            if (options.ExportGeoPackage && options.GeoPackagePath == StdoutMarker)
+            {
+                error = "Option '--geopackage' does not support standard output ('-'): a GeoPackage is a SQLite file and needs a file path.";
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(options.InputPath))
             {
                 error = "Missing input file. The input comes first: Iwxxm.Net.Demo <file.xml> [--geojson [path|-]] [options].";
@@ -130,6 +147,8 @@ namespace Iwxxm.Net.Demo
         public string ResolveGeoJsonPath() => ResolveOutputPath(GeoJsonPath, ".geojson");
 
         public string ResolveCsvPath() => ResolveOutputPath(CsvPath, ".csv");
+
+        public string ResolveGeoPackagePath() => ResolveOutputPath(GeoPackagePath, ".gpkg");
 
         private string ResolveOutputPath(string? explicitPath, string extension) =>
             !string.IsNullOrEmpty(explicitPath)

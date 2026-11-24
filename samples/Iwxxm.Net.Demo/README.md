@@ -1,6 +1,6 @@
 # Iwxxm.Net.Demo
 
-A small `net10.0` console application that consumes the library the way an application would. It parses one IWXXM 2025-2 file (any report type, a WAFS SIGWX forecast, or a `collect:MeteorologicalBulletin`), prints its structured data and, on request, exports it as GeoJSON. With `--official-schematron` it validates against the complete official WMO Schematron (165 rules) through the optional `Iwxxm.Net.Validation.Saxon` package.
+A small `net10.0` console application that consumes the library the way an application would. It parses one IWXXM 2025-2 file (any report type, a WAFS SIGWX forecast, or a `collect:MeteorologicalBulletin`), prints its structured data and, on request, exports it as GeoJSON, CSV or an OGC GeoPackage file. With `--official-schematron` it validates against the complete official WMO Schematron (165 rules) through the optional `Iwxxm.Net.Validation.Saxon` package.
 
 It is a **sample**, not part of the product: it is not in `Iwxxm.Net.slnx`, the Dockerfile, the CI workflow or the NuGet packages, and `dotnet test` / `dotnet pack` of the repository never see it.
 
@@ -12,13 +12,14 @@ It is a **sample**, not part of the product: it is not in `Iwxxm.Net.slnx`, the 
 | `Result<T>`: errors and warnings (code, severity, category, location, line) are always printed | `Program.cs`, `ConsoleReport.cs` |
 | The closed document hierarchy through `IIwxxmDocumentVisitor<TResult>` (adding a document type to the library breaks the build here) | `DocumentSummaryVisitor.cs` |
 | Value objects: `Speed`/`Length` with `Amount` and unit, `VerticalLimit`, `CodeListValue<T>`, `GeoSurface.Match` (polygon or circle) | `FactSheet.cs` |
+| `IwxxmGeoPackageExporter.Default.Export(document, path)` from the optional `Iwxxm.Net.Export.GeoPackage` package: a binary `.gpkg` file, so a path is required (`--geopackage -` is a usage error); a failure is a `GEOPACKAGE-EXPORT-ERROR` value | `Program.cs` |
 | `builder.BuildGeoJsonExporter().Export` on an already parsed document, from the same builder as the parser (returns a `Result<string>`); `ErrorCategory.Io` to tell an unreadable input from a bad message | `Program.cs` |
 
 Values the message does not carry are shown as `-`; nothing is defaulted.
 
 ## Build and run
 
-The repository pins SDK 10 in `global.json`; the sample targets `net10.0` because the optional `Iwxxm.Net.Validation.Saxon` project it references only targets `net10.0` (SaxonCS-HE 13.x ships a single `net10.0` asset). The core library still targets `netstandard2.0`/`2.1`. SaxonCS-HE restores transitively through that project reference (its version is pinned centrally in `Directory.Packages.props`), so building needs network access once, to restore it.
+The repository pins SDK 10 in `global.json`; the sample targets `net10.0` because the optional `Iwxxm.Net.Validation.Saxon` project it references only targets `net10.0` (SaxonCS-HE 13.x ships a single `net10.0` asset). It also references the optional `Iwxxm.Net.Export.GeoPackage` project, which brings `Microsoft.Data.Sqlite` and the native SQLite binaries (about 19 MB of packages, in `runtimes/<rid>/native/` of the output folder) for `--geopackage`; the core library still has no dependency. The core library still targets `netstandard2.0`/`2.1`. SaxonCS-HE restores transitively through that project reference (its version is pinned centrally in `Directory.Packages.props`), so building needs network access once, to restore it and the SQLite packages.
 
 The sample sets `InvariantGlobalization` to `false`: SaxonCS resolves the `en` culture and the official Schematron cannot be compiled in globalization-invariant mode. The Debian-based `runtime` image includes ICU, so no extra package is needed.
 
@@ -51,6 +52,14 @@ podman run --rm \
   -v "$PWD/tests/Iwxxm.Net.Tests/Samples":/samples:ro \
   mcr.microsoft.com/dotnet/runtime:10.0 \
   dotnet /app/Iwxxm.Net.Demo.dll /samples/wmo-examples/metar-A3-1.xml --official-schematron
+
+# 4. Export a GeoPackage (the file appears in /tmp/iwxxm-geo on the host)
+podman run --rm \
+  -v /tmp/iwxxm-demo:/app:ro \
+  -v "$PWD/tests/Iwxxm.Net.Tests/Samples":/samples:ro \
+  -v /tmp/iwxxm-geo:/geo \
+  mcr.microsoft.com/dotnet/runtime:10.0 \
+  dotnet /app/Iwxxm.Net.Demo.dll /samples/wmo-examples/sigmet-A6-2-TC.xml --geopackage /geo/sigmet-A6-2-TC.gpkg
 ```
 
 (`dotnet build` also writes `bin/` and `obj/` folders under `src/Iwxxm.Net` and `samples/`; they are git-ignored. Copy the repository to a scratch directory first if you want a pristine tree.)
@@ -66,6 +75,9 @@ Iwxxm.Net.Demo <file.xml> [options]
   --csv [path|-]       Also export RFC 4180 CSV (with OGC WKT geometries). Default target: the
                        input path with a .csv extension; '-' writes the CSV to stdout (the
                        report then goes to stderr).
+  --geopackage [path]  Also export an OGC GeoPackage (.gpkg, a SQLite file). Default target: the
+                       input path with a .gpkg extension. '-' (stdout) is not supported: the
+                       file is binary and SQLite needs a path.
   -o, --output <path>  Same as --geojson <path>.
   --pretty             Indent the GeoJSON.
   --no-schematron      Skip the built-in business rules (XSD validation only).
@@ -76,7 +88,7 @@ Iwxxm.Net.Demo <file.xml> [options]
   -h, --help           Show the help.
 ```
 
-The input file must be the first argument. `--geojson` takes the next argument as its path unless it starts with `-` (except a lone `-`), so put it after the input file.
+The input file must be the first argument. `--geojson`, `--csv` and `--geopackage` take the next argument as their path unless it starts with `-` (except a lone `-`), so put them after the input file.
 
 Examples:
 
@@ -84,6 +96,8 @@ Examples:
 Iwxxm.Net.Demo taf-A5-1.xml
 Iwxxm.Net.Demo sigmet-A6-2-TC.xml --geojson                  # writes sigmet-A6-2-TC.geojson
 Iwxxm.Net.Demo sigmet-A6-2-TC.xml --csv                      # writes sigmet-A6-2-TC.csv
+Iwxxm.Net.Demo sigmet-A6-2-TC.xml --geopackage               # writes sigmet-A6-2-TC.gpkg
+Iwxxm.Net.Demo sigwx-swh-2025-2.xml --geopackage out/sigwx.gpkg
 Iwxxm.Net.Demo spacewx-A7-4.xml -o out/swx.geojson --pretty
 Iwxxm.Net.Demo WAFS-Example.xml --geojson - > wafs.geojson   # report on stderr, GeoJSON on stdout
 Iwxxm.Net.Demo bulletin.xml --no-schematron
@@ -95,11 +109,21 @@ Iwxxm.Net.Demo sigmet-A6-1a-TS.xml --official-schematron      # all 165 official
 | Code | Meaning |
 | :---: | :--- |
 | 0 | Parsed (warnings may be present) and, if requested, exported |
-| 1 | Parse or validation errors, or the GeoJSON export failed, or the official Schematron engine could not be initialised (`SCHEMATRON-UNAVAILABLE` / `SCHEMATRON-EXECUTION-ERROR`, or an exception while loading Saxon, reported as a one-line message) |
-| 2 | Usage error (unknown option, missing or extra input, GeoJSON target equal to the input) |
-| 3 | I/O error (input missing or unreadable, output not writable) |
+| 1 | Parse or validation errors, or an export failed (an unwritable GeoPackage target is reported this way, as `GEOPACKAGE-EXPORT-ERROR`, because the library returns it as a value), or the official Schematron engine could not be initialised (`SCHEMATRON-UNAVAILABLE` / `SCHEMATRON-EXECUTION-ERROR`, or an exception while loading Saxon, reported as a one-line message) |
+| 2 | Usage error (unknown option, missing or extra input, an export target equal to the input, `--geopackage -`) |
+| 3 | I/O error (input missing or unreadable, GeoJSON or CSV output not writable) |
 
 Bad input never throws: the library returns a failed `Result<T>`, and the demo maps every `ErrorCategory.Io` error (`FILE-NOT-FOUND`, `ACCESS-DENIED`, `FILE-READ-ERROR`, ...) to exit code 3.
+
+## GeoPackage
+
+`--geopackage` writes the file with `IwxxmGeoPackageExporter.Default.Export(document, path)` and prints its size. The default path is the input path with a `.gpkg` extension; an existing file there is replaced (never the input itself: that is a usage error). To check a result with GDAL, no GDAL installation is needed:
+
+```bash
+podman run --rm -v /tmp/iwxxm-geo:/d:ro ghcr.io/osgeo/gdal:ubuntu-small-3.13.3 ogrinfo -al -so /d/sigmet-A6-2-TC.gpkg
+```
+
+(`/tmp/iwxxm-geo` is the directory mounted at `/geo` in step 4 above.) The layout of the file is in the [guide](../../docs/GUIDE.md#8b-geopackage-export) and the [reference](../../docs/REFERENCE.md#geopackage-tables-and-columns).
 
 ## Official Schematron
 

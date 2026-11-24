@@ -5,7 +5,8 @@
     netstandard2.0/2.1, so a net10.0 consumer picks one of those). It targets net10.0 because the optional
     Iwxxm.Net.Validation.Saxon package (the complete official WMO Schematron, enabled with the official-schematron option) only
     targets net10.0; SaxonCS-HE restores transitively through that project reference, with the version pinned centrally
-    in Directory.Packages.props. It is deliberately NOT part of Iwxxm.Net.slnx, the Dockerfile stages or the CI workflow:
+    in Directory.Packages.props. The optional Iwxxm.Net.Export.GeoPackage package (the geopackage option) brings
+    Microsoft.Data.Sqlite and the native SQLite binaries into the output folder the same way; the core stays dependency-free. It is deliberately NOT part of Iwxxm.Net.slnx, the Dockerfile stages or the CI workflow:
     it is never packed, tested or covered. Build it explicitly (see README.md).
   -->
   <PropertyGroup>
@@ -23,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Iwxxm.Net/Iwxxm.Net.csproj" />
     <ProjectReference Include="../../src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj" />
+    <ProjectReference Include="../../src/Iwxxm.Net.Export.GeoPackage/Iwxxm.Net.Export.GeoPackage.csproj" />
   </ItemGroup>
 
 </Project>
