@@ -141,7 +141,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             }
         }
 
-        private static void AssertSame(JsonElement geometry, GeoPackageGeometry actual, string where)
+        internal static void AssertSame(JsonElement geometry, GeoPackageGeometry actual, string where)
         {
             string type = geometry.GetProperty("type").GetString()!;
             JsonElement coordinates = geometry.GetProperty("coordinates");

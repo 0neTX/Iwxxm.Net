@@ -154,7 +154,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             }
         }
 
-        private static void AssertSameJson(JsonElement expected, JsonElement actual, string where)
+        internal static void AssertSameJson(JsonElement expected, JsonElement actual, string where)
         {
             Assert.True(expected.ValueKind == actual.ValueKind, where + ": JSON kind");
             switch (expected.ValueKind)
