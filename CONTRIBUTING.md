@@ -190,3 +190,5 @@ IWXXM_GPKG_UPDATE_GOLDEN=1 dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests -
 dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests -c Release -f net10.0 --filter "FullyQualifiedName~GeoPackageGoldenTests"
 git diff --stat tests/Iwxxm.Net.Export.GeoPackage.Tests/Golden
 ```
+
+Two scripts check the `.gpkg` files against GDAL, an independent reader. They are not part of the unit tests or of the workflow, need podman and a built test image (`podman build --target test -t iwxxm-net-test .`) and pull a pinned GDAL image the first time: `tools/validate-geopackage-file.sh` writes a file for every sample and checks it with `ogrinfo`, SQLite's integrity checks and GDAL's own GeoPackage validator, and `tools/validate-geopackage-geometry.sh` compares the geometry blobs with what GDAL reads. The demo application can also write a file (`--geopackage`); see its [README](samples/Iwxxm.Net.Demo/README.md).

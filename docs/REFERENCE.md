@@ -1,6 +1,6 @@
 # Iwxxm.Net reference
 
-The companion to the [guide](GUIDE.md): the guide teaches, this page looks things up. It holds one example per product family, the composition root and its ports, the full error-code table, the value-object catalogue and the namespace map.
+The companion to the [guide](GUIDE.md): the guide teaches, this page looks things up. It holds one example per product family, the GeoPackage table layout, the composition root and its ports, the full error-code table, the value-object catalogue and the namespace map.
 
 Every C# snippet is compiled against the packaged library. As in the guide, paths such as `samples/metar-A3-1.xml` refer to the official example messages copied next to your project (see [Before you start](GUIDE.md#1-before-you-start)).
 
@@ -8,11 +8,12 @@ Every C# snippet is compiled against the packaged library. As in the guide, path
 
 1. [One example per product family](#one-example-per-product-family)
 2. [GeoJSON export in detail](#geojson-export-in-detail)
-3. [Composition root and dependency injection](#composition-root-and-dependency-injection)
-4. [Official WMO Schematron](#official-wmo-schematron)
-5. [Error codes](#error-codes)
-6. [Domain value objects and spatial primitives](#domain-value-objects-and-spatial-primitives)
-7. [Namespaces and layers](#namespaces-and-layers)
+3. [GeoPackage tables and columns](#geopackage-tables-and-columns)
+4. [Composition root and dependency injection](#composition-root-and-dependency-injection)
+5. [Official WMO Schematron](#official-wmo-schematron)
+6. [Error codes](#error-codes)
+7. [Domain value objects and spatial primitives](#domain-value-objects-and-spatial-primitives)
+8. [Namespaces and layers](#namespaces-and-layers)
 
 ---
 
@@ -460,6 +461,88 @@ qvaci: 7080 characters
 
 ---
 
+## GeoPackage tables and columns
+
+The optional package `Iwxxm.Net.Export.GeoPackage` writes an OGC GeoPackage (see [section 8B of the guide](GUIDE.md#8b-geopackage-export) for the API, the options and the notes for .NET Framework). This section is the layout of the file. Every table is in WGS 84 (EPSG:4326, x = longitude, y = latitude), and rows are written in the order of the features of the GeoJSON export, so `fid` follows that order (1, 2, 3, ...) within a table.
+
+### File header and mandatory tables
+
+| Item | Value |
+| :--- | :--- |
+| `application_id` | `0x47504B47` (`GPKG`) |
+| `user_version` | `10400` for `GeoPackageVersion.Version14` (default), `10300` for `Version13` |
+| `gpkg_spatial_ref_sys` | Three rows: `-1` (undefined Cartesian), `0` (undefined geographic) and `4326` (WGS 84, `EPSG`, the WKT 1 definition) |
+| `gpkg_contents` | One row per data table. `identifier` is the table name. Features tables: `data_type` `features`, `srs_id` 4326, `min_x`, `min_y`, `max_x`, `max_y` the plain minimum and maximum of the stored coordinates. Attributes tables: `data_type` `attributes`, `srs_id` 0, extent `NULL`. `last_change` is `yyyy-MM-ddTHH:mm:ss.fffZ` in UTC: the `LastChangeUtc` option, else the issue time of the document, else `1970-01-01T00:00:00.000Z`. |
+| `gpkg_geometry_columns` | One row per features table: column `geom`, the geometry type name of the table, `srs_id` 4326, `z` 0, `m` 0 |
+
+Not written: `gpkg_extensions`, `gpkg_metadata` and its reference table, `gpkg_ogr_contents`, triggers, R-tree index tables, tile and raster tables.
+
+### Data tables
+
+| Table | `gpkg_contents.data_type` | Geometry column | Rows |
+| :--- | :--- | :--- | :--- |
+| `iwxxm_points` | `features` | `geom POINT NOT NULL` | Features with a point geometry. Created only when it has rows. |
+| `iwxxm_lines` | `features` | `geom MULTILINESTRING NOT NULL` | Features with a line geometry (a `LineString` is stored as a `MultiLineString` of one member). Created only when it has rows. |
+| `iwxxm_polygons` | `features` | `geom MULTIPOLYGON NOT NULL` | Features with a polygon geometry (a `Polygon` is stored as a `MultiPolygon` of one member; circles are the densified polygons of the GeoJSON export). Created only when it has rows. |
+| `iwxxm_attributes` | `attributes` | none | Features that have no geometry. Always created, possibly empty. |
+| `iwxxm_reports` | `attributes` | none | One row per report: a standalone report gives one row, a bulletin one per contained report. |
+| `iwxxm_metadata` | `attributes` | none | Key/value rows of the file. |
+
+### Columns of the feature and attribute tables
+
+`iwxxm_points`, `iwxxm_lines`, `iwxxm_polygons` and `iwxxm_attributes` share these columns (`iwxxm_attributes` has no `geom`):
+
+| Column | Type | Content |
+| :--- | :--- | :--- |
+| `fid` | `INTEGER PRIMARY KEY NOT NULL` | Row id, in feature order. |
+| `geom` | `POINT`, `MULTILINESTRING` or `MULTIPOLYGON`, `NOT NULL` | `StandardGeoPackageBinary`: header `GP`, version 0, flags `0x01` for a point (little-endian, no envelope) or `0x03` for lines and polygons (little-endian, envelope `[minx, maxx, miny, maxy]`), SRS id 4326, then little-endian WKB. 2D only. |
+| `feature_id` | `TEXT` | The GeoJSON feature `id`; `NULL` when the feature has none. |
+| `feature_type` | `TEXT` | The `featureType` property (for example `METAR_OBSERVATION`, `SIGMET_EVOLVING_VOLUME`, `JETSTREAM`). |
+| `report_id` | `TEXT` | The `reportId` property: the id of the report the feature belongs to. |
+| `report_type` | `TEXT` | The `reportType` property: the name of `IwxxmReportType` (for example `Metar`, `TropicalCycloneSigmet`). |
+| `bulletin_identifier` | `TEXT` | The bulletin identifier for a feature of a report inside a bulletin; `NULL` otherwise. |
+| `issue_time_utc` | `DATETIME` | The `issueTimeUtc` property as `yyyy-MM-ddTHH:mm:ss.fffZ`; `NULL` when absent. |
+| `properties` | `TEXT NOT NULL` | The GeoJSON `properties` object as compact JSON, the same text and key order as the GeoJSON export. Properties whose value is null are omitted, and a non-finite number is written as `null`, as there. |
+
+The columns `feature_type`, `report_id`, `report_type`, `bulletin_identifier` and `issue_time_utc` are read from the same properties object that is written to `properties`, so the column and the JSON cannot disagree. A feature that lacks one of those properties leaves its column `NULL`.
+
+### `iwxxm_reports`
+
+| Column | Type | Content |
+| :--- | :--- | :--- |
+| `fid` | `INTEGER PRIMARY KEY NOT NULL` | Row id, in report order. |
+| `report_id` | `TEXT NOT NULL` | The report id. |
+| `report_type` | `TEXT NOT NULL` | The `IwxxmReportType` name. |
+| `report_status` | `TEXT NOT NULL` | The report status code (for example `NORMAL`). |
+| `permissible_usage` | `TEXT NOT NULL` | The permissible usage code (for example `OPERATIONAL`). |
+| `issue_time_utc` | `DATETIME NOT NULL` | The issue time, `yyyy-MM-ddTHH:mm:ss.fffZ`. |
+| `bulletin_identifier` | `TEXT` | The bulletin identifier, for a report inside a bulletin; `NULL` otherwise. |
+
+### `iwxxm_metadata`
+
+| Column | Type | Content |
+| :--- | :--- | :--- |
+| `fid` | `INTEGER PRIMARY KEY NOT NULL` | Row id. |
+| `key` | `TEXT NOT NULL UNIQUE` | One of the keys below. |
+| `value` | `TEXT NOT NULL` | The value. |
+
+| Key | Value |
+| :--- | :--- |
+| `geopackage_version` | `1.3` or `1.4` |
+| `library_version` | The version of `Iwxxm.Net.Export.GeoPackage` that wrote the file |
+| `source_document_id` | The id of the exported document |
+| `source_document_type` | The `IwxxmReportType` name of the document (`MeteorologicalBulletin` for a bulletin) |
+| `bulletin_identifier` | Only for a bulletin |
+| `report_count` | The number of rows of `iwxxm_reports` |
+
+The rows are written in the order of the table above: five rows, or six for a bulletin.
+
+### Compatibility checks
+
+Files written by the package were opened with GDAL (`ogrinfo -al`) and checked with GDAL's GeoPackage validator (`validate_gpkg.py --extra --warning-as-error`), with `PRAGMA integrity_check` and `foreign_key_check`. The repository keeps those checks as `tools/validate-geopackage-file.sh` (every sample, through a pinned GDAL container image) and `tools/validate-geopackage-geometry.sh` (the geometry blobs against GDAL's reading of them); they are not part of the unit tests and need podman.
+
+---
+
 ## Composition root and dependency injection
 
 There are two ways to get a facade; their constructors are `internal`. For the common case use the default instances (`IwxxmParser.Default`, `IwxxmGeoJsonExporter.Default` and the optional `IwxxmSigwxParser.Default`) or the static `Parse*` / `ToGeoJson` helpers, which are thin wrappers over them. When you need options or a different Schematron engine, `IwxxmParserBuilder` is the composition root: it selects the options and the business-rule engine, connects the built-in internal adapters and returns immutable, thread-safe facades. The Schematron engine can be replaced through the public `ISchematronValidator` in `Iwxxm.Net.Extensibility`, or switched off; the other adapters (schema validator, mappers, GeoJSON exporter) are internal.
@@ -883,10 +966,11 @@ Consumers never need a layer name in a `using` directive:
 
 | Namespace | Contents |
 | :--- | :--- |
-| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes`, `ValidationSeverity`, and the `UseOfficialSchematron()` extension of the optional Saxon package |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`, `IwxxmCsvExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`, `CsvExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes`, `ValidationSeverity`, and the `UseOfficialSchematron()` extension of the optional Saxon package |
 | `Iwxxm.Net.Reports` | Domain model: the closed hierarchy (`IwxxmDocument`, `IwxxmReport`, `MeteorologicalBulletin`, `IIwxxmDocumentVisitor<TResult>`, `AerodromeObservation`, `Metar`, `Speci`, `Taf`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, `Sigwx`) and the value objects |
 | `Iwxxm.Net.Extensibility` | The `ISchematronValidator` port for custom business-rule engines and `IwxxmDocumentContext` |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
+| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion`, `GeoPackageErrorCodes` (optional package). Its parser members (`ProcessToGeoPackage`, `ProcessFileToGeoPackage`, `ParseToGeoPackage`, `ParseFileToGeoPackage`) are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`. |
 
 Everything else (`Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*`, `Iwxxm20252.Generated`) is `internal`.
 
@@ -921,6 +1005,7 @@ src/Iwxxm.Net/
 └── Presentation/               # Facades running the pipeline over outbound ports                   (ns Iwxxm.Net)
 
 src/Iwxxm.Net.Validation.Saxon/ # Optional driven adapter package (net10.0): ISchematronValidator over SaxonCS-HE
+src/Iwxxm.Net.Export.GeoPackage/ # Optional export package (netstandard2.0): GeoPackage writer over Microsoft.Data.Sqlite, reads the features of the core GeoJSON collector
 ```
 
 The rules checked by `HexagonalArchitectureTests`: Domain depends on nothing outside the Domain; Application depends only on Domain; Presentation never depends on Infrastructure or `System.Xml`; Infrastructure is reached only through the composition root and never calls facades; `Iwxxm20252.Generated` and Infrastructure types are not public; public types live only in the documented namespaces; every root-namespace type is assigned to a layer; and `Iwxxm.Net` has zero third-party runtime dependencies. See [CONTRIBUTING.md](../CONTRIBUTING.md#hexagonal-architecture-rules) for the contributor view.

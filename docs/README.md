@@ -4,8 +4,8 @@ Where to look, depending on what you want to do.
 
 | I want to... | Read |
 | :--- | :--- |
-| **Learn the library step by step** (parse, validate, read jet streams and clouds, METAR, TAF, SIGMET) | [GUIDE.md](GUIDE.md) |
-| **Look something up** (one example per product family, error codes, value objects, ports, namespaces) | [REFERENCE.md](REFERENCE.md) |
+| **Learn the library step by step** (parse, validate, export to GeoJSON, CSV and GeoPackage, read jet streams and clouds, METAR, TAF, SIGMET) | [GUIDE.md](GUIDE.md) |
+| **Look something up** (one example per product family, GeoPackage tables and columns, error codes, value objects, ports, namespaces) | [REFERENCE.md](REFERENCE.md) |
 | **Install the packages and see what is supported** | [../README.md](../README.md) |
 | **Change the code** (setup, layer rules, adding a report family, golden masters, documentation checks) | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 | **Report a vulnerability or harden a deployment** (supported versions, private reporting, scope, secure usage) | [../SECURITY.md](../SECURITY.md) |
