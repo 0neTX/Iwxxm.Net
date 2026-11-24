@@ -3,7 +3,7 @@ using System;
 namespace Iwxxm.Net.Export.GeoPackage
 {
     /// <summary>The GeoPackage specification version a file declares in its <c>user_version</c> header field.</summary>
-    internal enum GeoPackageVersion
+    public enum GeoPackageVersion
     {
         /// <summary>GeoPackage 1.4.0 (<c>user_version</c> 10400), the default.</summary>
         Version14,

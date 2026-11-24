@@ -13,7 +13,7 @@
     <PackageId>Iwxxm.Net.Export.GeoPackage</PackageId>
     <Title>Iwxxm.Net.Export.GeoPackage — OGC GeoPackage export for Iwxxm.Net</Title>
     <Product>Iwxxm.Net.Export.GeoPackage</Product>
-    <Description>Optional Iwxxm.Net add-on for exporting IWXXM 2025-2 documents to OGC GeoPackage (.gpkg) files. Under development: this version does not contain the exporter yet. The SQLite file will be written with Microsoft.Data.Sqlite (MIT) and the native SQLite binaries of SQLitePCLRaw (Apache-2.0), so Iwxxm.Net itself keeps zero dependencies.</Description>
+    <Description>Optional Iwxxm.Net add-on that exports parsed IWXXM 2025-2 documents (METAR, SPECI, TAF, SIGMET, AIRMET, advisories, SIGWX and bulletins) to OGC GeoPackage (.gpkg) files: one feature table per geometry kind, the reports and the document metadata, with deterministic output. The SQLite file is written with Microsoft.Data.Sqlite (MIT) and the native SQLite binaries of SQLitePCLRaw (Apache-2.0), so Iwxxm.Net itself keeps zero dependencies.</Description>
     <PackageTags>IWXXM;IWXXM-2025-2;Iwxxm.Net;GeoPackage;GPKG;OGC;SQLite;GIS;WMO;ICAO;Aviation;Meteorology</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
