@@ -266,7 +266,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
         // ---- the independent reader ----------------------------------------------------------------------------------------
 
-        private static IReadOnlyList<GeoPackageFeature> ReadFeatures(string path)
+        internal static IReadOnlyList<GeoPackageFeature> ReadFeatures(string path)
         {
             var result = IwxxmParser.ParseFile(path);
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
@@ -303,7 +303,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         /// A reader of StandardGeoPackageBinary written from the specification, not from the encoder: it checks the magic,
         /// the version, the flags, the SRS id (4326), the envelope layout and the WKB byte order and type codes.
         /// </summary>
-        private static GeoPackageGeometry Decode(byte[] blob, out GeoPackageEnvelope? envelope)
+        internal static GeoPackageGeometry Decode(byte[] blob, out GeoPackageEnvelope? envelope)
         {
             int p = 0;
             Assert.Equal(0x47, blob[p++]);
@@ -450,7 +450,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Assert.True(BitConverter.DoubleToInt64Bits(expected.Y) == BitConverter.DoubleToInt64Bits(actual.Y), where + ": y");
         }
 
-        private static byte[] Hex(string text)
+        internal static byte[] Hex(string text)
         {
             string digits = text.Replace(" ", string.Empty);
             var bytes = new byte[digits.Length / 2];
