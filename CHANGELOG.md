@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **JSON number formatting on .NET Framework**: the writer shared by the GeoJSON, CSV and (soon) GeoPackage exports checked each `G15`/`G16` candidate with `double.Parse`, which throws `OverflowException` on .NET Framework when the text rounds above `double.MaxValue`; a property near the top of the double range made the export fail on `net48` (on .NET it fell through to `G17`). It now uses `TryParse`, so the shortest round-trip text is chosen on every target framework. Real meteorological values are nowhere near that range.
+
 ## [1.0.0] - 2026-11-23
 
 ### Added

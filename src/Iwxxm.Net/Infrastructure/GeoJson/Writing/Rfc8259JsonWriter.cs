@@ -289,10 +289,10 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         private void AppendRoundTrip(double value)
         {
             string text = value.ToString("G15", CultureInfo.InvariantCulture);
-            if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+            if (!ParsesBackTo(text, value))
             {
                 text = value.ToString("G16", CultureInfo.InvariantCulture);
-                if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+                if (!ParsesBackTo(text, value))
                 {
                     text = value.ToString("G17", CultureInfo.InvariantCulture);
                 }
@@ -300,6 +300,14 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
             _sb.Append(text);
         }
+
+        /// <summary>
+        /// Whether <paramref name="text"/> parses back to exactly <paramref name="value"/>. <c>TryParse</c> and not <c>Parse</c>: near
+        /// <c>double.MaxValue</c> the <c>G15</c> text rounds above the maximum, which .NET Framework rejects with an
+        /// <see cref="OverflowException"/> (newer runtimes return infinity); either way the text does not round-trip.
+        /// </summary>
+        private static bool ParsesBackTo(string text, double value) =>
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) && parsed == value;
 
         private void WriteIndent()
         {
