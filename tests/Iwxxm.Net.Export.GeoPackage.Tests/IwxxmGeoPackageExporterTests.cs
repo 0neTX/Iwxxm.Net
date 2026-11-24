@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Iwxxm.Net.Export.GeoPackage.Model;
 using Iwxxm.Net.Reports;
 using Microsoft.Data.Sqlite;
 using Xunit;
@@ -89,7 +90,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         {
             IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
 
-            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf(), new GeoPackageExportOptions(lastChangeUtc: LastChange)).IsSuccess);
+            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf(), new GeoPackageExportOptions(GeoPackageVersion.Version14, LastChange)).IsSuccess);
 
             using (SqliteConnection connection = GeoPackageSqlite.Open(PathOf()))
                 Assert.Equal(new[] { "2026-03-04T05:06:07.089Z" }, Rows(connection, "SELECT DISTINCT last_change FROM gpkg_contents").Select(r => r[0]!).ToArray());
@@ -192,7 +193,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         }
 
         [Fact]
-        public void Export_FailureOnAnExistingFile_LeavesThePreviousFileUntouched()
+        public void Export_ToAPathBelowAnExistingFile_FailsAndLeavesThatFileUntouched_WhenThePathIsInvalid()
         {
             IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
             Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf()).IsSuccess);
@@ -207,18 +208,58 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Assert.Equal(new[] { "out.gpkg" }, FilesInDirectory());
         }
 
+        // A model with a point that cannot be encoded (NaN): the writer is already inside the transaction when it throws.
+        private static GeoPackageDocumentModel UnencodableModel(IwxxmDocument document)
+        {
+            GeoPackageDocumentModel model = GeoPackageFeatureSource.Read(document);
+            GeoPackageFeature first = model.Features.First(f => f.Geometry != null);
+            var bad = new GeoPackageFeature(first.Feature, GeoPackageGeometry.ForPoint(new GeoPackagePosition(double.NaN, 0)));
+            return new GeoPackageDocumentModel(model.DocumentId, model.DocumentType, model.BulletinIdentifier, model.Reports, model.Features.Concat(new[] { bad }).ToList());
+        }
+
+        [Fact]
+        public void Export_FailingAfterTheWriterStarted_OnThePathOfAValidGeoPackage_LeavesThatFileByteIdentical_AndNoTemporaryFile()
+        {
+            IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
+            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf()).IsSuccess);
+            byte[] before = File.ReadAllBytes(PathOf());
+
+            Result<string> result = IwxxmGeoPackageExporter.Default.ExportReadingModelWith(document, PathOf(), null, UnencodableModel);
+
+            Assert.True(result.IsFailure);
+            ValidationError error = Assert.Single(result.Errors);
+            Assert.Equal("GEOPACKAGE-EXPORT-ERROR", error.Code);
+            Assert.Equal(ErrorCategory.DomainMapping, error.Category);
+            Assert.Equal(document.Id, error.Location);
+            Assert.Equal(before, File.ReadAllBytes(PathOf()));
+            Assert.Equal(new[] { "out.gpkg" }, FilesInDirectory());
+            using (SqliteConnection connection = GeoPackageSqlite.Open(PathOf()))
+                Assert.Equal("ok", Scalar(connection, "PRAGMA integrity_check"));
+        }
+
+        [Fact]
+        public void Export_FailingAfterTheWriterStarted_OnANewPath_LeavesNoFile()
+        {
+            IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
+
+            Result<string> result = IwxxmGeoPackageExporter.Default.ExportReadingModelWith(document, PathOf(), null, UnencodableModel);
+
+            Assert.Equal("GEOPACKAGE-EXPORT-ERROR", Assert.Single(result.Errors).Code);
+            Assert.Empty(FilesInDirectory());
+        }
+
         [Fact]
         public void ExportToBytes_ReturnsTheFile_AndLeavesNoTemporaryFile()
         {
             IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
             string[] temporaryBefore = TemporaryFiles();
 
-            Result<byte[]> result = IwxxmGeoPackageExporter.Default.ExportToBytes(document, new GeoPackageExportOptions(lastChangeUtc: LastChange));
+            Result<byte[]> result = IwxxmGeoPackageExporter.Default.ExportToBytes(document, new GeoPackageExportOptions(GeoPackageVersion.Version14, LastChange));
 
             Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
             Assert.Equal("SQLite format 3\0", System.Text.Encoding.ASCII.GetString(result.Value, 0, 16));
             File.WriteAllBytes(PathOf("bytes.gpkg"), result.Value);
-            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf("file.gpkg"), new GeoPackageExportOptions(lastChangeUtc: LastChange)).IsSuccess);
+            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf("file.gpkg"), new GeoPackageExportOptions(GeoPackageVersion.Version14, LastChange)).IsSuccess);
             Assert.Equal(Dump(PathOf("file.gpkg")), Dump(PathOf("bytes.gpkg")));
             Assert.Equal(temporaryBefore, TemporaryFiles());
         }
@@ -240,9 +281,20 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Directory.GetFiles(Path.GetTempPath(), "iwxxm-" + new string('?', 32) + ".gpkg*").OrderBy(n => n, StringComparer.Ordinal).ToArray();
 
         [Fact]
-        public void Options_RejectAnUndefinedVersion()
+        public void Options_RejectAnUndefinedVersion_IncludingTheDefaultValueOfTheEnum()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new GeoPackageExportOptions((GeoPackageVersion)42));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoPackageExportOptions(default(GeoPackageVersion)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoPackageExportOptions(default(GeoPackageVersion), LastChange));
+            Assert.False(Enum.IsDefined(typeof(GeoPackageVersion), default(GeoPackageVersion)));
+        }
+
+        [Fact]
+        public void Version_NumericValues_ArePinned()
+        {
+            Assert.Equal(1, (int)GeoPackageVersion.Version13);
+            Assert.Equal(2, (int)GeoPackageVersion.Version14);
+            Assert.Equal(2, Enum.GetValues(typeof(GeoPackageVersion)).Length);
         }
 
         [Fact]
@@ -258,11 +310,11 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         {
             var issued = new DateTimeOffset(2025, 12, 1, 6, 30, 0, TimeSpan.FromHours(2));
 
-            Assert.Equal(LastChange, new GeoPackageExportOptions(lastChangeUtc: LastChange).ResolveLastChange(issued));
+            Assert.Equal(LastChange, new GeoPackageExportOptions(GeoPackageVersion.Version14, LastChange).ResolveLastChange(issued));
             Assert.Equal(issued, GeoPackageExportOptions.Default.ResolveLastChange(issued));
             Assert.Equal(GeoPackageExportOptions.FallbackLastChangeUtc, GeoPackageExportOptions.Default.ResolveLastChange(default(DateTimeOffset)));
             Assert.Equal(new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero), GeoPackageExportOptions.FallbackLastChangeUtc);
-            Assert.Equal(LastChange, new GeoPackageExportOptions(lastChangeUtc: LastChange).ResolveLastChange(default(DateTimeOffset)));
+            Assert.Equal(LastChange, new GeoPackageExportOptions(GeoPackageVersion.Version14, LastChange).ResolveLastChange(default(DateTimeOffset)));
         }
     }
 }

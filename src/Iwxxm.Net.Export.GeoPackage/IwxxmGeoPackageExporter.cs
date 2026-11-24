@@ -47,7 +47,14 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// was before the call.
         /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="document"/> is <c>null</c> (a programming error).</exception>
-        public Result<string> Export(IwxxmDocument document, string path, GeoPackageExportOptions? options = null)
+        public Result<string> Export(IwxxmDocument document, string path, GeoPackageExportOptions? options = null) =>
+            ExportReadingModelWith(document, path, options, GeoPackageFeatureSource.Read);
+
+        /// <summary>
+        /// The export with the reading of the model injected, so that a test can make the write fail after it has started
+        /// (an <see cref="IwxxmDocument"/> cannot be built outside the core to carry data the writer rejects).
+        /// </summary>
+        internal Result<string> ExportReadingModelWith(IwxxmDocument document, string path, GeoPackageExportOptions? options, Func<IwxxmDocument, GeoPackageDocumentModel> readModel)
         {
             if (document == null)
                 throw new ArgumentNullException(nameof(document));
@@ -58,7 +65,7 @@ namespace Iwxxm.Net.Export.GeoPackage
             try
             {
                 GeoPackageExportOptions effective = options ?? GeoPackageExportOptions.Default;
-                GeoPackageDocumentModel model = GeoPackageFeatureSource.Read(document);
+                GeoPackageDocumentModel model = readModel(document);
                 var writeOptions = new GeoPackageWriteOptions(effective.ResolveLastChange(document.IssueTimeUtc), effective.Version);
                 GeoPackageWriter.Write(path, model, writeOptions);
                 return Result<string>.Success(Path.GetFullPath(path));

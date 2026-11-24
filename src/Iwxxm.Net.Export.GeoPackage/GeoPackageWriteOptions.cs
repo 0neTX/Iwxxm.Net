@@ -3,13 +3,17 @@ using System;
 namespace Iwxxm.Net.Export.GeoPackage
 {
     /// <summary>The GeoPackage specification version a file declares in its <c>user_version</c> header field.</summary>
+    /// <remarks>
+    /// The numeric values are part of the public contract and never change. Zero is deliberately not a member, so an
+    /// uninitialized <c>default(GeoPackageVersion)</c> is rejected as an unknown version instead of silently selecting one.
+    /// </remarks>
     public enum GeoPackageVersion
     {
-        /// <summary>GeoPackage 1.4.0 (<c>user_version</c> 10400), the default.</summary>
-        Version14,
-
         /// <summary>GeoPackage 1.3.x (<c>user_version</c> 10300).</summary>
-        Version13
+        Version13 = 1,
+
+        /// <summary>GeoPackage 1.4.0 (<c>user_version</c> 10400), the default of <see cref="GeoPackageExportOptions"/>.</summary>
+        Version14 = 2
     }
 
     /// <summary>The text and header value a <see cref="GeoPackageVersion"/> stands for, defined once for every writer.</summary>

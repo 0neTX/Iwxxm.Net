@@ -3,6 +3,10 @@ using System;
 namespace Iwxxm.Net.Export.GeoPackage
 {
     /// <summary>The options of a GeoPackage export.</summary>
+    /// <remarks>
+    /// The constructors have no optional parameters on purpose: a new option will be added as a new constructor overload,
+    /// so that code compiled against an earlier version keeps binding to the constructor it was compiled with.
+    /// </remarks>
     public sealed class GeoPackageExportOptions
     {
         /// <summary>
@@ -18,14 +22,28 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// </summary>
         public static readonly GeoPackageExportOptions Default = new GeoPackageExportOptions();
 
+        /// <summary>Initializes the default options: <see cref="GeoPackageVersion.Version14"/> and a last change taken from the document.</summary>
+        public GeoPackageExportOptions()
+            : this(GeoPackageVersion.Version14)
+        {
+        }
+
+        /// <summary>Initializes options for the given GeoPackage version, with a last change taken from the document.</summary>
+        /// <param name="version">The GeoPackage version the file declares.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a defined <see cref="GeoPackageVersion"/> (for example <c>default(GeoPackageVersion)</c>).</exception>
+        public GeoPackageExportOptions(GeoPackageVersion version)
+            : this(version, null)
+        {
+        }
+
         /// <summary>Initializes the GeoPackage export options.</summary>
-        /// <param name="version">The GeoPackage version the file declares (default <see cref="GeoPackageVersion.Version14"/>).</param>
+        /// <param name="version">The GeoPackage version the file declares.</param>
         /// <param name="lastChangeUtc">
-        /// The value of <c>gpkg_contents.last_change</c> of every table, or <c>null</c> (default) to use the issue time of the
+        /// The value of <c>gpkg_contents.last_change</c> of every table, or <c>null</c> to use the issue time of the
         /// document. The clock is never read: when the document has no usable issue time, <see cref="FallbackLastChangeUtc"/> is used.
         /// </param>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a defined <see cref="GeoPackageVersion"/>.</exception>
-        public GeoPackageExportOptions(GeoPackageVersion version = GeoPackageVersion.Version14, DateTimeOffset? lastChangeUtc = null)
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a defined <see cref="GeoPackageVersion"/> (for example <c>default(GeoPackageVersion)</c>).</exception>
+        public GeoPackageExportOptions(GeoPackageVersion version, DateTimeOffset? lastChangeUtc)
         {
             if (!Enum.IsDefined(typeof(GeoPackageVersion), version))
                 throw new ArgumentOutOfRangeException(nameof(version), version, "Unknown GeoPackage version.");

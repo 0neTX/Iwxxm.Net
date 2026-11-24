@@ -35,6 +35,17 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         }
 
         [Fact]
+        public void ExportOptions_HaveExplicitConstructorOverloads_WithoutOptionalParameters()
+        {
+            string[] constructors = typeof(GeoPackageExportOptions).GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+                .Select(c => string.Join(",", c.GetParameters().Select(p => p.ParameterType.Name + (p.IsOptional ? "?" : string.Empty))))
+                .OrderBy(n => n, StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.Equal(new[] { string.Empty, "GeoPackageVersion", "GeoPackageVersion,Nullable`1" }, constructors);
+        }
+
+        [Fact]
         public void PublicSignatures_ExposeNoSqliteType()
         {
             foreach (Type type in Package.GetExportedTypes())

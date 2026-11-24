@@ -31,7 +31,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
         private string[] FilesInDirectory() => Directory.GetFileSystemEntries(_directory).Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).ToArray()!;
 
-        private static readonly GeoPackageExportOptions Options = new GeoPackageExportOptions(lastChangeUtc: new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero));
+        private static readonly GeoPackageExportOptions Options = new GeoPackageExportOptions(GeoPackageVersion.Version14, new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero));
 
         // The reference: parse, then export the document with the exporter.
         private string Reference(string sample)
