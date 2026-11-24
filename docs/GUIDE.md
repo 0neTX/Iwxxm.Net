@@ -788,7 +788,7 @@ No value comes from the clock. `last_change` is the option above, rows are writt
 
 ### Errors
 
-An export problem is a value, as for GeoJSON and CSV: a failed `Result<string>` with the code `GEOPACKAGE-EXPORT-ERROR` (`ErrorCategory.DomainMapping`, located at the document id). It covers an empty or invalid path, a directory that does not exist (it is not created), a path that is a directory or cannot be written, and any failure while writing. Only a `null` document (or a `null` parser or stream) throws.
+An export problem is a value, as for GeoJSON and CSV: a failed `Result<string>` with the code `GEOPACKAGE-EXPORT-ERROR` (`ErrorCategory.DomainMapping`, located at the document id). It covers an empty or invalid path, a directory that does not exist (it is not created), a path that is a directory or cannot be written, and any failure while writing. Only a `null` document (or a `null` parser or stream) throws. The members that read a file (`ProcessFileToGeoPackage`, `ParseFileToGeoPackage`) also throw `ArgumentException` for a `null`, empty or whitespace input file path, as the parser does; the output path is not argument-validated and a bad one is reported as a failed `Result`.
 
 ```csharp
 using System;
