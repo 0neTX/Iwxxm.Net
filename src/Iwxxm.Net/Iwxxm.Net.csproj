@@ -31,6 +31,8 @@
     <InternalsVisibleTo Include="Iwxxm.Net.Validation.Saxon.Tests" />
     <!-- The optional Saxon package reads the instance through the same depth-limited reader (SecureXml.CreateReader). -->
     <InternalsVisibleTo Include="Iwxxm.Net.Validation.Saxon" />
+    <!-- The optional GeoPackage package is meant to reuse the internal GeoJSON feature builders (same properties, same antimeridian-split geometries). -->
+    <InternalsVisibleTo Include="Iwxxm.Net.Export.GeoPackage" />
   </ItemGroup>
 
   <!--

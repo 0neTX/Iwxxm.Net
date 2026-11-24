@@ -18,10 +18,12 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Iwxxm.Net/Iwxxm.Net.csproj" />
+    <Project Path="src/Iwxxm.Net.Export.GeoPackage/Iwxxm.Net.Export.GeoPackage.csproj" />
     <Project Path="src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj" />
+    <Project Path="tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj" />
     <Project Path="tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj" />
     <Project Path="tests/Iwxxm.Net.Validation.Saxon.Tests/Iwxxm.Net.Validation.Saxon.Tests.csproj" />
   </Folder>

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Like the core test project: net10.0 everywhere, plus net48 when building on Windows or when IWXXM_TEST_NET48=true is
+      set. net48 is what verifies that the netstandard2.0 package finds its native SQLite on .NET Framework (the Windows CI
+      job runs the real .NET Framework; the container pipeline runs it under Mono, see the Dockerfile).
+    -->
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' Or '$(IWXXM_TEST_NET48)' == 'true'">net10.0;net48</TargetFrameworks>
+    <RootNamespace>Iwxxm.Net.Export.GeoPackage.Tests</RootNamespace>
+    <AssemblyName>Iwxxm.Net.Export.GeoPackage.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <!-- Package versions are managed centrally in Directory.Packages.props -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Iwxxm.Net.Export.GeoPackage\Iwxxm.Net.Export.GeoPackage.csproj" />
+  </ItemGroup>
+
+</Project>

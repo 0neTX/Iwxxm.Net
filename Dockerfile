@@ -16,8 +16,10 @@ WORKDIR /workspace
 COPY global.json nuget.config Directory.Build.props Directory.Packages.props Iwxxm.Net.slnx ./
 COPY src/Iwxxm.Net/Iwxxm.Net.csproj ./src/Iwxxm.Net/
 COPY src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj ./src/Iwxxm.Net.Validation.Saxon/
+COPY src/Iwxxm.Net.Export.GeoPackage/Iwxxm.Net.Export.GeoPackage.csproj ./src/Iwxxm.Net.Export.GeoPackage/
 COPY tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj ./tests/Iwxxm.Net.Tests/
 COPY tests/Iwxxm.Net.Validation.Saxon.Tests/Iwxxm.Net.Validation.Saxon.Tests.csproj ./tests/Iwxxm.Net.Validation.Saxon.Tests/
+COPY tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj ./tests/Iwxxm.Net.Export.GeoPackage.Tests/
 COPY tests/Iwxxm.Net.Benchmarks/Iwxxm.Net.Benchmarks.csproj ./tests/Iwxxm.Net.Benchmarks/
 
 RUN dotnet restore Iwxxm.Net.slnx
