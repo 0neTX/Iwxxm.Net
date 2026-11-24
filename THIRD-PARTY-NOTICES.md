@@ -1,7 +1,7 @@
 # Third-party notices
 
-Iwxxm.Net is licensed under the [MIT License](LICENSE) (Copyright (c) 2026 0neTX). The two NuGet
-packages, `Iwxxm.Net` and `Iwxxm.Net.Validation.Saxon`, and the repository also contain or depend on material from
+Iwxxm.Net is licensed under the [MIT License](LICENSE) (Copyright (c) 2026 0neTX). The three NuGet
+packages, `Iwxxm.Net`, `Iwxxm.Net.Validation.Saxon` and `Iwxxm.Net.Export.GeoPackage`, and the repository also contain or depend on material from
 other parties. This file lists it, the terms it comes with, and how this project meets them.
 
 Rules used to write this file: every statement comes from a file in this repository, from the licence file or nuspec of
@@ -9,7 +9,8 @@ the NuGet package concerned, or from the publisher's own web page (URL and fetch
 be established from those sources, the entry says so and is marked **To be confirmed by the maintainer**. Nothing here is
 legal advice.
 
-Facts checked on 2026-11-05. Web pages fetched on that date are marked "(fetched 2026-11-05)".
+Facts checked on 2026-11-05. Web pages fetched on that date are marked "(fetched 2026-11-05)". Section 7A was written on
+2026-11-24 from the nuspec files and package layouts on nuget.org; no web page was fetched for it.
 
 ## Contents
 
@@ -28,6 +29,7 @@ Facts checked on 2026-11-05. Web pages fetched on that date are marked "(fetched
 5. [Official WMO Schematron rules (`iwxxm.sch`)](#5-official-wmo-schematron-rules-iwxxmsch)
 6. [SchXslt 1.10.1](#6-schxslt-1101)
 7. [SaxonCS-HE 13.1.0 and its dependencies](#7-saxoncs-he-1310-and-its-dependencies)
+   - [7A SQLite, Microsoft.Data.Sqlite and SQLitePCLRaw (GeoPackage package)](#7a-sqlite-microsoftdatasqlite-and-sqlitepclraw-geopackage-package)
 8. [Test and benchmark dependencies (not redistributed)](#8-test-and-benchmark-dependencies-not-redistributed)
 9. [Tooling that is not shipped](#9-tooling-that-is-not-shipped)
 10. [Synthetic large-scale WAFS SIGWX sample (test data)](#10-synthetic-large-scale-wafs-sigwx-sample-test-data)
@@ -37,27 +39,32 @@ Facts checked on 2026-11-05. Web pages fetched on that date are marked "(fetched
 
 ## 1. Summary
 
-| Component | Version | Redistributed in `Iwxxm.Net` | Redistributed in `Iwxxm.Net.Validation.Saxon` | Licence (as stated) |
-| :--- | :--- | :---: | :---: | :--- |
-| WMO IWXXM 2025-2 XSDs | 2025-2 | yes (embedded) | no | no licence file upstream; see 2.1 |
-| WMO METCE / OPM / COLLECT XSDs | 1.2 | yes (embedded) | no | no licence file upstream; see 2.2 |
-| OGC GML 3.2.1 XSDs | 3.2.1.2 | yes (embedded) | no | OGC copyright and notices in the files; see 2.3 |
-| OGC O&M 2.0 XSD | 2.0.0 | yes (embedded) | no | OGC copyright notice in the file; see 2.4 |
-| ISO 19139 XSDs (gco, gmd, gsr, gss, gts) | 2012-07-13 | yes (embedded) | no | no notice in the XSDs; ISO terms apply; see 2.5 |
-| AIXM XSDs | 5.1.1 | yes (embedded) | no | BSD 3-clause text in the files; see 2.6 |
-| W3C `xlink.xsd`, `xml.xsd` | as vendored | yes (embedded) | no | see 2.7 |
-| WMO RDF code lists (20) | IWXXM 2025-2 | yes (embedded) | no (reads them from `Iwxxm.Net`) | no licence file upstream; see 3 |
-| Official `iwxxm.sch` | IWXXM 2025-2 | no | yes (embedded) | no licence file upstream; see 5 |
-| SchXslt | 1.10.1 | no | yes (embedded) | MIT |
-| SaxonCS-HE | 13.1.0 | no | no (NuGet dependency, installed by the consumer) | MPL-2.0 |
-| Test and benchmark packages | various | no | no | various; see 8 |
+| Component | Version | Redistributed in `Iwxxm.Net` | Redistributed in `Iwxxm.Net.Validation.Saxon` | Redistributed in `Iwxxm.Net.Export.GeoPackage` | Licence (as stated) |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| WMO IWXXM 2025-2 XSDs | 2025-2 | yes (embedded) | no | no | no licence file upstream; see 2.1 |
+| WMO METCE / OPM / COLLECT XSDs | 1.2 | yes (embedded) | no | no | no licence file upstream; see 2.2 |
+| OGC GML 3.2.1 XSDs | 3.2.1.2 | yes (embedded) | no | no | OGC copyright and notices in the files; see 2.3 |
+| OGC O&M 2.0 XSD | 2.0.0 | yes (embedded) | no | no | OGC copyright notice in the file; see 2.4 |
+| ISO 19139 XSDs (gco, gmd, gsr, gss, gts) | 2012-07-13 | yes (embedded) | no | no | no notice in the XSDs; ISO terms apply; see 2.5 |
+| AIXM XSDs | 5.1.1 | yes (embedded) | no | no | BSD 3-clause text in the files; see 2.6 |
+| W3C `xlink.xsd`, `xml.xsd` | as vendored | yes (embedded) | no | no | see 2.7 |
+| WMO RDF code lists (20) | IWXXM 2025-2 | yes (embedded) | no (reads them from `Iwxxm.Net`) | no | no licence file upstream; see 3 |
+| Official `iwxxm.sch` | IWXXM 2025-2 | no | yes (embedded) | no | no licence file upstream; see 5 |
+| SchXslt | 1.10.1 | no | yes (embedded) | no | MIT |
+| SaxonCS-HE | 13.1.0 | no | no (NuGet dependency, installed by the consumer) | no | MPL-2.0 |
+| SQLite (native, in `SQLitePCLRaw.lib.e_sqlite3`) | 3.53.3 | no | no | no (NuGet dependency, installed by the consumer) | public domain (not verified from a primary source); see 7A |
+| Microsoft.Data.Sqlite | 10.0.15 | no | no | no (NuGet dependency, installed by the consumer) | MIT (nuspec); see 7A |
+| SQLitePCLRaw (bundle, core, providers, native lib) | 2.1.13 | no | no | no (NuGet dependency, installed by the consumer) | Apache-2.0 (nuspec); see 7A |
+| Test and benchmark packages | various | no | no | no | various; see 8 |
 
 Nothing third-party is redistributed in binary form other than the embedded resources above. The `Iwxxm.Net` package has
-zero NuGet dependencies; `Iwxxm.Net.Validation.Saxon` declares dependencies on `Iwxxm.Net` and `SaxonCS-HE`.
+zero NuGet dependencies; `Iwxxm.Net.Validation.Saxon` declares dependencies on `Iwxxm.Net` and `SaxonCS-HE`;
+`Iwxxm.Net.Export.GeoPackage` declares dependencies on `Iwxxm.Net` and `Microsoft.Data.Sqlite`, which brings the native
+SQLite binaries through the consumer's NuGet restore.
 
 What each package contains besides the assemblies: `README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md`, the
 icon; `Iwxxm.Net` also `schema-notices/` (the upstream ReadMe and release-note files of the official schemas, 12 files);
-`Iwxxm.Net.Validation.Saxon` also `licenses/SchXslt/LICENSE`.
+`Iwxxm.Net.Validation.Saxon` also `licenses/SchXslt/LICENSE`; `Iwxxm.Net.Export.GeoPackage` only the common files.
 
 ## 2. Official XSD schemas
 
@@ -380,6 +387,46 @@ Open point: DotNet.Bundle publishes no licence information in its nuspec. **To b
 the licence of DotNet.Bundle (a build-time MSBuild task referenced by SaxonCS-HE). It is a Saxonica dependency, not
 redistributed here.
 
+## 7A. SQLite, Microsoft.Data.Sqlite and SQLitePCLRaw (GeoPackage package)
+
+`Iwxxm.Net.Export.GeoPackage` declares a NuGet dependency on `Microsoft.Data.Sqlite` 10.0.15 (`Directory.Packages.props`).
+Like Saxon, none of it is copied into this project's package: the consumer's NuGet restore downloads it, together with
+the packages below, and the consumer's application then redistributes it (about 19 MB, 95% of it the native binaries).
+Facts in this section come from the nuspec files and the file layout of the packages on nuget.org (version index,
+nuspec and `.nupkg` contents), read on 2026-11-24. **Not verified**: anything below that says so.
+
+| Package | Version | Licence (nuspec expression) | Role |
+| :--- | :--- | :--- | :--- |
+| Microsoft.Data.Sqlite | 10.0.15 | MIT | metapackage: depends on `.Core` and on the SQLitePCLRaw bundle (no assembly of its own) |
+| Microsoft.Data.Sqlite.Core | 10.0.15 | MIT | ADO.NET provider (`netstandard2.0` asset used by this package) |
+| SQLitePCLRaw.bundle_e_sqlite3 | 2.1.13 | Apache-2.0 | selects the provider and native library per platform |
+| SQLitePCLRaw.core | 2.1.13 | Apache-2.0 | raw SQLite binding |
+| SQLitePCLRaw.provider.e_sqlite3 | 2.1.13 | Apache-2.0 | native loader (.NET Standard 2.0 and modern .NET) |
+| SQLitePCLRaw.provider.dynamic_cdecl | 2.1.13 | Apache-2.0 | native loader on .NET Framework |
+| SQLitePCLRaw.lib.e_sqlite3 | 2.1.13 | Apache-2.0 (nuspec expression only) | the native SQLite binaries (below) |
+| System.Memory, System.Buffers, System.Numerics.Vectors, System.Runtime.CompilerServices.Unsafe | 4.5.3, 4.4.0, 4.4.0, 4.5.2 | **not read** | .NET Framework consumers only (transitive) |
+
+- **Native SQLite**: `SQLitePCLRaw.lib.e_sqlite3` 2.1.13 carries `runtimes/<rid>/native/` builds of SQLite for Windows
+  (`win-x86`, `win-x64`, `win-arm64`), Linux (glibc and musl, several CPU architectures), macOS and Mac Catalyst, and a
+  WebAssembly build. The library embedded in the Linux builds reports SQLite **3.53.3**, compiled with, among others,
+  `ENABLE_RTREE`, `ENABLE_FTS3/4/5`, `ENABLE_MATH_FUNCTIONS` and `DEFAULT_FOREIGN_KEYS`. SQLite itself is placed in the
+  public domain by its authors (<https://www.sqlite.org/copyright.html>); **this statement was not fetched or checked
+  for this file**: confirm it from that page. The package carries no separate
+  licence file for the native code, only the nuspec expression Apache-2.0, which covers the SQLitePCLRaw packaging, not
+  SQLite.
+- Not verified: the SQLite version and compile options of the Windows and macOS binaries (only the Linux builds were
+  run; the others are assumed to be built from the same source); the licence of the four `System.*` packages (they
+  are Microsoft packages, but their nuspecs were not read for this file).
+- Compliance: this project does not modify, copy or ship any of these files; it only references the packages. The
+  MIT and Apache-2.0 terms (keep the copyright and licence notices when redistributing) apply to a consumer that ships
+  them with an application; this file is packed into `Iwxxm.Net.Export.GeoPackage` so that the information travels with
+  it.
+- Version policy: `Microsoft.Data.Sqlite` 10.0.x is used because every 10.0.x release ships a `netstandard2.0` asset;
+  11.0.0 targets `net10.0` only (and SQLitePCLRaw 3.x) and is not used.
+
+**To be confirmed by the maintainer**: the public-domain status of SQLite (primary source above) and the licence of the
+four `System.*` packages, before the GeoPackage package is published.
+
 ## 8. Test and benchmark dependencies (not redistributed)
 
 Used only by `tests/` projects. They are not part of either NuGet package (no packable project references them) and are
@@ -439,6 +486,7 @@ The SVG diagrams in `docs/assets/` are drawn by hand for this project (MIT).
 3. ISO 19139 schemas (2.5): whether redistribution in a package is covered by the ISO electronic-insert terms.
 4. UCAR-copyrighted `xlink.xsd` and the W3C `xml.xsd` (2.7).
 5. DotNet.Bundle licence (7.2) and the location of the SaxonCS 13.1.0 source (7.1).
+6. SQLite public-domain statement and the licence of the `System.*` packages brought in on .NET Framework (7A).
 
 None of these blocks the MIT licence of the project's own code; they concern the redistributed third-party files.
 

@@ -21,8 +21,8 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 ## Prerequisites
 
 - **.NET 10 SDK** (configured in [`global.json`](global.json); native `.slnx` solution support).
-- `Iwxxm.Net` multi-targets **`netstandard2.0`** and **`netstandard2.1`**; the optional `Iwxxm.Net.Validation.Saxon` package and the test projects target **`net10.0`**. On Windows the core test project also targets **`net48`**, so `netstandard2.0` runs on .NET Framework (keep test code .NET Framework-compatible: no `string.Contains(string, StringComparison)`, span-only or .NET-only APIs). Golden-master comparisons run on .NET only (`#if !NETFRAMEWORK`). The `net48` target uses the test-only `System.Text.Json` package (Central Package Management, never shipped).
-- **`net48` outside Windows (opt-in)**: set `IWXXM_TEST_NET48=true` (environment variable or `-p:IWXXM_TEST_NET48=true`) to add `net48` to the core test project on Linux or macOS; the SDK compiles it against the `Microsoft.NETFramework.ReferenceAssemblies` package. `podman build --target net48-compile .` compiles it; `podman build --target net48-test .` also runs it under Mono with the xunit console runner (an approximation: the authoritative .NET Framework run is the Windows CI job). The default build and `--target pack` are unchanged.
+- `Iwxxm.Net` multi-targets **`netstandard2.0`** and **`netstandard2.1`**; the optional `Iwxxm.Net.Validation.Saxon` package and the test projects target **`net10.0`**; the optional `Iwxxm.Net.Export.GeoPackage` package targets **`netstandard2.0`** and depends on `Microsoft.Data.Sqlite` (its tests also run on `net48` like the core tests). On Windows the core test project also targets **`net48`**, so `netstandard2.0` runs on .NET Framework (keep test code .NET Framework-compatible: no `string.Contains(string, StringComparison)`, span-only or .NET-only APIs). Golden-master comparisons run on .NET only (`#if !NETFRAMEWORK`). The `net48` target uses the test-only `System.Text.Json` package (Central Package Management, never shipped).
+- **`net48` outside Windows (opt-in)**: set `IWXXM_TEST_NET48=true` (environment variable or `-p:IWXXM_TEST_NET48=true`) to add `net48` to the core test project on Linux or macOS; the SDK compiles it against the `Microsoft.NETFramework.ReferenceAssemblies` package. `podman build --target net48-compile .` compiles it; `podman build --target net48-test .` also runs it (and the GeoPackage tests, which need a `dllmap` for `libdl` and `-noshadow`, both set by the stage) under Mono with the xunit console runner (an approximation: the authoritative .NET Framework run is the Windows CI job). The default build and `--target pack` are unchanged.
 - The reference build is the container pipeline: `podman build --target test -t iwxxm-net-test .` (or `docker build`).
 - `tools/run-local-ci.sh` never publishes packages and never forwards `GITHUB_TOKEN`. Publishing belongs to the GitHub Actions workflow; a local publish needs the explicit `--publish` flag, `IWXXM_NUGET_PUBLISH_API_KEY`, an explicit `PACKAGE_VERSION` and a clean git tree (see README).
 
@@ -49,6 +49,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
    ```bash
    dotnet pack src/Iwxxm.Net/Iwxxm.Net.csproj -c Release -o ./artifacts
    dotnet pack src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj -c Release -o ./artifacts
+   dotnet pack src/Iwxxm.Net.Export.GeoPackage/Iwxxm.Net.Export.GeoPackage.csproj -c Release -o ./artifacts
    ```
 
 ---
@@ -106,7 +107,7 @@ It writes the raw `xscgen` output to `artifacts/xscgen-reference/` (git-ignored)
 
 The official WMO IWXXM 2025-2 schemas and their imports (`src/Iwxxm.Net/Resources/Xsd/Official/`) and the official RDF code lists (`src/Iwxxm.Net/Resources/Codelists/`) are byte-identical copies of [wmo-im/iwxxm](https://github.com/wmo-im/iwxxm) (`IWXXM/`, `externalSchema/`, `IWXXM/rule/*.rdf`). Never edit them; to upgrade, copy the new upstream files unchanged, keeping their relative paths, and include only the files reachable from `iwxxm.xsd` / `iwxxm-collect.xsd`.
 
-The same rule applies to `src/Iwxxm.Net.Validation.Saxon/Resources/Schematron/iwxxm.sch` (official `IWXXM/rule/iwxxm.sch`, SHA-256 checked by a test) and to the vendored SchXslt 1.10.1 files under `src/Iwxxm.Net.Validation.Saxon/Resources/SchXslt/` (keep `LICENSE`). Whenever you add, remove or upgrade a vendored file or a package dependency, update [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) (its last section explains how); the file is packed into both NuGet packages. The Saxon package reads the RDF code lists from the `Iwxxm.Net` assembly through their manifest names `Iwxxm.Net/Resources/Codelists/*.rdf`; renaming them is a breaking change for that package.
+The same rule applies to `src/Iwxxm.Net.Validation.Saxon/Resources/Schematron/iwxxm.sch` (official `IWXXM/rule/iwxxm.sch`, SHA-256 checked by a test) and to the vendored SchXslt 1.10.1 files under `src/Iwxxm.Net.Validation.Saxon/Resources/SchXslt/` (keep `LICENSE`). Whenever you add, remove or upgrade a vendored file or a package dependency, update [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) (its last section explains how); the file is packed into every NuGet package. The Saxon package reads the RDF code lists from the `Iwxxm.Net` assembly through their manifest names `Iwxxm.Net/Resources/Codelists/*.rdf`; renaming them is a breaking change for that package.
 
 ---
 

@@ -2,8 +2,8 @@
 
 # ==============================================================================
 # Stage 1: restore — Restore NuGet packages (cached layer)
-# The .NET 10 SDK builds every target: netstandard2.0/2.1 (Iwxxm.Net) and net10.0
-# (Iwxxm.Net.Validation.Saxon, test projects, benchmarks).
+# The .NET 10 SDK builds every target: netstandard2.0/2.1 (Iwxxm.Net), netstandard2.0
+# (Iwxxm.Net.Export.GeoPackage) and net10.0 (Iwxxm.Net.Validation.Saxon, test projects, benchmarks).
 # The SDK image is pinned (AUD-M18): tag 10.0.403 (SDK 10.0.403, runtime 10.0.14, within the
 # global.json band 10.0.100 + latestFeature) and its digest, so a rebuild uses the same toolchain.
 # No `dotnet tool restore`: the only local tool (xscgen) is a design-time helper (AUD-L11).
@@ -57,6 +57,12 @@ RUN dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj \
     --no-build \
     --verbosity normal \
     --collect:"XPlat Code Coverage" \
+    --results-directory /workspace/artifacts/test-results && \
+    dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj \
+    --configuration Release \
+    --no-build \
+    --verbosity normal \
+    --collect:"XPlat Code Coverage" \
     --results-directory /workspace/artifacts/test-results
 
 # ==============================================================================
@@ -66,7 +72,7 @@ FROM test AS pack
 ARG PACKAGE_VERSION=1.0.0-rc.1
 ARG FILE_VERSION=1.0.0.1
 
-RUN for project in src/Iwxxm.Net/Iwxxm.Net.csproj src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj; do \
+RUN for project in src/Iwxxm.Net/Iwxxm.Net.csproj src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj src/Iwxxm.Net.Export.GeoPackage/Iwxxm.Net.Export.GeoPackage.csproj; do \
         dotnet pack "$project" \
             --configuration Release \
             --no-build \
@@ -91,9 +97,19 @@ RUN perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
          print "Iwxxm.Net snupkg: SourceLink present\n";' \
         /workspace/artifacts/Iwxxm.Net.${PACKAGE_VERSION}.snupkg
 
-# Guard: both packages ship the third-party notices and the licence at the package root (the Saxon package also the
+# Guard: the GeoPackage package ships its assembly and depends on the core and on Microsoft.Data.Sqlite (which brings
+# the native SQLite binaries); the core must keep zero dependencies, which the guard above enforces
+RUN perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
+        'unzip $ARGV[0] => \my $nuspec, Name => "Iwxxm.Net.Export.GeoPackage.nuspec" or die "nuspec not found: $UnzipError\n"; \
+         for my $id ("Iwxxm.Net", "Microsoft.Data.Sqlite") { \
+             $nuspec =~ /<dependency\s+id="\Q$id\E"/ or die "ERROR: Iwxxm.Net.Export.GeoPackage does not depend on $id\n"; } \
+         unzip $ARGV[0] => \my $dll, Name => "lib/netstandard2.0/Iwxxm.Net.Export.GeoPackage.dll" or die "ERROR: assembly missing: $UnzipError\n"; \
+         print "Iwxxm.Net.Export.GeoPackage nuspec: depends on Iwxxm.Net and Microsoft.Data.Sqlite; netstandard2.0 assembly present\n";' \
+        /workspace/artifacts/Iwxxm.Net.Export.GeoPackage.${PACKAGE_VERSION}.nupkg
+
+# Guard: all three packages ship the third-party notices and the licence at the package root (the Saxon package also the
 # SchXslt licence)
-RUN for pkg in Iwxxm.Net Iwxxm.Net.Validation.Saxon; do \
+RUN for pkg in Iwxxm.Net Iwxxm.Net.Validation.Saxon Iwxxm.Net.Export.GeoPackage; do \
         for entry in THIRD-PARTY-NOTICES.md LICENSE; do \
             perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
                 'unzip $ARGV[0] => \my $data, Name => $ARGV[1] or die "ERROR: $ARGV[0] does not contain $ARGV[1]: $UnzipError\n"; \
@@ -117,9 +133,12 @@ COPY --from=pack /workspace/artifacts/ /
 # ==============================================================================
 # Stages 5a and 5b (optional, AUD-M17): the net48 target of the core test project. They are lettered additions to
 # the numbered sequence (1 to 6), not renumbered stages, and are not part of the default build.
-#   5a `net48-compile` compiles the net48 target against the reference assemblies (Microsoft.NETFramework.ReferenceAssemblies).
-#   5b `net48-test` also runs it under Mono with the xunit console runner (a Mono approximation of .NET Framework;
-#      the Windows CI job is the real .NET Framework run).
+#   5a `net48-compile` compiles the net48 target of the core and of the GeoPackage test projects against the reference
+#      assemblies (Microsoft.NETFramework.ReferenceAssemblies).
+#   5b `net48-test` also runs both under Mono with the xunit console runner (a Mono approximation of .NET Framework;
+#      the Windows CI job is the real .NET Framework run). The GeoPackage run checks that the netstandard2.0 package
+#      loads its bundled native SQLite (runtimes/<rid>/native) from a net48 application; the native binary Mono loads is
+#      the Linux one, so the Windows DLL lookup is only verified by the Windows CI job.
 # Usage: podman build --target net48-compile .   |   podman build --target net48-test .   (docker build works the same)
 # These stages sit before `ci` so that the default (last) stage is unchanged.
 #
@@ -129,13 +148,15 @@ COPY --from=pack /workspace/artifacts/ /
 # ==============================================================================
 FROM restore AS net48-compile
 COPY . .
-RUN dotnet restore tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj -p:IWXXM_TEST_NET48=true && \
-    dotnet build tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj \
-        --configuration Release \
-        --no-restore \
-        --framework net48 \
-        -p:IWXXM_TEST_NET48=true \
-        -p:ContinuousIntegrationBuild=true
+RUN for project in tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj; do \
+        dotnet restore "$project" -p:IWXXM_TEST_NET48=true && \
+        dotnet build "$project" \
+            --configuration Release \
+            --no-restore \
+            --framework net48 \
+            -p:IWXXM_TEST_NET48=true \
+            -p:ContinuousIntegrationBuild=true || exit 1; \
+    done
 
 FROM net48-compile AS net48-test
 ARG XUNIT_RUNNER_CONSOLE_VERSION=2.9.3
@@ -146,8 +167,16 @@ RUN apt-get update -qq && \
     curl -sSfL -o /tmp/xunit-runner.zip "https://www.nuget.org/api/v2/package/xunit.runner.console/${XUNIT_RUNNER_CONSOLE_VERSION}" && \
     echo "${XUNIT_RUNNER_CONSOLE_SHA256}  /tmp/xunit-runner.zip" | sha256sum -c - && \
     unzip -q /tmp/xunit-runner.zip -d /opt/xunit-runner
+# Mono resolves the P/Invoke library name "dl" (used by SQLitePCLRaw to dlopen the bundled SQLite) to libdl.so, which
+# glibc 2.34+ (Ubuntu 24.04) no longer ships: only libdl.so.2 exists. Map the name once for Mono (tested with Mono 6.8).
+RUN perl -0pi -e 's{</configuration>}{  <dllmap dll="dl" target="libdl.so.2" os="!windows"/>\n</configuration>}' /etc/mono/config && \
+    grep -q 'dllmap dll="dl"' /etc/mono/config
 WORKDIR /workspace/tests/Iwxxm.Net.Tests/bin/Release/net48
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Tests.dll -nologo -parallel none
+WORKDIR /workspace/tests/Iwxxm.Net.Export.GeoPackage.Tests/bin/Release/net48
+# -noshadow: the console runner otherwise copies the test assemblies to a temporary directory, without the
+# runtimes/<rid>/native folder the bundled SQLite is loaded from.
+RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Export.GeoPackage.Tests.dll -nologo -parallel none -noshadow
 
 # ==============================================================================
 # Stage 6: ci — Default runtime stage (exports artifacts only; never publishes)

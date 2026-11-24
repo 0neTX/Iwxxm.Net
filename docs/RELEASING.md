@@ -51,9 +51,20 @@ The files bundled in every package come from `Directory.Build.targets` (README, 
 | :--- | :--- |
 | `Iwxxm.Net` | `lib/netstandard2.0` and `lib/netstandard2.1` assemblies with the embedded official schemas, code lists and Schematron subset; `README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md`, `icon.png`; `schema-notices/` (upstream ReadMe and release notes of the official schemas). No NuGet dependencies. |
 | `Iwxxm.Net.Validation.Saxon` | `lib/net10.0` assembly with the embedded `iwxxm.sch` and SchXslt; `README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md`, `icon.png`, `licenses/SchXslt/LICENSE`. Depends on `Iwxxm.Net` and `SaxonCS-HE`. |
+| `Iwxxm.Net.Export.GeoPackage` | `lib/netstandard2.0` assembly; `README.md`, `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md`, `icon.png`. Depends on `Iwxxm.Net` and `Microsoft.Data.Sqlite` 10.0.15 (which brings SQLitePCLRaw 2.1.13 and the native SQLite binaries; about 19 MB on restore). Not part of a release yet: see "The GeoPackage package". |
 | `.snupkg` symbol packages | PDBs with SourceLink maps to the GitHub sources. |
 
-The `Dockerfile` pack stage (the local check) fails the build if the core nuspec declares a dependency, if the core symbol package lacks SourceLink, or if either package lacks `THIRD-PARTY-NOTICES.md` or `LICENSE`. The workflow itself checks only that the core package declares no dependency; the other guards run in the container build, so run it before tagging.
+The `Dockerfile` pack stage (the local check) fails the build if the core nuspec declares a dependency, if the core symbol package lacks SourceLink, if the GeoPackage nuspec does not depend on `Iwxxm.Net` and `Microsoft.Data.Sqlite`, or if any package lacks `THIRD-PARTY-NOTICES.md` or `LICENSE`. The workflow itself checks only that the core package declares no dependency; the other guards run in the container build, so run it before tagging.
+
+## The GeoPackage package
+
+`Iwxxm.Net.Export.GeoPackage` is built, tested and packed by the `Dockerfile`, but the GitHub Actions workflow does not build it until the workflow change that adds it is applied (it needs a token that may push workflow files, so it is delivered as a patch). Before the first release of this package:
+
+- **Platforms.** The package targets `netstandard2.0` and depends on `Microsoft.Data.Sqlite`, whose SQLitePCLRaw bundle initializes the native SQLite on its own on modern .NET. Native files come from `SQLitePCLRaw.lib.e_sqlite3` under `runtimes/<rid>/native/` for Windows (x86, x64, ARM64), Linux (glibc and musl) and macOS; only the Linux ones (x64, glibc and musl) have been run, the Windows and macOS ones are inferred from the package layout.
+- **.NET Framework (net48) on Windows.** A project that uses `PackageReference` gets `e_sqlite3.dll` for `win-x86` and `win-x64` copied under `runtimes\` of its output; the SQLite loader looks for them there. Not covered, and to be documented for users: projects that use `packages.config` (the native copy is not applied, so `e_sqlite3.dll` must be copied by hand next to the executable) and .NET Framework on Windows ARM64 (no `win-arm64` copy rule for .NET Framework).
+- **What has and has not been run.** The tests run on `net10.0` in the container (glibc, and a musl check was made once with the same package) and, in the `net48-test` stage, on `net48` under Mono on Linux (which loads the Linux native library, after a `dllmap` for `libdl` and with the xunit console runner's shadow copy turned off in that stage; Mono is not .NET Framework). The real .NET Framework on Windows (x86, x64 and AnyCPU) is verified only by the Windows CI job, so the package must not claim .NET Framework support until that job has passed. If it fails for a platform, the fallback is a `net10.0`-only package or a documented manual copy of `e_sqlite3.dll`.
+- **Files.** The exporter opens its SQLite connections with `Pooling=False`, so the `.gpkg` file can be deleted or moved right after the export on Windows.
+- **Versions.** `Microsoft.Data.Sqlite` stays on the 10.0.x line while `netstandard2.0` is a target (11.0.0 targets `net10.0` only). Updating it changes the SQLite version that writes the files.
 
 ## Publication checklist for v1.0.0
 
