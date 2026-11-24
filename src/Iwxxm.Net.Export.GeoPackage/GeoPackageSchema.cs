@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Iwxxm.Net.Export.GeoPackage.Model;
 using Microsoft.Data.Sqlite;
 
@@ -18,8 +19,14 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// <summary>The SRS of every table: WGS 84 longitude/latitude.</summary>
         internal const int Wgs84SrsId = 4326;
 
+        /// <summary>The reference system for data with no defined Cartesian coordinate system (required by the specification).</summary>
+        internal const int UndefinedCartesianSrsId = -1;
+
         /// <summary>The reference system GDAL gives an attributes table (a table without geometry).</summary>
         internal const int UndefinedGeographicSrsId = 0;
+
+        /// <summary>The <c>application_id</c> of every GeoPackage: the ASCII text "GPKG" (0x47504B47).</summary>
+        internal const int ApplicationId = 0x47504B47;
 
         internal const string FeaturesDataType = "features";
         internal const string AttributesDataType = "attributes";
@@ -52,7 +59,7 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// <summary>
         /// Writes the header pragmas (<c>application_id</c> "GPKG" and the <c>user_version</c> of
         /// <paramref name="version"/>), creates the three mandatory tables and inserts the three mandatory reference
-        /// systems (-1, 0 and 4326).
+        /// systems (undefined Cartesian, undefined geographic and WGS 84).
         /// </summary>
         /// <exception cref="ArgumentNullException"><paramref name="transaction"/> is <c>null</c>.</exception>
         public static void CreateBase(SqliteTransaction transaction, GeoPackageVersion version)
@@ -60,17 +67,17 @@ namespace Iwxxm.Net.Export.GeoPackage
             if (transaction == null)
                 throw new ArgumentNullException(nameof(transaction));
 
-            // PRAGMA values cannot be bound; these are fixed literals, never built from input.
-            GeoPackageSqlite.Execute(transaction, "PRAGMA application_id = 1196444487");
-            GeoPackageSqlite.Execute(transaction, UserVersionPragma(version));
+            // PRAGMA values cannot be bound; these are constants and enum-derived numbers, never built from input.
+            GeoPackageSqlite.Execute(transaction, "PRAGMA application_id = " + ApplicationId.ToString(CultureInfo.InvariantCulture));
+            GeoPackageSqlite.Execute(transaction, "PRAGMA user_version = " + version.ToUserVersion().ToString(CultureInfo.InvariantCulture));
 
             GeoPackageSqlite.Execute(transaction, CreateSpatialRefSys);
             GeoPackageSqlite.Execute(transaction, CreateContents);
             GeoPackageSqlite.Execute(transaction, CreateGeometryColumns);
 
-            InsertSpatialRef(transaction, "Undefined Cartesian SRS", -1, "NONE", -1, "undefined", "undefined Cartesian coordinate reference system");
-            InsertSpatialRef(transaction, "Undefined geographic SRS", 0, "NONE", 0, "undefined", "undefined geographic coordinate reference system");
-            InsertSpatialRef(transaction, "WGS 84 geodetic", Wgs84SrsId, "EPSG", 4326, Wgs84Definition, "longitude/latitude coordinates in decimal degrees on the WGS 84 spheroid");
+            InsertSpatialRef(transaction, "Undefined Cartesian SRS", UndefinedCartesianSrsId, "NONE", UndefinedCartesianSrsId, "undefined", "undefined Cartesian coordinate reference system");
+            InsertSpatialRef(transaction, "Undefined geographic SRS", UndefinedGeographicSrsId, "NONE", UndefinedGeographicSrsId, "undefined", "undefined geographic coordinate reference system");
+            InsertSpatialRef(transaction, "WGS 84 geodetic", Wgs84SrsId, "EPSG", Wgs84SrsId, Wgs84Definition, "longitude/latitude coordinates in decimal degrees on the WGS 84 spheroid");
         }
 
         /// <summary>
@@ -118,19 +125,6 @@ namespace Iwxxm.Net.Export.GeoPackage
                 command.Parameters.AddWithValue("$type", geometryTypeName);
                 command.Parameters.AddWithValue("$srs", Wgs84SrsId);
                 command.ExecuteNonQuery();
-            }
-        }
-
-        private static string UserVersionPragma(GeoPackageVersion version)
-        {
-            switch (version)
-            {
-                case GeoPackageVersion.Version14:
-                    return "PRAGMA user_version = 10400";
-                case GeoPackageVersion.Version13:
-                    return "PRAGMA user_version = 10300";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(version), version, "Unknown GeoPackage version.");
             }
         }
 

@@ -46,7 +46,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             GeoPackageDocumentModel model = GeoPackageFeatureSource.Read(result.Value);
             GeoPackageWriter.Write(Path.Combine(directory, fileName), model, new GeoPackageWriteOptions(LastChange, version));
 
-            foreach (var group in model.Features.Where(f => f.Geometry != null).GroupBy(f => TableOf(f.Geometry!.Kind)).OrderBy(g => g.Key, StringComparer.Ordinal))
+            foreach (var group in model.Features.Where(f => f.Geometry != null).GroupBy(f => GeoPackageDataTables.TableFor(f.Geometry!.Kind)).OrderBy(g => g.Key, StringComparer.Ordinal))
             {
                 GeoPackageEnvelope[] envelopes = group.Select(f => f.Geometry!.Envelope()!.Value).ToArray();
                 string extent = string.Join(" ", new[] { envelopes.Min(e => e.MinX), envelopes.Max(e => e.MaxX), envelopes.Min(e => e.MinY), envelopes.Max(e => e.MaxY) }
@@ -54,16 +54,11 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                 Add(lines, fileName, group.Key, group.Count(), extent);
             }
 
-            Add(lines, fileName, "iwxxm_attributes", model.Features.Count(f => f.Geometry == null), "-");
-            Add(lines, fileName, "iwxxm_reports", model.Reports.Count, "-");
-            // geopackage_version, library_version, source_document_id, source_document_type, report_count and, for a bulletin, its identifier.
-            Add(lines, fileName, "iwxxm_metadata", model.BulletinIdentifier != null ? 6 : 5, "-");
+            Add(lines, fileName, GeoPackageDataTables.AttributesTable, model.Features.Count(f => f.Geometry == null), "-");
+            Add(lines, fileName, GeoPackageDataTables.ReportsTable, model.Reports.Count, "-");
+            // The rows the writer puts in the metadata table, whatever their keys are.
+            Add(lines, fileName, GeoPackageDataTables.MetadataTable, GeoPackageDataTables.MetadataEntries(model, new GeoPackageWriteOptions(LastChange, version)).Count, "-");
         }
-
-        private static string TableOf(GeoPackageGeometryKind kind) =>
-            kind == GeoPackageGeometryKind.Point ? "iwxxm_points"
-            : kind == GeoPackageGeometryKind.MultiLineString ? "iwxxm_lines"
-            : "iwxxm_polygons";
 
         private static void Add(StringBuilder lines, string file, string table, int count, string extent) =>
             lines.Append(file).Append('\t').Append(table).Append('\t').Append(count.ToString(CultureInfo.InvariantCulture)).Append('\t').Append(extent).Append('\n');

@@ -27,6 +27,10 @@ from osgeo import ogr
 ogr.UseExceptions()
 
 VALIDATOR = "/usr/lib/python3/dist-packages/osgeo_utils/samples/validate_gpkg.py"
+# The tables whose rows have an issue_time_utc column (all but the metadata table).
+TABLES_WITH_ISSUE_TIME = {"iwxxm_points", "iwxxm_lines", "iwxxm_polygons", "iwxxm_attributes", "iwxxm_reports"}
+# The tables whose rows have a JSON `properties` column.
+TABLES_WITH_PROPERTIES = {"iwxxm_points", "iwxxm_lines", "iwxxm_polygons", "iwxxm_attributes"}
 GEOMETRY_TYPES = {
     "iwxxm_points": ogr.wkbPoint,
     "iwxxm_lines": ogr.wkbMultiLineString,
@@ -92,6 +96,8 @@ def ogrinfo_problems(path, tables):
 def bindings_problems(path, tables):
     problems = []
     source = ogr.Open(path)
+    if source is None:
+        return ["GDAL could not open the file"]
     if source.GetDriver().GetName() != "GPKG":
         problems.append("driver is %s" % source.GetDriver().GetName())
     names = [source.GetLayer(i).GetName() for i in range(source.GetLayerCount())]
@@ -112,7 +118,7 @@ def bindings_problems(path, tables):
         elif layer.GetGeomType() != ogr.wkbNone:
             problems.append("%s: has a geometry type" % table)
         definition = layer.GetLayerDefn()
-        if table not in ("iwxxm_metadata",):
+        if table in TABLES_WITH_ISSUE_TIME:
             field = definition.GetFieldIndex("issue_time_utc")
             if field < 0 or definition.GetFieldDefn(field).GetType() != ogr.OFTDateTime:
                 problems.append("%s: issue_time_utc is not a date-time field" % table)
@@ -122,7 +128,7 @@ def bindings_problems(path, tables):
             if has_geometry and (feature.GetGeometryRef() is None or feature.GetGeometryRef().IsEmpty()):
                 problems.append("%s: feature %d has no geometry" % (table, feature.GetFID()))
                 break
-            if table.startswith("iwxxm_") and feature.GetFieldIndex("properties") >= 0:
+            if table in TABLES_WITH_PROPERTIES:
                 try:
                     if not isinstance(json.loads(feature.GetField("properties")), dict):
                         raise ValueError("not an object")
@@ -141,6 +147,24 @@ def validator_problems(path):
     return [] if run.returncode == 0 else ["validate_gpkg.py exited with %d: %s" % (run.returncode, run.stdout.strip()[:400])]
 
 
+def file_problems(path, name, tables):
+    """All problems of one file. A file one of the readers cannot open is a problem of that file, not the end of the run."""
+    problems = []
+    checks = (
+        ("SQLite", lambda: sqlite_problems(path, name)),
+        ("ogrinfo", lambda: ogrinfo_problems(path, tables)),
+        ("GDAL bindings", lambda: bindings_problems(path, tables)),
+        ("validate_gpkg.py", lambda: validator_problems(path)),
+    )
+    for label, check in checks:
+        try:
+            problems += check()
+        except (sqlite3.Error, RuntimeError, OSError, ValueError) as error:
+            # sqlite3.DatabaseError for a file that is not a database, RuntimeError from GDAL under UseExceptions.
+            problems.append("%s could not read the file: %s: %s" % (label, type(error).__name__, str(error)[:200]))
+    return problems
+
+
 def main(directory):
     files = read_expected(os.path.join(directory, "expected.tsv"))
     version = subprocess.run(["gdalinfo", "--version"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
@@ -151,7 +175,7 @@ def main(directory):
         if not os.path.isfile(path):
             problems = ["file was not written"]
         else:
-            problems = sqlite_problems(path, name) + ogrinfo_problems(path, tables) + bindings_problems(path, tables) + validator_problems(path)
+            problems = file_problems(path, name, tables)
         features += sum(count for table, (count, _) in tables.items() if table in GEOMETRY_TYPES or table == "iwxxm_attributes")
         print("%-4s %s" % ("FAIL" if problems else "ok", name))
         for problem in problems:

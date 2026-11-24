@@ -27,11 +27,6 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
         public static IEnumerable<object[]> AllSamples() => SampleFiles.AllPaths().Select(p => new object[] { p });
 
-        private static string TableOf(GeoPackageGeometryKind kind) =>
-            kind == GeoPackageGeometryKind.Point ? "iwxxm_points"
-            : kind == GeoPackageGeometryKind.MultiLineString ? "iwxxm_lines"
-            : "iwxxm_polygons";
-
         private static IwxxmDocument Parse(string path)
         {
             var result = IwxxmParser.ParseFile(path);
@@ -82,7 +77,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                 var byTable = new Dictionary<string, List<int>>();
                 for (int i = 0; i < model.Features.Count; i++)
                 {
-                    string table = model.Features[i].Geometry == null ? "iwxxm_attributes" : TableOf(model.Features[i].Geometry!.Kind);
+                    string table = model.Features[i].Geometry == null ? GeoPackageDataTables.AttributesTable : GeoPackageDataTables.TableFor(model.Features[i].Geometry!.Kind);
                     if (!byTable.TryGetValue(table, out List<int>? indexes))
                         byTable[table] = indexes = new List<int>();
                     indexes.Add(i);
@@ -90,7 +85,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
                 foreach (KeyValuePair<string, List<int>> entry in byTable)
                 {
-                    bool hasGeometry = entry.Key != "iwxxm_attributes";
+                    bool hasGeometry = entry.Key != GeoPackageDataTables.AttributesTable;
                     using (SqliteCommand command = connection.CreateCommand())
                     {
                         command.CommandText = (hasGeometry ? "SELECT feature_id, feature_type, report_id, report_type, bulletin_identifier, issue_time_utc, properties, geom" :

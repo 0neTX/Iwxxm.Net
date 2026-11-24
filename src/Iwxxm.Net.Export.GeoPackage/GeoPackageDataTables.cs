@@ -28,6 +28,23 @@ namespace Iwxxm.Net.Export.GeoPackage
         internal const string ReportsTable = "iwxxm_reports";
         internal const string MetadataTable = "iwxxm_metadata";
 
+        /// <summary>The table the features of <paramref name="kind"/> are written to.</summary>
+        /// <exception cref="InvalidOperationException"><paramref name="kind"/> is not a supported geometry kind.</exception>
+        internal static string TableFor(GeoPackageGeometryKind kind)
+        {
+            switch (kind)
+            {
+                case GeoPackageGeometryKind.Point:
+                    return PointsTable;
+                case GeoPackageGeometryKind.MultiLineString:
+                    return LinesTable;
+                case GeoPackageGeometryKind.MultiPolygon:
+                    return PolygonsTable;
+                default:
+                    throw new InvalidOperationException($"Unsupported geometry kind {kind}.");
+            }
+        }
+
         internal const string GeometryColumn = "geom";
 
         // The columns every feature and attribute row has besides the geometry, in table order.
@@ -184,15 +201,15 @@ namespace Iwxxm.Net.Export.GeoPackage
             RegisterAttributesTable(transaction, ReportsTable, "One row per report of the exported document", lastChange);
         }
 
-        private static void WriteMetadata(SqliteTransaction transaction, GeoPackageDocumentModel model, GeoPackageWriteOptions options, string lastChange)
+        /// <summary>
+        /// The rows of <c>iwxxm_metadata</c>: geopackage_version, library_version, source_document_id, source_document_type,
+        /// bulletin_identifier (only for a bulletin) and report_count.
+        /// </summary>
+        internal static List<KeyValuePair<string, string>> MetadataEntries(GeoPackageDocumentModel model, GeoPackageWriteOptions options)
         {
-            GeoPackageSqlite.Execute(
-                transaction,
-                $"CREATE TABLE \"{MetadataTable}\" (\"fid\" INTEGER PRIMARY KEY NOT NULL, \"key\" TEXT NOT NULL UNIQUE, \"value\" TEXT NOT NULL)");
-
             var entries = new List<KeyValuePair<string, string>>
             {
-                new KeyValuePair<string, string>("geopackage_version", options.Version == GeoPackageVersion.Version13 ? "1.3" : "1.4"),
+                new KeyValuePair<string, string>("geopackage_version", options.Version.ToText()),
                 new KeyValuePair<string, string>("library_version", LibraryVersion),
                 new KeyValuePair<string, string>("source_document_id", model.DocumentId),
                 new KeyValuePair<string, string>("source_document_type", model.DocumentType.ToString()),
@@ -200,6 +217,16 @@ namespace Iwxxm.Net.Export.GeoPackage
             if (model.BulletinIdentifier != null)
                 entries.Add(new KeyValuePair<string, string>("bulletin_identifier", model.BulletinIdentifier));
             entries.Add(new KeyValuePair<string, string>("report_count", model.Reports.Count.ToString(CultureInfo.InvariantCulture)));
+            return entries;
+        }
+
+        private static void WriteMetadata(SqliteTransaction transaction, GeoPackageDocumentModel model, GeoPackageWriteOptions options, string lastChange)
+        {
+            GeoPackageSqlite.Execute(
+                transaction,
+                $"CREATE TABLE \"{MetadataTable}\" (\"fid\" INTEGER PRIMARY KEY NOT NULL, \"key\" TEXT NOT NULL UNIQUE, \"value\" TEXT NOT NULL)");
+
+            List<KeyValuePair<string, string>> entries = MetadataEntries(model, options);
 
             using (SqliteCommand command = GeoPackageSqlite.CreateCommand(transaction, $"INSERT INTO \"{MetadataTable}\" (\"key\", \"value\") VALUES ($key, $value)"))
             {

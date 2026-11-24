@@ -25,7 +25,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             return GeoPackageFeatureSource.Read(result.Value);
         }
 
-        private static string Tables(GeoPackageDocumentModel model, GeoPackageVersion version = GeoPackageVersion.Version14)
+        private static string WriteToTempFile(GeoPackageDocumentModel model, GeoPackageVersion version = GeoPackageVersion.Version14)
         {
             string path = NewPath();
             try
@@ -48,11 +48,6 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             }
         }
 
-        private static string TableOf(GeoPackageGeometryKind kind) =>
-            kind == GeoPackageGeometryKind.Point ? "iwxxm_points"
-            : kind == GeoPackageGeometryKind.MultiLineString ? "iwxxm_lines"
-            : "iwxxm_polygons";
-
         private static string[] ColumnsOf(SqliteConnection connection, string table) =>
             Rows(connection, $"SELECT name || ' ' || type || ' ' || \"notnull\" || ' ' || pk FROM pragma_table_info('{table}') ORDER BY cid").Select(r => r[0]!).ToArray();
 
@@ -61,13 +56,13 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         public void Tables_ExistOnlyForTheGeometryFamiliesWithRows_AndCountTheFeatures(string sample)
         {
             GeoPackageDocumentModel model = Read(sample);
-            string path = Tables(model);
+            string path = WriteToTempFile(model);
             try
             {
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))
                 {
-                    var expected = new List<string> { "gpkg_contents", "gpkg_geometry_columns", "gpkg_spatial_ref_sys", "iwxxm_attributes", "iwxxm_metadata", "iwxxm_reports" };
-                    foreach (var group in model.Features.Where(f => f.Geometry != null).GroupBy(f => TableOf(f.Geometry!.Kind)))
+                    var expected = new List<string> { "gpkg_contents", "gpkg_geometry_columns", "gpkg_spatial_ref_sys", GeoPackageDataTables.AttributesTable, GeoPackageDataTables.MetadataTable, GeoPackageDataTables.ReportsTable };
+                    foreach (var group in model.Features.Where(f => f.Geometry != null).GroupBy(f => GeoPackageDataTables.TableFor(f.Geometry!.Kind)))
                     {
                         expected.Add(group.Key);
                         Assert.Equal(group.Count().ToString(CultureInfo.InvariantCulture), Scalar(connection, $"SELECT count(*) FROM {group.Key}"));
@@ -75,15 +70,15 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
                     expected.Sort(StringComparer.Ordinal);
                     Assert.Equal(expected, TableNames(connection));
-                    Assert.Equal(model.Features.Count(f => f.Geometry == null).ToString(CultureInfo.InvariantCulture), Scalar(connection, "SELECT count(*) FROM iwxxm_attributes"));
-                    Assert.Equal(model.Reports.Count.ToString(CultureInfo.InvariantCulture), Scalar(connection, "SELECT count(*) FROM iwxxm_reports"));
+                    Assert.Equal(model.Features.Count(f => f.Geometry == null).ToString(CultureInfo.InvariantCulture), Scalar(connection, $"SELECT count(*) FROM {GeoPackageDataTables.AttributesTable}"));
+                    Assert.Equal(model.Reports.Count.ToString(CultureInfo.InvariantCulture), Scalar(connection, $"SELECT count(*) FROM {GeoPackageDataTables.ReportsTable}"));
 
                     // Contents and geometry columns list exactly the data tables.
                     Assert.Equal(
-                        expected.Where(t => t.StartsWith("iwxxm_", StringComparison.Ordinal)).ToList(),
+                        expected.Where(t => !t.StartsWith("gpkg_", StringComparison.Ordinal)).ToList(),
                         Rows(connection, "SELECT table_name FROM gpkg_contents ORDER BY table_name").Select(r => r[0]!).ToList());
                     Assert.Equal(
-                        expected.Where(t => t == "iwxxm_points" || t == "iwxxm_lines" || t == "iwxxm_polygons").ToList(),
+                        expected.Where(t => t == GeoPackageDataTables.PointsTable || t == GeoPackageDataTables.LinesTable || t == GeoPackageDataTables.PolygonsTable).ToList(),
                         Rows(connection, "SELECT table_name FROM gpkg_geometry_columns ORDER BY table_name").Select(r => r[0]!).ToList());
                 }
             }
@@ -98,12 +93,12 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         public void Contents_CarryThePlainExtentOfTheWrittenCoordinates(string sample)
         {
             GeoPackageDocumentModel model = Read(sample);
-            string path = Tables(model);
+            string path = WriteToTempFile(model);
             try
             {
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))
                 {
-                    foreach (var group in model.Features.Where(f => f.Geometry != null).GroupBy(f => TableOf(f.Geometry!.Kind)))
+                    foreach (var group in model.Features.Where(f => f.Geometry != null).GroupBy(f => GeoPackageDataTables.TableFor(f.Geometry!.Kind)))
                     {
                         GeoPackageEnvelope[] envelopes = group.Select(f => f.Geometry!.Envelope()!.Value).ToArray();
                         string?[] row = Assert.Single(Rows(connection, $"SELECT min_x, min_y, max_x, max_y, srs_id, data_type, last_change FROM gpkg_contents WHERE table_name = '{group.Key}'"));
@@ -134,7 +129,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         public void Tables_HaveTheFixedColumns()
         {
             string sample = SampleFiles.AllPaths().First(p => ContainsKinds(Read(p), GeoPackageGeometryKind.Point, GeoPackageGeometryKind.MultiPolygon));
-            string path = Tables(Read(sample));
+            string path = WriteToTempFile(Read(sample));
             try
             {
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))
@@ -145,17 +140,17 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                         "bulletin_identifier TEXT 0 0", "issue_time_utc DATETIME 0 0", "properties TEXT 1 0"
                     };
 
-                    Assert.Equal(new[] { "fid INTEGER 1 1", "geom POINT 1 0" }.Concat(common), ColumnsOf(connection, "iwxxm_points"));
-                    Assert.Equal(new[] { "fid INTEGER 1 1", "geom MULTIPOLYGON 1 0" }.Concat(common), ColumnsOf(connection, "iwxxm_polygons"));
-                    Assert.Equal(new[] { "fid INTEGER 1 1" }.Concat(common), ColumnsOf(connection, "iwxxm_attributes"));
+                    Assert.Equal(new[] { "fid INTEGER 1 1", "geom POINT 1 0" }.Concat(common), ColumnsOf(connection, GeoPackageDataTables.PointsTable));
+                    Assert.Equal(new[] { "fid INTEGER 1 1", "geom MULTIPOLYGON 1 0" }.Concat(common), ColumnsOf(connection, GeoPackageDataTables.PolygonsTable));
+                    Assert.Equal(new[] { "fid INTEGER 1 1" }.Concat(common), ColumnsOf(connection, GeoPackageDataTables.AttributesTable));
                     Assert.Equal(
                         new[]
                         {
                             "fid INTEGER 1 1", "report_id TEXT 1 0", "report_type TEXT 1 0", "report_status TEXT 1 0",
                             "permissible_usage TEXT 1 0", "issue_time_utc DATETIME 1 0", "bulletin_identifier TEXT 0 0"
                         },
-                        ColumnsOf(connection, "iwxxm_reports"));
-                    Assert.Equal(new[] { "fid INTEGER 1 1", "key TEXT 1 0", "value TEXT 1 0" }, ColumnsOf(connection, "iwxxm_metadata"));
+                        ColumnsOf(connection, GeoPackageDataTables.ReportsTable));
+                    Assert.Equal(new[] { "fid INTEGER 1 1", "key TEXT 1 0", "value TEXT 1 0" }, ColumnsOf(connection, GeoPackageDataTables.MetadataTable));
 
                     // No AUTOINCREMENT, hence no sqlite_sequence, and no triggers.
                     Assert.Equal("0", Scalar(connection, "SELECT count(*) FROM sqlite_master WHERE name = 'sqlite_sequence' OR type = 'trigger'"));
@@ -174,18 +169,18 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         public void GeometryColumns_DeclareThePromotedTypes()
         {
             GeoPackageDocumentModel model = Read(SampleFiles.ExtraPathOf("sigwx-swh-2025-2.xml"));
-            string path = Tables(model);
+            string path = WriteToTempFile(model);
             try
             {
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))
                 {
                     var expected = new Dictionary<string, string>
                     {
-                        ["iwxxm_points"] = "POINT",
-                        ["iwxxm_lines"] = "MULTILINESTRING",
-                        ["iwxxm_polygons"] = "MULTIPOLYGON",
+                        [GeoPackageDataTables.PointsTable] = "POINT",
+                        [GeoPackageDataTables.LinesTable] = "MULTILINESTRING",
+                        [GeoPackageDataTables.PolygonsTable] = "MULTIPOLYGON",
                     };
-                    foreach (var kind in model.Features.Where(f => f.Geometry != null).Select(f => TableOf(f.Geometry!.Kind)).Distinct())
+                    foreach (var kind in model.Features.Where(f => f.Geometry != null).Select(f => GeoPackageDataTables.TableFor(f.Geometry!.Kind)).Distinct())
                     {
                         Assert.Equal(
                             new string?[] { kind, "geom", expected[kind], "4326", "0", "0" },
@@ -203,7 +198,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         public void ReportsAndMetadata_DescribeTheBulletin()
         {
             GeoPackageDocumentModel model = Read(SampleFiles.PathOf("metar-NIL-collect.xml"));
-            string path = Tables(model);
+            string path = WriteToTempFile(model);
             try
             {
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))
@@ -240,7 +235,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         [Fact]
         public void Metadata_OfAStandaloneReport_HasNoBulletinIdentifier_AndTheSelectedVersion()
         {
-            string path = Tables(Read(SampleFiles.PathOf("metar-A3-1.xml")), GeoPackageVersion.Version13);
+            string path = WriteToTempFile(Read(SampleFiles.PathOf("metar-A3-1.xml")), GeoPackageVersion.Version13);
             try
             {
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))
@@ -264,7 +259,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             var report = model.Reports[0];
             var hostile = new GeoPackageReportRecord("x'); DROP TABLE gpkg_contents; --", report.ReportType, report.ReportStatus, report.PermissibleUsage, report.IssueTime, "b'1");
             var changed = new GeoPackageDocumentModel("d'oc", model.DocumentType, null, new[] { hostile }, model.Features);
-            string path = Tables(changed);
+            string path = WriteToTempFile(changed);
             try
             {
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))

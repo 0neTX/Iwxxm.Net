@@ -12,6 +12,40 @@ namespace Iwxxm.Net.Export.GeoPackage
         Version13
     }
 
+    /// <summary>The text and header value a <see cref="GeoPackageVersion"/> stands for, defined once for every writer.</summary>
+    internal static class GeoPackageVersionExtensions
+    {
+        /// <summary>The version as written to the metadata table: "1.3" or "1.4".</summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a defined value.</exception>
+        public static string ToText(this GeoPackageVersion version)
+        {
+            switch (version)
+            {
+                case GeoPackageVersion.Version14:
+                    return "1.4";
+                case GeoPackageVersion.Version13:
+                    return "1.3";
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(version), version, "Unknown GeoPackage version.");
+            }
+        }
+
+        /// <summary>The <c>PRAGMA user_version</c> of the version: 10400 or 10300.</summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a defined value.</exception>
+        public static int ToUserVersion(this GeoPackageVersion version)
+        {
+            switch (version)
+            {
+                case GeoPackageVersion.Version14:
+                    return 10400;
+                case GeoPackageVersion.Version13:
+                    return 10300;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(version), version, "Unknown GeoPackage version.");
+            }
+        }
+    }
+
     /// <summary>The settings of one GeoPackage write.</summary>
     internal sealed class GeoPackageWriteOptions
     {
