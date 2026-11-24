@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Iwxxm.Net.Infrastructure.GeoJson;
 
@@ -13,7 +14,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
     /// value is a string; a missing key, or a value that is not a string, yields <c>null</c>. The feature id is the
     /// feature id as the GeoJSON writer sees it: an empty or white-space id is <c>null</c> (the GeoJSON writer omits
     /// the <c>id</c> member then).</para>
-    /// <para>The issue time is kept as the ISO 8601 round-trip text of the property.</para>
+    /// <para>The issue time is kept as the ISO 8601 round-trip text of the property and parsed by <see cref="GeoPackageDateTime"/>.</para>
     /// </remarks>
     internal sealed class GeoPackageFeature
     {
@@ -26,6 +27,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
             ReportType = StringProperty(feature.Properties, "reportType");
             BulletinIdentifier = StringProperty(feature.Properties, "bulletinIdentifier");
             IssueTimeText = StringProperty(feature.Properties, "issueTimeUtc");
+            IssueTime = GeoPackageDateTime.ParseIso(IssueTimeText);
         }
 
         /// <summary>The GeoJSON feature: geometry (already split at the antimeridian) and ordered properties.</summary>
@@ -48,6 +50,9 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
 
         /// <summary>The <c>issueTimeUtc</c> property as written by the GeoJSON exporter, or <c>null</c> when absent.</summary>
         public string? IssueTimeText { get; }
+
+        /// <summary>The issue time parsed from <see cref="IssueTimeText"/>, or <c>null</c> when the property is absent or is not ISO 8601 text with an offset.</summary>
+        public DateTimeOffset? IssueTime { get; }
 
         /// <summary>The ordered properties, including entries with a <c>null</c> value (those are never written).</summary>
         public IReadOnlyList<(string Key, object? Value)> Properties => Feature.Properties;
