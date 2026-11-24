@@ -52,6 +52,27 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             return rows;
         }
 
+        /// <summary>
+        /// A text form of the whole database that does not depend on the SQLite version that wrote the file (the file header
+        /// does): the two header pragmas, the schema, and every row of every table in rowid order, blobs as hex.
+        /// </summary>
+        internal static string CanonicalDump(SqliteConnection connection)
+        {
+            var dump = new System.Text.StringBuilder();
+            dump.Append("application_id=").Append(Scalar(connection, "PRAGMA application_id")).Append('\n');
+            dump.Append("user_version=").Append(Scalar(connection, "PRAGMA user_version")).Append('\n');
+            foreach (string?[] schema in Rows(connection, "SELECT type, name, sql FROM sqlite_master ORDER BY type, name"))
+                dump.Append(string.Join("|", schema)).Append('\n');
+            foreach (string table in TableNames(connection))
+            {
+                dump.Append("== ").Append(table).Append('\n');
+                foreach (string?[] row in Rows(connection, $"SELECT * FROM \"{table}\" ORDER BY rowid"))
+                    dump.Append(string.Join("\t", System.Linq.Enumerable.Select(row, v => v ?? "\u2400"))).Append('\n');
+            }
+
+            return dump.ToString();
+        }
+
         /// <summary>The table names of the database, ordered, without the SQLite internal ones.</summary>
         internal static List<string> TableNames(SqliteConnection connection)
         {
