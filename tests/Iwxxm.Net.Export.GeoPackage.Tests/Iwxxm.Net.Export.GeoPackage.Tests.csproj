@@ -28,6 +28,16 @@
     </PackageReference>
   </ItemGroup>
 
+  <!-- .NET Framework has no System.Text.Json; the tests use it to parse the GeoJSON output (test-only, never shipped) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <!-- The official WMO examples live in the core test project; they are linked, never copied into this one. -->
+  <ItemGroup>
+    <None Include="..\Iwxxm.Net.Tests\Samples\wmo-examples\*.xml" Link="Samples\wmo-examples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Iwxxm.Net.Export.GeoPackage\Iwxxm.Net.Export.GeoPackage.csproj" />
   </ItemGroup>

@@ -1,0 +1,22 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+namespace Iwxxm.Net.Export.GeoPackage.Tests
+{
+    /// <summary>
+    /// The official WMO examples of the core test project, linked into this project's output (see the csproj), never copied.
+    /// </summary>
+    internal static class SampleFiles
+    {
+        private static readonly string Directory = Path.Combine(AppContext.BaseDirectory, "Samples", "wmo-examples");
+
+        /// <summary>The full path of one sample.</summary>
+        internal static string PathOf(string fileName) => Path.Combine(Directory, fileName);
+
+        /// <summary>The sample file names, ordered, as xunit theory data.</summary>
+        internal static IEnumerable<object[]> All() =>
+            System.IO.Directory.GetFiles(Directory, "*.xml").Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).Select(n => new object[] { n! });
+    }
+}
