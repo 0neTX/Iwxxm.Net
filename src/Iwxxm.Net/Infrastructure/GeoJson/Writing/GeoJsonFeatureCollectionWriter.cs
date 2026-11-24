@@ -95,16 +95,25 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             }
 
             writer.WritePropertyName("properties");
+            WriteProperties(writer, feature.Properties);
+            writer.EndObject();
+        }
+
+        /// <summary>
+        /// Writes the <c>properties</c> object of a feature: the entries with a non-null value, in insertion order. Also used
+        /// by the GeoPackage add-on, so that both formats carry the same JSON text.
+        /// </summary>
+        internal static void WriteProperties(Rfc8259JsonWriter writer, IReadOnlyList<(string Key, object? Value)> properties)
+        {
             writer.BeginObject();
-            for (int i = 0; i < feature.Properties.Count; i++)
+            for (int i = 0; i < properties.Count; i++)
             {
-                var prop = feature.Properties[i];
+                var prop = properties[i];
                 if (prop.Value != null)
                 {
                     writer.WriteDynamicProperty(prop.Key, prop.Value);
                 }
             }
-            writer.EndObject();
             writer.EndObject();
         }
 
