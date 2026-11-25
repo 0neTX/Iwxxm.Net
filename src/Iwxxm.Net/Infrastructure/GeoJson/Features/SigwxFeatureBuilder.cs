@@ -27,6 +27,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                     cpProps.Add(("parentJetStreamId", js.Id));
                     AddVerticalLimit(cpProps, "level", cp.Level);
                     AddSpeed(cpProps, "windSpeed", cp.WindSpeed);
+                    // The levels of the 80 kt isotach below and above the maximum wind; omitted when the symbol does not report them.
+                    AddVerticalLimit(cpProps, "lowerIsotachLevel", cp.LowerIsotachLimit);
+                    AddVerticalLimit(cpProps, "upperIsotachLevel", cp.UpperIsotachLimit);
                     features.Add(GeoJsonFeature.ForPoint($"{js.Id}#core-{i + 1}", cp.Location, cpProps));
                 }
             }

@@ -328,6 +328,52 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
+        public void Repaired_GeoJsonExport_WritesTheIsotachLevelsOfTheCorePointsThatReportThem()
+        {
+            // 231 of the 1850 wind symbols report the levels of the 80 kt isotachs; the others must not get the keys.
+            var expectedIds = new List<string>();
+            foreach (IwxxmReport report in Repaired.Value.Value.Reports)
+            {
+                var sigwx = (Sigwx)report;
+                foreach (JetStream js in sigwx.JetStreams)
+                {
+                    for (int i = 0; i < js.CorePoints.Count; i++)
+                    {
+                        if (js.CorePoints[i].LowerIsotachLimit.HasValue || js.CorePoints[i].UpperIsotachLimit.HasValue)
+                            expectedIds.Add($"{js.Id}#core-{i + 1}");
+                    }
+                }
+            }
+
+            Assert.Equal(231, expectedIds.Count);
+
+            using (var doc = System.Text.Json.JsonDocument.Parse(RepairedGeoJson.Value))
+            {
+                var features = doc.RootElement.GetProperty("features").EnumerateArray().ToList();
+                var withKeys = features
+                    .Where(f => f.GetProperty("properties").EnumerateObject().Any(p => p.Name.Contains("Isotach")))
+                    .ToList();
+
+                Assert.All(withKeys, f => Assert.Equal("JETSTREAM_CORE_POINT", f.GetProperty("properties").GetProperty("featureType").GetString()));
+                Assert.Equal(
+                    expectedIds.OrderBy(id => id, System.StringComparer.Ordinal).ToList(),
+                    withKeys.Select(f => f.GetProperty("id").GetString()!).OrderBy(id => id, System.StringComparer.Ordinal).ToList());
+                Assert.All(withKeys, f =>
+                {
+                    var properties = f.GetProperty("properties");
+                    foreach (string key in new[] { "lowerIsotachLevel", "upperIsotachLevel" })
+                    {
+                        if (properties.TryGetProperty(key, out var level))
+                        {
+                            Assert.True(level.GetDouble() > 0);
+                            Assert.False(string.IsNullOrEmpty(properties.GetProperty(key + "Uom").GetString()));
+                        }
+                    }
+                });
+            }
+        }
+
+        [Fact]
         public void Repaired_GeoJsonExport_HasASaneGlobalBoundingBox_AudR4()
         {
             // The features cover every longitude (polar caps): the box is the plain [-180, 180] extent, not a near-empty

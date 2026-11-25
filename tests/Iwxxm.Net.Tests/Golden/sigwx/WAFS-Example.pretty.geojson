@@ -65,7 +65,13 @@
         "levelUom": "M",
         "levelReference": "MSL",
         "windSpeed": 61.8,
-        "windSpeedUom": "m/s"
+        "windSpeedUom": "m/s",
+        "lowerIsotachLevel": 13716,
+        "lowerIsotachLevelUom": "M",
+        "lowerIsotachLevelReference": "MSL",
+        "upperIsotachLevel": 15240,
+        "upperIsotachLevelUom": "M",
+        "upperIsotachLevelReference": "MSL"
       }
     },
     {
@@ -105,7 +111,13 @@
         "levelUom": "M",
         "levelReference": "MSL",
         "windSpeed": 61.8,
-        "windSpeedUom": "m/s"
+        "windSpeedUom": "m/s",
+        "lowerIsotachLevel": 14326,
+        "lowerIsotachLevelUom": "M",
+        "lowerIsotachLevelReference": "MSL",
+        "upperIsotachLevel": 16154,
+        "upperIsotachLevelUom": "M",
+        "upperIsotachLevelReference": "MSL"
       }
     },
     {

@@ -43,7 +43,11 @@
         "level": 360,
         "levelUom": "FL",
         "windSpeed": 135,
-        "windSpeedUom": "[kn_i]"
+        "windSpeedUom": "[kn_i]",
+        "lowerIsotachLevel": 310,
+        "lowerIsotachLevelUom": "FL",
+        "upperIsotachLevel": 400,
+        "upperIsotachLevelUom": "FL"
       }
     },
     {
