@@ -328,6 +328,28 @@ namespace Iwxxm.Net.Tests
         }
 
         [Fact]
+        public void Repaired_GeoJsonExport_TellsTheFifteenChartsApartByTheirValidityInstant()
+        {
+            // T+06 .. T+48 from the 00:00Z base time, one chart every three hours (an instant: validFromUtc == validUntilUtc).
+            var expected = Enumerable.Range(0, 15)
+                .Select(i => new DateTimeOffset(2099, 1, 1, 6, 0, 0, TimeSpan.Zero).AddHours(3 * i).ToString("O", System.Globalization.CultureInfo.InvariantCulture))
+                .ToList();
+
+            using (var doc = System.Text.Json.JsonDocument.Parse(RepairedGeoJson.Value))
+            {
+                var features = doc.RootElement.GetProperty("features").EnumerateArray().Select(f => f.GetProperty("properties")).ToList();
+                Assert.All(features, p => Assert.Equal(p.GetProperty("validFromUtc").GetString(), p.GetProperty("validUntilUtc").GetString()));
+
+                var byChart = features
+                    .GroupBy(p => p.GetProperty("reportId").GetString()!)
+                    .ToDictionary(g => g.Key, g => g.Select(p => p.GetProperty("validFromUtc").GetString()!).Distinct().ToList());
+                Assert.Equal(15, byChart.Count);
+                Assert.All(byChart.Values, v => Assert.Single(v));
+                Assert.Equal(expected, byChart.Values.Select(v => v[0]).OrderBy(v => v, StringComparer.Ordinal).ToList());
+            }
+        }
+
+        [Fact]
         public void Repaired_GeoJsonExport_WritesTheIsotachLevelsOfTheCorePointsThatReportThem()
         {
             // 231 of the 1850 wind symbols report the levels of the 80 kt isotachs; the others must not get the keys.

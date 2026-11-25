@@ -15,7 +15,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
         {
             foreach (var js in sigwx.JetStreams)
             {
-                var props = CreateBase(sigwx, "JETSTREAM", bulletinId);
+                var props = CreateBase(sigwx, "JETSTREAM", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                 AddVerticalLimit(props, "coreLevel", js.CoreLevel);
                 AddSpeed(props, "maxWindSpeed", js.MaxWindSpeed);
                 features.Add(GeoJsonFeature.ForLineString(js.Id, js.AxisTrajectory, props));
@@ -23,7 +23,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 for (int i = 0; i < js.CorePoints.Count; i++)
                 {
                     var cp = js.CorePoints[i];
-                    var cpProps = CreateBase(sigwx, "JETSTREAM_CORE_POINT", bulletinId);
+                    var cpProps = CreateBase(sigwx, "JETSTREAM_CORE_POINT", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                     cpProps.Add(("parentJetStreamId", js.Id));
                     AddVerticalLimit(cpProps, "level", cp.Level);
                     AddSpeed(cpProps, "windSpeed", cp.WindSpeed);
@@ -36,7 +36,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
 
             foreach (var cloud in sigwx.Clouds)
             {
-                var props = CreateBase(sigwx, "CLOUD", bulletinId);
+                var props = CreateBase(sigwx, "CLOUD", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                 // Linked-Data output: the reported references are rebuilt from the Domain values (ACL tables).
                 props.Add(("cloudAmountUri", WmoCodeRegistry.CloudDistributions.ToReference(cloud.Distribution)));
                 props.Add(("distributionCode", CodeName(cloud.Distribution)));
@@ -51,7 +51,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
 
             foreach (var turb in sigwx.Turbulences)
             {
-                var props = CreateBase(sigwx, "TURBULENCE", bulletinId);
+                var props = CreateBase(sigwx, "TURBULENCE", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                 props.Add(("degreeUri", WmoCodeRegistry.TurbulenceDegrees.ToReference(turb.Degree)));
                 props.Add(("degree", CodeName(turb.Degree)));
                 props.Add(("degreeNumericCode", WmoCodeRegistry.TurbulenceDegrees.NumericCode(turb.Degree)));
@@ -62,7 +62,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
 
             foreach (var icing in sigwx.AirframeIcings)
             {
-                var props = CreateBase(sigwx, "AIRFRAME_ICING", bulletinId);
+                var props = CreateBase(sigwx, "AIRFRAME_ICING", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                 props.Add(("degreeUri", WmoCodeRegistry.IcingDegrees.ToReference(icing.Degree)));
                 props.Add(("degree", CodeName(icing.Degree)));
                 props.Add(("degreeNumericCode", WmoCodeRegistry.IcingDegrees.NumericCode(icing.Degree)));
@@ -75,7 +75,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             {
                 if (trop.ContourPolygon != null)
                 {
-                    var props = CreateBase(sigwx, "TROPOPAUSE_CONTOUR", bulletinId);
+                    var props = CreateBase(sigwx, "TROPOPAUSE_CONTOUR", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                     props.Add(("levelModification", trop.LevelType));
                     AddVerticalLimit(props, "level", trop.ContourLevel);
                     features.Add(GeoJsonFeature.ForPolygon(trop.Id, trop.ContourPolygon, props));
@@ -84,7 +84,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 for (int i = 0; i < trop.SpotHeights.Count; i++)
                 {
                     var sh = trop.SpotHeights[i];
-                    var props = CreateBase(sigwx, "TROPOPAUSE_SPOT_HEIGHT", bulletinId);
+                    var props = CreateBase(sigwx, "TROPOPAUSE_SPOT_HEIGHT", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                     props.Add(("levelModification", trop.LevelType));
                     AddVerticalLimit(props, "level", sh.Level);
                     features.Add(GeoJsonFeature.ForPoint($"{trop.Id}#spot-{i + 1}", sh.Location, props));
@@ -93,7 +93,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
 
             foreach (var vol in sigwx.Volcanoes)
             {
-                var props = CreateBase(sigwx, "VOLCANO", bulletinId);
+                var props = CreateBase(sigwx, "VOLCANO", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                 props.Add(("name", vol.Name));
                 props.Add(("iavceiNumber", vol.IavceiNumber));
                 features.Add(GeoJsonFeature.ForPoint(vol.Id, vol.Position, props));
@@ -101,20 +101,20 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
 
             foreach (var tc in sigwx.TropicalCyclones)
             {
-                var props = CreateBase(sigwx, "TROPICAL_CYCLONE", bulletinId);
+                var props = CreateBase(sigwx, "TROPICAL_CYCLONE", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                 props.Add(("name", tc.Name));
                 features.Add(GeoJsonFeature.ForPoint(tc.Id, tc.Position, props));
             }
 
             foreach (var ss in sigwx.Sandstorms)
             {
-                var props = CreateBase(sigwx, "SANDSTORM", bulletinId);
+                var props = CreateBase(sigwx, "SANDSTORM", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                 features.Add(GeoJsonFeature.ForPoint(ss.Id, ss.Position, props));
             }
 
             foreach (var rad in sigwx.RadiationIncidents)
             {
-                var props = CreateBase(sigwx, "RADIATION_INCIDENT", bulletinId);
+                var props = CreateBase(sigwx, "RADIATION_INCIDENT", bulletinId, sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
                 props.Add(("siteName", rad.SiteName));
                 features.Add(GeoJsonFeature.ForPoint(rad.Id, rad.Position, props));
             }

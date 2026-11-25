@@ -21,6 +21,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "coreLevel": 15240,
         "coreLevelUom": "M",
         "coreLevelReference": "MSL",
@@ -40,6 +42,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "parentJetStreamId": "uuid.8c3d3467-e398-4627-ab23-f9e57c2215b5",
         "level": 10668,
         "levelUom": "M",
@@ -60,6 +64,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "parentJetStreamId": "uuid.8c3d3467-e398-4627-ab23-f9e57c2215b5",
         "level": 15240,
         "levelUom": "M",
@@ -86,6 +92,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "parentJetStreamId": "uuid.8c3d3467-e398-4627-ab23-f9e57c2215b5",
         "level": 15240,
         "levelUom": "M",
@@ -106,6 +114,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "parentJetStreamId": "uuid.8c3d3467-e398-4627-ab23-f9e57c2215b5",
         "level": 15240,
         "levelUom": "M",
@@ -132,6 +142,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "parentJetStreamId": "uuid.8c3d3467-e398-4627-ab23-f9e57c2215b5",
         "level": 9144,
         "levelUom": "M",
@@ -154,6 +166,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "cloudAmountUri": "http://codes.wmo.int/bufr4/codeflag/0-20-008/10",
         "distributionCode": "Occasional",
         "distributionNumericCode": 10,
@@ -180,6 +194,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "degreeUri": "http://codes.wmo.int/bufr4/codeflag/0-11-030/10",
         "degree": "Moderate",
         "degreeNumericCode": 10,
@@ -205,6 +221,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "degreeUri": "http://codes.wmo.int/bufr4/codeflag/0-20-041/3",
         "degree": "LightInPrecipitation",
         "degreeNumericCode": 3,
@@ -230,6 +248,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "level": 14020,
         "levelUom": "M",
         "levelReference": "MSL"
@@ -247,6 +267,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "name": "ETNA"
       }
     },
@@ -262,6 +284,8 @@
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "name": "FRED"
       }
     },
@@ -276,7 +300,9 @@
         "featureType": "SANDSTORM",
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
-        "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00"
+        "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00"
       }
     },
     {
@@ -290,7 +316,9 @@
         "featureType": "RADIATION_INCIDENT",
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
-        "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00"
+        "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00"
       }
     }
   ]
