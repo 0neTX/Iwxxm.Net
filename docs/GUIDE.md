@@ -818,7 +818,7 @@ Every table is in WGS 84 (EPSG:4326, longitude then latitude), the same coordina
 | `iwxxm_lines` | features (`MULTILINESTRING`) | Features whose geometry is a line. |
 | `iwxxm_polygons` | features (`MULTIPOLYGON`) | Features whose geometry is a polygon (areas, circles as densified polygons, volumes). |
 | `iwxxm_attributes` | attributes | Features that have no geometry (for example a nil space weather analysis). Always created, even when empty. |
-| `iwxxm_reports` | attributes | One row per report of the document (a bulletin has one per report). |
+| `iwxxm_reports` | attributes | One row per report of the document (a bulletin has one per report): its status, its permissible usage with the reason (`TEST`, `EXERCISE`) and the supplementary text when it has them, and its issue time. |
 | `iwxxm_metadata` | attributes | Key/value rows: library version, GeoPackage version, source document id and type, bulletin identifier and report count. |
 
 A geometry table with no rows is not created (the file above has points and polygons but no `iwxxm_lines`), so read `gpkg_contents` for the tables a file really has. Every feature and attribute row has the same fixed columns: `feature_id`, `feature_type`, `report_id`, `report_type`, `bulletin_identifier`, `issue_time_utc` and `properties`.

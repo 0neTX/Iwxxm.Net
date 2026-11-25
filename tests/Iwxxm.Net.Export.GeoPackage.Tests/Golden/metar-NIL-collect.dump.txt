@@ -12,7 +12,7 @@ table	gpkg_geometry_columns	gpkg_geometry_columns	CREATE TABLE gpkg_geometry_col
 table	gpkg_spatial_ref_sys	gpkg_spatial_ref_sys	CREATE TABLE gpkg_spatial_ref_sys (srs_name TEXT NOT NULL,srs_id INTEGER NOT NULL PRIMARY KEY,organization TEXT NOT NULL,organization_coordsys_id INTEGER NOT NULL,definition  TEXT NOT NULL,description TEXT)
 table	iwxxm_attributes	iwxxm_attributes	CREATE TABLE "iwxxm_attributes" ("fid" INTEGER PRIMARY KEY NOT NULL, "feature_id" TEXT, "feature_type" TEXT, "report_id" TEXT, "report_type" TEXT, "bulletin_identifier" TEXT, "issue_time_utc" DATETIME, "properties" TEXT NOT NULL)
 table	iwxxm_metadata	iwxxm_metadata	CREATE TABLE "iwxxm_metadata" ("fid" INTEGER PRIMARY KEY NOT NULL, "key" TEXT NOT NULL UNIQUE, "value" TEXT NOT NULL)
-table	iwxxm_reports	iwxxm_reports	CREATE TABLE "iwxxm_reports" ("fid" INTEGER PRIMARY KEY NOT NULL, "report_id" TEXT NOT NULL, "report_type" TEXT NOT NULL, "report_status" TEXT NOT NULL, "permissible_usage" TEXT NOT NULL, "issue_time_utc" DATETIME NOT NULL, "bulletin_identifier" TEXT)
+table	iwxxm_reports	iwxxm_reports	CREATE TABLE "iwxxm_reports" ("fid" INTEGER PRIMARY KEY NOT NULL, "report_id" TEXT NOT NULL, "report_type" TEXT NOT NULL, "report_status" TEXT NOT NULL, "permissible_usage" TEXT NOT NULL, "permissible_usage_reason" TEXT, "permissible_usage_supplementary" TEXT, "issue_time_utc" DATETIME NOT NULL, "bulletin_identifier" TEXT)
 # gpkg_contents: table_name, data_type, identifier, description, last_change, min_x, min_y, max_x, max_y, srs_id
 iwxxm_attributes	attributes	iwxxm_attributes	IWXXM features without a geometry	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
 iwxxm_reports	attributes	iwxxm_reports	One row per report of the exported document	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
@@ -31,5 +31,5 @@ WGS 84 geodetic	4326	EPSG	4326	GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84
 4	source_document_type	MeteorologicalBulletin
 5	bulletin_identifier	A_LAYU31YUDO221630_C_YUDO_20120822163000.xml
 6	report_count	1
-# iwxxm_reports: fid, report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier
-1	uuid.15ff064a-6dc4-41e0-bafa-8ee78ed4dc25	Metar	NORMAL	OPERATIONAL	2012-08-22T16:30:00.000Z	A_LAYU31YUDO221630_C_YUDO_20120822163000.xml
+# iwxxm_reports: fid, report_id, report_type, report_status, permissible_usage, permissible_usage_reason, permissible_usage_supplementary, issue_time_utc, bulletin_identifier
+1	uuid.15ff064a-6dc4-41e0-bafa-8ee78ed4dc25	Metar	NORMAL	OPERATIONAL	NULL	NULL	2012-08-22T16:30:00.000Z	A_LAYU31YUDO221630_C_YUDO_20120822163000.xml

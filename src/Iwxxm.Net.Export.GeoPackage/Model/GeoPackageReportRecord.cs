@@ -13,6 +13,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
             IwxxmReportType reportType,
             string reportStatus,
             string permissibleUsage,
+            string? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
             DateTimeOffset issueTime,
             string? bulletinIdentifier)
         {
@@ -20,6 +22,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
             ReportType = reportType;
             ReportStatus = reportStatus;
             PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
             IssueTime = issueTime;
             BulletinIdentifier = bulletinIdentifier;
         }
@@ -35,6 +39,12 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
 
         /// <summary>The <c>permissibleUsage</c> code as the GeoJSON exporter writes it (<c>OPERATIONAL</c>, <c>NON-OPERATIONAL</c>).</summary>
         public string PermissibleUsage { get; }
+
+        /// <summary>The <c>permissibleUsageReason</c> code as the GeoJSON metadata writes it (<c>TEST</c>, <c>EXERCISE</c>), or <c>null</c> when the report has none.</summary>
+        public string? PermissibleUsageReason { get; }
+
+        /// <summary>The free <c>permissibleUsageSupplementary</c> text of the report, or <c>null</c> when it has none.</summary>
+        public string? PermissibleUsageSupplementary { get; }
 
         /// <summary>The issue time of the report; its offset is whatever the mapper produced (UTC for every mapped report).</summary>
         public DateTimeOffset IssueTime { get; }

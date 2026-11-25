@@ -51,10 +51,11 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
     }
 
     /// <summary>
-    /// A geometry as a GeoPackage stores it, independent of the core types so that the binary encoder works on it
-    /// directly. The coordinates are exactly those the GeoJSON writer of the core produced: the right-hand-rule ring
-    /// orientation, the antimeridian split and the polar caps are already applied and nothing is re-oriented or
-    /// re-split here.
+    /// A geometry as a GeoPackage stores it. It is a deliberate decoupling from the internal GeoJSON geometry type of
+    /// the core, so that the binary encoder works on a plain model of its own and the core can change its type without
+    /// touching the encoder; <c>GeoPackageFeatureSource</c> is the only place that converts between the two.
+    /// The coordinates are exactly those the GeoJSON writer of the core produced: the right-hand-rule ring orientation,
+    /// the antimeridian split and the polar caps are already applied and nothing is re-oriented or re-split here.
     /// </summary>
     /// <remarks>
     /// The model does not validate its content (the encoder does), so that invalid shapes can be built to test it.

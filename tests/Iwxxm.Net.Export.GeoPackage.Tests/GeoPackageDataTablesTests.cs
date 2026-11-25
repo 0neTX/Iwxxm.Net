@@ -147,7 +147,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                         new[]
                         {
                             "fid INTEGER 1 1", "report_id TEXT 1 0", "report_type TEXT 1 0", "report_status TEXT 1 0",
-                            "permissible_usage TEXT 1 0", "issue_time_utc DATETIME 1 0", "bulletin_identifier TEXT 0 0"
+                            "permissible_usage TEXT 1 0", "permissible_usage_reason TEXT 0 0", "permissible_usage_supplementary TEXT 0 0",
+                            "issue_time_utc DATETIME 1 0", "bulletin_identifier TEXT 0 0"
                         },
                         ColumnsOf(connection, GeoPackageDataTables.ReportsTable));
                     Assert.Equal(new[] { "fid INTEGER 1 1", "key TEXT 1 0", "value TEXT 1 0" }, ColumnsOf(connection, GeoPackageDataTables.MetadataTable));
@@ -203,7 +204,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             {
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))
                 {
-                    var reports = Rows(connection, "SELECT report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier FROM iwxxm_reports ORDER BY fid");
+                    var reports = Rows(connection, "SELECT report_id, report_type, report_status, permissible_usage, permissible_usage_reason, permissible_usage_supplementary, issue_time_utc, bulletin_identifier FROM iwxxm_reports ORDER BY fid");
                     Assert.Equal(model.Reports.Count, reports.Count);
                     for (int i = 0; i < reports.Count; i++)
                     {
@@ -212,6 +213,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                             new string?[]
                             {
                                 expected.ReportId, expected.ReportType.ToString(), expected.ReportStatus, expected.PermissibleUsage,
+                                expected.PermissibleUsageReason, expected.PermissibleUsageSupplementary,
                                 GeoPackageDateTime.Format(expected.IssueTime), expected.BulletinIdentifier
                             },
                             reports[i]);
@@ -252,12 +254,35 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         }
 
         [Fact]
+        public void Reports_WriteTheUsageReasonAndSupplementary_AsNullWhenAbsent()
+        {
+            GeoPackageDocumentModel model = Read(SampleFiles.PathOf("metar-A3-1.xml"));
+            GeoPackageReportRecord report = model.Reports[0];
+            var test = new GeoPackageReportRecord("r-test", report.ReportType, report.ReportStatus, "NON-OPERATIONAL", "TEST", "for a drill", report.IssueTime, null);
+            var plain = new GeoPackageReportRecord("r-plain", report.ReportType, report.ReportStatus, "OPERATIONAL", null, null, report.IssueTime, null);
+            string path = WriteToTempFile(new GeoPackageDocumentModel(model.DocumentId, model.DocumentType, null, new[] { test, plain }, model.Features));
+            try
+            {
+                using (SqliteConnection connection = GeoPackageSqlite.Open(path))
+                {
+                    var rows = Rows(connection, "SELECT report_id, permissible_usage, permissible_usage_reason, permissible_usage_supplementary FROM iwxxm_reports ORDER BY fid");
+                    Assert.Equal(new string?[] { "r-test", "NON-OPERATIONAL", "TEST", "for a drill" }, rows[0]);
+                    Assert.Equal(new string?[] { "r-plain", "OPERATIONAL", null, null }, rows[1]);
+                }
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void Values_AreBoundAsParameters_NeverConcatenatedIntoTheSql()
         {
             // A quote in a value must be stored as data: all values are bound parameters.
             GeoPackageDocumentModel model = Read(SampleFiles.PathOf("metar-A3-1.xml"));
             var report = model.Reports[0];
-            var hostile = new GeoPackageReportRecord("x'); DROP TABLE gpkg_contents; --", report.ReportType, report.ReportStatus, report.PermissibleUsage, report.IssueTime, "b'1");
+            var hostile = new GeoPackageReportRecord("x'); DROP TABLE gpkg_contents; --", report.ReportType, report.ReportStatus, report.PermissibleUsage, "r'1", "s'1", report.IssueTime, "b'1");
             var changed = new GeoPackageDocumentModel("d'oc", model.DocumentType, null, new[] { hostile }, model.Features);
             string path = WriteToTempFile(changed);
             try
@@ -265,6 +290,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                 using (SqliteConnection connection = GeoPackageSqlite.Open(path))
                 {
                     Assert.Equal("x'); DROP TABLE gpkg_contents; --", Scalar(connection, "SELECT report_id FROM iwxxm_reports"));
+                    Assert.Equal("r'1", Scalar(connection, "SELECT permissible_usage_reason FROM iwxxm_reports"));
+                    Assert.Equal("s'1", Scalar(connection, "SELECT permissible_usage_supplementary FROM iwxxm_reports"));
                     Assert.Equal("d'oc", Scalar(connection, "SELECT value FROM iwxxm_metadata WHERE key = 'source_document_id'"));
                     Assert.NotEqual("0", Scalar(connection, "SELECT count(*) FROM gpkg_contents"));
                 }

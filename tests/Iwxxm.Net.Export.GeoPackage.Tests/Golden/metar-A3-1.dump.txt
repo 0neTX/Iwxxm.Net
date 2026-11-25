@@ -13,7 +13,7 @@ table	gpkg_spatial_ref_sys	gpkg_spatial_ref_sys	CREATE TABLE gpkg_spatial_ref_sy
 table	iwxxm_attributes	iwxxm_attributes	CREATE TABLE "iwxxm_attributes" ("fid" INTEGER PRIMARY KEY NOT NULL, "feature_id" TEXT, "feature_type" TEXT, "report_id" TEXT, "report_type" TEXT, "bulletin_identifier" TEXT, "issue_time_utc" DATETIME, "properties" TEXT NOT NULL)
 table	iwxxm_metadata	iwxxm_metadata	CREATE TABLE "iwxxm_metadata" ("fid" INTEGER PRIMARY KEY NOT NULL, "key" TEXT NOT NULL UNIQUE, "value" TEXT NOT NULL)
 table	iwxxm_points	iwxxm_points	CREATE TABLE "iwxxm_points" ("fid" INTEGER PRIMARY KEY NOT NULL, "geom" POINT NOT NULL, "feature_id" TEXT, "feature_type" TEXT, "report_id" TEXT, "report_type" TEXT, "bulletin_identifier" TEXT, "issue_time_utc" DATETIME, "properties" TEXT NOT NULL)
-table	iwxxm_reports	iwxxm_reports	CREATE TABLE "iwxxm_reports" ("fid" INTEGER PRIMARY KEY NOT NULL, "report_id" TEXT NOT NULL, "report_type" TEXT NOT NULL, "report_status" TEXT NOT NULL, "permissible_usage" TEXT NOT NULL, "issue_time_utc" DATETIME NOT NULL, "bulletin_identifier" TEXT)
+table	iwxxm_reports	iwxxm_reports	CREATE TABLE "iwxxm_reports" ("fid" INTEGER PRIMARY KEY NOT NULL, "report_id" TEXT NOT NULL, "report_type" TEXT NOT NULL, "report_status" TEXT NOT NULL, "permissible_usage" TEXT NOT NULL, "permissible_usage_reason" TEXT, "permissible_usage_supplementary" TEXT, "issue_time_utc" DATETIME NOT NULL, "bulletin_identifier" TEXT)
 # gpkg_contents: table_name, data_type, identifier, description, last_change, min_x, min_y, max_x, max_y, srs_id
 iwxxm_points	features	iwxxm_points	IWXXM features with a point geometry	2026-01-01T00:00:00.000Z	-12.34	12.34	-12.34	12.34	4326
 iwxxm_attributes	attributes	iwxxm_attributes	IWXXM features without a geometry	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
@@ -34,5 +34,5 @@ WGS 84 geodetic	4326	EPSG	4326	GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84
 5	report_count	1
 # iwxxm_points: fid, geom, feature_id, feature_type, report_id, report_type, bulletin_identifier, issue_time_utc, properties
 1	POINT (-12.34 12.34)	uuid.510df5de-fefb-4406-bafd-faab35333ec0	METAR_OBSERVATION	uuid.510df5de-fefb-4406-bafd-faab35333ec0	Metar	NULL	2012-08-22T16:30:00.000Z	{"featureType":"METAR_OBSERVATION","reportId":"uuid.510df5de-fefb-4406-bafd-faab35333ec0","reportType":"Metar","issueTimeUtc":"2012-08-22T16:30:00.0000000+00:00","aerodromeDesignator":"YUDO","aerodromeName":"DONLON/INTERNATIONAL","observationTimeUtc":"2012-08-22T16:30:00.0000000+00:00","isAutomatedStation":false,"isNilObservation":false,"cloudAndVisibilityOk":false,"airTemperatureCelsius":17,"dewpointTemperatureCelsius":16,"qnhHpa":1018,"prevailingVisibilityMeters":600,"windDirectionDegrees":240,"windSpeed":4,"windSpeedUom":"m/s","presentWeatherUris":["http://codes.wmo.int/306/4678/DZ","http://codes.wmo.int/306/4678/FG"]}
-# iwxxm_reports: fid, report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier
-1	uuid.510df5de-fefb-4406-bafd-faab35333ec0	Metar	NORMAL	OPERATIONAL	2012-08-22T16:30:00.000Z	NULL
+# iwxxm_reports: fid, report_id, report_type, report_status, permissible_usage, permissible_usage_reason, permissible_usage_supplementary, issue_time_utc, bulletin_identifier
+1	uuid.510df5de-fefb-4406-bafd-faab35333ec0	Metar	NORMAL	OPERATIONAL	NULL	NULL	2012-08-22T16:30:00.000Z	NULL

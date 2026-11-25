@@ -31,6 +31,11 @@ VALIDATOR = "/usr/lib/python3/dist-packages/osgeo_utils/samples/validate_gpkg.py
 TABLES_WITH_ISSUE_TIME = {"iwxxm_points", "iwxxm_lines", "iwxxm_polygons", "iwxxm_attributes", "iwxxm_reports"}
 # The tables whose rows have a JSON `properties` column.
 TABLES_WITH_PROPERTIES = {"iwxxm_points", "iwxxm_lines", "iwxxm_polygons", "iwxxm_attributes"}
+# The columns of iwxxm_reports, in table order (the fid is not a field).
+REPORTS_FIELDS = [
+    "report_id", "report_type", "report_status", "permissible_usage", "permissible_usage_reason",
+    "permissible_usage_supplementary", "issue_time_utc", "bulletin_identifier",
+]
 GEOMETRY_TYPES = {
     "iwxxm_points": ogr.wkbPoint,
     "iwxxm_lines": ogr.wkbMultiLineString,
@@ -122,6 +127,10 @@ def bindings_problems(path, tables):
             field = definition.GetFieldIndex("issue_time_utc")
             if field < 0 or definition.GetFieldDefn(field).GetType() != ogr.OFTDateTime:
                 problems.append("%s: issue_time_utc is not a date-time field" % table)
+        if table == "iwxxm_reports":
+            fields = [definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())]
+            if fields != REPORTS_FIELDS:
+                problems.append("%s: columns %r, expected %r" % (table, fields, REPORTS_FIELDS))
         iterated = 0
         for feature in layer:
             iterated += 1

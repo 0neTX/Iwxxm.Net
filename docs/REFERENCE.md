@@ -516,6 +516,8 @@ The columns `feature_type`, `report_id`, `report_type`, `bulletin_identifier` an
 | `report_type` | `TEXT NOT NULL` | The `IwxxmReportType` name. |
 | `report_status` | `TEXT NOT NULL` | The report status code (for example `NORMAL`). |
 | `permissible_usage` | `TEXT NOT NULL` | The permissible usage code (for example `OPERATIONAL`). |
+| `permissible_usage_reason` | `TEXT` | The permissible usage reason code (`TEST` or `EXERCISE`) when the report has one; `NULL` otherwise. The same value as `permissibleUsageReason` in the GeoJSON metadata of that report. |
+| `permissible_usage_supplementary` | `TEXT` | The free supplementary text of the permissible usage when the report has one; `NULL` otherwise (`permissibleUsageSupplementary` in the GeoJSON metadata). |
 | `issue_time_utc` | `DATETIME NOT NULL` | The issue time, `yyyy-MM-ddTHH:mm:ss.fffZ`. |
 | `bulletin_identifier` | `TEXT` | The bulletin identifier, for a report inside a bulletin; `NULL` otherwise. |
 

@@ -31,13 +31,16 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
             IssueTime = GeoPackageDateTime.ParseIso(IssueTimeText);
         }
 
-        /// <summary>The GeoJSON feature: geometry (already split at the antimeridian) and ordered properties.</summary>
-        public GeoJsonFeature Feature { get; }
+        /// <summary>The GeoJSON feature the values were read from. Only its properties are used; the geometry to write is <see cref="Geometry"/>.</summary>
+        private GeoJsonFeature Feature { get; }
+
+        /// <summary>The same feature with another geometry (a test builds a feature the encoder rejects this way).</summary>
+        internal GeoPackageFeature WithGeometry(GeoPackageGeometry? geometry) => new GeoPackageFeature(Feature, geometry);
 
         /// <summary>
-        /// The geometry as the GeoPackage stores it (see <see cref="GeoPackageGeometry"/>), or <c>null</c> for a feature
-        /// without geometry (it is written to the attributes table). It is derived from <see cref="Feature"/>'s geometry
-        /// and is the authoritative geometry for writing: write this one, not <c>Feature.Geometry</c>.
+        /// The one geometry to write, as the GeoPackage stores it (see <see cref="GeoPackageGeometry"/>), or <c>null</c>
+        /// for a feature without geometry (it is written to the attributes table). It is derived from the geometry of
+        /// the GeoJSON feature, which is not otherwise exposed.
         /// </summary>
         public GeoPackageGeometry? Geometry { get; }
 

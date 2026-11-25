@@ -213,7 +213,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         {
             GeoPackageDocumentModel model = GeoPackageFeatureSource.Read(document);
             GeoPackageFeature first = model.Features.First(f => f.Geometry != null);
-            var bad = new GeoPackageFeature(first.Feature, GeoPackageGeometry.ForPoint(new GeoPackagePosition(double.NaN, 0)));
+            var bad = first.WithGeometry(GeoPackageGeometry.ForPoint(new GeoPackagePosition(double.NaN, 0)));
             return new GeoPackageDocumentModel(model.DocumentId, model.DocumentType, model.BulletinIdentifier, model.Reports, model.Features.Concat(new[] { bad }).ToList());
         }
 

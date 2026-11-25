@@ -99,6 +99,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                 Assert.Null(record.BulletinIdentifier);
                 Assert.Equal(metadata.GetProperty("reportStatus").GetString(), record.ReportStatus);
                 Assert.Equal(metadata.GetProperty("permissibleUsage").GetString(), record.PermissibleUsage);
+                Assert.Equal(metadata.TryGetProperty("permissibleUsageReason", out JsonElement reason) ? reason.GetString() : null, record.PermissibleUsageReason);
+                Assert.Equal(metadata.TryGetProperty("permissibleUsageSupplementary", out JsonElement supplementary) ? supplementary.GetString() : null, record.PermissibleUsageSupplementary);
                 Assert.Equal(metadata.GetProperty("issueTimeUtc").GetString(), record.IssueTime.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
             }
 

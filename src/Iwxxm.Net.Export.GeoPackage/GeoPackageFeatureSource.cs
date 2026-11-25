@@ -115,6 +115,8 @@ namespace Iwxxm.Net.Export.GeoPackage
                 report.ReportType,
                 ReportMetadataCodes.ToCode(report.ReportStatus),
                 ReportMetadataCodes.ToCode(report.PermissibleUsage),
+                report.PermissibleUsageReason.HasValue ? ReportMetadataCodes.ToCode(report.PermissibleUsageReason.Value) : null,
+                (report as IwxxmReport)?.PermissibleUsageSupplementary,
                 report.IssueTimeUtc,
                 bulletinIdentifier);
     }

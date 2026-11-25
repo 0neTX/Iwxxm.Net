@@ -57,7 +57,7 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// <summary>
         /// Writes every table for <paramref name="model"/> inside <paramref name="transaction"/>. The base schema must exist.
         /// </summary>
-        /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled; checked before every row.</exception>
+        /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled; checked before every feature, attribute and report row (the metadata rows are not checked).</exception>
         public static void Write(SqliteTransaction transaction, GeoPackageDocumentModel model, GeoPackageWriteOptions options, CancellationToken cancellationToken)
         {
             if (transaction == null)
@@ -163,7 +163,7 @@ namespace Iwxxm.Net.Export.GeoPackage
                 }
             }
 
-            RegisterAttributesTable(transaction, AttributesTable, "IWXXM features without a geometry", lastChange);
+            RegisterNonSpatialTable(transaction, AttributesTable, "IWXXM features without a geometry", lastChange);
         }
 
         private static void WriteReports(SqliteTransaction transaction, IReadOnlyList<GeoPackageReportRecord> reports, string lastChange, CancellationToken cancellationToken)
@@ -171,17 +171,20 @@ namespace Iwxxm.Net.Export.GeoPackage
             GeoPackageSqlite.Execute(
                 transaction,
                 $"CREATE TABLE \"{ReportsTable}\" (\"fid\" INTEGER PRIMARY KEY NOT NULL, \"report_id\" TEXT NOT NULL, \"report_type\" TEXT NOT NULL, " +
-                "\"report_status\" TEXT NOT NULL, \"permissible_usage\" TEXT NOT NULL, \"issue_time_utc\" DATETIME NOT NULL, \"bulletin_identifier\" TEXT)");
+                "\"report_status\" TEXT NOT NULL, \"permissible_usage\" TEXT NOT NULL, \"permissible_usage_reason\" TEXT, " +
+                "\"permissible_usage_supplementary\" TEXT, \"issue_time_utc\" DATETIME NOT NULL, \"bulletin_identifier\" TEXT)");
 
             using (SqliteCommand command = GeoPackageSqlite.CreateCommand(
                 transaction,
-                $"INSERT INTO \"{ReportsTable}\" (report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier) " +
-                "VALUES ($reportId, $reportType, $status, $usage, $issueTime, $bulletin)"))
+                $"INSERT INTO \"{ReportsTable}\" (report_id, report_type, report_status, permissible_usage, permissible_usage_reason, permissible_usage_supplementary, issue_time_utc, bulletin_identifier) " +
+                "VALUES ($reportId, $reportType, $status, $usage, $usageReason, $usageSupplementary, $issueTime, $bulletin)"))
             {
                 SqliteParameter reportId = command.Parameters.Add("$reportId", SqliteType.Text);
                 SqliteParameter reportType = command.Parameters.Add("$reportType", SqliteType.Text);
                 SqliteParameter status = command.Parameters.Add("$status", SqliteType.Text);
                 SqliteParameter usage = command.Parameters.Add("$usage", SqliteType.Text);
+                SqliteParameter usageReason = command.Parameters.Add("$usageReason", SqliteType.Text);
+                SqliteParameter usageSupplementary = command.Parameters.Add("$usageSupplementary", SqliteType.Text);
                 SqliteParameter issueTime = command.Parameters.Add("$issueTime", SqliteType.Text);
                 SqliteParameter bulletin = command.Parameters.Add("$bulletin", SqliteType.Text);
 
@@ -192,13 +195,15 @@ namespace Iwxxm.Net.Export.GeoPackage
                     reportType.Value = report.ReportType.ToString();
                     status.Value = report.ReportStatus;
                     usage.Value = report.PermissibleUsage;
+                    usageReason.Value = ValueOf(report.PermissibleUsageReason);
+                    usageSupplementary.Value = ValueOf(report.PermissibleUsageSupplementary);
                     issueTime.Value = GeoPackageDateTime.Format(report.IssueTime);
                     bulletin.Value = ValueOf(report.BulletinIdentifier);
                     command.ExecuteNonQuery();
                 }
             }
 
-            RegisterAttributesTable(transaction, ReportsTable, "One row per report of the exported document", lastChange);
+            RegisterNonSpatialTable(transaction, ReportsTable, "One row per report of the exported document", lastChange);
         }
 
         /// <summary>
@@ -240,11 +245,11 @@ namespace Iwxxm.Net.Export.GeoPackage
                 }
             }
 
-            RegisterAttributesTable(transaction, MetadataTable, "Library version, source document and GeoPackage version", lastChange);
+            RegisterNonSpatialTable(transaction, MetadataTable, "Library version, source document and GeoPackage version", lastChange);
         }
 
         // An attributes table has no extent; GDAL gives it the "undefined geographic" reference system, so does this.
-        private static void RegisterAttributesTable(SqliteTransaction transaction, string table, string description, string lastChange) =>
+        private static void RegisterNonSpatialTable(SqliteTransaction transaction, string table, string description, string lastChange) =>
             GeoPackageSchema.AddContents(transaction, table, GeoPackageSchema.AttributesDataType, description, lastChange, null, GeoPackageSchema.UndefinedGeographicSrsId);
 
         private static object ValueOf(string? text) => text == null ? DBNull.Value : (object)text;

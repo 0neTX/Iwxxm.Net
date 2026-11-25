@@ -168,7 +168,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             using (JsonDocument geoJson = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(document, GeoJsonExportOptions.Default).Value))
             using (SqliteConnection connection = GeoPackageSqlite.Open(path))
             {
-                List<string?[]> rows = Rows(connection, "SELECT report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier FROM iwxxm_reports ORDER BY fid");
+                List<string?[]> rows = Rows(connection, "SELECT report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier, permissible_usage_reason, permissible_usage_supplementary FROM iwxxm_reports ORDER BY fid");
                 Assert.Equal(reports.Length, rows.Count);
                 for (int i = 0; i < reports.Length; i++)
                 {
@@ -190,6 +190,21 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                     Assert.Equal(metadata.GetProperty("permissibleUsage").GetString(), rows[0][3]);
                 }
 
+                // Every report, standalone or inside a bulletin: the usage reason and supplementary text are the ones of the
+                // metadata block of the GeoJSON export of that report (absent there means NULL here).
+                for (int i = 0; i < reports.Length; i++)
+                {
+                    using (JsonDocument single = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(reports[i], GeoJsonExportOptions.Default).Value))
+                    {
+                        JsonElement metadata = single.RootElement.GetProperty("metadata");
+                        string where = sample + " / report " + i;
+                        Assert.True(Text(metadata, "permissibleUsageReason") == rows[i][6], where + ": permissible_usage_reason");
+                        Assert.True(Text(metadata, "permissibleUsageSupplementary") == rows[i][7], where + ": permissible_usage_supplementary");
+                        Assert.True(Text(metadata, "reportStatus") == rows[i][2], where + ": report_status");
+                        Assert.True(Text(metadata, "permissibleUsage") == rows[i][3], where + ": permissible_usage");
+                    }
+                }
+
                 // Every feature belongs to a report of the file.
                 var reportIds = new HashSet<string?>(rows.Select(r => r[0]));
                 foreach (JsonElement feature in geoJson.RootElement.GetProperty("features").EnumerateArray())
@@ -203,6 +218,54 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                 Assert.Equal(bulletinIdentifier != null, metadataRows.ContainsKey("bulletin_identifier"));
                 if (bulletinIdentifier != null)
                     Assert.Equal(bulletinIdentifier, metadataRows["bulletin_identifier"]);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(Samples))]
+        public void EveryRowOfEveryFeatureTable_HasAnIssueTime(string sample)
+        {
+            string path = Path.Combine(_directory, "issue-time.gpkg");
+            Result<string> written = IwxxmParserGeoPackageExtensions.ParseFileToGeoPackage(sample, path);
+            Assert.True(written.IsSuccess, string.Join(" | ", written.Errors));
+
+            using (SqliteConnection connection = GeoPackageSqlite.Open(path))
+            {
+                foreach (string table in TableNames(connection).Where(t => t != "iwxxm_reports" && t != "iwxxm_metadata" && t.StartsWith("iwxxm_", StringComparison.Ordinal)))
+                    Assert.True(Scalar(connection, "SELECT count(*) FROM " + table + " WHERE issue_time_utc IS NULL") == "0", sample + ": " + table + " has a row without issue_time_utc");
+            }
+        }
+
+        [Fact]
+        public void ABulletinOfReportsWithDifferentIssueTimes_UsesTheEarliestAsTheDefaultLastChange()
+        {
+            // The 15-report SIGWX bulletin has one issue time in every report. The text of the third report is changed to an
+            // earlier instant so that the reports differ and the earliest is not the first.
+            const string issueTime = "<gml:timePosition>2099-01-01T05:32:57Z</gml:timePosition>";
+            string xml = File.ReadAllText(SampleFiles.ExtraPathOf("example-iwxxm-2025-2-sigwx-non-operational.xml"));
+            int third = -1;
+            for (int i = 0; i < 3; i++)
+            {
+                third = xml.IndexOf(issueTime, third + 1, StringComparison.Ordinal);
+                Assert.True(third >= 0, "the sample must hold at least three reports with this issue time");
+            }
+
+            xml = xml.Substring(0, third) + "<gml:timePosition>2098-12-31T23:15:00Z</gml:timePosition>" + xml.Substring(third + issueTime.Length);
+
+            Result<IwxxmDocument> parsed = IwxxmParser.Parse(xml);
+            Assert.True(parsed.IsSuccess, string.Join(" | ", parsed.Errors));
+            var bulletin = Assert.IsType<MeteorologicalBulletin>(parsed.Value);
+            DateTimeOffset[] times = bulletin.Reports.Select(r => r.IssueTimeUtc).ToArray();
+            Assert.True(times.Distinct().Count() > 1);
+            Assert.NotEqual(times[0], times.Min());
+
+            string path = Path.Combine(_directory, "last-change.gpkg");
+            Assert.True(IwxxmParserGeoPackageExtensions.ParseToGeoPackage(xml, path).IsSuccess);
+
+            using (SqliteConnection connection = GeoPackageSqlite.Open(path))
+            {
+                Assert.Equal(times.Min(), bulletin.IssueTimeUtc);
+                Assert.Equal(new[] { GeoPackageDateTime.Format(times.Min()) }, Rows(connection, "SELECT DISTINCT last_change FROM gpkg_contents").Select(r => r[0]).ToArray());
             }
         }
 

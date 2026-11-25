@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Iwxxm.Net.Reports;
@@ -131,6 +132,66 @@ namespace Iwxxm.Net.Tests
                 Assert.Equal(310, properties.Single(p => p.Name == "lowerIsotachLevel").Value.GetDouble());
                 Assert.Equal("FL", properties.Single(p => p.Name == "lowerIsotachLevelUom").Value.GetString());
                 Assert.Equal(400, properties.Single(p => p.Name == "upperIsotachLevel").Value.GetDouble());
+            }
+        }
+
+        // The two wind symbols with isotachs of the WAFS example, rewritten to the shapes a vertical limit can take.
+        private static List<JsonProperty> CorePointPropertiesOfModifiedWafs(string featureSuffix, out JsonDocument keepAlive, params (string From, string To)[] replacements)
+        {
+            string xml = File.ReadAllText(WafsPath).Replace("\r\n", "\n");
+            foreach ((string from, string to) in replacements)
+            {
+                Assert.Contains(from, xml, System.StringComparison.Ordinal);
+                xml = xml.Replace(from, to);
+            }
+
+            Result<IwxxmDocument> parsed = IwxxmParser.Parse(xml);
+            Assert.True(parsed.IsSuccess, string.Join(" | ", parsed.Errors));
+            keepAlive = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(parsed.Value).Value);
+            JsonElement feature = keepAlive.RootElement.GetProperty("features").EnumerateArray()
+                .Single(f => f.TryGetProperty("id", out JsonElement id) && id.GetString() == WafsJetStreamId + featureSuffix);
+            return feature.GetProperty("properties").EnumerateObject().ToList();
+        }
+
+        [Fact]
+        public void AnIsotachInFeetOnTheStandardReference_WritesTheReferenceAndTheFlightLevel()
+        {
+            List<JsonProperty> properties = CorePointPropertiesOfModifiedWafs(
+                "#core-2",
+                out JsonDocument json,
+                ("<iwxxm:IsotachUpperElevation uom=\"M\">15240</iwxxm:IsotachUpperElevation>\n                    <iwxxm:IsotachUpperVerticalReference>MSL</iwxxm:IsotachUpperVerticalReference>",
+                 "<iwxxm:IsotachUpperElevation uom=\"FT\">50000</iwxxm:IsotachUpperElevation>\n                    <iwxxm:IsotachUpperVerticalReference>STD</iwxxm:IsotachUpperVerticalReference>"));
+            using (json)
+            {
+                string[] names = properties.Select(p => p.Name).ToArray();
+                Assert.Equal(
+                    new[]
+                    {
+                        "lowerIsotachLevel", "lowerIsotachLevelUom", "lowerIsotachLevelReference",
+                        "upperIsotachLevel", "upperIsotachLevelUom", "upperIsotachLevelReference", "upperIsotachLevelFlightLevel"
+                    },
+                    names.Skip(System.Array.IndexOf(names, "windSpeedUom") + 1).ToArray());
+                Assert.Equal(50000, properties.Single(p => p.Name == "upperIsotachLevel").Value.GetDouble());
+                Assert.Equal("FT", properties.Single(p => p.Name == "upperIsotachLevelUom").Value.GetString());
+                Assert.Equal("STD", properties.Single(p => p.Name == "upperIsotachLevelReference").Value.GetString());
+                Assert.Equal("FL500", properties.Single(p => p.Name == "upperIsotachLevelFlightLevel").Value.GetString());
+                Assert.Equal(13716, properties.Single(p => p.Name == "lowerIsotachLevel").Value.GetDouble());
+            }
+        }
+
+        [Fact]
+        public void ANilIsotach_WritesTheNilReasonAndNoNumber()
+        {
+            List<JsonProperty> properties = CorePointPropertiesOfModifiedWafs(
+                "#core-4",
+                out JsonDocument json,
+                ("<iwxxm:IsotachLowerElevation uom=\"M\">14326</iwxxm:IsotachLowerElevation>\n                    <iwxxm:IsotachLowerVerticalReference>MSL</iwxxm:IsotachLowerVerticalReference>",
+                 "<iwxxm:IsotachLowerElevation xsi:nil=\"true\" nilReason=\"http://codes.wmo.int/iwxxm/nil/inapplicable\"/>"));
+            using (json)
+            {
+                Assert.DoesNotContain(properties, p => p.Name == "lowerIsotachLevel");
+                Assert.Equal("http://codes.wmo.int/iwxxm/nil/inapplicable", properties.Single(p => p.Name == "lowerIsotachLevelNilReason").Value.GetString());
+                Assert.Equal(16154, properties.Single(p => p.Name == "upperIsotachLevel").Value.GetDouble());
             }
         }
 
