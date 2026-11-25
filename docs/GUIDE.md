@@ -1203,6 +1203,7 @@ How to read the table:
 - `51.5 m/s` is the wind **as the centre reported it**. The `kt` column converts it with `ToKnots()` (1 kt = 1852/3600 m/s): 51.5 m/s is about 100 kt, 61.8 m/s about 120 kt.
 - `15240 M MSL` is a height above mean sea level. Divided by 0.3048 it is 50 000 ft, which the `FL500~` prefix shows. The `~` is a reminder that this is an approximation for display; the exact reported value stays in parentheses.
 - The two core points with an isotach layer say the strong wind is not a thin line: around the core at 36.9 N the 120 kt air spans roughly FL450 to FL500.
+- In the [GeoJSON export](#8-geojson-export) (and so in the GeoPackage `properties` column) a core point with an isotach layer has `lowerIsotachLevel` and `upperIsotachLevel` after `windSpeedUom`, each with `...Uom` and `...Reference` like `level`; a point without one has no such key. The CSV export does not include them.
 
 ### Filtering and finding things
 
