@@ -156,7 +156,7 @@ Console.WriteLine(result.IsSuccess ? $"written: {Path.GetFileName(result.Value)}
 written: sigmet.gpkg
 ```
 
-The file has `iwxxm_points`, `iwxxm_lines` and `iwxxm_polygons` tables (only those that have rows), an `iwxxm_attributes` table for features without geometry, and `iwxxm_reports` and `iwxxm_metadata`. Each feature row keeps the GeoJSON properties as JSON text. The output is deterministic: no timestamp comes from the clock. Table layout, options, the .NET Framework requirements and what is not included are in the [guide](docs/GUIDE.md#8b-geopackage-export) and the [reference](docs/REFERENCE.md#geopackage-tables-and-columns).
+The file has `iwxxm_points`, `iwxxm_lines` and `iwxxm_polygons` tables (only those that have rows), an `iwxxm_attributes` table for features without geometry, and `iwxxm_reports` and `iwxxm_metadata`. Each feature row keeps the GeoJSON properties as JSON text, with the issue time and, for SIGWX, SIGMET, AIRMET and TAF, the validity period in `DATETIME` columns. The output is deterministic: no timestamp comes from the clock. Table layout, options, the .NET Framework requirements and what is not included are in the [guide](docs/GUIDE.md#8b-geopackage-export) and the [reference](docs/REFERENCE.md#geopackage-tables-and-columns).
 
 ## Documentation
 
