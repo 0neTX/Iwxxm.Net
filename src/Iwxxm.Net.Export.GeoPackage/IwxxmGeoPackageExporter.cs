@@ -19,6 +19,10 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// <see cref="GeoPackageExportOptions.LastChangeUtc"/>, by default the issue time of the document. Two exports of the
     /// same document with the same options have the same content (the SQLite file header records the version of the SQLite
     /// library that wrote it, so compare content, not bytes, across SQLite versions).</para>
+    /// <para><b>The schema extension.</b> By default the file also holds the <c>gpkg_schema</c> extension (a short name, a title
+    /// and a description for every column, and the JSON type of <c>properties</c>), which GDAL and QGIS use for field aliases
+    /// and comments. It is part of the GeoPackage standard with the scope <c>read-write</c>: a reader that does not support
+    /// it should be given a file written with options that have <see cref="GeoPackageContent.None"/>.</para>
     /// <para>An export failure is a value, like the CSV export: <see cref="Export"/> returns a <see cref="Result{T}"/> with
     /// <see cref="GeoPackageErrorCodes.ExportError"/> and throws only for a <c>null</c> document. The export cannot be
     /// cancelled, like the rest of the library.</para>
@@ -84,7 +88,7 @@ namespace Iwxxm.Net.Export.GeoPackage
             {
                 GeoPackageExportOptions effective = options ?? GeoPackageExportOptions.Default;
                 GeoPackageDocumentModel model = readModel(document);
-                var writeOptions = new GeoPackageWriteOptions(effective.ResolveLastChange(document.IssueTimeUtc), effective.Version);
+                var writeOptions = new GeoPackageWriteOptions(effective.ResolveLastChange(document.IssueTimeUtc), effective.Version, effective.Content);
                 GeoPackageWriter.Write(path, model, writeOptions);
                 return Result<string>.Success(Path.GetFullPath(path));
             }

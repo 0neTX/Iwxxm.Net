@@ -377,6 +377,92 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         }
 
         [Fact]
+        public void Options_Content_IsTheSchemaExtension_ForEveryConstructorThatDoesNotSayOtherwise()
+        {
+            Assert.Equal(GeoPackageContent.SchemaExtension, GeoPackageExportOptions.Default.Content);
+            Assert.Equal(GeoPackageContent.SchemaExtension, new GeoPackageExportOptions().Content);
+            Assert.Equal(GeoPackageContent.SchemaExtension, new GeoPackageExportOptions(GeoPackageVersion.Version13).Content);
+            Assert.Equal(GeoPackageContent.SchemaExtension, new GeoPackageExportOptions(GeoPackageVersion.Version13, LastChange).Content);
+        }
+
+        [Fact]
+        public void Options_Content_IsKeptAsGiven_WithTheOtherSettings()
+        {
+            var none = new GeoPackageExportOptions(GeoPackageVersion.Version13, LastChange, GeoPackageContent.None);
+            Assert.Equal(GeoPackageContent.None, none.Content);
+            Assert.Equal(GeoPackageVersion.Version13, none.Version);
+            Assert.Equal(LastChange, none.LastChangeUtc);
+
+            var schema = new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.SchemaExtension);
+            Assert.Equal(GeoPackageContent.SchemaExtension, schema.Content);
+            Assert.Null(schema.LastChangeUtc);
+        }
+
+        [Theory]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(1 << 30)]
+        [InlineData(-1)]
+        public void Options_RejectAContentWithAnUndefinedFlag(int bits)
+        {
+            var failure = Assert.Throws<ArgumentOutOfRangeException>(() => new GeoPackageExportOptions(GeoPackageVersion.Version14, null, (GeoPackageContent)bits));
+            Assert.Equal("content", failure.ParamName);
+            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoPackageExportOptions(default(GeoPackageVersion), null, GeoPackageContent.None));
+        }
+
+        [Fact]
+        public void Content_NumericValues_ArePinned()
+        {
+            Assert.Equal(0, (int)GeoPackageContent.None);
+            Assert.Equal(1, (int)GeoPackageContent.SchemaExtension);
+            Assert.Equal(2, Enum.GetValues(typeof(GeoPackageContent)).Length);
+        }
+
+        private static string[] SchemaTablesOf(string path)
+        {
+            using (SqliteConnection connection = GeoPackageSqlite.Open(path))
+                return TableNames(connection).Where(t => t == "gpkg_extensions" || t == "gpkg_data_columns" || t == "gpkg_data_column_constraints").ToArray();
+        }
+
+        [Fact]
+        public void Export_WritesTheSchemaExtension_ByDefault_AndNotWhenTheContentIsNone()
+        {
+            IwxxmDocument document = Parse(SampleFiles.PathOf("sigmet-A6-2-TC.xml"));
+
+            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf("default.gpkg")).IsSuccess);
+            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf("schema.gpkg"), new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.SchemaExtension)).IsSuccess);
+            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf("none.gpkg"), new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.None)).IsSuccess);
+
+            Assert.Equal(new[] { "gpkg_data_column_constraints", "gpkg_data_columns", "gpkg_extensions" }, SchemaTablesOf(PathOf("default.gpkg")));
+            Assert.Equal(Dump(PathOf("default.gpkg")), Dump(PathOf("schema.gpkg")));
+            Assert.Empty(SchemaTablesOf(PathOf("none.gpkg")));
+            Assert.NotEqual(Dump(PathOf("default.gpkg")), Dump(PathOf("none.gpkg")));
+        }
+
+        [Theory]
+        [InlineData(GeoPackageContent.None)]
+        [InlineData(GeoPackageContent.SchemaExtension)]
+        public void ExportToBytes_AndTheStaticShortcuts_HonourTheContent(GeoPackageContent content)
+        {
+            IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
+            var options = new GeoPackageExportOptions(GeoPackageVersion.Version14, LastChange, content);
+
+            Result<byte[]> bytes = IwxxmGeoPackageExporter.Default.ExportToBytes(document, options);
+            Result<byte[]> staticBytes = IwxxmGeoPackageExporter.ToGeoPackageBytes(document, options);
+            Result<string> staticFile = IwxxmGeoPackageExporter.ToGeoPackage(document, PathOf("static.gpkg"), options);
+
+            Assert.True(bytes.IsSuccess, string.Join(" | ", bytes.Errors));
+            Assert.True(staticBytes.IsSuccess);
+            Assert.True(staticFile.IsSuccess);
+            File.WriteAllBytes(PathOf("bytes.gpkg"), bytes.Value);
+            File.WriteAllBytes(PathOf("static-bytes.gpkg"), staticBytes.Value);
+
+            Assert.Equal(content == GeoPackageContent.None ? 0 : 3, SchemaTablesOf(PathOf("bytes.gpkg")).Length);
+            Assert.Equal(Dump(PathOf("bytes.gpkg")), Dump(PathOf("static.gpkg")));
+            Assert.Equal(Dump(PathOf("bytes.gpkg")), Dump(PathOf("static-bytes.gpkg")));
+        }
+
+        [Fact]
         public void ResolveLastChange_Prefers_TheExplicitValue_ThenTheIssueTime_ThenTheFixedFallback_NeverTheClock()
         {
             var issued = new DateTimeOffset(2025, 12, 1, 6, 30, 0, TimeSpan.FromHours(2));

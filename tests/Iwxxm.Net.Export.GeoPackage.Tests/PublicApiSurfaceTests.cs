@@ -25,6 +25,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Assert.Equal(
                 new[]
                 {
+                    "Iwxxm.Net.Export.GeoPackage.GeoPackageContent",
                     "Iwxxm.Net.Export.GeoPackage.GeoPackageErrorCodes",
                     "Iwxxm.Net.Export.GeoPackage.GeoPackageExportOptions",
                     "Iwxxm.Net.Export.GeoPackage.GeoPackageVersion",
@@ -42,7 +43,38 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                 .OrderBy(n => n, StringComparer.Ordinal)
                 .ToArray();
 
-            Assert.Equal(new[] { string.Empty, "GeoPackageVersion", "GeoPackageVersion,Nullable`1" }, constructors);
+            Assert.Equal(new[] { string.Empty, "GeoPackageVersion", "GeoPackageVersion,Nullable`1", "GeoPackageVersion,Nullable`1,GeoPackageContent" }, constructors);
+        }
+
+        [Fact]
+        public void ExportOptions_PublicProperties_AreExactlyTheIntendedOnes()
+        {
+            string[] properties = typeof(GeoPackageExportOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Select(p => p.PropertyType.Name + " " + p.Name + (p.CanWrite ? " (settable)" : string.Empty))
+                .OrderBy(n => n, StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.Equal(
+                new[]
+                {
+                    "GeoPackageContent Content",
+                    "GeoPackageVersion Version",
+                    "Nullable`1 LastChangeUtc",
+                },
+                properties);
+        }
+
+        [Fact]
+        public void GeoPackageContent_IsAFlagsEnum_WithPinnedValues()
+        {
+            Type content = typeof(GeoPackageContent);
+
+            Assert.True(content.IsEnum);
+            Assert.True(content.IsDefined(typeof(FlagsAttribute), inherit: false));
+            Assert.Equal(typeof(int), Enum.GetUnderlyingType(content));
+            Assert.Equal(
+                new[] { "None=0", "SchemaExtension=1" },
+                Enum.GetValues(content).Cast<object>().Select(v => v + "=" + (int)v).OrderBy(n => n, StringComparer.Ordinal).ToArray());
         }
 
         [Fact]

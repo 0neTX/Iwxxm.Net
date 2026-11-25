@@ -68,6 +68,40 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             }
         }
 
+        [Theory]
+        [InlineData(GeoPackageContent.None)]
+        [InlineData(GeoPackageContent.SchemaExtension)]
+        public void EveryEntryPoint_PassesTheContentOptionOn(GeoPackageContent content)
+        {
+            const string sample = "metar-A3-1.xml";
+            var options = new GeoPackageExportOptions(GeoPackageVersion.Version14, new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero), content);
+            var parsed = IwxxmParser.ParseFile(SampleFiles.PathOf(sample));
+            Assert.True(parsed.IsSuccess, string.Join(" | ", parsed.Errors));
+            Assert.True(IwxxmGeoPackageExporter.Default.Export(parsed.Value, PathOf("reference.gpkg"), options).IsSuccess);
+            string expected = Dump(PathOf("reference.gpkg"));
+
+            var results = new System.Collections.Generic.List<Result<string>>
+            {
+                IwxxmParserGeoPackageExtensions.ParseFileToGeoPackage(SampleFiles.PathOf(sample), PathOf("file.gpkg"), options),
+                IwxxmParserGeoPackageExtensions.ParseToGeoPackage(Xml(sample), PathOf("text.gpkg"), options),
+                Parser.ProcessFileToGeoPackage(SampleFiles.PathOf(sample), PathOf("ifile.gpkg"), options),
+                Parser.ProcessToGeoPackage(Xml(sample), PathOf("itext.gpkg"), options),
+            };
+            using (var input = new MemoryStream(Encoding.UTF8.GetBytes(Xml(sample))))
+                results.Add(Parser.ProcessToGeoPackage(input, PathOf("istream.gpkg"), options));
+            using (var input = new MemoryStream(Encoding.UTF8.GetBytes(Xml(sample))))
+                results.Add(IwxxmParserGeoPackageExtensions.ParseToGeoPackage(input, PathOf("stream.gpkg"), options));
+
+            Assert.Equal(6, results.Count);
+            foreach (Result<string> result in results)
+            {
+                Assert.True(result.IsSuccess, string.Join(" | ", result.Errors));
+                Assert.Equal(expected, Dump(result.Value));
+                using (SqliteConnection connection = GeoPackageSqlite.Open(result.Value))
+                    Assert.Equal(content == GeoPackageContent.None ? "0" : "3", Scalar(connection, "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN ('gpkg_extensions', 'gpkg_data_columns', 'gpkg_data_column_constraints')"));
+            }
+        }
+
         [Fact]
         public void ProcessToGeoPackage_WithoutOptions_UsesTheDefaults()
         {

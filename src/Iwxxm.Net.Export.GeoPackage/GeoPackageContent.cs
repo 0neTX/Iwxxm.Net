@@ -7,11 +7,12 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// The data tables (<c>iwxxm_points</c>, <c>iwxxm_lines</c>, <c>iwxxm_polygons</c>, <c>iwxxm_attributes</c>,
     /// <c>iwxxm_reports</c> and <c>iwxxm_metadata</c>) and the tables every GeoPackage has are always written; this
     /// enumeration only selects what is added to them. The numeric values are part of the public contract and never
-    /// change. More flags may be added in a later version (each one a power of two, and each one on by default only when
-    /// the file stays valid for a reader that ignores it), so code must not assume that these are the only members.
+    /// change. More flags (each a power of two) may be added in a later version, so code must not assume that these are the
+    /// only members: test a flag with a bit mask, and do not compare a value with <see cref="SchemaExtension"/> for equality.
+    /// A value with a bit that this version does not define is refused by <see cref="GeoPackageExportOptions"/>.
     /// </remarks>
     [Flags]
-    internal enum GeoPackageContent
+    public enum GeoPackageContent
     {
         /// <summary>Only the data tables: no optional part is written.</summary>
         None = 0,
