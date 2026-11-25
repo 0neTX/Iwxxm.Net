@@ -5,11 +5,19 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// <summary>The settings of one GeoPackage write.</summary>
     internal sealed class GeoPackageWriteOptions
     {
-        /// <remarks>The version is validated once, by <see cref="GeoPackageExportOptions"/>; an undefined value that gets here anyway is refused by <see cref="GeoPackageVersionExtensions"/> when the file is written.</remarks>
-        public GeoPackageWriteOptions(DateTimeOffset lastChange, GeoPackageVersion version = GeoPackageVersion.Version14)
+        /// <remarks>
+        /// The version and the content are validated once, by <see cref="GeoPackageExportOptions"/>; an undefined version that
+        /// gets here anyway is refused by <see cref="GeoPackageVersionExtensions"/> when the file is written, and undefined
+        /// content bits are ignored.
+        /// </remarks>
+        public GeoPackageWriteOptions(
+            DateTimeOffset lastChange,
+            GeoPackageVersion version = GeoPackageVersion.Version14,
+            GeoPackageContent content = GeoPackageContentExtensions.Default)
         {
             LastChange = lastChange;
             Version = version;
+            Content = content;
         }
 
         /// <summary>
@@ -20,5 +28,11 @@ namespace Iwxxm.Net.Export.GeoPackage
 
         /// <summary>The GeoPackage version the file declares.</summary>
         public GeoPackageVersion Version { get; }
+
+        /// <summary>The optional parts that are written next to the data tables.</summary>
+        public GeoPackageContent Content { get; }
+
+        /// <summary><c>true</c> when the <c>gpkg_schema</c> extension is written.</summary>
+        public bool WritesSchemaExtension => (Content & GeoPackageContent.SchemaExtension) != 0;
     }
 }

@@ -12,7 +12,8 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// </summary>
     /// <remarks>
     /// Rows are inserted in the order the foreign keys need: reference systems, then contents, then geometry columns. No
-    /// <c>gpkg_extensions</c> table, triggers or R-tree are created: none of them is required for a plain feature table.
+    /// triggers or R-tree are created: none of them is required for a plain feature table. The <c>gpkg_extensions</c> table
+    /// is created only by <see cref="EnsureExtensionsTable"/>, when an extension is registered.
     /// </remarks>
     internal static class GeoPackageSchema
     {
@@ -124,6 +125,45 @@ namespace Iwxxm.Net.Export.GeoPackage
                 command.Parameters.AddWithValue("$column", columnName);
                 command.Parameters.AddWithValue("$type", geometryTypeName);
                 command.Parameters.AddWithValue("$srs", Wgs84SrsId);
+                command.ExecuteNonQuery();
+            }
+        }
+
+        // The DDL GDAL 3.13 writes for the registry of extensions (the specification, 1.4, Annex F).
+        private const string CreateExtensions =
+            "CREATE TABLE gpkg_extensions (table_name TEXT,column_name TEXT,extension_name TEXT NOT NULL,definition TEXT NOT NULL," +
+            "scope TEXT NOT NULL,CONSTRAINT ge_tce UNIQUE (table_name, column_name, extension_name))";
+
+        /// <summary>Creates <c>gpkg_extensions</c> unless the database already has it.</summary>
+        /// <exception cref="ArgumentNullException"><paramref name="transaction"/> is <c>null</c>.</exception>
+        public static void EnsureExtensionsTable(SqliteTransaction transaction)
+        {
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            using (SqliteCommand command = GeoPackageSqlite.CreateCommand(transaction, "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'gpkg_extensions'"))
+            {
+                if (Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture) == 0)
+                    GeoPackageSqlite.Execute(transaction, CreateExtensions);
+            }
+        }
+
+        /// <summary>
+        /// Registers an extension for a whole table (<paramref name="columnName"/> is <c>null</c>) or for one column of it, in
+        /// <c>gpkg_extensions</c>, which must exist.
+        /// </summary>
+        public static void AddExtension(SqliteTransaction transaction, string tableName, string? columnName, string extensionName, string definition, string scope)
+        {
+            using (SqliteCommand command = GeoPackageSqlite.CreateCommand(
+                transaction,
+                "INSERT INTO gpkg_extensions (table_name, column_name, extension_name, definition, scope) " +
+                "VALUES ($table, $column, $extension, $definition, $scope)"))
+            {
+                command.Parameters.AddWithValue("$table", tableName);
+                command.Parameters.AddWithValue("$column", columnName == null ? DBNull.Value : (object)columnName);
+                command.Parameters.AddWithValue("$extension", extensionName);
+                command.Parameters.AddWithValue("$definition", definition);
+                command.Parameters.AddWithValue("$scope", scope);
                 command.ExecuteNonQuery();
             }
         }

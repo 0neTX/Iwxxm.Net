@@ -8,8 +8,9 @@ using Microsoft.Data.Sqlite;
 namespace Iwxxm.Net.Export.GeoPackage
 {
     /// <summary>
-    /// Writes a <see cref="GeoPackageDocumentModel"/> to a GeoPackage file: the base schema, the data tables and the
-    /// registrations in <c>gpkg_contents</c> / <c>gpkg_geometry_columns</c>, in one transaction.
+    /// Writes a <see cref="GeoPackageDocumentModel"/> to a GeoPackage file: the base schema, the data tables, the
+    /// registrations in <c>gpkg_contents</c> / <c>gpkg_geometry_columns</c> and, unless <see cref="GeoPackageWriteOptions.Content"/>
+    /// leaves it out, the <c>gpkg_schema</c> extension (see <see cref="GeoPackageSchemaExtension"/>), in one transaction.
     /// </summary>
     /// <remarks>
     /// <para><b>The target is never half written.</b> The database is built in a temporary file in the directory of the
@@ -99,6 +100,9 @@ namespace Iwxxm.Net.Export.GeoPackage
             {
                 GeoPackageSchema.CreateBase(transaction, options.Version);
                 GeoPackageDataTables.Write(transaction, model, options, cancellationToken);
+                if (options.WritesSchemaExtension)
+                    GeoPackageSchemaExtension.Write(transaction);
+
                 transaction.Commit();
             }
         }

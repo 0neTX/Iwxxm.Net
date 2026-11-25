@@ -4,10 +4,17 @@ integrity_check=ok
 # schema
 index	sqlite_autoindex_gpkg_contents_1	gpkg_contents	NULL
 index	sqlite_autoindex_gpkg_contents_2	gpkg_contents	NULL
+index	sqlite_autoindex_gpkg_data_column_constraints_1	gpkg_data_column_constraints	NULL
+index	sqlite_autoindex_gpkg_data_columns_1	gpkg_data_columns	NULL
+index	sqlite_autoindex_gpkg_data_columns_2	gpkg_data_columns	NULL
+index	sqlite_autoindex_gpkg_extensions_1	gpkg_extensions	NULL
 index	sqlite_autoindex_gpkg_geometry_columns_1	gpkg_geometry_columns	NULL
 index	sqlite_autoindex_gpkg_geometry_columns_2	gpkg_geometry_columns	NULL
 index	sqlite_autoindex_iwxxm_metadata_1	iwxxm_metadata	NULL
 table	gpkg_contents	gpkg_contents	CREATE TABLE gpkg_contents (table_name TEXT NOT NULL PRIMARY KEY,data_type TEXT NOT NULL,identifier TEXT UNIQUE,description TEXT DEFAULT '',last_change DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),min_x DOUBLE, min_y DOUBLE,max_x DOUBLE, max_y DOUBLE,srs_id INTEGER,CONSTRAINT fk_gc_r_srs_id FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys(srs_id))
+table	gpkg_data_column_constraints	gpkg_data_column_constraints	CREATE TABLE gpkg_data_column_constraints (constraint_name TEXT NOT NULL,constraint_type TEXT NOT NULL,value TEXT,min NUMERIC,min_is_inclusive BOOLEAN,max NUMERIC,max_is_inclusive BOOLEAN,description TEXT,CONSTRAINT gdcc_ntv UNIQUE (constraint_name, constraint_type, value))
+table	gpkg_data_columns	gpkg_data_columns	CREATE TABLE gpkg_data_columns (table_name TEXT NOT NULL,column_name TEXT NOT NULL,name TEXT,title TEXT,description TEXT,mime_type TEXT,constraint_name TEXT,CONSTRAINT pk_gdc PRIMARY KEY (table_name, column_name),CONSTRAINT gdc_tn UNIQUE (table_name, name))
+table	gpkg_extensions	gpkg_extensions	CREATE TABLE gpkg_extensions (table_name TEXT,column_name TEXT,extension_name TEXT NOT NULL,definition TEXT NOT NULL,scope TEXT NOT NULL,CONSTRAINT ge_tce UNIQUE (table_name, column_name, extension_name))
 table	gpkg_geometry_columns	gpkg_geometry_columns	CREATE TABLE gpkg_geometry_columns (table_name TEXT NOT NULL,column_name TEXT NOT NULL,geometry_type_name TEXT NOT NULL,srs_id INTEGER NOT NULL,z TINYINT NOT NULL,m TINYINT NOT NULL,CONSTRAINT pk_geom_cols PRIMARY KEY (table_name, column_name),CONSTRAINT uk_gc_table_name UNIQUE (table_name),CONSTRAINT fk_gc_tn FOREIGN KEY (table_name) REFERENCES gpkg_contents(table_name),CONSTRAINT fk_gc_srs FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys (srs_id))
 table	gpkg_spatial_ref_sys	gpkg_spatial_ref_sys	CREATE TABLE gpkg_spatial_ref_sys (srs_name TEXT NOT NULL,srs_id INTEGER NOT NULL PRIMARY KEY,organization TEXT NOT NULL,organization_coordsys_id INTEGER NOT NULL,definition  TEXT NOT NULL,description TEXT)
 table	iwxxm_attributes	iwxxm_attributes	CREATE TABLE "iwxxm_attributes" ("fid" INTEGER PRIMARY KEY NOT NULL, "feature_id" TEXT, "feature_type" TEXT, "report_id" TEXT, "report_type" TEXT, "bulletin_identifier" TEXT, "issue_time_utc" DATETIME, "valid_from_utc" DATETIME, "valid_until_utc" DATETIME, "properties" TEXT NOT NULL)
@@ -17,6 +24,35 @@ table	iwxxm_reports	iwxxm_reports	CREATE TABLE "iwxxm_reports" ("fid" INTEGER PR
 iwxxm_attributes	attributes	iwxxm_attributes	IWXXM features without a geometry	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
 iwxxm_reports	attributes	iwxxm_reports	One row per report of the exported document	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
 iwxxm_metadata	attributes	iwxxm_metadata	Library version, source document and GeoPackage version	2026-01-01T00:00:00.000Z	NULL	NULL	NULL	NULL	0
+# gpkg_data_column_constraints: constraint_name, constraint_type, value, min, min_is_inclusive, max, max_is_inclusive, description
+# gpkg_data_columns: table_name, column_name, name, title, description, mime_type, constraint_name
+iwxxm_attributes	fid	Row ID	Row identifier	Row identifier, numbered in the order of the features of the document	NULL	NULL
+iwxxm_attributes	feature_id	Feature ID	Feature identifier	Identifier of the feature (the id of the GeoJSON feature); NULL when the feature has none	NULL	NULL
+iwxxm_attributes	feature_type	Feature type	Feature type	Kind of feature, for example METAR_OBSERVATION, SIGMET_EVOLVING_VOLUME or JETSTREAM	NULL	NULL
+iwxxm_attributes	report_id	Report ID	Report identifier	Identifier of the report the feature belongs to	NULL	NULL
+iwxxm_attributes	report_type	Report type	Report type	Type of the report the feature belongs to, for example Metar or TropicalCycloneSigmet	NULL	NULL
+iwxxm_attributes	bulletin_identifier	Bulletin ID	Bulletin identifier	Identifier of the bulletin that contains the report; NULL when the report is not in a bulletin	NULL	NULL
+iwxxm_attributes	issue_time_utc	Issue time	Issue time (UTC)	Issue time of the report (UTC)	NULL	NULL
+iwxxm_attributes	valid_from_utc	Valid from	Validity start (UTC)	Start of the validity period of the report (UTC); NULL when the report has none or does not state it	NULL	NULL
+iwxxm_attributes	valid_until_utc	Valid until	Validity end (UTC)	End of the validity period of the report (UTC); NULL when the report has none or does not state it	NULL	NULL
+iwxxm_attributes	properties	Properties (JSON)	Feature properties	All properties of the feature as a JSON object, the same text as the properties member of the GeoJSON export	application/json	NULL
+iwxxm_reports	fid	Row ID	Row identifier	Row identifier, numbered in the order of the reports of the document	NULL	NULL
+iwxxm_reports	report_id	Report ID	Report identifier	Identifier of the report	NULL	NULL
+iwxxm_reports	report_type	Report type	Report type	Type of the report, for example Metar or TropicalCycloneSigmet	NULL	NULL
+iwxxm_reports	report_status	Status	Report status	Status code of the report, for example NORMAL	NULL	NULL
+iwxxm_reports	permissible_usage	Usage	Permissible usage	Permissible usage code of the report, for example OPERATIONAL	NULL	NULL
+iwxxm_reports	permissible_usage_reason	Usage reason	Permissible usage reason	Reason code (TEST or EXERCISE) of a non-operational report; NULL when the report has none	NULL	NULL
+iwxxm_reports	permissible_usage_supplementary	Usage note	Permissible usage supplementary text	Free text that supplements the permissible usage; NULL when the report has none	NULL	NULL
+iwxxm_reports	issue_time_utc	Issue time	Issue time (UTC)	Issue time of the report (UTC)	NULL	NULL
+iwxxm_reports	valid_from_utc	Valid from	Validity start (UTC)	Report validity start (UTC); NULL when the report has no validity period or does not state it	NULL	NULL
+iwxxm_reports	valid_until_utc	Valid until	Validity end (UTC)	Report validity end (UTC); NULL when the report has no validity period or does not state it	NULL	NULL
+iwxxm_reports	bulletin_identifier	Bulletin ID	Bulletin identifier	Identifier of the bulletin that contains the report; NULL when the report is not in a bulletin	NULL	NULL
+iwxxm_metadata	fid	Row ID	Row identifier	Row identifier, numbered in the order the keys are written	NULL	NULL
+iwxxm_metadata	key	Entry key	Key	Name of the entry: geopackage_version, library_version, source_document_id, source_document_type, bulletin_identifier or report_count	NULL	NULL
+iwxxm_metadata	value	Entry value	Value	Value of the entry	NULL	NULL
+# gpkg_extensions: table_name, column_name, extension_name, definition, scope
+gpkg_data_columns	NULL	gpkg_schema	http://www.geopackage.org/spec121/#extension_schema	read-write
+gpkg_data_column_constraints	NULL	gpkg_schema	http://www.geopackage.org/spec121/#extension_schema	read-write
 # gpkg_geometry_columns: table_name, column_name, geometry_type_name, srs_id, z, m
 # gpkg_spatial_ref_sys: srs_name, srs_id, organization, organization_coordsys_id, definition, description
 Undefined Cartesian SRS	-1	NONE	-1	undefined	undefined Cartesian coordinate reference system
