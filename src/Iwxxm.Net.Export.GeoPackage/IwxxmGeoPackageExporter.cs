@@ -22,7 +22,22 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// <para>An export failure is a value, like the CSV export: <see cref="Export"/> returns a <see cref="Result{T}"/> with
     /// <see cref="GeoPackageErrorCodes.ExportError"/> and throws only for a <c>null</c> document. The export cannot be
     /// cancelled, like the rest of the library.</para>
-    /// <para>Instances are immutable and thread-safe. Concurrent exports must not write to the same path.</para>
+    /// <para>Instances are immutable and thread-safe. Two exports to the same path, at the same time or one after the other
+    /// while another process holds the file, are not supported.</para>
+    /// <para><b>Things to know when you call it from a service.</b> The message of a failure can contain host paths and the
+    /// text of an internal exception: log it, do not echo it to a client. <see cref="OutOfMemoryException"/> is not
+    /// converted to a failure. The path is used as given (it is not confined to a directory): never pass
+    /// text from an untrusted source as the path. A symbolic link at the path is replaced, not written through. An existing
+    /// target that has a <c>-wal</c> or <c>-journal</c> file next to it is in use or needs recovery and is not replaced. On
+    /// Unix the new file keeps its own mode and owner, not those of the file it replaces. The directory is not flushed to
+    /// disk, so a power failure right after the call can lose the swap. A process that is killed can leave a hidden
+    /// <c>.iwxxm-*.tmp</c> file in the directory. The database is built next to the target, so a network share without
+    /// reliable file locking is not supported (a SQLite restriction). <see cref="ExportToBytes"/> uses the shared temporary
+    /// directory of the machine for a moment: on a multi-user host another user may be able to read it, so call
+    /// <see cref="Export"/> with a path in a private directory instead.</para>
+    /// <para>The add-on reads internals of <c>Iwxxm.Net</c> and needs the version of <c>Iwxxm.Net</c> it was built against
+    /// (never an older one); with another version an export fails with <see cref="GeoPackageErrorCodes.ExportError"/> and a
+    /// message that says so.</para>
     /// </remarks>
     public sealed class IwxxmGeoPackageExporter
     {
@@ -60,7 +75,7 @@ namespace Iwxxm.Net.Export.GeoPackage
                 throw new ArgumentNullException(nameof(document));
 
             if (string.IsNullOrWhiteSpace(path))
-                return Failure(document, "The path of the GeoPackage file must not be empty.");
+                return GeoPackageExportFailure.Create<string>(document.Id, "The path of the GeoPackage file must not be empty.");
 
             try
             {
@@ -72,7 +87,7 @@ namespace Iwxxm.Net.Export.GeoPackage
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                return Failure(document, ex.Message);
+                return GeoPackageExportFailure.Create<string>(document.Id, ex);
             }
         }
 
@@ -101,12 +116,12 @@ namespace Iwxxm.Net.Export.GeoPackage
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                return Result<byte[]>.Failure(GeoPackageErrorCodes.ExportError, $"The GeoPackage export failed: {ex.Message}", ErrorCategory.DomainMapping, document.Id);
+                return GeoPackageExportFailure.Create<byte[]>(document.Id, ex);
             }
             finally
             {
                 if (temporary != null)
-                    DeleteQuietly(temporary);
+                    GeoPackageExportFailure.DeleteQuietly(temporary);
             }
         }
 
@@ -121,23 +136,5 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// <exception cref="ArgumentNullException"><paramref name="document"/> is <c>null</c>.</exception>
         public static Result<byte[]> ToGeoPackageBytes(IwxxmDocument document, GeoPackageExportOptions? options = null) =>
             Default.ExportToBytes(document, options);
-
-        private static Result<string> Failure(IwxxmDocument document, string reason) =>
-            Result<string>.Failure(GeoPackageErrorCodes.ExportError, $"The GeoPackage export failed: {reason}", ErrorCategory.DomainMapping, document.Id);
-
-        // A failed cleanup must not hide the outcome of the export.
-        private static void DeleteQuietly(string path)
-        {
-            try
-            {
-                File.Delete(path);
-            }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-        }
     }
 }

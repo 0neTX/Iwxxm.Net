@@ -15,9 +15,12 @@
 #
 # Notes:
 #   - The work dir is printed first. A temporary directory made here is removed when the run succeeds and kept (and its
-#     path printed) when it fails; a directory you pass is never removed. In it, the files/ directory (the .gpkg files and
-#     expected.tsv), validate.py and export.log are deleted first, so a run never validates a file of an earlier run.
-#   - Both containers run with `--network none`.
+#     path printed) when it fails; a directory you pass is never removed. Everything the script writes is in a
+#     subdirectory it owns, gpkg-validate/ (the files/ directory with the .gpkg files and expected.tsv, validate.py and
+#     export.log); that subdirectory, and nothing else, is deleted first, so a run never validates a file of an earlier
+#     run and never touches other content of a directory you pass.
+#   - Both containers run with `--network none`, `--cap-drop=all`, `--security-opt no-new-privileges` and `--pids-limit 512`;
+#     the GDAL container gets the subdirectory read-only.
 #   - The work dir is mounted as it is, without the `:Z` SELinux relabel (which would relabel a directory of yours). On an
 #     SELinux host pass a dedicated empty directory and relabel it yourself (`chcon -Rt container_file_t DIR`), or the
 #     containers cannot write to it.
@@ -49,25 +52,27 @@ on_exit() {
 trap on_exit EXIT
 
 echo "work dir: $WORK"
-rm -rf "$WORK/files"
-rm -f "$WORK/validate.py" "$WORK/export.log"
-mkdir -p "$WORK/files"
+OWNED="$WORK/gpkg-validate"
+rm -rf "$OWNED"
+mkdir -p "$OWNED/files"
 
-if ! podman run --rm --network none -v "$WORK/files:/files" -e IWXXM_GPKG_FILES_DIR=/files -w /workspace "$TEST_IMAGE" \
+CONTAINER_LIMITS=(--network none --cap-drop=all --security-opt no-new-privileges --pids-limit 512)
+
+if ! podman run --rm "${CONTAINER_LIMITS[@]}" -v "$OWNED/files:/files" -e IWXXM_GPKG_FILES_DIR=/files -w /workspace "$TEST_IMAGE" \
   dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj \
-  --configuration Release --no-build --filter 'FullyQualifiedName~GeoPackageFilesExport' > "$WORK/export.log" 2>&1; then
-  echo "The export step failed; last lines of $WORK/export.log:" >&2
-  tail -n 40 "$WORK/export.log" >&2
+  --configuration Release --no-build --filter 'FullyQualifiedName~GeoPackageFilesExport' > "$OWNED/export.log" 2>&1; then
+  echo "The export step failed; last lines of $OWNED/export.log:" >&2
+  tail -n 40 "$OWNED/export.log" >&2
   exit 1
 fi
 
-if [ ! -s "$WORK/files/expected.tsv" ] || ! compgen -G "$WORK/files/*.gpkg" > /dev/null; then
-  echo "The export step produced no files: $WORK/files has no expected.tsv or no .gpkg; last lines of $WORK/export.log:" >&2
-  tail -n 40 "$WORK/export.log" >&2
+if [ ! -s "$OWNED/files/expected.tsv" ] || ! compgen -G "$OWNED/files/*.gpkg" > /dev/null; then
+  echo "The export step produced no files: $OWNED/files has no expected.tsv or no .gpkg; last lines of $OWNED/export.log:" >&2
+  tail -n 40 "$OWNED/export.log" >&2
   exit 1
 fi
 
-# The validation script is copied next to the files, so that only the work dir is mounted.
-cp "$HERE/validate-geopackage-file.py" "$WORK/validate.py"
+# The validation script is copied next to the files, so that only the owned directory is mounted.
+cp "$HERE/validate-geopackage-file.py" "$OWNED/validate.py"
 
-podman run --rm --network none -v "$WORK:/work" "$GDAL_IMAGE" python3 -I /work/validate.py /work/files
+podman run --rm "${CONTAINER_LIMITS[@]}" -v "$OWNED:/work:ro" "$GDAL_IMAGE" python3 -I /work/validate.py /work/files

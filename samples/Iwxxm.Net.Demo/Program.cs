@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Iwxxm.Net;
@@ -261,12 +262,24 @@ Exit codes:
                 report);
         }
 
+        /// <summary>
+        /// True when both paths name the same file. File systems of Windows and macOS are case-insensitive by default, so
+        /// the comparison ignores case everywhere but on Linux (a case-insensitive volume on Linux is not detected).
+        /// </summary>
+        private static bool IsSameFile(string first, string second)
+        {
+            StringComparison comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? StringComparison.Ordinal
+                : StringComparison.OrdinalIgnoreCase;
+            return string.Equals(Path.GetFullPath(first), Path.GetFullPath(second), comparison);
+        }
+
         private static int ExportGeoPackage(IwxxmDocument document, CliOptions options, ConsoleReport report)
         {
             string target = options.ResolveGeoPackagePath();
 
             // The exporter replaces a file that is already at the target: never let that be the input.
-            if (Path.GetFullPath(target) == Path.GetFullPath(options.InputPath!))
+            if (IsSameFile(target, options.InputPath!))
             {
                 Console.Error.WriteLine("Error: the GeoPackage target is the input file; choose another path.");
                 return ExitCode.UsageError;
@@ -294,7 +307,7 @@ Exit codes:
             ConsoleReport report)
         {
             bool toStdout = target == CliOptions.StdoutMarker;
-            if (!toStdout && Path.GetFullPath(target) == Path.GetFullPath(inputPath))
+            if (!toStdout && IsSameFile(target, inputPath))
             {
                 Console.Error.WriteLine($"Error: the {label} target is the input file; choose another path.");
                 return ExitCode.UsageError;

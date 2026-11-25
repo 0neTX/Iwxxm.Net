@@ -18,6 +18,39 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
         public static IEnumerable<object[]> ExtraSamples() => SampleFiles.Extra();
 
+        /// <summary>A list that reports a huge count without holding any element.</summary>
+        private sealed class Phantom<T> : IReadOnlyList<T>
+        {
+            public Phantom(int count) => Count = count;
+
+            public int Count { get; }
+
+            public T this[int index] => throw new NotSupportedException();
+
+            public IEnumerator<T> GetEnumerator() => throw new NotSupportedException();
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        [Fact]
+        public void WkbLength_IsComputedIn64Bits_SoAHugeGeometryDoesNotWrapAround()
+        {
+            // 200 million positions of 16 bytes are 3.2 GB: more than an int can count, and the int sum would have wrapped.
+            GeoPackageGeometry huge = GeoPackageGeometry.ForMultiLineString(new IReadOnlyList<GeoPackagePosition>[] { new Phantom<GeoPackagePosition>(200_000_000) });
+
+            long length = GeoPackageGeometryEncoder.WkbLength(huge);
+
+            Assert.Equal(9 + (9 + 16L * 200_000_000), length);
+            Assert.True(length > int.MaxValue);
+        }
+
+        [Fact]
+        public void WkbLength_OfSmallGeometries_IsTheExactWkbSize()
+        {
+            Assert.Equal(21, GeoPackageGeometryEncoder.WkbLength(GeoPackageGeometry.ForPoint(new GeoPackagePosition(1, 2))));
+            Assert.Equal(8 + 21, GeoPackageGeometryEncoder.Encode(GeoPackageGeometry.ForPoint(new GeoPackagePosition(1, 2)), 4326).Length);
+        }
+
         // ---- hand-written vectors ------------------------------------------------------------------------------------------
         // Doubles, little-endian: 0 = 00..00, 1 = 000000000000F03F, 2 = 0000000000000040, 3 = 0000000000000840,
         // 4 = 0000000000001040, 5 = 0000000000001440, 10 = 0000000000002440, 10.5 = 0000000000002540, 45.25 = 0000000000A04640.

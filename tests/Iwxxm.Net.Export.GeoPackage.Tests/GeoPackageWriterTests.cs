@@ -210,6 +210,47 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Assert.Equal(before, File.ReadAllBytes(path));
         }
 
+        [Theory]
+        [InlineData("-wal")]
+        [InlineData("-journal")]
+        public void Write_OverAnExistingTarget_WithASidecarNextToIt_Throws_AndChangesNothing(string suffix)
+        {
+            string path = PathOf();
+            GeoPackageWriter.Write(path, Model(), Options());
+            byte[] before = File.ReadAllBytes(path);
+            File.WriteAllText(path + suffix, "left by another process");
+
+            IOException error = Assert.Throws<IOException>(() => GeoPackageWriter.Write(path, Model("metar-NIL-collect.xml"), Options()));
+
+            Assert.Contains("in use or needs recovery", error.Message, StringComparison.Ordinal);
+            Assert.Contains(path + suffix, error.Message, StringComparison.Ordinal);
+            Assert.Equal(before, File.ReadAllBytes(path));
+            Assert.Equal(new[] { "out.gpkg", "out.gpkg" + suffix }, FilesInDirectory());
+        }
+
+        [Fact]
+        public void Write_OverANewTarget_IgnoresASidecarThatHasNoDatabase()
+        {
+            string path = PathOf();
+            File.WriteAllText(path + "-wal", "stale");
+
+            GeoPackageWriter.Write(path, Model(), Options());
+
+            Assert.Equal(new[] { "out.gpkg", "out.gpkg-wal" }, FilesInDirectory());
+        }
+
+        [Fact]
+        public void Write_WithAVeryLongTargetName_StillBuildsTheTemporaryFile()
+        {
+            // The temporary name does not contain the target name, so a target name at the file name limit still works.
+            string name = new string('a', 240) + ".gpkg";
+            string path = PathOf(name);
+
+            GeoPackageWriter.Write(path, Model(), Options());
+
+            Assert.Equal(new[] { name }, FilesInDirectory());
+        }
+
         /// <summary>A list that runs an action the first time it is enumerated.</summary>
         private sealed class Triggering<T> : IReadOnlyList<T>
         {

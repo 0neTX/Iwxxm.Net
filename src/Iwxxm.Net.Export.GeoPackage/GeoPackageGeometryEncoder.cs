@@ -44,7 +44,7 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// <summary>Encodes <paramref name="geometry"/> with the SRS id <paramref name="srsId"/> (4326 for the tables of this package).</summary>
         /// <exception cref="ArgumentNullException"><paramref name="geometry"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">
-        /// <paramref name="srsId"/> is outside the range of an int32, a coordinate is NaN or infinite, the geometry has no
+        /// <paramref name="srsId"/> is outside the range of an int32, the blob would be larger than an int32 can count, a coordinate is NaN or infinite, the geometry has no
         /// position, a line has fewer than two positions, or a ring is empty, has fewer than four positions or is not closed.
         /// </exception>
         public static byte[] Encode(GeoPackageGeometry geometry, long srsId)
@@ -58,7 +58,12 @@ namespace Iwxxm.Net.Export.GeoPackage
 
             bool isPoint = geometry.Kind == GeoPackageGeometryKind.Point;
             int envelopeLength = isPoint ? 0 : EnvelopeLength;
-            var bytes = new byte[HeaderLength + envelopeLength + WkbLength(geometry)];
+
+            long total = HeaderLength + (long)envelopeLength + WkbLength(geometry);
+            if (total > int.MaxValue)
+                throw new ArgumentException($"The geometry is too large: its GeoPackage blob would have {total} bytes, more than {int.MaxValue}.", nameof(geometry));
+
+            var bytes = new byte[(int)total];
             int offset = 0;
 
             bytes[offset++] = MagicG;
@@ -154,7 +159,8 @@ namespace Iwxxm.Net.Export.GeoPackage
         private static ArgumentException NotFinite(string where) =>
             new ArgumentException($"The {where} has a coordinate that is NaN or infinite.");
 
-        private static int WkbLength(GeoPackageGeometry geometry)
+        /// <summary>The length in bytes of the WKB of <paramref name="geometry"/>, computed in 64 bits so that it cannot wrap around.</summary>
+        internal static long WkbLength(GeoPackageGeometry geometry)
         {
             switch (geometry.Kind)
             {
@@ -163,20 +169,20 @@ namespace Iwxxm.Net.Export.GeoPackage
 
                 case GeoPackageGeometryKind.MultiLineString:
                 {
-                    int length = WkbHeaderLength + WkbCountLength;
+                    long length = WkbHeaderLength + WkbCountLength;
                     foreach (IReadOnlyList<GeoPackagePosition> line in geometry.Lines!)
-                        length += WkbHeaderLength + WkbCountLength + (WkbPositionLength * line.Count);
+                        length += WkbHeaderLength + WkbCountLength + ((long)WkbPositionLength * line.Count);
                     return length;
                 }
 
                 case GeoPackageGeometryKind.MultiPolygon:
                 {
-                    int length = WkbHeaderLength + WkbCountLength;
+                    long length = WkbHeaderLength + WkbCountLength;
                     foreach (IReadOnlyList<IReadOnlyList<GeoPackagePosition>> polygon in geometry.Polygons!)
                     {
                         length += WkbHeaderLength + WkbCountLength;
                         foreach (IReadOnlyList<GeoPackagePosition> ring in polygon)
-                            length += WkbCountLength + (WkbPositionLength * ring.Count);
+                            length += WkbCountLength + ((long)WkbPositionLength * ring.Count);
                     }
 
                     return length;

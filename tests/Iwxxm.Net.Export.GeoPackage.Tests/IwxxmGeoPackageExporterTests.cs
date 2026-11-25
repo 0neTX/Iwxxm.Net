@@ -249,6 +249,63 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         }
 
         [Fact]
+        public void Export_WhenTheCoreDoesNotGrantAccess_SaysThePackagesMustBeOfTheSameVersion()
+        {
+            IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
+
+            // What an older Iwxxm.Net without the InternalsVisibleTo seam does when the add-on reads its internals.
+            Result<string> direct = IwxxmGeoPackageExporter.Default.ExportReadingModelWith(
+                document, PathOf(), null, _ => throw new MethodAccessException("Attempt by method 'Read' to access method 'Collect' failed."));
+            Result<string> wrapped = IwxxmGeoPackageExporter.Default.ExportReadingModelWith(
+                document, PathOf(), null, _ => throw new TypeInitializationException("Core.Type", new TypeAccessException("no access")));
+
+            foreach (Result<string> result in new[] { direct, wrapped })
+            {
+                ValidationError error = Assert.Single(result.Errors);
+                Assert.Equal("GEOPACKAGE-EXPORT-ERROR", error.Code);
+                Assert.Contains("not compatible", error.Message, StringComparison.Ordinal);
+                Assert.Contains("same version of both packages", error.Message, StringComparison.Ordinal);
+            }
+
+            Assert.Contains("[MethodAccessException: Attempt by method 'Read'", Assert.Single(direct.Errors).Message, StringComparison.Ordinal);
+            Assert.Contains("[TypeAccessException: no access]", Assert.Single(wrapped.Errors).Message, StringComparison.Ordinal);
+            Assert.Empty(FilesInDirectory());
+        }
+
+        [Fact]
+        public void Export_FailureMessage_NamesTheInnermostExceptionOnlyWhenItDiffers()
+        {
+            IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
+
+            Result<string> plain = IwxxmGeoPackageExporter.Default.ExportReadingModelWith(
+                document, PathOf(), null, _ => throw new InvalidOperationException("plain failure"));
+            Result<string> nested = IwxxmGeoPackageExporter.Default.ExportReadingModelWith(
+                document, PathOf(), null, _ => throw new TypeInitializationException("Some.Type", new DllNotFoundException("Library e_sqlite3 not found")));
+
+            Assert.Equal("The GeoPackage export failed: plain failure", Assert.Single(plain.Errors).Message);
+            string message = Assert.Single(nested.Errors).Message;
+            Assert.StartsWith("The GeoPackage export failed: ", message, StringComparison.Ordinal);
+            Assert.EndsWith("[DllNotFoundException: Library e_sqlite3 not found]", message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Export_OverATargetWithAWalOrJournalNextToIt_FailsAndSaysItIsInUse()
+        {
+            IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
+            Assert.True(IwxxmGeoPackageExporter.Default.Export(document, PathOf()).IsSuccess);
+            byte[] before = File.ReadAllBytes(PathOf());
+            File.WriteAllText(PathOf() + "-journal", "hot journal");
+
+            Result<string> result = IwxxmGeoPackageExporter.Default.Export(document, PathOf());
+
+            ValidationError error = Assert.Single(result.Errors);
+            Assert.Equal("GEOPACKAGE-EXPORT-ERROR", error.Code);
+            Assert.Contains("in use or needs recovery", error.Message, StringComparison.Ordinal);
+            Assert.Equal(before, File.ReadAllBytes(PathOf()));
+            Assert.Equal(new[] { "out.gpkg", "out.gpkg-journal" }, FilesInDirectory());
+        }
+
+        [Fact]
         public void ExportToBytes_ReturnsTheFile_AndLeavesNoTemporaryFile()
         {
             IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));

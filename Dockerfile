@@ -107,6 +107,16 @@ RUN perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
          print "Iwxxm.Net.Export.GeoPackage nuspec: depends on Iwxxm.Net and Microsoft.Data.Sqlite; netstandard2.0 assembly present\n";' \
         /workspace/artifacts/Iwxxm.Net.Export.GeoPackage.${PACKAGE_VERSION}.nupkg
 
+# Guard: the GeoPackage package reads internals of the core (InternalsVisibleTo), which only the version it was built
+# against grants, so its dependency on Iwxxm.Net must be exactly the version of the core package packed with it
+RUN perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
+        'unzip $ARGV[0] => \my $nuspec, Name => "Iwxxm.Net.Export.GeoPackage.nuspec" or die "nuspec not found: $UnzipError\n"; \
+         $nuspec =~ /<dependency\s+id="Iwxxm\.Net"\s+version="([^"]*)"/ or die "ERROR: no version on the Iwxxm.Net dependency\n"; \
+         my $raw = $1; (my $declared = $raw) =~ s/^[\[(]|[\])]$//g; \
+         $declared eq $ARGV[1] or die "ERROR: Iwxxm.Net.Export.GeoPackage depends on Iwxxm.Net $raw, not on the packed version $ARGV[1]\n"; \
+         print "Iwxxm.Net.Export.GeoPackage depends on Iwxxm.Net $declared, the version packed with it\n";' \
+        /workspace/artifacts/Iwxxm.Net.Export.GeoPackage.${PACKAGE_VERSION}.nupkg ${PACKAGE_VERSION}
+
 # Guard: all three packages ship the third-party notices and the licence at the package root (the Saxon package also the
 # SchXslt licence)
 RUN for pkg in Iwxxm.Net Iwxxm.Net.Validation.Saxon Iwxxm.Net.Export.GeoPackage; do \
