@@ -97,7 +97,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         {
             using (SqliteCommand command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT feature_id, feature_type, report_id, report_type, bulletin_identifier, issue_time_utc, properties" +
+                command.CommandText = "SELECT feature_id, feature_type, report_id, report_type, bulletin_identifier, issue_time_utc, valid_from_utc, valid_until_utc, properties" +
                     (hasGeometry ? ", geom" : string.Empty) + " FROM " + table + " ORDER BY fid";
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {
@@ -112,9 +112,11 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                         Assert.True(Text(properties, "reportId") == Column(reader, 2), where + ": report_id");
                         Assert.True(Text(properties, "reportType") == Column(reader, 3), where + ": report_type");
                         Assert.True(Text(properties, "bulletinIdentifier") == Column(reader, 4), where + ": bulletin_identifier");
-                        AssertSameInstant(Text(properties, "issueTimeUtc"), Column(reader, 5), where);
+                        AssertSameInstant(Text(properties, "issueTimeUtc"), Column(reader, 5), where, "issue_time_utc");
+                        AssertSameInstant(Text(properties, "validFromUtc"), Column(reader, 6), where, "valid_from_utc");
+                        AssertSameInstant(Text(properties, "validUntilUtc"), Column(reader, 7), where, "valid_until_utc");
 
-                        string storedProperties = reader.GetString(6);
+                        string storedProperties = reader.GetString(8);
                         string expectedProperties = properties.GetRawText();
                         if (storedProperties != expectedProperties)
                         {
@@ -126,7 +128,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
 
                         if (hasGeometry)
                         {
-                            GeoPackageGeometry decoded = GeoPackageGeometryEncoderTests.Decode((byte[])reader.GetValue(7), out _);
+                            GeoPackageGeometry decoded = GeoPackageGeometryEncoderTests.Decode((byte[])reader.GetValue(9), out _);
                             GeoPackageGeometryTests.AssertSame(feature.GetProperty("geometry"), decoded, where);
                         }
                     }
@@ -136,18 +138,18 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             }
         }
 
-        private static void AssertSameInstant(string? geoJsonValue, string? column, string where)
+        private static void AssertSameInstant(string? geoJsonValue, string? column, string where, string columnName)
         {
             if (geoJsonValue == null || column == null)
             {
-                Assert.True(geoJsonValue == column, where + ": issue_time_utc");
+                Assert.True(geoJsonValue == column, where + ": " + columnName);
                 return;
             }
 
             Assert.EndsWith("Z", column);
             DateTimeOffset expected = DateTimeOffset.Parse(geoJsonValue, CultureInfo.InvariantCulture);
             DateTimeOffset actual = DateTimeOffset.Parse(column, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-            Assert.True(expected.UtcDateTime == actual.UtcDateTime, where + ": issue_time_utc " + geoJsonValue + " vs " + column);
+            Assert.True(expected.UtcDateTime == actual.UtcDateTime, where + ": " + columnName + " " + geoJsonValue + " vs " + column);
         }
 
         [Theory]
@@ -168,7 +170,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             using (JsonDocument geoJson = JsonDocument.Parse(IwxxmGeoJsonExporter.ToGeoJson(document, GeoJsonExportOptions.Default).Value))
             using (SqliteConnection connection = GeoPackageSqlite.Open(path))
             {
-                List<string?[]> rows = Rows(connection, "SELECT report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier, permissible_usage_reason, permissible_usage_supplementary FROM iwxxm_reports ORDER BY fid");
+                List<string?[]> rows = Rows(connection, "SELECT report_id, report_type, report_status, permissible_usage, issue_time_utc, bulletin_identifier, permissible_usage_reason, permissible_usage_supplementary, valid_from_utc, valid_until_utc FROM iwxxm_reports ORDER BY fid");
                 Assert.Equal(reports.Length, rows.Count);
                 for (int i = 0; i < reports.Length; i++)
                 {
@@ -180,6 +182,11 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                     Assert.EndsWith("Z", rows[i][4]);
                     Assert.True(reports[i].IssueTimeUtc.UtcDateTime == DateTimeOffset.Parse(rows[i][4]!, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal).UtcDateTime, where + ": issue_time_utc");
                     Assert.True(bulletinIdentifier == rows[i][5], where + ": bulletin_identifier");
+
+                    // The validity period of the report itself, from the typed domain values (not from the GeoJSON text).
+                    (DateTimeOffset? validFrom, DateTimeOffset? validUntil) = ValidityOf(reports[i]);
+                    Assert.True(ExpectedColumn(validFrom) == rows[i][8], where + ": valid_from_utc " + ExpectedColumn(validFrom) + " vs " + rows[i][8]);
+                    Assert.True(ExpectedColumn(validUntil) == rows[i][9], where + ": valid_until_utc " + ExpectedColumn(validUntil) + " vs " + rows[i][9]);
                 }
 
                 // A standalone report: its status and usage are the ones of the GeoJSON metadata.
@@ -218,6 +225,45 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                 Assert.Equal(bulletinIdentifier != null, metadataRows.ContainsKey("bulletin_identifier"));
                 if (bulletinIdentifier != null)
                     Assert.Equal(bulletinIdentifier, metadataRows["bulletin_identifier"]);
+            }
+        }
+
+        // The validity period of the model, by type (an independent copy of the rule of the writer: SIGWX, SIGMET, AIRMET, TAF).
+        internal static (DateTimeOffset? From, DateTimeOffset? Until) ValidityOf(IwxxmDocument report)
+        {
+            switch (report)
+            {
+                case Sigwx sigwx: return (sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
+                case Sigmet sigmet: return (sigmet.ValidFromUtc, sigmet.ValidUntilUtc);
+                case Airmet airmet: return (airmet.ValidFromUtc, airmet.ValidUntilUtc);
+                case Taf taf: return (taf.ValidFromUtc, taf.ValidUntilUtc);
+                default: return (null, null);
+            }
+        }
+
+        // The DATETIME text of an instant: UTC, milliseconds (finer digits are cut, never rounded).
+        internal static string? ExpectedColumn(DateTimeOffset? value) =>
+            value?.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
+
+        [Theory]
+        [MemberData(nameof(Samples))]
+        public void ARowHasAValidityColumn_ExactlyWhenItsPropertiesHaveTheKey(string sample)
+        {
+            string path = Path.Combine(_directory, "validity.gpkg");
+            Result<string> written = IwxxmParserGeoPackageExtensions.ParseFileToGeoPackage(sample, path);
+            Assert.True(written.IsSuccess, string.Join(" | ", written.Errors));
+
+            using (SqliteConnection connection = GeoPackageSqlite.Open(path))
+            {
+                foreach (string table in TableNames(connection).Where(t => t != "iwxxm_reports" && t != "iwxxm_metadata" && t.StartsWith("iwxxm_", StringComparison.Ordinal)))
+                {
+                    foreach ((string column, string key) in new[] { ("valid_from_utc", "validFromUtc"), ("valid_until_utc", "validUntilUtc") })
+                    {
+                        string mismatches = Scalar(connection,
+                            $"SELECT count(*) FROM {table} WHERE ({column} IS NULL) <> (json_extract(properties, '$.{key}') IS NULL)")!;
+                        Assert.True(mismatches == "0", sample + ": " + table + " has rows where " + column + " and the property " + key + " disagree");
+                    }
+                }
             }
         }
 

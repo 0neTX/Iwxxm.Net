@@ -9,12 +9,12 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
     /// </summary>
     /// <remarks>
     /// <para>The fixed-column values are read from the feature properties under the same keys the GeoJSON exporter
-    /// writes (<c>featureType</c>, <c>reportId</c>, <c>reportType</c>, <c>bulletinIdentifier</c>, <c>issueTimeUtc</c>), so
+    /// writes (<c>featureType</c>, <c>reportId</c>, <c>reportType</c>, <c>bulletinIdentifier</c>, <c>issueTimeUtc</c>, <c>validFromUtc</c>, <c>validUntilUtc</c>), so
     /// the table and the <c>properties</c> JSON can never disagree. Each value is the first property with that key whose
     /// value is a string; a missing key, or a value that is not a string, yields <c>null</c>. The feature id is the
     /// feature id as the GeoJSON writer sees it: an empty or white-space id is <c>null</c> (the GeoJSON writer omits
     /// the <c>id</c> member then).</para>
-    /// <para>The issue time is kept as the ISO 8601 round-trip text of the property and parsed by <see cref="GeoPackageDateTime"/>.</para>
+    /// <para>The issue time and the validity period are kept as the ISO 8601 round-trip text of the property and parsed by <see cref="GeoPackageDateTime"/>.</para>
     /// </remarks>
     internal sealed class GeoPackageFeature
     {
@@ -29,6 +29,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
             BulletinIdentifier = StringProperty(feature.Properties, "bulletinIdentifier");
             IssueTimeText = StringProperty(feature.Properties, "issueTimeUtc");
             IssueTime = GeoPackageDateTime.ParseIso(IssueTimeText);
+            ValidFrom = GeoPackageDateTime.ParseIso(StringProperty(feature.Properties, "validFromUtc"));
+            ValidUntil = GeoPackageDateTime.ParseIso(StringProperty(feature.Properties, "validUntilUtc"));
         }
 
         /// <summary>The GeoJSON feature the values were read from. Only its properties are used; the geometry to write is <see cref="Geometry"/>.</summary>
@@ -64,6 +66,12 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
 
         /// <summary>The issue time parsed from <see cref="IssueTimeText"/>, or <c>null</c> when the property is absent or is not ISO 8601 text with an offset.</summary>
         public DateTimeOffset? IssueTime { get; }
+
+        /// <summary>The <c>validFromUtc</c> property parsed like <see cref="IssueTime"/>, or <c>null</c> when the feature does not carry one (a report that does not state the bound).</summary>
+        public DateTimeOffset? ValidFrom { get; }
+
+        /// <summary>The <c>validUntilUtc</c> property parsed like <see cref="IssueTime"/>, or <c>null</c> when the feature does not carry one.</summary>
+        public DateTimeOffset? ValidUntil { get; }
 
         /// <summary>The ordered properties, including entries with a <c>null</c> value (those are never written).</summary>
         public IReadOnlyList<(string Key, object? Value)> Properties => Feature.Properties;

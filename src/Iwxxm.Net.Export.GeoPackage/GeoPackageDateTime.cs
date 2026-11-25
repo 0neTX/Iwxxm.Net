@@ -4,8 +4,8 @@ using System.Globalization;
 namespace Iwxxm.Net.Export.GeoPackage
 {
     /// <summary>
-    /// The text form of the <c>DATETIME</c> values of a GeoPackage (<c>gpkg_contents.last_change</c> and the issue time of
-    /// the feature tables): exactly <c>yyyy-MM-dd'T'HH:mm:ss.fff'Z'</c>, in UTC.
+    /// The text form of the <c>DATETIME</c> values of a GeoPackage (<c>gpkg_contents.last_change</c> and the issue and validity
+    /// times of the feature and report tables): exactly <c>yyyy-MM-dd'T'HH:mm:ss.fff'Z'</c>, in UTC.
     /// </summary>
     /// <remarks>
     /// The OGC GeoPackage validator of GDAL rejects the text Microsoft.Data.Sqlite writes by default

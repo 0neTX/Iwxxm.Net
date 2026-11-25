@@ -109,8 +109,10 @@ namespace Iwxxm.Net.Export.GeoPackage
             return result;
         }
 
-        private static GeoPackageReportRecord RecordOf(IwxxmDocument report, string? bulletinIdentifier) =>
-            new GeoPackageReportRecord(
+        private static GeoPackageReportRecord RecordOf(IwxxmDocument report, string? bulletinIdentifier)
+        {
+            (DateTimeOffset? validFrom, DateTimeOffset? validUntil) = ValidityOf(report);
+            return new GeoPackageReportRecord(
                 report.Id,
                 report.ReportType,
                 ReportMetadataCodes.ToCode(report.ReportStatus),
@@ -118,6 +120,31 @@ namespace Iwxxm.Net.Export.GeoPackage
                 report.PermissibleUsageReason.HasValue ? ReportMetadataCodes.ToCode(report.PermissibleUsageReason.Value) : null,
                 (report as IwxxmReport)?.PermissibleUsageSupplementary,
                 report.IssueTimeUtc,
+                validFrom,
+                validUntil,
                 bulletinIdentifier);
+        }
+
+        /// <summary>
+        /// The validity period the domain states for a report, the same values the core GeoJSON writes as <c>validFromUtc</c> and
+        /// <c>validUntilUtc</c>: SIGWX, SIGMET, AIRMET and TAF. No other report type has one in the model (their phenomenon, next
+        /// advisory and model initialisation times are not validity periods), so no period is made up for them.
+        /// </summary>
+        private static (DateTimeOffset? From, DateTimeOffset? Until) ValidityOf(IwxxmDocument report)
+        {
+            switch (report)
+            {
+                case Sigwx sigwx:
+                    return (sigwx.ValidFromUtc, sigwx.ValidUntilUtc);
+                case Sigmet sigmet:
+                    return (sigmet.ValidFromUtc, sigmet.ValidUntilUtc);
+                case Airmet airmet:
+                    return (airmet.ValidFromUtc, airmet.ValidUntilUtc);
+                case Taf taf:
+                    return (taf.ValidFromUtc, taf.ValidUntilUtc);
+                default:
+                    return (null, null);
+            }
+        }
     }
 }

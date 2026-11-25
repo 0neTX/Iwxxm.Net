@@ -16,6 +16,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
             string? permissibleUsageReason,
             string? permissibleUsageSupplementary,
             DateTimeOffset issueTime,
+            DateTimeOffset? validFrom,
+            DateTimeOffset? validUntil,
             string? bulletinIdentifier)
         {
             ReportId = reportId;
@@ -25,6 +27,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
             PermissibleUsageReason = permissibleUsageReason;
             PermissibleUsageSupplementary = permissibleUsageSupplementary;
             IssueTime = issueTime;
+            ValidFrom = validFrom;
+            ValidUntil = validUntil;
             BulletinIdentifier = bulletinIdentifier;
         }
 
@@ -48,6 +52,16 @@ namespace Iwxxm.Net.Export.GeoPackage.Model
 
         /// <summary>The issue time of the report; its offset is whatever the mapper produced (UTC for every mapped report).</summary>
         public DateTimeOffset IssueTime { get; }
+
+        /// <summary>
+        /// The start of the validity period of this report, or <c>null</c> when the report type has no validity period (VAA, TCA,
+        /// VONA, QVACI, space weather, METAR, SPECI) or the report does not state it. It is the period of the report itself, never
+        /// that of the bulletin that contains it and never the period of a cancelled report.
+        /// </summary>
+        public DateTimeOffset? ValidFrom { get; }
+
+        /// <summary>The end of the validity period of this report, with the same rules as <see cref="ValidFrom"/>.</summary>
+        public DateTimeOffset? ValidUntil { get; }
 
         /// <summary>The identifier of the bulletin that contains the report, or <c>null</c> for a standalone report.</summary>
         public string? BulletinIdentifier { get; }

@@ -48,11 +48,11 @@ namespace Iwxxm.Net.Export.GeoPackage
         internal const string GeometryColumn = "geom";
 
         // The columns every feature and attribute row has besides the geometry, in table order.
-        private const string FeatureColumns = "feature_id, feature_type, report_id, report_type, bulletin_identifier, issue_time_utc, properties";
+        private const string FeatureColumns = "feature_id, feature_type, report_id, report_type, bulletin_identifier, issue_time_utc, valid_from_utc, valid_until_utc, properties";
 
         private const string FeatureColumnDefinitions =
             "\"feature_id\" TEXT, \"feature_type\" TEXT, \"report_id\" TEXT, \"report_type\" TEXT, \"bulletin_identifier\" TEXT, " +
-            "\"issue_time_utc\" DATETIME, \"properties\" TEXT NOT NULL";
+            "\"issue_time_utc\" DATETIME, \"valid_from_utc\" DATETIME, \"valid_until_utc\" DATETIME, \"properties\" TEXT NOT NULL";
 
         /// <summary>
         /// Writes every table for <paramref name="model"/> inside <paramref name="transaction"/>. The base schema must exist.
@@ -124,7 +124,7 @@ namespace Iwxxm.Net.Export.GeoPackage
             var extent = new ExtentBuilder();
             using (SqliteCommand command = GeoPackageSqlite.CreateCommand(
                 transaction,
-                $"INSERT INTO \"{table}\" ({GeometryColumn}, {FeatureColumns}) VALUES ($geom, $featureId, $featureType, $reportId, $reportType, $bulletin, $issueTime, $properties)"))
+                $"INSERT INTO \"{table}\" ({GeometryColumn}, {FeatureColumns}) VALUES ($geom, $featureId, $featureType, $reportId, $reportType, $bulletin, $issueTime, $validFrom, $validUntil, $properties)"))
             {
                 SqliteParameter geom = command.Parameters.Add("$geom", SqliteType.Blob);
                 var columns = new FeatureParameters(command);
@@ -152,7 +152,7 @@ namespace Iwxxm.Net.Export.GeoPackage
 
             using (SqliteCommand command = GeoPackageSqlite.CreateCommand(
                 transaction,
-                $"INSERT INTO \"{AttributesTable}\" ({FeatureColumns}) VALUES ($featureId, $featureType, $reportId, $reportType, $bulletin, $issueTime, $properties)"))
+                $"INSERT INTO \"{AttributesTable}\" ({FeatureColumns}) VALUES ($featureId, $featureType, $reportId, $reportType, $bulletin, $issueTime, $validFrom, $validUntil, $properties)"))
             {
                 var columns = new FeatureParameters(command);
                 foreach (GeoPackageFeature feature in features)
@@ -172,12 +172,12 @@ namespace Iwxxm.Net.Export.GeoPackage
                 transaction,
                 $"CREATE TABLE \"{ReportsTable}\" (\"fid\" INTEGER PRIMARY KEY NOT NULL, \"report_id\" TEXT NOT NULL, \"report_type\" TEXT NOT NULL, " +
                 "\"report_status\" TEXT NOT NULL, \"permissible_usage\" TEXT NOT NULL, \"permissible_usage_reason\" TEXT, " +
-                "\"permissible_usage_supplementary\" TEXT, \"issue_time_utc\" DATETIME NOT NULL, \"bulletin_identifier\" TEXT)");
+                "\"permissible_usage_supplementary\" TEXT, \"issue_time_utc\" DATETIME NOT NULL, \"valid_from_utc\" DATETIME, \"valid_until_utc\" DATETIME, \"bulletin_identifier\" TEXT)");
 
             using (SqliteCommand command = GeoPackageSqlite.CreateCommand(
                 transaction,
-                $"INSERT INTO \"{ReportsTable}\" (report_id, report_type, report_status, permissible_usage, permissible_usage_reason, permissible_usage_supplementary, issue_time_utc, bulletin_identifier) " +
-                "VALUES ($reportId, $reportType, $status, $usage, $usageReason, $usageSupplementary, $issueTime, $bulletin)"))
+                $"INSERT INTO \"{ReportsTable}\" (report_id, report_type, report_status, permissible_usage, permissible_usage_reason, permissible_usage_supplementary, issue_time_utc, valid_from_utc, valid_until_utc, bulletin_identifier) " +
+                "VALUES ($reportId, $reportType, $status, $usage, $usageReason, $usageSupplementary, $issueTime, $validFrom, $validUntil, $bulletin)"))
             {
                 SqliteParameter reportId = command.Parameters.Add("$reportId", SqliteType.Text);
                 SqliteParameter reportType = command.Parameters.Add("$reportType", SqliteType.Text);
@@ -186,6 +186,8 @@ namespace Iwxxm.Net.Export.GeoPackage
                 SqliteParameter usageReason = command.Parameters.Add("$usageReason", SqliteType.Text);
                 SqliteParameter usageSupplementary = command.Parameters.Add("$usageSupplementary", SqliteType.Text);
                 SqliteParameter issueTime = command.Parameters.Add("$issueTime", SqliteType.Text);
+                SqliteParameter validFrom = command.Parameters.Add("$validFrom", SqliteType.Text);
+                SqliteParameter validUntil = command.Parameters.Add("$validUntil", SqliteType.Text);
                 SqliteParameter bulletin = command.Parameters.Add("$bulletin", SqliteType.Text);
 
                 foreach (GeoPackageReportRecord report in reports)
@@ -198,6 +200,8 @@ namespace Iwxxm.Net.Export.GeoPackage
                     usageReason.Value = ValueOf(report.PermissibleUsageReason);
                     usageSupplementary.Value = ValueOf(report.PermissibleUsageSupplementary);
                     issueTime.Value = GeoPackageDateTime.Format(report.IssueTime);
+                    validFrom.Value = report.ValidFrom.HasValue ? GeoPackageDateTime.Format(report.ValidFrom.Value) : (object)DBNull.Value;
+                    validUntil.Value = report.ValidUntil.HasValue ? GeoPackageDateTime.Format(report.ValidUntil.Value) : (object)DBNull.Value;
                     bulletin.Value = ValueOf(report.BulletinIdentifier);
                     command.ExecuteNonQuery();
                 }
@@ -268,7 +272,7 @@ namespace Iwxxm.Net.Export.GeoPackage
             return plus < 0 ? version : version.Substring(0, plus);
         }
 
-        /// <summary>The parameters of the seven fixed columns shared by the feature and attribute tables.</summary>
+        /// <summary>The parameters of the nine fixed columns shared by the feature and attribute tables.</summary>
         private sealed class FeatureParameters
         {
             private readonly SqliteParameter _featureId;
@@ -277,6 +281,8 @@ namespace Iwxxm.Net.Export.GeoPackage
             private readonly SqliteParameter _reportType;
             private readonly SqliteParameter _bulletin;
             private readonly SqliteParameter _issueTime;
+            private readonly SqliteParameter _validFrom;
+            private readonly SqliteParameter _validUntil;
             private readonly SqliteParameter _properties;
 
             public FeatureParameters(SqliteCommand command)
@@ -287,6 +293,8 @@ namespace Iwxxm.Net.Export.GeoPackage
                 _reportType = command.Parameters.Add("$reportType", SqliteType.Text);
                 _bulletin = command.Parameters.Add("$bulletin", SqliteType.Text);
                 _issueTime = command.Parameters.Add("$issueTime", SqliteType.Text);
+                _validFrom = command.Parameters.Add("$validFrom", SqliteType.Text);
+                _validUntil = command.Parameters.Add("$validUntil", SqliteType.Text);
                 _properties = command.Parameters.Add("$properties", SqliteType.Text);
             }
 
@@ -298,6 +306,8 @@ namespace Iwxxm.Net.Export.GeoPackage
                 _reportType.Value = ValueOf(feature.ReportType);
                 _bulletin.Value = ValueOf(feature.BulletinIdentifier);
                 _issueTime.Value = feature.IssueTime.HasValue ? GeoPackageDateTime.Format(feature.IssueTime.Value) : (object)DBNull.Value;
+                _validFrom.Value = feature.ValidFrom.HasValue ? GeoPackageDateTime.Format(feature.ValidFrom.Value) : (object)DBNull.Value;
+                _validUntil.Value = feature.ValidUntil.HasValue ? GeoPackageDateTime.Format(feature.ValidUntil.Value) : (object)DBNull.Value;
                 _properties.Value = GeoPackagePropertiesJson.Write(feature.Properties);
             }
         }

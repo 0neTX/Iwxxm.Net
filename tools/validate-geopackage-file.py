@@ -8,7 +8,8 @@ and expected.tsv (file, table, row count, extent), written by the GeoPackageFile
 2. `ogrinfo -al -so`: it opens the file with the GPKG driver and lists exactly the expected layers with their feature counts;
 3. the GDAL Python bindings: the same layers, the feature count GDAL reports and the number of features it iterates, the
    layer extent (exactly the plain min/max of the written coordinates), the geometry type of each layer, a geometry on every
-   feature of a geometry layer, a JSON object in the `properties` field and a date-time type for `issue_time_utc`;
+   feature of a geometry layer, a JSON object in the `properties` field, a date-time type for `issue_time_utc`, `valid_from_utc` and `valid_until_utc`, and
+   a validity column that is set exactly when the `properties` JSON of the row has the matching key;
 4. GDAL's own conformance validator, validate_gpkg.py, with --extra --warning-as-error.
 
 Exit status 0 only when every check of every file passes and there is at least one file. Nothing here is part of the unit
@@ -27,15 +28,18 @@ from osgeo import ogr
 ogr.UseExceptions()
 
 VALIDATOR = "/usr/lib/python3/dist-packages/osgeo_utils/samples/validate_gpkg.py"
-# The tables whose rows have an issue_time_utc column (all but the metadata table).
+# The tables whose rows have the issue_time_utc, valid_from_utc and valid_until_utc columns (all but the metadata table).
 TABLES_WITH_ISSUE_TIME = {"iwxxm_points", "iwxxm_lines", "iwxxm_polygons", "iwxxm_attributes", "iwxxm_reports"}
 # The tables whose rows have a JSON `properties` column.
 TABLES_WITH_PROPERTIES = {"iwxxm_points", "iwxxm_lines", "iwxxm_polygons", "iwxxm_attributes"}
 # The columns of iwxxm_reports, in table order (the fid is not a field).
 REPORTS_FIELDS = [
     "report_id", "report_type", "report_status", "permissible_usage", "permissible_usage_reason",
-    "permissible_usage_supplementary", "issue_time_utc", "bulletin_identifier",
+    "permissible_usage_supplementary", "issue_time_utc", "valid_from_utc", "valid_until_utc", "bulletin_identifier",
 ]
+# The time columns and, for the feature tables, the key of the properties JSON each one repeats.
+TIME_COLUMNS = ["issue_time_utc", "valid_from_utc", "valid_until_utc"]
+VALIDITY_KEYS = {"valid_from_utc": "validFromUtc", "valid_until_utc": "validUntilUtc"}
 GEOMETRY_TYPES = {
     "iwxxm_points": ogr.wkbPoint,
     "iwxxm_lines": ogr.wkbMultiLineString,
@@ -124,9 +128,10 @@ def bindings_problems(path, tables):
             problems.append("%s: has a geometry type" % table)
         definition = layer.GetLayerDefn()
         if table in TABLES_WITH_ISSUE_TIME:
-            field = definition.GetFieldIndex("issue_time_utc")
-            if field < 0 or definition.GetFieldDefn(field).GetType() != ogr.OFTDateTime:
-                problems.append("%s: issue_time_utc is not a date-time field" % table)
+            for column in TIME_COLUMNS:
+                field = definition.GetFieldIndex(column)
+                if field < 0 or definition.GetFieldDefn(field).GetType() != ogr.OFTDateTime:
+                    problems.append("%s: %s is not a date-time field" % (table, column))
         if table == "iwxxm_reports":
             fields = [definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())]
             if fields != REPORTS_FIELDS:
@@ -139,11 +144,16 @@ def bindings_problems(path, tables):
                 break
             if table in TABLES_WITH_PROPERTIES:
                 try:
-                    if not isinstance(json.loads(feature.GetField("properties")), dict):
+                    properties = json.loads(feature.GetField("properties"))
+                    if not isinstance(properties, dict):
                         raise ValueError("not an object")
                 except ValueError as error:
                     problems.append("%s: feature %d has invalid properties (%s)" % (table, feature.GetFID(), error))
                     break
+                for column, key in VALIDITY_KEYS.items():
+                    if (key in properties) != feature.IsFieldSetAndNotNull(column):
+                        problems.append("%s: feature %d: %s and the property %s disagree" % (table, feature.GetFID(), column, key))
+                        break
         if iterated != count:
             problems.append("%s: iterated %d features, expected %d" % (table, iterated, count))
     return problems

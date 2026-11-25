@@ -137,7 +137,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                     string[] common =
                     {
                         "feature_id TEXT 0 0", "feature_type TEXT 0 0", "report_id TEXT 0 0", "report_type TEXT 0 0",
-                        "bulletin_identifier TEXT 0 0", "issue_time_utc DATETIME 0 0", "properties TEXT 1 0"
+                        "bulletin_identifier TEXT 0 0", "issue_time_utc DATETIME 0 0", "valid_from_utc DATETIME 0 0", "valid_until_utc DATETIME 0 0",
+                        "properties TEXT 1 0"
                     };
 
                     Assert.Equal(new[] { "fid INTEGER 1 1", "geom POINT 1 0" }.Concat(common), ColumnsOf(connection, GeoPackageDataTables.PointsTable));
@@ -148,7 +149,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
                         {
                             "fid INTEGER 1 1", "report_id TEXT 1 0", "report_type TEXT 1 0", "report_status TEXT 1 0",
                             "permissible_usage TEXT 1 0", "permissible_usage_reason TEXT 0 0", "permissible_usage_supplementary TEXT 0 0",
-                            "issue_time_utc DATETIME 1 0", "bulletin_identifier TEXT 0 0"
+                            "issue_time_utc DATETIME 1 0", "valid_from_utc DATETIME 0 0", "valid_until_utc DATETIME 0 0", "bulletin_identifier TEXT 0 0"
                         },
                         ColumnsOf(connection, GeoPackageDataTables.ReportsTable));
                     Assert.Equal(new[] { "fid INTEGER 1 1", "key TEXT 1 0", "value TEXT 1 0" }, ColumnsOf(connection, GeoPackageDataTables.MetadataTable));
@@ -258,8 +259,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         {
             GeoPackageDocumentModel model = Read(SampleFiles.PathOf("metar-A3-1.xml"));
             GeoPackageReportRecord report = model.Reports[0];
-            var test = new GeoPackageReportRecord("r-test", report.ReportType, report.ReportStatus, "NON-OPERATIONAL", "TEST", "for a drill", report.IssueTime, null);
-            var plain = new GeoPackageReportRecord("r-plain", report.ReportType, report.ReportStatus, "OPERATIONAL", null, null, report.IssueTime, null);
+            var test = new GeoPackageReportRecord("r-test", report.ReportType, report.ReportStatus, "NON-OPERATIONAL", "TEST", "for a drill", report.IssueTime, null, null, null);
+            var plain = new GeoPackageReportRecord("r-plain", report.ReportType, report.ReportStatus, "OPERATIONAL", null, null, report.IssueTime, null, null, null);
             string path = WriteToTempFile(new GeoPackageDocumentModel(model.DocumentId, model.DocumentType, null, new[] { test, plain }, model.Features));
             try
             {
@@ -282,7 +283,7 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             // A quote in a value must be stored as data: all values are bound parameters.
             GeoPackageDocumentModel model = Read(SampleFiles.PathOf("metar-A3-1.xml"));
             var report = model.Reports[0];
-            var hostile = new GeoPackageReportRecord("x'); DROP TABLE gpkg_contents; --", report.ReportType, report.ReportStatus, report.PermissibleUsage, "r'1", "s'1", report.IssueTime, "b'1");
+            var hostile = new GeoPackageReportRecord("x'); DROP TABLE gpkg_contents; --", report.ReportType, report.ReportStatus, report.PermissibleUsage, "r'1", "s'1", report.IssueTime, null, null, "b'1");
             var changed = new GeoPackageDocumentModel("d'oc", model.DocumentType, null, new[] { hostile }, model.Features);
             string path = WriteToTempFile(changed);
             try
