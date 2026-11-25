@@ -20,16 +20,25 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// previous file untouched. This is preferred over writing the target directly and deleting it on failure, which would
     /// also destroy a file that was there before the call and leaves a window in which a reader can open an incomplete
     /// file.</para>
-    /// <para><b>Limits of that guarantee.</b> A process that is killed can leave the hidden temporary file behind. An
-    /// existing target that has a <c>-wal</c> or <c>-journal</c> file next to it is in use or needs recovery: it is not
-    /// replaced. The swap is retried twice, with a short back-off, when the operating system refuses it (for example while
-    /// another process has the target open); there is no copy fallback. On Windows the replaced file is first moved to a
-    /// backup name that is deleted after the swap; if the swap fails after the target was moved aside, the new file is
-    /// kept and its path is in the message. The replaced file is the target path itself, so a symbolic link is replaced,
-    /// not written through; on Unix the new file keeps its own mode and owner, not those of the file it replaces. The
-    /// directory is not flushed to disk, so a power failure right after the call can lose the swap. Two writers must not
-    /// use the same target at the same time. The database is built next to the target, so a network share without
-    /// reliable file locking is not supported (a SQLite restriction).</para>
+    /// <para><b>Limits of that guarantee.</b></para>
+    /// <list type="bullet">
+    /// <item>A process that is killed can leave the hidden temporary file behind.</item>
+    /// <item>A target, existing or not, that has a <c>-wal</c> or <c>-journal</c> file next to it is in use or needs
+    /// recovery: nothing is published, because SQLite would apply a stale sidecar to the new database.</item>
+    /// <item>The swap is retried twice, with a short back-off, when the operating system refuses it for a reason that can
+    /// pass (for example while another process has the target open); there is no copy fallback, and a permanent failure is
+    /// not retried.</item>
+    /// <item>On Windows the replaced file is first moved to a backup name (<c>.&lt;name&gt;.&lt;guid&gt;.bak</c> next to the target)
+    /// that is deleted after the swap. If the swap fails after the target was moved aside, the target is absent, the new file
+    /// is kept as the hidden temporary file, the old one stays as the backup, and the message names both. If the swap
+    /// succeeded but the backup cannot be deleted (the old file is still held open), the export still succeeds and the
+    /// <c>.bak</c> file is left next to the target.</item>
+    /// <item>The replaced file is the target path itself, so a symbolic link is replaced, not written through; on Unix the new
+    /// file keeps its own mode and owner, not those of the file it replaces. The directory is not flushed to disk, so a power
+    /// failure right after the call can lose the swap.</item>
+    /// <item>Two writers must not use the same target at the same time. The database is built next to the target, so a
+    /// network share without reliable file locking is not supported (a SQLite restriction).</item>
+    /// </list>
     /// <para>The output is deterministic: no value comes from the clock (the <c>last_change</c> of every table is
     /// <see cref="GeoPackageWriteOptions.LastChange"/>) and rows are written in the feature order of the model. The SQLite
     /// file header embeds the version of the SQLite library that wrote it, so a comparison across SQLite versions must use
@@ -43,7 +52,7 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// <exception cref="ArgumentException"><paramref name="path"/> is empty or white space, or a geometry cannot be encoded (for example a coordinate that is not finite).</exception>
         /// <exception cref="DirectoryNotFoundException">The directory of <paramref name="path"/> does not exist (it is not created).</exception>
         /// <exception cref="SqliteException">SQLite failed (for example, the disk is full).</exception>
-        /// <exception cref="IOException"><paramref name="path"/> is an existing directory, or the file cannot be created or replaced, or the existing target has a <c>-wal</c> or <c>-journal</c> file next to it.</exception>
+        /// <exception cref="IOException"><paramref name="path"/> is an existing directory, or the file cannot be created or replaced, or the target has a <c>-wal</c> or <c>-journal</c> file next to it.</exception>
         /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled; checked before starting and before every feature, attribute and report row (the metadata rows are not checked).</exception>
         public static void Write(string path, GeoPackageDocumentModel model, GeoPackageWriteOptions options, CancellationToken cancellationToken = default)
         {
@@ -100,23 +109,29 @@ namespace Iwxxm.Net.Export.GeoPackage
         // Three attempts in all: a first one and a retry after each of these pauses (milliseconds).
         private static readonly int[] RetryDelaysMilliseconds = { 50, 200 };
 
-        private static void Publish(string temporary, string target)
+        /// <summary>
+        /// Moves the complete database <paramref name="temporary"/> onto <paramref name="target"/>, replacing a file that is
+        /// there. Refuses when a <c>-wal</c> or <c>-journal</c> file is next to the target, whether the target exists or not: SQLite
+        /// would apply a stale one of an earlier database to the new file. A transient refusal of the system is retried;
+        /// a permanent one (the target is a directory, the temporary file or the directory is gone) is not.
+        /// </summary>
+        internal static void Publish(string temporary, string target)
         {
-            bool targetExists = File.Exists(target);
-            if (targetExists && (File.Exists(target + "-wal") || File.Exists(target + "-journal")))
+            if (File.Exists(target + "-wal") || File.Exists(target + "-journal"))
             {
                 throw new IOException(
-                    $"The target is in use or needs recovery: '{target}-wal' or '{target}-journal' exists next to it. The target was not changed.");
+                    $"The target is in use or needs recovery: '{target}-wal' or '{target}-journal' exists next to it. Nothing was published.");
             }
 
             // On Unix File.Replace with a backup name renames the target away first, which is not atomic: without one it is
-            // a single rename. On Windows the backup makes the replacement of an open-for-read file possible to undo by hand.
-            string? backup = targetExists && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? target + "." + Guid.NewGuid().ToString("N") + ".bak"
-                : null;
+            // a single rename. On Windows the backup keeps the replaced file when the swap fails half way.
+            bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
             for (int attempt = 0; ; attempt++)
             {
+                // Evaluated again for every attempt: the target may have appeared or gone since the last one.
+                bool targetExists = File.Exists(target);
+                string? backup = targetExists && windows ? target + "." + Guid.NewGuid().ToString("N") + ".bak" : null;
                 try
                 {
                     if (targetExists)
@@ -124,6 +139,7 @@ namespace Iwxxm.Net.Export.GeoPackage
                     else
                         File.Move(temporary, target);
 
+                    // The swap is done; a backup that cannot be deleted (the old file is still held open) is left next to the target.
                     if (backup != null)
                         GeoPackageExportFailure.DeleteQuietly(backup);
 
@@ -131,15 +147,15 @@ namespace Iwxxm.Net.Export.GeoPackage
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
-                    if (targetExists && !File.Exists(target))
+                    // Only a backup this call made (a name with a fresh GUID) proves that this call moved the target aside.
+                    if (backup != null && File.Exists(backup) && !File.Exists(target))
                     {
-                        string backupText = backup == null ? string.Empty : $" The previous file is at '{backup}' if it exists.";
                         throw new TemporaryFileKeptException(
-                            $"The target '{target}' was moved aside and could not be replaced ({ex.Message}). The new GeoPackage was kept at '{temporary}'.{backupText}",
+                            $"The target '{target}' was moved aside to '{backup}' and could not be replaced ({ex.Message}). The new GeoPackage was kept at '{temporary}'.",
                             ex);
                     }
 
-                    if (attempt >= RetryDelaysMilliseconds.Length)
+                    if (attempt >= RetryDelaysMilliseconds.Length || !MayBeTransient(ex, temporary, target))
                         throw;
 
                     Thread.Sleep(RetryDelaysMilliseconds[attempt]);
@@ -147,7 +163,14 @@ namespace Iwxxm.Net.Export.GeoPackage
             }
         }
 
-        /// <summary>The swap failed after the target had gone: the temporary file is the only copy and must not be deleted.</summary>
+        // A sharing violation or a lock held for a moment can pass; a missing directory or file, a path that is too long and a
+        // target that is a directory cannot.
+        private static bool MayBeTransient(Exception exception, string temporary, string target) =>
+            !(exception is DirectoryNotFoundException || exception is FileNotFoundException || exception is PathTooLongException)
+            && !Directory.Exists(target)
+            && File.Exists(temporary);
+
+        /// <summary>The swap failed after this call had moved the target aside: the temporary file is the only copy and must not be deleted.</summary>
         private sealed class TemporaryFileKeptException : IOException
         {
             public TemporaryFileKeptException(string message, Exception inner)

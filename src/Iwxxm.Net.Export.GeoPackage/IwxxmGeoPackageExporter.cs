@@ -24,17 +24,20 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// cancelled, like the rest of the library.</para>
     /// <para>Instances are immutable and thread-safe. Two exports to the same path, at the same time or one after the other
     /// while another process holds the file, are not supported.</para>
-    /// <para><b>Things to know when you call it from a service.</b> The message of a failure can contain host paths and the
-    /// text of an internal exception: log it, do not echo it to a client. <see cref="OutOfMemoryException"/> is not
-    /// converted to a failure. The path is used as given (it is not confined to a directory): never pass
-    /// text from an untrusted source as the path. A symbolic link at the path is replaced, not written through. An existing
-    /// target that has a <c>-wal</c> or <c>-journal</c> file next to it is in use or needs recovery and is not replaced. On
-    /// Unix the new file keeps its own mode and owner, not those of the file it replaces. The directory is not flushed to
-    /// disk, so a power failure right after the call can lose the swap. A process that is killed can leave a hidden
-    /// <c>.iwxxm-*.tmp</c> file in the directory. The database is built next to the target, so a network share without
-    /// reliable file locking is not supported (a SQLite restriction). <see cref="ExportToBytes"/> uses the shared temporary
-    /// directory of the machine for a moment: on a multi-user host another user may be able to read it, so call
-    /// <see cref="Export"/> with a path in a private directory instead.</para>
+    /// <para><b>Things to know when you call it from a service.</b> The message of a failure can contain host paths, library
+    /// locations and the text of an internal exception (it ends with the innermost exception when that is a different one):
+    /// log it, do not return it to end users. <see cref="OutOfMemoryException"/> is not converted to a failure. The path is
+    /// used as given (it is not confined to a directory): never pass text from an untrusted source as the path. A symbolic
+    /// link at the path is replaced, not written through. A target, existing or not, that has a <c>-wal</c> or
+    /// <c>-journal</c> file next to it is in use or needs recovery: nothing is published. On Unix the new file keeps its own
+    /// mode and owner, not those of the file it replaces. The directory is not flushed to disk, so a power failure right
+    /// after the call can lose the swap. A process that is killed can leave a hidden <c>.iwxxm-*.tmp</c> file in the
+    /// directory. On Windows, if the swap fails after the target was moved aside, the target is absent, the new file stays
+    /// as the hidden <c>.iwxxm-*.tmp</c> file, the old one as a <c>.bak</c> file, and the message names them; if the swap
+    /// succeeded but the old file was still held open, a <c>.bak</c> file can be left next to the target. The database is
+    /// built next to the target, so a network share without reliable file locking is not supported (a SQLite restriction).
+    /// <see cref="ExportToBytes"/> uses the shared temporary directory of the machine for a moment: on a multi-user host
+    /// another user may be able to read it, so call <see cref="Export"/> with a path in a private directory instead.</para>
     /// <para>The add-on reads internals of <c>Iwxxm.Net</c> and needs the version of <c>Iwxxm.Net</c> it was built against
     /// (never an older one); with another version an export fails with <see cref="GeoPackageErrorCodes.ExportError"/> and a
     /// message that says so.</para>

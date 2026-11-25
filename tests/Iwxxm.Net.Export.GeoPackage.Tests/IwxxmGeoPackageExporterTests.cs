@@ -306,6 +306,20 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         }
 
         [Fact]
+        public void Export_OverANewTargetWithAStaleWal_FailsAndPublishesNothing()
+        {
+            IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));
+            File.WriteAllText(PathOf() + "-wal", "stale");
+
+            Result<string> result = IwxxmGeoPackageExporter.Default.Export(document, PathOf());
+
+            ValidationError error = Assert.Single(result.Errors);
+            Assert.Equal("GEOPACKAGE-EXPORT-ERROR", error.Code);
+            Assert.Contains("in use or needs recovery", error.Message, StringComparison.Ordinal);
+            Assert.Equal(new[] { "out.gpkg-wal" }, FilesInDirectory());
+        }
+
+        [Fact]
         public void ExportToBytes_ReturnsTheFile_AndLeavesNoTemporaryFile()
         {
             IwxxmDocument document = Parse(SampleFiles.PathOf("metar-A3-1.xml"));

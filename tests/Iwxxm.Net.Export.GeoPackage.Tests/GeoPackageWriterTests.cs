@@ -228,15 +228,65 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Assert.Equal(new[] { "out.gpkg", "out.gpkg" + suffix }, FilesInDirectory());
         }
 
-        [Fact]
-        public void Write_OverANewTarget_IgnoresASidecarThatHasNoDatabase()
+        [Theory]
+        [InlineData("-wal")]
+        [InlineData("-journal")]
+        public void Write_OverANewTarget_WithAStaleSidecar_Refuses_AndPublishesNothing(string suffix)
         {
+            // SQLite would apply a leftover sidecar of an earlier database to the new file: refuse, whether the target exists or not.
             string path = PathOf();
-            File.WriteAllText(path + "-wal", "stale");
+            File.WriteAllText(path + suffix, "stale");
 
-            GeoPackageWriter.Write(path, Model(), Options());
+            IOException error = Assert.Throws<IOException>(() => GeoPackageWriter.Write(path, Model(), Options()));
 
-            Assert.Equal(new[] { "out.gpkg", "out.gpkg-wal" }, FilesInDirectory());
+            Assert.Contains("in use or needs recovery", error.Message, StringComparison.Ordinal);
+            Assert.False(File.Exists(path));
+            Assert.Equal(new[] { "out.gpkg" + suffix }, FilesInDirectory());
+            Assert.Equal("stale", File.ReadAllText(path + suffix));
+        }
+
+        [Fact]
+        public void Publish_OverADirectory_FailsAtOnce_WithoutTheRetryPauses()
+        {
+            string temporary = PathOf(".iwxxm-test.tmp");
+            File.WriteAllText(temporary, "complete database");
+            string target = PathOf("target");
+            Directory.CreateDirectory(target);
+
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            Assert.ThrowsAny<Exception>(() => GeoPackageWriter.Publish(temporary, target));
+            clock.Stop();
+
+            // The two pauses of a retry add up to 250 ms.
+            Assert.True(clock.ElapsedMilliseconds < 200, "a permanent failure must not be retried");
+            Assert.True(File.Exists(temporary), "Publish does not delete the temporary file; Write does");
+            Assert.True(Directory.Exists(target));
+        }
+
+        [Fact]
+        public void Publish_WithAMissingTemporaryFile_FailsAtOnce_WithoutTheRetryPauses()
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            Assert.ThrowsAny<IOException>(() => GeoPackageWriter.Publish(PathOf(".iwxxm-missing.tmp"), PathOf()));
+            clock.Stop();
+
+            Assert.True(clock.ElapsedMilliseconds < 200, "a missing file must not be retried");
+            Assert.Empty(FilesInDirectory());
+        }
+
+        [Fact]
+        public void Publish_MovesTheFileOntoANewTarget_AndReplacesAnExistingOne()
+        {
+            string target = PathOf();
+            File.WriteAllText(PathOf("one.tmp"), "one");
+            GeoPackageWriter.Publish(PathOf("one.tmp"), target);
+            Assert.Equal("one", File.ReadAllText(target));
+
+            File.WriteAllText(PathOf("two.tmp"), "two");
+            GeoPackageWriter.Publish(PathOf("two.tmp"), target);
+
+            Assert.Equal("two", File.ReadAllText(target));
+            Assert.Equal(new[] { "out.gpkg" }, FilesInDirectory());
         }
 
         [Fact]
