@@ -78,6 +78,8 @@ dotnet nuget add source "https://api.nuget.org/v3/index.json" --name "nuget.org"
 
 **`Iwxxm.Net.Export.GeoPackage` is not part of a release yet** (it is listed under `Unreleased` in the [changelog](CHANGELOG.md)), so it is not on NuGet.org until the next tag that includes it; until then, build it from source (`dotnet pack src/Iwxxm.Net.Export.GeoPackage`).
 
+**Version coupling.** The add-on reads internals of `Iwxxm.Net` that only the version it was built against makes visible to it. It requires `Iwxxm.Net` of the version it ships with and never works with `Iwxxm.Net` 1.0.0, which does not grant that access (an export then fails with `GEOPACKAGE-EXPORT-ERROR` and a message that says so). The two packages are released together with the same new version.
+
 **Size of the GeoPackage package.** The package itself is small, but restoring it downloads about 19 MB, 95% of it the native SQLite libraries for every supported platform (`SQLitePCLRaw.lib.e_sqlite3`). They end up in the application's `runtimes/` folder. Applications that do not export GeoPackages should not reference it. On .NET Framework there are extra steps; read [the notes in the guide](docs/GUIDE.md#net-framework-and-native-sqlite) before relying on it there.
 
 Building from source needs the **.NET 10 SDK** (see [`global.json`](global.json)).
@@ -179,7 +181,7 @@ The file has `iwxxm_points`, `iwxxm_lines` and `iwxxm_polygons` tables (only tho
 | `Iwxxm.Net.Reports` | The domain model: the closed document hierarchy and every value object |
 | `Iwxxm.Net.Extensibility` | `ISchematronValidator` and `IwxxmDocumentContext`, the extension point for custom business-rule engines |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
-| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion` (optional package; its parser members are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`) |
+| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion`, `GeoPackageErrorCodes` (optional package; its parser members are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`) |
 
 Consumers never need a layer name in a `using` directive; `Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*` and `Iwxxm20252.Generated` are `internal`. The layer map is in the [reference](docs/REFERENCE.md#namespaces-and-layers).
 

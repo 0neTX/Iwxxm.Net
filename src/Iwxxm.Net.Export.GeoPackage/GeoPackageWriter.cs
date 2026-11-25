@@ -33,7 +33,8 @@ namespace Iwxxm.Net.Export.GeoPackage
     /// <para>The output is deterministic: no value comes from the clock (the <c>last_change</c> of every table is
     /// <see cref="GeoPackageWriteOptions.LastChange"/>) and rows are written in the feature order of the model. The SQLite
     /// file header embeds the version of the SQLite library that wrote it, so a comparison across SQLite versions must use
-    /// the content (schema and rows), not the bytes.</para>
+    /// the content (schema and rows), not the bytes. The <c>properties</c> text of a negative zero is <c>-0</c> on .NET and <c>0</c> on
+    /// .NET Framework and Mono (the formatting of the core's JSON writer), so such a value is not the same text on every runtime.</para>
     /// </remarks>
     internal static class GeoPackageWriter
     {

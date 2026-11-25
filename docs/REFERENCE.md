@@ -503,7 +503,7 @@ Not written: `gpkg_extensions`, `gpkg_metadata` and its reference table, `gpkg_o
 | `report_type` | `TEXT` | The `reportType` property: the name of `IwxxmReportType` (for example `Metar`, `TropicalCycloneSigmet`). |
 | `bulletin_identifier` | `TEXT` | The bulletin identifier for a feature of a report inside a bulletin; `NULL` otherwise. |
 | `issue_time_utc` | `DATETIME` | The `issueTimeUtc` property as `yyyy-MM-ddTHH:mm:ss.fffZ`; `NULL` when absent. |
-| `properties` | `TEXT NOT NULL` | The GeoJSON `properties` object as compact JSON, the same text and key order as the GeoJSON export. Properties whose value is null are omitted, and a non-finite number is written as `null`, as there. |
+| `properties` | `TEXT NOT NULL` | The GeoJSON `properties` object as compact JSON, the same text and key order as the GeoJSON export (a negative zero is `-0` on .NET and `0` on .NET Framework and Mono, as in the GeoJSON export). Properties whose value is null are omitted, and a non-finite number is written as `null`, as there. |
 
 The columns `feature_type`, `report_id`, `report_type`, `bulletin_identifier` and `issue_time_utc` are read from the same properties object that is written to `properties`, so the column and the JSON cannot disagree. A feature that lacks one of those properties leaves its column `NULL`.
 
@@ -535,10 +535,14 @@ The columns `feature_type`, `report_id`, `report_type`, `bulletin_identifier` an
 | `library_version` | The version of `Iwxxm.Net.Export.GeoPackage` that wrote the file |
 | `source_document_id` | The id of the exported document |
 | `source_document_type` | The `IwxxmReportType` name of the document (`MeteorologicalBulletin` for a bulletin) |
-| `bulletin_identifier` | Only for a bulletin |
+| `bulletin_identifier` | Only for a bulletin that has a non-blank identifier |
 | `report_count` | The number of rows of `iwxxm_reports` |
 
-The rows are written in the order of the table above: five rows, or six for a bulletin.
+The rows are written in the order of the table above: five rows, or six for a bulletin that has a non-blank identifier (a bulletin with a blank identifier gets the five rows).
+
+### Limits of the export
+
+The failure message of `GEOPACKAGE-EXPORT-ERROR` can contain host paths and the text of an internal exception (log it, do not echo it to clients). `ExportToBytes` uses the shared temporary directory (use `Export` with a private directory on a multi-user host). `OutOfMemoryException` is not converted to a result. Two exports to the same path are not supported, and an existing target with a `-wal` or `-journal` file next to it is not replaced. The path is not confined and a symbolic link at the path is replaced; on Unix the new file keeps its own mode and owner. The directory is not flushed to disk. A killed process can leave a hidden `.iwxxm-*.tmp` file. A network share without reliable locking is not supported. The [guide](GUIDE.md#limits-and-things-to-know) has the details.
 
 ### Compatibility checks
 
@@ -802,7 +806,7 @@ The library emits exactly these strings and refers to them through the constants
 | `MAPPER-ERROR` | A document mapper threw or returned nothing. For a bulletin, the code is reported as the item error of that one entry and the other entries are kept. | Bug in a custom `ISigwxDocumentMapper` or report mapper. |
 | `GEOJSON-EXPORT-ERROR` | The GeoJSON exporter threw or returned nothing (`*ToGeoJson` members of the parser, `IwxxmGeoJsonExporter.Export` and `ToGeoJson`). The error is located at the document id. | Bug in a custom exporter. |
 | `CSV-EXPORT-ERROR` | The CSV exporter threw or returned nothing (`*ToCsv` members of the parser, `IwxxmCsvExporter.Export` and `ToCsv`). The error is located at the document id. | Bug in a custom exporter. |
-| `GEOPACKAGE-EXPORT-ERROR` | The GeoPackage file could not be written (`Iwxxm.Net.Export.GeoPackage` package: `IwxxmGeoPackageExporter.Export`, `ExportToBytes`, `ToGeoPackage`, `ToGeoPackageBytes`, and the `ProcessToGeoPackage`, `ProcessFileToGeoPackage`, `ParseToGeoPackage` and `ParseFileToGeoPackage` members for the parser). The path is empty or invalid, its directory does not exist, it is a directory or is not writable, or the exporter failed. The error is located at the document id, and the target is left as it was before the call. The value is the constant `GeoPackageErrorCodes.ExportError` of that package. | Fix the path or its permissions; the message names the cause. |
+| `GEOPACKAGE-EXPORT-ERROR` | The GeoPackage file could not be written (`Iwxxm.Net.Export.GeoPackage` package: `IwxxmGeoPackageExporter.Export`, `ExportToBytes`, `ToGeoPackage`, `ToGeoPackageBytes`, and the `ProcessToGeoPackage`, `ProcessFileToGeoPackage`, `ParseToGeoPackage` and `ParseFileToGeoPackage` members for the parser). The path is empty or invalid, its directory does not exist, it is a directory or is not writable, an existing target has a `-wal` or `-journal` file next to it, the installed `Iwxxm.Net` is not the version the add-on was built against, or the exporter failed. The error is located at the document id, and the target is left as it was before the call; the message can contain host paths and ends with the innermost exception when there is one. The value is the constant `GeoPackageErrorCodes.ExportError` of that package. | Fix the path or its permissions; the message names the cause. |
 | `ACL-EMPTY-ENVELOPE` | The deserialized SIGWX envelope holds no report instance. | Empty `iwxxm:report` wrapper. |
 
 ### Metadata, time and measures (`DomainMapping`)

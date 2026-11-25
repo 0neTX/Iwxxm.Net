@@ -706,6 +706,8 @@ A [GeoPackage](https://www.geopackage.org/) (`.gpkg`) is an OGC standard SQLite 
 dotnet add package Iwxxm.Net.Export.GeoPackage
 ```
 
+The package is not part of a release yet, so it is not on NuGet.org: until a release includes it, build it from source (`dotnet pack src/Iwxxm.Net.Export.GeoPackage`). It reads internals of `Iwxxm.Net` that only the version it was built against makes visible, so it requires `Iwxxm.Net` of the version it ships with and never works with `Iwxxm.Net` 1.0.0; the two packages are released together with the same new version. With another core version an export fails with `GEOPACKAGE-EXPORT-ERROR` and a message that says the versions do not match.
+
 SQLite writes to a file, so the main operation takes a path. The `Result<string>` carries the full path of the file written.
 
 ```csharp
@@ -784,7 +786,7 @@ var options = new GeoPackageExportOptions(GeoPackageVersion.Version13, new DateT
 
 ### Determinism
 
-No value comes from the clock. `last_change` is the option above, rows are written in the order of the GeoJSON features, and the file is built in one transaction. Exporting the same document with the same options twice gives files with the same content. The SQLite file header records the version of the SQLite library that wrote the file, so compare the content (schema and rows), not the bytes, across SQLite versions; this is also why the repository's golden tests compare a text dump and not a binary file.
+No value comes from the clock. `last_change` is the option above, rows are written in the order of the GeoJSON features, and the file is built in one transaction. Exporting the same document with the same options twice gives files with the same content (on the same runtime: see the note on negative zero below). The SQLite file header records the version of the SQLite library that wrote the file, so compare the content (schema and rows), not the bytes, across SQLite versions; this is also why the repository's golden tests compare a text dump and not a binary file.
 
 ### Errors
 
@@ -808,6 +810,18 @@ DomainMapping
 
 **The target is never half written.** The database is built under a temporary name in the directory of the target and moved onto it only when it is complete and closed. If the export fails, a file that was already at the path is untouched and no temporary file is left behind. The connections are not pooled, so the file can be deleted or moved as soon as the call returns.
 
+### Limits and things to know
+
+- **Messages can hold host paths.** The message of a `GEOPACKAGE-EXPORT-ERROR` can contain a file path of the machine and the text of an internal exception (it ends with the innermost exception type and message, so that a failure to load the native SQLite can be diagnosed). Log it; do not echo it to a client.
+- **`ExportToBytes` uses the shared temporary directory** for a moment. On a multi-user host another user may be able to read that file, so a service should call `Export` with a path in a private directory instead.
+- **`OutOfMemoryException` is not converted** to a result, like everywhere in the library.
+- **Two exports to the same path are not supported**, at the same time or while another process has the file open. An existing target that has a `-wal` or `-journal` file next to it is in use or needs recovery and is not replaced (the export fails and says so). The swap is retried twice with a short pause when the system refuses it; there is no copy fallback.
+- **The path is used as given.** It is not confined to a directory, so never pass untrusted text as the path. A symbolic link at the path is replaced, not written through. On Unix the new file keeps its own mode and owner, not those of the file it replaces.
+- **Durability.** The file is complete before it is moved onto the target, but the directory is not flushed to disk: a power failure right after the call can lose the swap.
+- **A killed process can leave a hidden `.iwxxm-*.tmp` file** (and a `-journal` next to it) in the directory of the target; nothing sweeps them.
+- **Network shares.** The database is built next to the target, so a share without reliable file locking is not supported (a SQLite restriction).
+- **Negative zero.** A negative zero in a property is written `-0` on .NET and `0` on .NET Framework and Mono, so the `properties` text of such a value differs between those runtimes (the value objects normalize negative zero, so it is rare in practice); the coordinates in the geometry blobs keep the exact value.
+
 ### What is in the file
 
 Every table is in WGS 84 (EPSG:4326, longitude then latitude), the same coordinates as the GeoJSON export, including the antimeridian splitting and polar caps (a `LineString` or `Polygon` is stored as a `MultiLineString` or `MultiPolygon` of one member). Geometries are 2D.
@@ -819,11 +833,11 @@ Every table is in WGS 84 (EPSG:4326, longitude then latitude), the same coordina
 | `iwxxm_polygons` | features (`MULTIPOLYGON`) | Features whose geometry is a polygon (areas, circles as densified polygons, volumes). |
 | `iwxxm_attributes` | attributes | Features that have no geometry (for example a nil space weather analysis). Always created, even when empty. |
 | `iwxxm_reports` | attributes | One row per report of the document (a bulletin has one per report): its status, its permissible usage with the reason (`TEST`, `EXERCISE`) and the supplementary text when it has them, and its issue time. |
-| `iwxxm_metadata` | attributes | Key/value rows: library version, GeoPackage version, source document id and type, bulletin identifier and report count. |
+| `iwxxm_metadata` | attributes | Key/value rows: library version, GeoPackage version, source document id and type, report count and, for a bulletin that has a non-blank identifier, that identifier. |
 
-A geometry table with no rows is not created (the file above has points and polygons but no `iwxxm_lines`), so read `gpkg_contents` for the tables a file really has. Every feature and attribute row has the same fixed columns: `feature_id`, `feature_type`, `report_id`, `report_type`, `bulletin_identifier`, `issue_time_utc` and `properties`.
+A geometry table with no rows is not created (the file above has points and polygons but no `iwxxm_lines`), so read `gpkg_contents` for the tables a file really has. Every row of the four feature tables has the same fixed columns: `feature_id`, `feature_type`, `report_id`, `report_type`, `bulletin_identifier`, `issue_time_utc` and `properties`.
 
-**`properties` is the GeoJSON `properties` object, as JSON text.** It is the same text, with the same keys in the same order, as the `properties` member of the feature in the [GeoJSON export](#8-geojson-export): measures with their `...Uom` companions, vertical limits, codes and so on. The fixed columns repeat a few of those values so that you can filter without parsing JSON; everything else is in `properties` and is read with the JSON functions of your SQL engine (`json_extract` in SQLite and in GDAL's SQLite dialect). The full column list is in the [reference](REFERENCE.md#geopackage-tables-and-columns).
+**`properties` is the GeoJSON `properties` object, as JSON text.** It is the same text, with the same keys in the same order, as the `properties` member of the feature in the [GeoJSON export](#8-geojson-export) (one difference between runtimes: a negative zero is written `-0` on .NET and `0` on .NET Framework and Mono): measures with their `...Uom` companions, vertical limits, codes and so on. The fixed columns repeat a few of those values so that you can filter without parsing JSON; everything else is in `properties` and is read with the JSON functions of your SQL engine (`json_extract` in SQLite and in GDAL's SQLite dialect). The full column list is in the [reference](REFERENCE.md#geopackage-tables-and-columns).
 
 The package does not create one table per feature type with a column for each property: that would need a fixed catalogue of properties across all products, and the JSON column keeps every property without one.
 
