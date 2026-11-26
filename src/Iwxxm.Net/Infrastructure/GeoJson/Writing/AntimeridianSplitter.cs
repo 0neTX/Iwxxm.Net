@@ -12,14 +12,20 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
     /// encloses a pole) is written as the region between the ring and the pole on the side of its mean latitude: the
     /// ring is repeated every 360 degrees, clipped to the [-180, 180] strip and closed along the antimeridian and the
     /// pole, so a ring that leaves the strip and comes back (a lobe across the antimeridian) loses no vertex and may give
-    /// several polygons. A ring that crosses a strip border more than twice is clipped the same way, so its pieces are
+    /// several polygons (the one exception is a lobe with no area at all, such as a ring that runs along a pole out across the
+    /// antimeridian and back: the pole is a single point, so no polygon can hold the spur, which is replaced by the cut). A ring that crosses a strip border more than twice is clipped the same way, so its pieces are
     /// never joined by a zero-width bridge. Interior rings that lie entirely inside a cap are kept as its holes; an
     /// interior ring that cannot be represented that way (it crosses the antimeridian, or is not inside the cap) is
     /// dropped and counted, so the caller can report it explicitly.
     /// </summary>
     internal static class AntimeridianSplitter
     {
-        private const double Epsilon = 1e-9;
+        /// <summary>
+        /// Area (square degrees) under which a clipped piece is not a polygon: one cell of the 1e-7 degree grid the coordinates are written
+        /// on. A piece with no area at all (every vertex on one line: a spur along a pole, a ring along the strip border) always falls
+        /// under it; a lobe that is thin but real (a vertex a few metres across the antimeridian) does not.
+        /// </summary>
+        private const double MinimumArea = 1e-14;
 
         /// <summary>Gets a value indicating whether a sequence crosses the antimeridian (an edge spans more than 180 degrees).</summary>
         public static bool Crosses(IReadOnlyList<GeoJsonPosition> positions)
@@ -765,7 +771,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
             points = ClipHalfPlane(points, west, keepGreater: true);
             points = ClipHalfPlane(points, east, keepGreater: false);
-            if (points.Count < 3 || Math.Abs(Area(points)) < Epsilon)
+            if (points.Count < 3 || Math.Abs(Area(points)) < MinimumArea)
                 return null;
 
             var result = points.Select(p => GeoJsonPosition.Computed(p.Lon + shift, p.Lat)).ToList();
@@ -795,11 +801,14 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             return output;
         }
 
+        // Measured from the first point, so that the rounding error does not grow with the longitude (a strip far from [-180, 180]
+        // is unwrapped to hundreds of degrees) and points on one line give exactly zero when that line is a meridian or a parallel.
         private static double Area(List<(double Lon, double Lat)> points)
         {
             double area = 0.0;
-            for (int i = 0, j = points.Count - 1; i < points.Count; j = i++)
-                area += (points[j].Lon * points[i].Lat) - (points[i].Lon * points[j].Lat);
+            (double Lon, double Lat) origin = points[0];
+            for (int i = 1; i < points.Count - 1; i++)
+                area += ((points[i].Lon - origin.Lon) * (points[i + 1].Lat - origin.Lat)) - ((points[i + 1].Lon - origin.Lon) * (points[i].Lat - origin.Lat));
             return area / 2.0;
         }
 

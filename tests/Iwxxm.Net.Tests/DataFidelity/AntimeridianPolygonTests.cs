@@ -152,6 +152,49 @@ namespace Iwxxm.Net.Tests.DataFidelity
             }
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RingAlongAPoleOutAcrossTheAntimeridianAndBack_DropsTheSpurOfNoArea_AndKeepsTheRegion(bool reversed)
+        {
+            // On the sphere the south pole is one point, so the part of the ring along it beyond the antimeridian (the vertex 179, out
+            // and back between -179 and -177) is a spur of zero width: no polygon can hold it. It is replaced by the cut at -180.
+            var ring = new (double Lat, double X)[] { (-88, -178), (-90, -179), (-90, 179), (-90, -177) }.ToList();
+            if (reversed)
+                ring.Reverse();
+
+            using (JsonDocument json = Export(Polygon(ring.ToArray())))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Single(polygons);
+                Assert.Equal(2.0, TotalArea(polygons), 6); // the triangle (-178, -88), (-179, -90), (-177, -90)
+                var positions = Positions(polygons);
+                foreach ((double lon, double lat) in new[] { (-178.0, -88.0), (-179.0, -90.0), (-177.0, -90.0), (-180.0, -90.0) })
+                    Assert.Contains((lon, lat), positions);
+
+                Assert.DoesNotContain((179.0, -90.0), positions);
+                Assert.All(polygons.SelectMany(p => p).SelectMany(r => r), c => Assert.InRange(c[0], -180.0, 180.0));
+            }
+        }
+
+        [Fact]
+        public void LobeTwoMetersAcrossTheAntimeridian_IsAPieceOfItsOwn_NotDropped()
+        {
+            // The tip (179.99998, -88.2) is 2e-5 degrees across the antimeridian: the lobe has an area of 4e-10 square degrees.
+            var ring = new (double Lat, double X)[] { (-88.9, -178.4), (-88.2, -180.00002), (-85.8, -178.4), (-88.3, -177.0) };
+            using (JsonDocument json = Export(Polygon(ring)))
+            {
+                var polygons = Polygons(json.RootElement.GetProperty("features")[0].GetProperty("geometry"));
+
+                Assert.Equal(2, polygons.Count);
+                AssertValidPieces(polygons);
+                Assert.Contains((179.99998, -88.2), Positions(polygons));
+                double source = Math.Abs(Enumerable.Range(0, ring.Length).Sum(i => (ring[i].X * ring[(i + 1) % ring.Length].Lat) - (ring[(i + 1) % ring.Length].X * ring[i].Lat))) / 2.0;
+                Assert.Equal(source, TotalArea(polygons), 6);
+            }
+        }
+
         [Fact]
         public void SouthPolarRingWithoutALobe_IsASingleCap_OfTheExpectedArea()
         {

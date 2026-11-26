@@ -329,20 +329,92 @@ namespace Iwxxm.Net.Tests.Properties
         [Fact]
         public void Polygon_Export_KeepsEverySourceVertex()
         {
-            // The splitter documents that no vertex is lost (a vertex may be duplicated on a strip border, never dropped).
+            // The splitter documents that no vertex is lost (a vertex may be duplicated on a strip border, never dropped), with one
+            // exception that no polygon can represent, see AssertEverySourceVertexIsExported.
             // Precondition: no hole, since a hole that cannot be represented is dropped and counted by design.
             Gen<PolygonCase> withoutHoles = Polygons.Select(c => new PolygonCase(c.Family, c.Exterior, null));
-            PropertySettings.Run(withoutHoles, PropertySettings.GeometrySeed, c =>
+            PropertySettings.Run(withoutHoles, PropertySettings.GeometrySeed, AssertEverySourceVertexIsExported, c => c.ToString());
+        }
+
+        /// <summary>
+        /// Replays the case that failed in the Windows CI run (CsCheck seed "dV07YuAR1o61"): a star ring clamped to the south pole,
+        /// four consecutive vertices on the pole, one of them reached across the antimeridian. The seed replays one case only
+        /// (the iterations after the first one of a run are random), so it is sampled once.
+        /// </summary>
+        [Fact]
+        public void Polygon_Export_KeepsEverySourceVertex_ReplayOfTheCiFailure()
+        {
+            Gen<PolygonCase> withoutHoles = Polygons.Select(c => new PolygonCase(c.Family, c.Exterior, null));
+            PropertySettings.Run(withoutHoles, "dV07YuAR1o61", AssertEverySourceVertexIsExported, c => c.ToString(), iterations: 1);
+        }
+
+        /// <summary>
+        /// The same case without a generator: a ring that runs along the south pole out across the antimeridian and back. The
+        /// vertex (-90, 179) is on the other side of the antimeridian from its neighbours (-90, -179) and (-90, -177).
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Polygon_Export_PoleVertexOutOfAZeroAreaSpur_IsReplacedByTheAntimeridianCut(bool reversed)
+        {
+            var ring = new List<(double Lat, double Lon)> { (-88.0, -178.0), (-90.0, -179.0), (-90.0, 179.0), (-90.0, -177.0) };
+            if (reversed)
+                ring.Reverse();
+
+            AssertEverySourceVertexIsExported(new PolygonCase("pole spur", ring.ToArray(), null));
+        }
+
+        /// <summary>
+        /// A found case: the vertex (-88.18, 179.99998) is 2 m across the antimeridian, a lobe of 4e-10 square degrees. A piece that small
+        /// is a real polygon (its area is far above one cell of the 1e-7 degree grid it is written on), so it must not be dropped.
+        /// </summary>
+        [Fact]
+        public void Polygon_Export_VertexAFewMetersAcrossTheAntimeridian_IsKept()
+        {
+            var ring = new[] { (-88.89570063981535, -178.418022261111), (-88.1824533886209, 179.99998214420577), (-85.84587171311654, -178.43099733321367), (-88.25688228025527, -177.04448630712523) };
+            AssertEverySourceVertexIsExported(new PolygonCase("thin lobe", ring, null));
+        }
+
+        /// <summary>
+        /// A source vertex must be in the export, written at its own longitude (or at the other side of the antimeridian when it is on
+        /// it). The one exception is a vertex that only lies on a stretch of the pole line and is out across the antimeridian from a
+        /// neighbour on the same pole: the pole is a single point on the sphere, so the part of the ring beyond the antimeridian is a
+        /// spur of zero width along the pole line, and a polygon (RFC 7946 §3.1.6: a linear ring is a closed line string of four or more
+        /// positions, here with no area) cannot hold it. The spur is replaced by the cut of the ring at the antimeridian, written at
+        /// that pole, so the export must still have a position at (-180 or 180, pole).
+        /// </summary>
+        private static void AssertEverySourceVertexIsExported(PolygonCase c)
+        {
+            var exported = new HashSet<(double, double)>(AllRings(Export(c.ToPolygon())).SelectMany(r => r).Select(p => (Math.Round(p[0], 6), Math.Round(p[1], 6))));
+            IReadOnlyList<GeoCoordinate> ring = c.ToPolygon().ExteriorRing;
+            int count = ring.Count - 1; // the closing vertex repeats the first one
+            for (int i = 0; i < count; i++)
             {
-                var exported = new HashSet<(double, double)>(AllRings(Export(c.ToPolygon())).SelectMany(r => r).Select(p => (Math.Round(p[0], 6), Math.Round(p[1], 6))));
-                foreach (GeoCoordinate vertex in c.ToPolygon().ExteriorRing)
+                GeoCoordinate vertex = ring[i];
+
+                // A vertex on the antimeridian may be written at +180 or -180.
+                bool found = exported.Contains((Math.Round(vertex.Lon, 6), Math.Round(vertex.Lat, 6)))
+                    || (Math.Abs(vertex.Lon) == 180.0 && exported.Contains((-Math.Round(vertex.Lon, 6), Math.Round(vertex.Lat, 6))));
+                if (!found && IsPoleSpurVertex(ring, i, count))
                 {
-                    // A vertex on the antimeridian may be written at +180 or -180.
-                    bool found = exported.Contains((Math.Round(vertex.Lon, 6), Math.Round(vertex.Lat, 6)))
-                        || (Math.Abs(vertex.Lon) == 180.0 && exported.Contains((-Math.Round(vertex.Lon, 6), Math.Round(vertex.Lat, 6))));
-                    Assert.True(found, $"source vertex ({vertex.Lat:R}, {vertex.Lon:R}) is missing from the export");
+                    found = exported.Contains((-180.0, vertex.Lat)) || exported.Contains((180.0, vertex.Lat));
                 }
-            }, c => c.ToString());
+
+                Assert.True(found, $"source vertex ({vertex.Lat:R}, {vertex.Lon:R}) is missing from the export");
+            }
+        }
+
+        // A vertex at a pole whose previous or next vertex is on the same pole across the antimeridian (longitudes more than 180 apart).
+        private static bool IsPoleSpurVertex(IReadOnlyList<GeoCoordinate> ring, int index, int count)
+        {
+            GeoCoordinate vertex = ring[index];
+            if (Math.Abs(vertex.Lat) != 90.0)
+                return false;
+
+            GeoCoordinate previous = ring[(index + count - 1) % count];
+            GeoCoordinate next = ring[(index + 1) % count];
+            return (previous.Lat == vertex.Lat && Math.Abs(previous.Lon - vertex.Lon) > 180.0)
+                || (next.Lat == vertex.Lat && Math.Abs(next.Lon - vertex.Lon) > 180.0);
         }
 
         // ---- circles ----
