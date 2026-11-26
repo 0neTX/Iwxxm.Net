@@ -92,7 +92,7 @@ Tag and publish (see "Procedure"), approve the `nuget-release` deployment if it 
 7. Install both packages from the feed in a clean project and run a smoke test (parse an official example). Use nuget.org for the check: `dotnet add package Iwxxm.Net --version 1.0.0` (no `--prerelease` for a stable version). The GitHub Packages feed needs a token with the `read:packages` scope to be read (to be confirmed by the maintainer against the GitHub documentation).
 8. Verify that the SourceLink and symbol links resolve now that the repository is public: download the `.snupkg`, or restore the package in a clean project and step into the library source from a debugger.
 9. Create the GitHub Release for the tag (`v1.0.0`) with notes taken from the `## [1.0.0]` section of `CHANGELOG.md`. It is a stable release, so do not mark it as a prerelease; a release candidate tag would be marked as one.
-10. Apply the steps of "After v1.0.0 is published" below (they no longer include a package validation baseline).
+10. Apply the follow-ups listed under "Other follow-ups" below.
 
 ## After v1.0.0 is published
 
