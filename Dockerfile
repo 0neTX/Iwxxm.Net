@@ -146,9 +146,9 @@ COPY --from=pack /workspace/artifacts/ /
 #   5a `net48-compile` compiles the net48 target of the core and of the GeoPackage test projects against the reference
 #      assemblies (Microsoft.NETFramework.ReferenceAssemblies).
 #   5b `net48-test` also runs both under Mono with the xunit console runner (a Mono approximation of .NET Framework;
-#      the Windows CI job is the real .NET Framework run). The GeoPackage run checks that the netstandard2.0 package
-#      loads its bundled native SQLite (runtimes/<rid>/native) from a net48 application; the native binary Mono loads is
-#      the Linux one, so the Windows DLL lookup is only verified by the Windows CI job.
+#      the Windows CI job is the real .NET Framework run, x64 and x86). The GeoPackage run checks that the netstandard2.0
+#      package loads its bundled native SQLite (runtimes/<rid>/native) from a net48 application; the native binary Mono
+#      loads is the Linux one, so the Windows DLL lookup is only verified by the Windows CI job.
 # Usage: podman build --target net48-compile .   |   podman build --target net48-test .   (docker build works the same)
 # These stages sit before `ci` so that the default (last) stage is unchanged.
 #
@@ -185,7 +185,7 @@ WORKDIR /workspace/tests/Iwxxm.Net.Tests/bin/Release/net48
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Tests.dll -nologo -parallel none
 WORKDIR /workspace/tests/Iwxxm.Net.Export.GeoPackage.Tests/bin/Release/net48
 # No -noshadow here on purpose: the test project's xunit.runner.json (shadowCopy=false) must be enough (the Visual Studio
-# adapter on Windows is expected to read it too; not confirmed yet). With shadow copy the runner copies the test assemblies to a temporary directory without
+# adapter on Windows reads it too: confirmed on windows-latest in CI run 45901356325). With shadow copy the runner copies the test assemblies to a temporary directory without
 # the runtimes/<rid>/native folder the bundled SQLite is loaded from, and 417 of the 787 tests fail ("Library e_sqlite3 not found").
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Export.GeoPackage.Tests.dll -nologo -parallel none
 
