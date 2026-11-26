@@ -802,7 +802,9 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         /// <see cref="GeoCoordinate.Precision"/> degrees all its positions lie on one line (a spur along a pole, a ring along a strip
         /// border, a lobe cut down to a line). The test is made on the grid positions themselves, in exact arithmetic, so it has no
         /// tolerance to choose and no rounding error to be mistaken for an area: a ring that has any area on the grid, however small,
-        /// is a polygon; a ring that has none is not (a polygon of zero area is not valid, RFC 7946 section 3.1.6).
+        /// is a polygon; a ring that has none is not (a polygon of zero area is not valid, RFC 7946 section 3.1.6). The test looks at the
+        /// rounded positions, not at the real geometry: a spur of zero width whose clip or cut points round to different grid cells
+        /// keeps an area of at least half a cell and is written as a (valid, tiny) polygon.
         /// </summary>
         internal static bool HasNoArea(IReadOnlyList<GeoJsonPosition> ring)
         {
