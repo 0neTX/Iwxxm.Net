@@ -14,6 +14,18 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
+  <!--
+    No shadow copy. On .NET Framework the xUnit runners copy the test assemblies to a temporary (shadow) directory, and that
+    copy does not include runtimes\<rid>\native, where the bundled SQLite (e_sqlite3) is. SQLitePCLRaw then looks only in
+    the shadow directory and in the application base directory, finds nothing and every test that opens a database fails with
+    "Library e_sqlite3 not found". shadowCopy=false in xunit.runner.json (read by the console runner and by the Visual Studio
+    adapter) runs the assemblies in place. It has no effect on net10.0, which has no shadow copy. The core test project has no
+    native library and does not need it.
+  -->
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- Package versions are managed centrally in Directory.Packages.props -->
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
