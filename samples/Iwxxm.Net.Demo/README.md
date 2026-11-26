@@ -78,6 +78,9 @@ Iwxxm.Net.Demo <file.xml> [options]
   --geopackage [path]  Also export an OGC GeoPackage (.gpkg, a SQLite file). Default target: the
                        input path with a .gpkg extension. '-' (stdout) is not supported: the
                        file is binary and SQLite needs a path.
+  --geopackage-no-schema
+                       With --geopackage: leave out the gpkg_schema extension (aliases,
+                       comments, JSON type), for a reader that does not support it.
   -o, --output <path>  Same as --geojson <path>.
   --pretty             Indent the GeoJSON.
   --no-schematron      Skip the built-in business rules (XSD validation only).
@@ -117,7 +120,7 @@ Bad input never throws: the library returns a failed `Result<T>`, and the demo m
 
 ## GeoPackage
 
-`--geopackage` writes the file with `IwxxmGeoPackageExporter.Default.Export(document, path)` and prints its size. The default path is the input path with a `.gpkg` extension; an existing file there is replaced (never the input itself: that is a usage error). To check a result with GDAL, no GDAL installation is needed:
+`--geopackage` writes the file with `IwxxmGeoPackageExporter.Default.Export(document, path)` and prints its size. The file has the `gpkg_schema` extension (aliases, comments and the JSON type of `properties`); `--geopackage-no-schema` writes it with `GeoPackageContent.None` instead, for a strict reader (it needs `--geopackage`, otherwise it is a usage error). The default path is the input path with a `.gpkg` extension; an existing file there is replaced (never the input itself: that is a usage error). To check a result with GDAL, no GDAL installation is needed:
 
 ```bash
 podman run --rm -v /tmp/iwxxm-geo:/d:ro ghcr.io/osgeo/gdal:ubuntu-small-3.13.3 ogrinfo -al -so /d/sigmet-A6-2-TC.gpkg

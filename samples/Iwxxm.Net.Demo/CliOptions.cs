@@ -32,6 +32,9 @@ namespace Iwxxm.Net.Demo
         /// <summary>Explicit GeoPackage target; null means "next to the input". Standard output is not supported (a GeoPackage is a SQLite file).</summary>
         public string? GeoPackagePath { get; private set; }
 
+        /// <summary>True when the GeoPackage is written without the <c>gpkg_schema</c> extension (<c>--geopackage-no-schema</c>).</summary>
+        public bool GeoPackageWithoutSchema { get; private set; }
+
         public bool NoSchematron { get; private set; }
 
         /// <summary>True when the complete official WMO Schematron (Iwxxm.Net.Validation.Saxon) replaces the built-in subset.</summary>
@@ -68,6 +71,10 @@ namespace Iwxxm.Net.Demo
                     case "--geopackage":
                         options.ExportGeoPackage = true;
                         options.GeoPackagePath = TryReadOptionalValue(args, ref i);
+                        break;
+
+                    case "--geopackage-no-schema":
+                        options.GeoPackageWithoutSchema = true;
                         break;
 
                     case "-o":
@@ -126,6 +133,12 @@ namespace Iwxxm.Net.Demo
                 options.GeoJsonPath == StdoutMarker && options.CsvPath == StdoutMarker)
             {
                 error = "Options '--geojson -' and '--csv -' cannot both write to standard output.";
+                return false;
+            }
+
+            if (options.GeoPackageWithoutSchema && !options.ExportGeoPackage)
+            {
+                error = "Option '--geopackage-no-schema' needs '--geopackage'.";
                 return false;
             }
 

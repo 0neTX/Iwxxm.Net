@@ -39,6 +39,9 @@ Options:
   --geopackage [path]  Also export an OGC GeoPackage (.gpkg, a SQLite file). Default
                        target: the input path with a .gpkg extension. '-' (stdout) is
                        not supported: the file is binary and SQLite needs a path.
+  --geopackage-no-schema
+                       With --geopackage: leave out the gpkg_schema extension (aliases,
+                       comments, JSON type), for a reader that does not support it.
   -o, --output <path>  Same as --geojson <path> (use '-' for stdout).
   --pretty             Indent the GeoJSON.
   --no-schematron      Skip the built-in business rules (XSD validation only).
@@ -274,6 +277,11 @@ Exit codes:
             return string.Equals(Path.GetFullPath(first), Path.GetFullPath(second), comparison);
         }
 
+        private static GeoPackageExportOptions ExportOptions(CliOptions options) =>
+            options.GeoPackageWithoutSchema
+                ? new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.None)
+                : GeoPackageExportOptions.Default;
+
         private static int ExportGeoPackage(IwxxmDocument document, CliOptions options, ConsoleReport report)
         {
             string target = options.ResolveGeoPackagePath();
@@ -286,7 +294,7 @@ Exit codes:
             }
 
             // The exporter reports every failure (including an unwritable path) as a GEOPACKAGE-EXPORT-ERROR value.
-            Result<string> exported = IwxxmGeoPackageExporter.Default.Export(document, target, GeoPackageExportOptions.Default);
+            Result<string> exported = IwxxmGeoPackageExporter.Default.Export(document, target, ExportOptions(options));
             if (exported.IsFailure)
             {
                 report.Diagnostics("GeoPackage export", exported.Errors, exported.Warnings);
