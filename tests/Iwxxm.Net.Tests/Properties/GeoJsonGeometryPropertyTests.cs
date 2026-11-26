@@ -330,10 +330,10 @@ namespace Iwxxm.Net.Tests.Properties
         public void Polygon_Export_KeepsEverySourceVertex()
         {
             // The splitter documents that no vertex is lost (a vertex may be duplicated on a strip border, never dropped), with one
-            // exception that no polygon can represent, see AssertEverySourceVertexIsExported.
+            // exception that no polygon can represent (the spur vertices of a ring along a pole), see AssertEverySourceVertexIsExported.
             // Precondition: no hole, since a hole that cannot be represented is dropped and counted by design.
             Gen<PolygonCase> withoutHoles = Polygons.Select(c => new PolygonCase(c.Family, c.Exterior, null));
-            PropertySettings.Run(withoutHoles, PropertySettings.GeometrySeed, AssertEverySourceVertexIsExported, c => c.ToString());
+            PropertySettings.Run(withoutHoles, PropertySettings.GeometrySeed, c => AssertEverySourceVertexIsExported(c), c => c.ToString());
         }
 
         /// <summary>
@@ -345,28 +345,81 @@ namespace Iwxxm.Net.Tests.Properties
         public void Polygon_Export_KeepsEverySourceVertex_ReplayOfTheCiFailure()
         {
             Gen<PolygonCase> withoutHoles = Polygons.Select(c => new PolygonCase(c.Family, c.Exterior, null));
-            PropertySettings.Run(withoutHoles, "dV07YuAR1o61", AssertEverySourceVertexIsExported, c => c.ToString(), iterations: 1);
+            PropertySettings.Run(withoutHoles, "dV07YuAR1o61", c => AssertEverySourceVertexIsExported(c), c => c.ToString(), iterations: 1);
+        }
+
+        /// <summary>The ring of the failed CI run (see <see cref="Polygon_Export_KeepsEverySourceVertex_ReplayOfTheCiFailure"/>), as printed.</summary>
+        private static readonly (double Lat, double Lon)[] CiRing =
+        {
+            (-90, -177.59066436097606), (-88.9815855818126, -177.47988501650121), (-87.872795333046525, -178.19984934376066),
+            (-88.928618877638058, -179.77263325133345), (-90, -179.88374930981843), (-90, 179.52510380269143),
+            (-90, -178.68536638033652), (-90, -177.7589452527925),
+        };
+
+        public static IEnumerable<object[]> PoleSpurCases()
+        {
+            // A ring that runs along the south pole out across the antimeridian and back: the vertex (-90, 179) is beyond it, between
+            // the pole vertices (-90, -179) and (-90, -177), which are inside the strip and must be kept.
+            var minimal = new[] { (-88.0, -178.0), (-90.0, -179.0), (-90.0, 179.0), (-90.0, -177.0) };
+            yield return new object[] { "the ring of the CI run", CiRing, new[] { 5 } };
+            yield return new object[] { "the ring of the CI run, reversed", Enumerable.Reverse(CiRing).ToArray(), new[] { 2 } };
+            yield return new object[] { "minimal", minimal, new[] { 2 } };
+            yield return new object[] { "minimal, reversed", Enumerable.Reverse(minimal).ToArray(), new[] { 1 } };
+
+            // A strip between two meridians that runs from pole to pole, with a spur at each pole: (-90, 179) and (90, 179).
+            var twoSpurs = new[] { (-90.0, -179.0), (-90.0, 179.0), (-90.0, -177.0), (90.0, -177.0), (90.0, -178.0), (90.0, 179.0), (90.0, -179.0) };
+            yield return new object[] { "two spurs", twoSpurs, new[] { 1, 5 } };
+
+            // A vertex whose next neighbour is off the pole is not a spur: the lobe (-180, -90), (-181, -90), (-180, -89.75) has an area.
+            yield return new object[] { "one neighbour off the pole", new[] { (-88.0, -178.0), (-90.0, -179.0), (-90.0, 179.0), (-89.0, -177.0) }, Array.Empty<int>() };
         }
 
         /// <summary>
-        /// The same case without a generator: a ring that runs along the south pole out across the antimeridian and back. The
-        /// vertex (-90, 179) is on the other side of the antimeridian from its neighbours (-90, -179) and (-90, -177).
+        /// The spurs of rings that run along a pole across the antimeridian: exactly the spur vertices (listed by index) are left out, each
+        /// one for the cut of the ring at the antimeridian, and every other vertex, the pole vertices next to a spur included, is exported.
         /// </summary>
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void Polygon_Export_PoleVertexOutOfAZeroAreaSpur_IsReplacedByTheAntimeridianCut(bool reversed)
+        [MemberData(nameof(PoleSpurCases))]
+        public void Polygon_Export_PoleSpur_LeavesOutExactlyTheSpurVertices(string description, (double Lat, double Lon)[] exterior, int[] expectedSpurs)
         {
-            var ring = new List<(double Lat, double Lon)> { (-88.0, -178.0), (-90.0, -179.0), (-90.0, 179.0), (-90.0, -177.0) };
-            if (reversed)
-                ring.Reverse();
+            var polygon = new PolygonCase(description, exterior, null);
+            IReadOnlyList<GeoCoordinate> ring = polygon.ToPolygon().ExteriorRing;
+            Assert.Equal(expectedSpurs, SpurVertices(ring, ring.Count - 1).OrderBy(i => i).ToArray());
+            AssertEverySourceVertexIsExported(polygon, spursLeftOut: true);
+            Assert.All(AllRings(Export(polygon.ToPolygon())), r => Assert.False(RingHasNoArea(r), "a ring without area was written"));
+        }
 
-            AssertEverySourceVertexIsExported(new PolygonCase("pole spur", ring.ToArray(), null));
+        /// <summary>
+        /// The property, run on exports that were made by hand, must see a lost vertex: the vertex next to a spur, a spur whose cut is
+        /// missing, a vertex whose neighbour is off the pole, and a spur that was kept although it must be left out.
+        /// </summary>
+        [Fact]
+        public void SourceVertexCheck_SeesWhatIsMissing()
+        {
+            var ring = new[] { (-88.0, -178.0), (-90.0, -179.0), (-90.0, 179.0), (-90.0, -177.0) };
+            var polygon = new PolygonCase("minimal", ring, null);
+            var good = new HashSet<(double, double)> { (-178, -88), (-179, -90), (-180, -90), (-177, -90) };
+            AssertSourceVerticesExported(polygon, good, spursLeftOut: true);
+
+            Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => AssertSourceVerticesExported(polygon, new HashSet<(double, double)>(good.Where(p => p != (-179, -90)))));
+            Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => AssertSourceVerticesExported(polygon, new HashSet<(double, double)>(good.Where(p => p != (-177, -90)))));
+            Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => AssertSourceVerticesExported(polygon, new HashSet<(double, double)>(good.Where(p => p != (-180, -90)))));
+            Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => AssertSourceVerticesExported(polygon, new HashSet<(double, double)>(good.Where(p => p != (-178, -88)))));
+
+            // The spur vertex written as well as the cut: the splitter is expected to leave it out.
+            Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => AssertSourceVerticesExported(polygon, new HashSet<(double, double)>(good) { (179, -90) }, spursLeftOut: true));
+            AssertSourceVerticesExported(polygon, new HashSet<(double, double)>(good) { (179, -90) }); // allowed where the spur is a spike of a larger ring
+
+            // The neighbour of the spur vertex is off the pole: the vertex is not a spur and must be exported.
+            var offPole = new PolygonCase("off the pole", new[] { (-88.0, -178.0), (-90.0, -179.0), (-90.0, 179.0), (-89.0, -177.0) }, null);
+            var kept = new HashSet<(double, double)> { (-178, -88), (-179, -90), (179, -90), (-177, -89), (-180, -90) };
+            AssertSourceVerticesExported(offPole, kept);
+            Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => AssertSourceVerticesExported(offPole, new HashSet<(double, double)>(kept.Where(p => p != (179, -90)))));
         }
 
         /// <summary>
         /// A found case: the vertex (-88.18, 179.99998) is 2 m across the antimeridian, a lobe of 4e-10 square degrees. A piece that small
-        /// is a real polygon (its area is far above one cell of the 1e-7 degree grid it is written on), so it must not be dropped.
+        /// is a real polygon (it has an area on the 1e-7 degree grid it is written on), so it must not be dropped.
         /// </summary>
         [Fact]
         public void Polygon_Export_VertexAFewMetersAcrossTheAntimeridian_IsKept()
@@ -376,45 +429,166 @@ namespace Iwxxm.Net.Tests.Properties
         }
 
         /// <summary>
-        /// A source vertex must be in the export, written at its own longitude (or at the other side of the antimeridian when it is on
-        /// it). The one exception is a vertex that only lies on a stretch of the pole line and is out across the antimeridian from a
-        /// neighbour on the same pole: the pole is a single point on the sphere, so the part of the ring beyond the antimeridian is a
-        /// spur of zero width along the pole line, and a polygon (RFC 7946 §3.1.6: a linear ring is a closed line string of four or more
-        /// positions, here with no area) cannot hold it. The spur is replaced by the cut of the ring at the antimeridian, written at
-        /// that pole, so the export must still have a position at (-180 or 180, pole).
+        /// A ring written without an area (its positions are all on one line on the 1e-7 degree grid) is not a polygon. Next to a piece
+        /// that has an area none is written; the source ring itself may have no area (all its vertices on the antimeridian), and is
+        /// then left as it is, which is why the check only applies when the export has a piece with an area.
         /// </summary>
-        private static void AssertEverySourceVertexIsExported(PolygonCase c)
+        [Fact]
+        public void Polygon_Export_WritesNoRingWithoutAnArea_NextToAPieceWithOne()
+        {
+            PropertySettings.Run(Polygons, PropertySettings.GeometrySeed, c =>
+            {
+                List<ExportedPolygon> polygons = Export(c.ToPolygon());
+                if (polygons.Any(p => !RingHasNoArea(p.Rings[0])))
+                {
+                    Assert.All(polygons, p => Assert.False(RingHasNoArea(p.Rings[0]), "a piece without an area was written next to one with an area"));
+                    Assert.All(polygons, p => Assert.All(p.Rings.Skip(1), r => Assert.False(RingHasNoArea(r), "an interior ring without an area was written")));
+                }
+            }, c => c.ToString());
+        }
+
+        // Twice the area on the 1e-7 degree grid, in exact arithmetic (the positions are multiples of 1e-7).
+        private static bool RingHasNoArea(double[][] ring)
+        {
+            decimal twice = 0m;
+            long x0 = (long)Math.Round(ring[0][0] * 1e7);
+            long y0 = (long)Math.Round(ring[0][1] * 1e7);
+            for (int i = 1; i < ring.Length - 1; i++)
+            {
+                decimal ax = (long)Math.Round(ring[i][0] * 1e7) - x0;
+                decimal ay = (long)Math.Round(ring[i][1] * 1e7) - y0;
+                decimal bx = (long)Math.Round(ring[i + 1][0] * 1e7) - x0;
+                decimal by = (long)Math.Round(ring[i + 1][1] * 1e7) - y0;
+                twice += (ax * by) - (bx * ay);
+            }
+
+            return twice == 0m;
+        }
+
+        /// <summary>
+        /// Every source vertex must be in the export, written at its own longitude (or at the other side of the antimeridian when it is on
+        /// it), except the spur vertices (see <see cref="SpurVertices"/>): those may be left out, only where the cut of the ring at the
+        /// antimeridian is written at their pole instead. A spur is a piece of no area that the splitter drops when it is a piece of its
+        /// own, and keeps as a spike of the ring when the assembly of the pieces joins it to one with an area (it depends on the order of
+        /// the arcs of the ring, and both are correct), so the property cannot ask for either; with <paramref name="spursLeftOut"/> (the
+        /// rings where a spur is a piece of its own) it asks for the first.
+        /// </summary>
+        private static void AssertEverySourceVertexIsExported(PolygonCase c, bool spursLeftOut = false)
         {
             var exported = new HashSet<(double, double)>(AllRings(Export(c.ToPolygon())).SelectMany(r => r).Select(p => (Math.Round(p[0], 6), Math.Round(p[1], 6))));
+            AssertSourceVerticesExported(c, exported, spursLeftOut);
+        }
+
+        private static void AssertSourceVerticesExported(PolygonCase c, HashSet<(double, double)> exported, bool spursLeftOut = false)
+        {
             IReadOnlyList<GeoCoordinate> ring = c.ToPolygon().ExteriorRing;
             int count = ring.Count - 1; // the closing vertex repeats the first one
+            HashSet<int> spurs = SpurVertices(ring, count);
             for (int i = 0; i < count; i++)
             {
                 GeoCoordinate vertex = ring[i];
-
-                // A vertex on the antimeridian may be written at +180 or -180.
-                bool found = exported.Contains((Math.Round(vertex.Lon, 6), Math.Round(vertex.Lat, 6)))
-                    || (Math.Abs(vertex.Lon) == 180.0 && exported.Contains((-Math.Round(vertex.Lon, 6), Math.Round(vertex.Lat, 6))));
-                if (!found && IsPoleSpurVertex(ring, i, count))
+                bool found = IsExported(vertex, exported);
+                if (spurs.Contains(i))
                 {
-                    found = exported.Contains((-180.0, vertex.Lat)) || exported.Contains((180.0, vertex.Lat));
+                    // Unless another vertex of the ring is at the very same place.
+                    bool shared = Enumerable.Range(0, count).Any(j => j != i && !spurs.Contains(j) && ring[j].Lat == vertex.Lat && ring[j].Lon == vertex.Lon);
+                    Assert.True(!spursLeftOut || !found || shared, $"spur vertex ({vertex.Lat:R}, {vertex.Lon:R}) was written");
+                    Assert.True(found || exported.Contains((-180.0, Math.Round(vertex.Lat, 6))) || exported.Contains((180.0, Math.Round(vertex.Lat, 6))), $"the cut of the spur at ({vertex.Lat:R}, {vertex.Lon:R}) is missing from the export");
+                    continue;
                 }
 
                 Assert.True(found, $"source vertex ({vertex.Lat:R}, {vertex.Lon:R}) is missing from the export");
             }
         }
 
-        // A vertex at a pole whose previous or next vertex is on the same pole across the antimeridian (longitudes more than 180 apart).
-        private static bool IsPoleSpurVertex(IReadOnlyList<GeoCoordinate> ring, int index, int count)
-        {
-            GeoCoordinate vertex = ring[index];
-            if (Math.Abs(vertex.Lat) != 90.0)
-                return false;
+        // A vertex on the antimeridian may be written at +180 or -180.
+        private static bool IsExported(GeoCoordinate vertex, HashSet<(double, double)> exported) =>
+            exported.Contains((Math.Round(vertex.Lon, 6), Math.Round(vertex.Lat, 6)))
+            || (Math.Abs(vertex.Lon) == 180.0 && exported.Contains((-Math.Round(vertex.Lon, 6), Math.Round(vertex.Lat, 6))));
 
-            GeoCoordinate previous = ring[(index + count - 1) % count];
-            GeoCoordinate next = ring[(index + 1) % count];
-            return (previous.Lat == vertex.Lat && Math.Abs(previous.Lon - vertex.Lon) > 180.0)
-                || (next.Lat == vertex.Lat && Math.Abs(next.Lon - vertex.Lon) > 180.0);
+        /// <summary>
+        /// The spur vertices of a ring: the vertices the splitter cannot write because they are in a zero-area spike along a pole.
+        /// <para>
+        /// The ring is unwrapped as the splitter does (an edge of more than 180 degrees of longitude goes the short way) and cut into
+        /// the arcs the longitude strips [-180 + 360 k, 180 + 360 k] contain: maximal runs of consecutive vertices in one strip. An arc is a
+        /// spur when all its vertices are on one pole, the vertex before it and the vertex after it are on the same pole too (so that the
+        /// ring enters and leaves the strip along the pole line, never across a parallel), and both are beyond the same border of the
+        /// strip (the ring goes out along the pole line and comes back the way it went). Such an arc, closed through the border, has no
+        /// area, whatever the pole line carries on either side. If one neighbour is off the pole the arc starts or ends at a point of the
+        /// border above the pole and the lobe has an area. A ring that goes round the globe (a polar cap) and a vertex that is exactly on
+        /// a border have no spur.
+        /// </para>
+        /// </summary>
+        private static HashSet<int> SpurVertices(IReadOnlyList<GeoCoordinate> ring, int count)
+        {
+            var spurs = new HashSet<int>();
+            var unwrapped = new double[count + 1];
+            unwrapped[0] = ring[0].Lon;
+            int turns = 0;
+            for (int i = 1; i <= count; i++)
+            {
+                double delta = ring[i].Lon - ring[i - 1].Lon;
+                if (Math.Abs(delta) > 180.0 && !(Math.Abs(ring[i - 1].Lon) == 180.0 && Math.Abs(ring[i].Lon) == 180.0))
+                {
+                    while (delta > 180.0)
+                    {
+                        delta -= 360.0;
+                        turns--;
+                    }
+
+                    while (delta < -180.0)
+                    {
+                        delta += 360.0;
+                        turns++;
+                    }
+                }
+
+                unwrapped[i] = ring[i].Lon + (360.0 * turns);
+            }
+
+            if (Math.Abs(unwrapped[count] - unwrapped[0]) > 180.0)
+                return spurs;
+
+            // The strip of each vertex (null on a border).
+            var strip = new int?[count];
+            for (int i = 0; i < count; i++)
+            {
+                double position = (unwrapped[i] + 180.0) / 360.0;
+                strip[i] = position == Math.Floor(position) ? (int?)null : (int)Math.Floor(position);
+            }
+
+            for (int start = 0; start < count; start++)
+            {
+                int previous = (start + count - 1) % count;
+                if (strip[start] == null || strip[previous] == strip[start])
+                    continue;
+
+                int last = start;
+                while (strip[(last + 1) % count] == strip[start] && (last + 1) % count != start)
+                    last++;
+
+                int next = (last + 1) % count;
+                int k = strip[start]!.Value;
+                double west = -180.0 + (360.0 * k);
+                double east = west + 360.0;
+                double pole = ring[start].Lat;
+                bool onOnePole = Math.Abs(pole) == 90.0 && ring[previous].Lat == pole && ring[next].Lat == pole;
+                for (int i = start; onOnePole && i <= last; i++)
+                    onOnePole = ring[i % count].Lat == pole;
+
+                if (!onOnePole)
+                    continue;
+
+                int entry = Math.Sign(unwrapped[previous] - west) < 0 ? -1 : (unwrapped[previous] > east ? 1 : 0);
+                int exit = unwrapped[next] < west ? -1 : (unwrapped[next] > east ? 1 : 0);
+                if (entry != 0 && entry == exit)
+                {
+                    for (int i = start; i <= last; i++)
+                        spurs.Add(i % count);
+                }
+            }
+
+            return spurs;
         }
 
         // ---- circles ----
