@@ -207,8 +207,18 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         private static void AssertPosition(JsonElement position, GeoPackagePosition actual, string where)
         {
             Assert.Equal(2, position.GetArrayLength());
-            Assert.True(BitConverter.DoubleToInt64Bits(position[0].GetDouble()) == BitConverter.DoubleToInt64Bits(actual.X), where + ": x");
-            Assert.True(BitConverter.DoubleToInt64Bits(position[1].GetDouble()) == BitConverter.DoubleToInt64Bits(actual.Y), where + ": y");
+            AssertSameBits(position[0].GetDouble(), actual.X, where + ": x");
+            AssertSameBits(position[1].GetDouble(), actual.Y, where + ": y");
+        }
+
+        // The message carries both values (round-trip text and bits), so that a difference seen on one platform can be analysed from the log alone.
+        private static void AssertSameBits(double fromGeoJson, double fromModel, string where)
+        {
+            long a = BitConverter.DoubleToInt64Bits(fromGeoJson);
+            long b = BitConverter.DoubleToInt64Bits(fromModel);
+            Assert.True(a == b, where + ": GeoJSON " + fromGeoJson.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                + " (0x" + a.ToString("X16") + ") vs model " + fromModel.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                + " (0x" + b.ToString("X16") + ")");
         }
     }
 }
