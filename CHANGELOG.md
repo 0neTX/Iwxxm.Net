@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known issues
 
-- **Shadow-copying hosts on .NET Framework (`Iwxxm.Net.Export.GeoPackage`)**: a host that shadow-copies assemblies does not copy the native `e_sqlite3.dll` from `runtimes\<rid>\native`, and every export then fails with `Library e_sqlite3 not found`. Verified with the xUnit runners (Windows runner and Mono); for other hosts such as ASP.NET it is inferred, not tried. Turn shadow copying off, or copy `e_sqlite3.dll` into the application base directory (not tried). See the guide, section 8B.
+- **Shadow-copying hosts on .NET Framework (`Iwxxm.Net.Export.GeoPackage`)**: a host that shadow-copies assemblies does not copy the native `e_sqlite3.dll` from `runtimes\<rid>\native`, and every export then fails with `Library e_sqlite3 not found`. The failure was seen with the xUnit runners (Windows runner and Mono) and the remedy of turning shadow copying off was confirmed only under Mono; for other hosts such as ASP.NET it is inferred, not tried. Turn shadow copying off, or copy `e_sqlite3.dll` into the application base directory (not tried). See the guide, section 8B.
 
 ### Fixed
 

@@ -184,8 +184,8 @@ RUN perl -0pi -e 's{</configuration>}{  <dllmap dll="dl" target="libdl.so.2" os=
 WORKDIR /workspace/tests/Iwxxm.Net.Tests/bin/Release/net48
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Tests.dll -nologo -parallel none
 WORKDIR /workspace/tests/Iwxxm.Net.Export.GeoPackage.Tests/bin/Release/net48
-# No -noshadow here on purpose: the test project's xunit.runner.json (shadowCopy=false) must be enough, as it is for the
-# Visual Studio adapter on Windows. With shadow copy the runner copies the test assemblies to a temporary directory without
+# No -noshadow here on purpose: the test project's xunit.runner.json (shadowCopy=false) must be enough (the Visual Studio
+# adapter on Windows is expected to read it too; not confirmed yet). With shadow copy the runner copies the test assemblies to a temporary directory without
 # the runtimes/<rid>/native folder the bundled SQLite is loaded from, and 417 of the 787 tests fail ("Library e_sqlite3 not found").
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Export.GeoPackage.Tests.dll -nologo -parallel none
 
