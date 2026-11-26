@@ -4,12 +4,17 @@ Runs inside the GDAL container started by validate-geopackage-file.sh (python3 -
 and expected.tsv (file, table, row count, extent), written by the GeoPackageFilesExport test. For every file:
 
 1. SQLite's own checks: integrity_check, foreign_key_check, application_id "GPKG" and the user_version of the file
-   (10400, or 10300 for a file named *.v13.gpkg);
+   (10400, or 10300 for a file named *.v13.gpkg); for a file with the gpkg_schema extension (every file except those named
+   *.plain.gpkg, which were written with GeoPackageContent.None): exactly the two gpkg_schema rows in gpkg_extensions
+   (gpkg_data_columns and gpkg_data_column_constraints, read-write), both tables present, an empty constraints table, and
+   one gpkg_data_columns row for every column of every data table; for a *.plain.gpkg file: none of the three tables;
 2. `ogrinfo -al -so`: it opens the file with the GPKG driver and lists exactly the expected layers with their feature counts;
 3. the GDAL Python bindings: the same layers, the feature count GDAL reports and the number of features it iterates, the
    layer extent (exactly the plain min/max of the written coordinates), the geometry type of each layer, a geometry on every
    feature of a geometry layer, a JSON object in the `properties` field, a date-time type for `issue_time_utc`, `valid_from_utc` and `valid_until_utc`, and
-   a validity column that is set exactly when the `properties` JSON of the row has the matching key;
+   a validity column that is set exactly when the `properties` JSON of the row has the matching key; for a file with the
+   gpkg_schema extension also the JSON subtype of the `properties` field, and an alias (name) and a comment (description) on
+   every field, the fixed ones exactly (a *.plain.gpkg file has the String field and no alias, which is not checked further);
 4. GDAL's own conformance validator, validate_gpkg.py, with --extra --warning-as-error.
 
 Exit status 0 only when every check of every file passes and there is at least one file. Nothing here is part of the unit
@@ -40,6 +45,9 @@ REPORTS_FIELDS = [
 # The time columns and, for the feature tables, the key of the properties JSON each one repeats.
 TIME_COLUMNS = ["issue_time_utc", "valid_from_utc", "valid_until_utc"]
 VALIDITY_KEYS = {"valid_from_utc": "validFromUtc", "valid_until_utc": "validUntilUtc"}
+# The aliases GDAL must report (gpkg_data_columns.name) for the time columns of every table that has them.
+EXPECTED_ALIASES = {"issue_time_utc": "Issue time", "valid_from_utc": "Valid from", "valid_until_utc": "Valid until"}
+SCHEMA_TABLES = {"gpkg_extensions", "gpkg_data_columns", "gpkg_data_column_constraints"}
 GEOMETRY_TYPES = {
     "iwxxm_points": ogr.wkbPoint,
     "iwxxm_lines": ogr.wkbMultiLineString,
@@ -61,6 +69,42 @@ def read_expected(path):
     return files
 
 
+def is_plain(name):
+    """A file written with GeoPackageContent.None: no schema extension (named *.plain.gpkg)."""
+    return name.endswith(".plain.gpkg")
+
+
+def schema_problems(db, name):
+    """The gpkg_schema tables and rows, from SQLite's side (GDAL reads them in bindings_problems)."""
+    tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    if is_plain(name):
+        return ["%s exists in a file written without the schema extension" % table for table in sorted(SCHEMA_TABLES & tables)]
+    problems = ["%s is missing" % table for table in sorted(SCHEMA_TABLES - tables)]
+    if problems:
+        return problems
+    registered = db.execute(
+        "SELECT table_name, column_name, extension_name, scope FROM gpkg_extensions ORDER BY table_name").fetchall()
+    expected = [
+        ("gpkg_data_column_constraints", None, "gpkg_schema", "read-write"),
+        ("gpkg_data_columns", None, "gpkg_schema", "read-write"),
+    ]
+    if registered != expected:
+        problems.append("gpkg_extensions rows %r, expected %r" % (registered, expected))
+    if db.execute("SELECT count(*) FROM gpkg_data_column_constraints").fetchone()[0] != 0:
+        problems.append("gpkg_data_column_constraints is not empty")
+    for table in sorted(t for t in tables if t.startswith("iwxxm_")):
+        columns = [row[0] for row in db.execute("SELECT name FROM pragma_table_info(?) ORDER BY cid", (table,))]
+        described = [row[0] for row in db.execute(
+            "SELECT column_name FROM gpkg_data_columns WHERE table_name = ? ORDER BY rowid", (table,))]
+        if described != columns:
+            problems.append("%s: gpkg_data_columns describes %r, the table has %r" % (table, described, columns))
+    stray = db.execute(
+        "SELECT count(*) FROM gpkg_data_columns WHERE table_name NOT IN (SELECT table_name FROM gpkg_contents)").fetchone()[0]
+    if stray:
+        problems.append("gpkg_data_columns has %d rows for a table that is not in gpkg_contents" % stray)
+    return problems
+
+
 def sqlite_problems(path, name):
     problems = []
     db = sqlite3.connect(path)
@@ -74,6 +118,7 @@ def sqlite_problems(path, name):
         user_version = 10300 if name.endswith(".v13.gpkg") else 10400
         if db.execute("PRAGMA user_version").fetchone()[0] != user_version:
             problems.append("user_version is not %d" % user_version)
+        problems += schema_problems(db, name)
     finally:
         db.close()
     return problems
@@ -102,7 +147,26 @@ def ogrinfo_problems(path, tables):
     return problems
 
 
-def bindings_problems(path, tables):
+def schema_field_problems(table, definition):
+    """What GDAL makes of gpkg_data_columns for the fields of one layer: JSON subtype, alias (name) and comment (description)."""
+    problems = []
+    for i in range(definition.GetFieldCount()):
+        field = definition.GetFieldDefn(i)
+        column = field.GetName()
+        if not field.GetAlternativeName():
+            problems.append("%s: %s has no alias" % (table, column))
+        if not field.GetComment():
+            problems.append("%s: %s has no comment" % (table, column))
+        if column in EXPECTED_ALIASES and field.GetAlternativeName() != EXPECTED_ALIASES[column]:
+            problems.append("%s: %s has the alias %r, expected %r" % (table, column, field.GetAlternativeName(), EXPECTED_ALIASES[column]))
+        is_json = field.GetType() == ogr.OFTString and field.GetSubType() == ogr.OFSTJSON
+        if (column == "properties") != is_json:
+            problems.append("%s: %s has the type %s and the subtype %s" % (
+                table, column, field.GetTypeName(), ogr.GetFieldSubTypeName(field.GetSubType())))
+    return problems
+
+
+def bindings_problems(path, tables, plain):
     problems = []
     source = ogr.Open(path)
     if source is None:
@@ -132,6 +196,8 @@ def bindings_problems(path, tables):
                 field = definition.GetFieldIndex(column)
                 if field < 0 or definition.GetFieldDefn(field).GetType() != ogr.OFTDateTime:
                     problems.append("%s: %s is not a date-time field" % (table, column))
+        if not plain:
+            problems += schema_field_problems(table, definition)
         if table == "iwxxm_reports":
             fields = [definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())]
             if fields != REPORTS_FIELDS:
@@ -172,7 +238,7 @@ def file_problems(path, name, tables):
     checks = (
         ("SQLite", lambda: sqlite_problems(path, name)),
         ("ogrinfo", lambda: ogrinfo_problems(path, tables)),
-        ("GDAL bindings", lambda: bindings_problems(path, tables)),
+        ("GDAL bindings", lambda: bindings_problems(path, tables, is_plain(name))),
         ("validate_gpkg.py", lambda: validator_problems(path)),
     )
     for label, check in checks:

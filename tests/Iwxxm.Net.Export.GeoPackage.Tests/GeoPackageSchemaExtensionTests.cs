@@ -178,6 +178,29 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
             Assert.Contains("valid_until_utc", GeoPackageSchemaExtension.ColumnsOf("iwxxm_reports").Select(e => e.Column));
         }
 
+        // The reference lists the text of every row (it is documentation of a file format: a change of the text is a visible change).
+        [Fact]
+        public void TheReference_ListsTheTextOfEveryEntry()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null && !File.Exists(Path.Combine(directory.FullName, "Iwxxm.Net.slnx")))
+                directory = directory.Parent;
+            Assert.True(directory != null, "Iwxxm.Net.slnx was not found above the test output directory.");
+            string reference = File.ReadAllText(Path.Combine(directory!.FullName, "docs", "REFERENCE.md"));
+
+            foreach (string table in GeoPackageSchemaExtension.Tables)
+            {
+                foreach (GeoPackageSchemaExtension.ColumnEntry entry in GeoPackageSchemaExtension.ColumnsOf(table))
+                {
+                    // geom differs per table: its text is quoted in a paragraph instead of the table row.
+                    if (entry.Column != "geom")
+                        Assert.Contains("| `" + entry.Column + "` | " + entry.Name + " | " + entry.Title + " | " + entry.Description + " |", reference, StringComparison.Ordinal);
+                    else
+                        Assert.Contains("\"" + entry.Description + "\"", reference, StringComparison.Ordinal);
+                }
+            }
+        }
+
         [Fact]
         public void WithContentNone_NoSchemaTableIsWritten()
         {

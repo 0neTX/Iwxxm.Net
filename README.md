@@ -156,7 +156,7 @@ Console.WriteLine(result.IsSuccess ? $"written: {Path.GetFileName(result.Value)}
 written: sigmet.gpkg
 ```
 
-The file has `iwxxm_points`, `iwxxm_lines` and `iwxxm_polygons` tables (only those that have rows), an `iwxxm_attributes` table for features without geometry, and `iwxxm_reports` and `iwxxm_metadata`. Each feature row keeps the GeoJSON properties as JSON text, with the issue time and, for SIGWX, SIGMET, AIRMET and TAF, the validity period in `DATETIME` columns. The output is deterministic: no timestamp comes from the clock. Table layout, options, the .NET Framework requirements and what is not included are in the [guide](docs/GUIDE.md#8b-geopackage-export) and the [reference](docs/REFERENCE.md#geopackage-tables-and-columns).
+The file has `iwxxm_points`, `iwxxm_lines` and `iwxxm_polygons` tables (only those that have rows), an `iwxxm_attributes` table for features without geometry, and `iwxxm_reports` and `iwxxm_metadata`. Each feature row keeps the GeoJSON properties as JSON text, with the issue time and, for SIGWX, SIGMET, AIRMET and TAF, the validity period in `DATETIME` columns. By default the file also has the `gpkg_schema` extension (an alias, a title and a description for every column, and the JSON type of `properties`, which GDAL and QGIS read as field aliases, comments and a JSON field); pass `GeoPackageContent.None` in the options to leave it out for a strict reader. The output is deterministic: no timestamp comes from the clock. Table layout, options, the .NET Framework requirements and what is not included are in the [guide](docs/GUIDE.md#8b-geopackage-export) and the [reference](docs/REFERENCE.md#geopackage-tables-and-columns).
 
 ## Documentation
 
@@ -181,7 +181,7 @@ The file has `iwxxm_points`, `iwxxm_lines` and `iwxxm_polygons` tables (only tho
 | `Iwxxm.Net.Reports` | The domain model: the closed document hierarchy and every value object |
 | `Iwxxm.Net.Extensibility` | `ISchematronValidator` and `IwxxmDocumentContext`, the extension point for custom business-rule engines |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
-| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion`, `GeoPackageErrorCodes` (optional package; its parser members are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`) |
+| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion`, `GeoPackageContent`, `GeoPackageErrorCodes` (optional package; its parser members are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`) |
 
 Consumers never need a layer name in a `using` directive; `Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*` and `Iwxxm20252.Generated` are `internal`. The layer map is in the [reference](docs/REFERENCE.md#namespaces-and-layers).
 

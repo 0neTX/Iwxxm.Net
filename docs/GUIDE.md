@@ -773,16 +773,22 @@ The parse-and-export members return the parse failure unchanged when the documen
 
 ### Options
 
-`GeoPackageExportOptions` has two settings. `GeoPackageExportOptions.Default` is GeoPackage 1.4 with the last-change time taken from the document.
+`GeoPackageExportOptions` has three settings. `GeoPackageExportOptions.Default` is GeoPackage 1.4 with the last-change time taken from the document and the schema extension (see [below](#the-schema-extension-aliases-comments-and-the-json-type)).
 
 | Setting | Values | Notes |
 | :--- | :--- | :--- |
 | `Version` | `GeoPackageVersion.Version14` (default), `Version13` | Written as `PRAGMA user_version` (10400 or 10300) and as `geopackage_version` in `iwxxm_metadata`. The tables are the same in both. `default(GeoPackageVersion)` is rejected with an `ArgumentOutOfRangeException`. |
 | `LastChangeUtc` | a `DateTimeOffset`, or `null` (default) | The `last_change` of every table in `gpkg_contents`. `null` means the issue time of the document; if the document has none, the Unix epoch (`GeoPackageExportOptions.FallbackLastChangeUtc`). |
+| `Content` | `GeoPackageContent.SchemaExtension` (default), `GeoPackageContent.None` | The optional parts written next to the data tables, a flags enumeration (more flags may be added later). `SchemaExtension` writes the `gpkg_schema` extension; `None` writes only the data tables and the tables every GeoPackage has. A value with a bit that is not a defined flag is rejected with an `ArgumentOutOfRangeException`. |
 
 ```csharp
 var options = new GeoPackageExportOptions(GeoPackageVersion.Version13, new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+
+// Only the data tables, for a reader that does not support the gpkg_schema extension:
+var withoutSchema = new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.None);
 ```
+
+The constructors have no optional parameters: the existing ones keep their meaning (and the schema extension on), and `GeoPackageExportOptions(version, lastChangeUtc, content)` is the one that selects the content.
 
 ### Determinism
 
@@ -844,9 +850,23 @@ A geometry table with no rows is not created (the file above has points and poly
 
 The package does not create one table per feature type with a column for each property: that would need a fixed catalogue of properties across all products, and the JSON column keeps every property without one.
 
+### The schema extension: aliases, comments and the JSON type
+
+By default the file also has the `gpkg_schema` extension of the GeoPackage standard (Annex F): the tables `gpkg_data_columns` and `gpkg_data_column_constraints`, both registered in `gpkg_extensions`. `gpkg_data_columns` has one row for every column of every data table the file has (`fid`, the geometry, the fixed columns, and the columns of `iwxxm_reports` and `iwxxm_metadata`), with three texts:
+
+| Column | Content | What GDAL and QGIS do with it |
+| :--- | :--- | :--- |
+| `name` | A short alias, unique within the table (`Valid from`, `Report ID`) | GDAL reports it as the alternative name of the field and QGIS as its alias, which replaces the column name in the attribute table and the form. |
+| `title` | A longer label (`Validity start (UTC)`) | Neither of them reads it; other readers may. |
+| `description` | A precise text in English (`Report validity start (UTC); NULL when ...`) | GDAL reports it as the comment of the field and QGIS as the tooltip. |
+
+The `properties` column of the four feature tables also has the `mime_type` `application/json`, so GDAL reports it as a text field with the JSON subtype and QGIS as a JSON field (a text field without it). **That `mime_type` is a convention of GDAL and QGIS, not a part of the GeoPackage standard**, which does not define the meaning of the value; a reader that does not know the convention shows plain text. The constraints table is created empty: no column has an enumerated or ranged constraint. The same file read as plain SQLite is unchanged: the base tables and their rows are the same with and without the extension.
+
+**Turn it off for a strict reader.** The standard gives the extension the scope `read-write`: software that does not implement it should neither read nor write what it covers (here the two `gpkg_data_*` tables). A strict reader or validator that follows that rule to the letter may therefore refuse a file that has it, even though the data tables themselves are plain. For such a reader write the file with `GeoPackageContent.None` (see the options above): the three tables are then not created at all. GDAL, QGIS and plain SQLite clients are not affected by the extension.
+
 ### Open it in QGIS or GDAL
 
-QGIS reads GeoPackages through GDAL: **Layer, Add Layer, Add Vector Layer**, choose the `.gpkg`, and add the geometry tables as layers. The attribute tables open as tables without a map. GDAL reads the `properties` column as a text field. The files were checked with GDAL (`ogrinfo` and GDAL's GeoPackage validator), not with the QGIS application.
+QGIS reads GeoPackages through GDAL: **Layer, Add Layer, Add Vector Layer**, choose the `.gpkg`, and add the geometry tables as layers. The attribute tables open as tables without a map. With the default options GDAL reads `properties` as a JSON field and gives every field an alias and a comment (see the schema extension above); without the extension (`GeoPackageContent.None`) it is a plain text field. The files were checked with GDAL (`ogrinfo`, the Python bindings and GDAL's GeoPackage validator), and the aliases, comments and the JSON type were also read with QGIS 4.5 through its Python API (not through the QGIS desktop application).
 
 ```bash
 ogrinfo -al -so sigmet-A6-2-TC.gpkg                              # layers, feature counts, extents
@@ -877,7 +897,7 @@ The package pins `Microsoft.Data.Sqlite` to **10.0.15**. Every 10.0.x release sh
 - **No spatial index (R-tree).** Without one, a client that filters a large table by extent reads every row. GeoPackage makes the index optional; a reader can build its own, and `ogr2ogr` creates one by default when it copies a layer.
 - **No typed per-feature tables.** One table per geometry kind with the properties in a JSON column, not one table per feature type with a column per property.
 - **No ring-validity check.** The coordinates and rings are those of the GeoJSON export, copied as they are. The package rejects a geometry it cannot encode (a position that is not finite, a ring that is not closed), but it does not test polygon validity in the sense of GEOS (self-intersections, holes outside the shell) on what it writes.
-- **No `gpkg_extensions` rows, triggers or `gpkg_ogr_contents`**: none is required for plain feature and attribute tables.
+- **No extension other than `gpkg_schema`** (and none at all with `GeoPackageContent.None`), no triggers and no `gpkg_ogr_contents`: none is required for plain feature and attribute tables.
 - **Tiles, rasters and the `gpkg_metadata` tables** are not written.
 
 ## 9. Value-object cookbook

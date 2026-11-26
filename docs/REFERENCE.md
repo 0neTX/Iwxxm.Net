@@ -478,7 +478,7 @@ The optional package `Iwxxm.Net.Export.GeoPackage` writes an OGC GeoPackage (see
 | `gpkg_contents` | One row per data table. `identifier` is the table name. Features tables: `data_type` `features`, `srs_id` 4326, `min_x`, `min_y`, `max_x`, `max_y` the plain minimum and maximum of the stored coordinates. Attributes tables: `data_type` `attributes`, `srs_id` 0, extent `NULL`. `last_change` is `yyyy-MM-ddTHH:mm:ss.fffZ` in UTC: the `LastChangeUtc` option, else the issue time of the document, else `1970-01-01T00:00:00.000Z`. |
 | `gpkg_geometry_columns` | One row per features table: column `geom`, the geometry type name of the table, `srs_id` 4326, `z` 0, `m` 0 |
 
-Not written: `gpkg_extensions`, `gpkg_metadata` and its reference table, `gpkg_ogr_contents`, triggers, R-tree index tables, tile and raster tables.
+Written only with the default `GeoPackageContent.SchemaExtension`: `gpkg_extensions`, `gpkg_data_columns` and `gpkg_data_column_constraints` (see [The schema extension](#the-schema-extension-gpkg_schema)). Never written: `gpkg_metadata` and its reference table, `gpkg_ogr_contents`, triggers, R-tree index tables, tile and raster tables.
 
 ### Data tables
 
@@ -546,6 +546,71 @@ The columns `feature_type`, `report_id`, `report_type`, `bulletin_identifier`, `
 
 The rows are written in the order of the table above: five rows, or six for a bulletin that has a non-blank identifier (a bulletin with a blank identifier gets the five rows).
 
+### The schema extension (`gpkg_schema`)
+
+With the default options (`GeoPackageContent.SchemaExtension`) the file has the `gpkg_schema` extension of the GeoPackage standard (1.4, Annex F). With `GeoPackageContent.None` none of the three tables below exists and nothing else changes: the tables above are the same, row for row, with and without it.
+
+| Table | Content |
+| :--- | :--- |
+| `gpkg_extensions` | Created with the standard definition. Two rows, in this order: `gpkg_data_columns` and `gpkg_data_column_constraints`, both with `column_name` `NULL`, `extension_name` `gpkg_schema`, `definition` `http://www.geopackage.org/spec121/#extension_schema` and `scope` `read-write`. |
+| `gpkg_data_columns` | One row for every column of every data table the file has (`fid` and `geom` included), table by table in the order `iwxxm_points`, `iwxxm_lines`, `iwxxm_polygons`, `iwxxm_attributes`, `iwxxm_reports`, `iwxxm_metadata`, and column by column in table order. `constraint_name` is `NULL` everywhere and `mime_type` is `NULL` except for `properties`, which has `application/json`. |
+| `gpkg_data_column_constraints` | Created empty (Requirement 141 asks for both tables); no column has an enumerated or ranged constraint. |
+
+How the readers use the columns of `gpkg_data_columns`, as observed with GDAL 3.13 and QGIS 4.5:
+
+| Column | GDAL | QGIS |
+| :--- | :--- | :--- |
+| `name` | The alternative name of the field | The alias of the field, shown instead of the column name (unique within a table: the standard makes `(table_name, name)` unique; GDAL drops an alias that only repeats the column name, so none does) |
+| `description` | The comment of the field | The comment of the field (the tooltip) |
+| `title` | Not read | Not read |
+| `mime_type` `application/json` | The field is a string with the JSON subtype | The field is a JSON field |
+
+**The JSON type is a convention of GDAL and QGIS, not of the GeoPackage standard.** The standard lists `mime_type` as a free MIME type of the column and does not say what a reader does with `application/json`; a reader that does not know the convention shows `properties` as text. The SQL type of `properties` stays `TEXT` on purpose: declaring a column `JSON` is not recognised by GDAL, which then ignores the column. **`gpkg_schema` has the scope `read-write` in the standard**, which means that software that does not implement it should neither read nor write what it covers (the two `gpkg_data_*` tables). A strict reader or validator may therefore refuse the file: write it with `GeoPackageContent.None` for such a reader (`new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.None)`).
+
+The text of every row is kept in one place in the code and a test checks that every column of every data table has exactly one row and that no row describes a column that does not exist. These are the rows (`title` is the label, `description` the comment):
+
+**`iwxxm_points`, `iwxxm_lines`, `iwxxm_polygons` and `iwxxm_attributes`** (`iwxxm_attributes` has no `geom`):
+
+| Column | `name` (alias) | `title` | `description` |
+| :--- | :--- | :--- | :--- |
+| `fid` | Row ID | Row identifier | Row identifier, numbered in the order of the features of the document |
+| `geom` | Geometry | Geometry | (see below) |
+| `feature_id` | Feature ID | Feature identifier | Identifier of the feature (the id of the GeoJSON feature); NULL when the feature has none |
+| `feature_type` | Feature type | Feature type | Kind of feature, for example METAR_OBSERVATION, SIGMET_EVOLVING_VOLUME or JETSTREAM |
+| `report_id` | Report ID | Report identifier | Identifier of the report the feature belongs to |
+| `report_type` | Report type | Report type | Type of the report the feature belongs to, for example Metar or TropicalCycloneSigmet |
+| `bulletin_identifier` | Bulletin ID | Bulletin identifier | Identifier of the bulletin that contains the report; NULL when the report is not in a bulletin |
+| `issue_time_utc` | Issue time | Issue time (UTC) | Issue time of the report (UTC) |
+| `valid_from_utc` | Valid from | Validity start (UTC) | Start of the validity period of the report (UTC); NULL when the report has none or does not state it |
+| `valid_until_utc` | Valid until | Validity end (UTC) | End of the validity period of the report (UTC); NULL when the report has none or does not state it |
+| `properties` | Properties (JSON) | Feature properties | All properties of the feature as a JSON object, the same text as the properties member of the GeoJSON export |
+
+`geom` has the `description` "Point geometry, longitude and latitude in decimal degrees (WGS 84, EPSG:4326)" in `iwxxm_points`, "Line geometry (MultiLineString), longitude and latitude in decimal degrees (WGS 84, EPSG:4326)" in `iwxxm_lines` and "Polygon geometry (MultiPolygon), longitude and latitude in decimal degrees (WGS 84, EPSG:4326)" in `iwxxm_polygons`.
+
+**`iwxxm_reports`:**
+
+| Column | `name` (alias) | `title` | `description` |
+| :--- | :--- | :--- | :--- |
+| `fid` | Row ID | Row identifier | Row identifier, numbered in the order of the reports of the document |
+| `report_id` | Report ID | Report identifier | Identifier of the report |
+| `report_type` | Report type | Report type | Type of the report, for example Metar or TropicalCycloneSigmet |
+| `report_status` | Status | Report status | Status code of the report, for example NORMAL |
+| `permissible_usage` | Usage | Permissible usage | Permissible usage code of the report, for example OPERATIONAL |
+| `permissible_usage_reason` | Usage reason | Permissible usage reason | Reason code (TEST or EXERCISE) of a non-operational report; NULL when the report has none |
+| `permissible_usage_supplementary` | Usage note | Permissible usage supplementary text | Free text that supplements the permissible usage; NULL when the report has none |
+| `issue_time_utc` | Issue time | Issue time (UTC) | Issue time of the report (UTC) |
+| `valid_from_utc` | Valid from | Validity start (UTC) | Report validity start (UTC); NULL when the report has no validity period or does not state it |
+| `valid_until_utc` | Valid until | Validity end (UTC) | Report validity end (UTC); NULL when the report has no validity period or does not state it |
+| `bulletin_identifier` | Bulletin ID | Bulletin identifier | Identifier of the bulletin that contains the report; NULL when the report is not in a bulletin |
+
+**`iwxxm_metadata`:**
+
+| Column | `name` (alias) | `title` | `description` |
+| :--- | :--- | :--- | :--- |
+| `fid` | Row ID | Row identifier | Row identifier, numbered in the order the keys are written |
+| `key` | Entry key | Key | Name of the entry: geopackage_version, library_version, source_document_id, source_document_type, bulletin_identifier or report_count |
+| `value` | Entry value | Value | Value of the entry |
+
 ### Limits of the export
 
 The failure message of `GEOPACKAGE-EXPORT-ERROR` can contain host paths, library locations and the text of an internal exception; when the innermost exception differs from the one thrown, the message ends with its type and message in brackets, which can name the same. Log the message; do not return it to end users. `ExportToBytes` uses the shared temporary directory (use `Export` with a private directory on a multi-user host). `OutOfMemoryException` is not converted to a result. Two exports to the same path are not supported, and a target, existing or not, with a `-wal` or `-journal` file next to it is not published to. The path is not confined and a symbolic link at the path is replaced; on Unix the new file keeps its own mode and owner. The directory is not flushed to disk. A killed process can leave a hidden `.iwxxm-*.tmp` file. A network share without reliable locking is not supported.
@@ -554,7 +619,7 @@ The failure message of `GEOPACKAGE-EXPORT-ERROR` can contain host paths, library
 
 ### Compatibility checks
 
-Files written by the package were opened with GDAL (`ogrinfo -al`) and checked with GDAL's GeoPackage validator (`validate_gpkg.py --extra --warning-as-error`), with `PRAGMA integrity_check` and `foreign_key_check`. The repository keeps those checks as `tools/validate-geopackage-file.sh` (every sample, through a pinned GDAL container image) and `tools/validate-geopackage-geometry.sh` (the geometry blobs against GDAL's reading of them); they are not part of the unit tests and need podman.
+Files written by the package were opened with GDAL (`ogrinfo -al`) and checked with GDAL's GeoPackage validator (`validate_gpkg.py --extra --warning-as-error`), with `PRAGMA integrity_check` and `foreign_key_check`; for the files with the schema extension also that GDAL reports the JSON subtype of `properties` and an alias and a comment on every field, and a file written with `GeoPackageContent.None` is checked without them. The repository keeps those checks as `tools/validate-geopackage-file.sh` (every sample, through a pinned GDAL container image) and `tools/validate-geopackage-geometry.sh` (the geometry blobs against GDAL's reading of them); they are not part of the unit tests and need podman.
 
 ---
 
@@ -985,7 +1050,7 @@ Consumers never need a layer name in a `using` directive:
 | `Iwxxm.Net.Reports` | Domain model: the closed hierarchy (`IwxxmDocument`, `IwxxmReport`, `MeteorologicalBulletin`, `IIwxxmDocumentVisitor<TResult>`, `AerodromeObservation`, `Metar`, `Speci`, `Taf`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, `Sigwx`) and the value objects |
 | `Iwxxm.Net.Extensibility` | The `ISchematronValidator` port for custom business-rule engines and `IwxxmDocumentContext` |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
-| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion`, `GeoPackageErrorCodes` (optional package). Its parser members (`ProcessToGeoPackage`, `ProcessFileToGeoPackage`, `ParseToGeoPackage`, `ParseFileToGeoPackage`) are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`. |
+| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion`, `GeoPackageContent`, `GeoPackageErrorCodes` (optional package). Its parser members (`ProcessToGeoPackage`, `ProcessFileToGeoPackage`, `ParseToGeoPackage`, `ParseFileToGeoPackage`) are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`. |
 
 Everything else (`Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*`, `Iwxxm20252.Generated`) is `internal`.
 

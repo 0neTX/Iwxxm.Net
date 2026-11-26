@@ -4,10 +4,11 @@
 #
 # What it does:
 #   1. runs one test of the GeoPackage test project, inside the image built by `podman build --target test`, that writes a
-#      real .gpkg file for every sample (the WMO examples and the SIGWX samples, plus one GeoPackage 1.3 file) and
-#      expected.tsv with the row count and extent of every table;
+#      real .gpkg file for every sample (the WMO examples and the SIGWX samples, plus one GeoPackage 1.3 file and three
+#      *.plain.gpkg files written without the gpkg_schema extension) and expected.tsv with the row count and extent of every table;
 #   2. in the pinned GDAL image, for every file: SQLite's integrity_check and foreign_key_check, `ogrinfo -al -so`, the GDAL
-#      Python bindings (layers, feature counts, extents, geometry types, properties JSON) and GDAL's own conformance
+#      Python bindings (layers, feature counts, extents, geometry types, properties JSON, and for the files with the
+#      gpkg_schema extension the JSON subtype of properties and the alias and comment of every field) and GDAL's own conformance
 #      validator, validate_gpkg.py --extra --warning-as-error (see validate-geopackage-file.py).
 #
 # Usage: tools/validate-geopackage-file.sh [work-dir]      (default: a new temporary directory)
