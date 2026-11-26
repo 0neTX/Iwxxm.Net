@@ -166,7 +166,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          for project in src/Iwxxm.Net/Iwxxm.Net.csproj src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj; do
+          for project in src/Iwxxm.Net/Iwxxm.Net.csproj src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj src/Iwxxm.Net.Export.GeoPackage/Iwxxm.Net.Export.GeoPackage.csproj; do
             dotnet pack "$project" \
               --configuration Release \
               --no-build \
@@ -185,6 +185,20 @@ jobs:
             echo "::error::Iwxxm.Net must not declare runtime dependencies"
             exit 1
           fi
+
+      # The core guard above is unchanged. The GeoPackage package must depend on the core and on Microsoft.Data.Sqlite
+      # (which brings the native SQLite binaries).
+      - name: Verify the GeoPackage package dependencies
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          nuspec=$(unzip -p "./artifacts/Iwxxm.Net.Export.GeoPackage.${{ env.PACKAGE_VERSION }}.nupkg" Iwxxm.Net.Export.GeoPackage.nuspec)
+          for id in Iwxxm.Net Microsoft.Data.Sqlite; do
+            if ! grep -q "<dependency id=\"${id}\"" <<< "$nuspec"; then
+              echo "::error::Iwxxm.Net.Export.GeoPackage must depend on ${id}"
+              exit 1
+            fi
+          done
 
       - name: Upload NuGet package artifacts
         if: matrix.os == 'ubuntu-latest'
