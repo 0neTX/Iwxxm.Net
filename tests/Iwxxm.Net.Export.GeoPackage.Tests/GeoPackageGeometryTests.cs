@@ -207,16 +207,21 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         private static void AssertPosition(JsonElement position, GeoPackagePosition actual, string where)
         {
             Assert.Equal(2, position.GetArrayLength());
-            AssertSameBits(position[0].GetDouble(), actual.X, where + ": x");
-            AssertSameBits(position[1].GetDouble(), actual.Y, where + ": y");
+            AssertSameBits(position[0], actual.X, where + ": x");
+            AssertSameBits(position[1], actual.Y, where + ": y");
         }
 
-        // The message carries both values (round-trip text and bits), so that a difference seen on one platform can be analysed from the log alone.
-        private static void AssertSameBits(double fromGeoJson, double fromModel, string where)
+        // The number is read from its text with double.Parse, the parser the JSON writer uses to check that its text round-trips,
+        // and not with JsonElement.GetDouble: on 32-bit .NET Framework the parser of System.Text.Json can differ by one unit in the
+        // last place for the same text (seen in CI on the 14 MB SIGWX sample, e.g. "-26.709206"). The message carries the text, both
+        // values and their bits, so that a difference seen on one platform can be analysed from the log alone.
+        private static void AssertSameBits(JsonElement number, double fromModel, string where)
         {
+            string text = number.GetRawText();
+            double fromGeoJson = double.Parse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
             long a = BitConverter.DoubleToInt64Bits(fromGeoJson);
             long b = BitConverter.DoubleToInt64Bits(fromModel);
-            Assert.True(a == b, where + ": GeoJSON " + fromGeoJson.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            Assert.True(a == b, where + ": GeoJSON text " + text + " parses to " + fromGeoJson.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
                 + " (0x" + a.ToString("X16") + ") vs model " + fromModel.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
                 + " (0x" + b.ToString("X16") + ")");
         }
