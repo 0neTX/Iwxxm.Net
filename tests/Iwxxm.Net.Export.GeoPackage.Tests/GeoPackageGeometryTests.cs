@@ -212,8 +212,8 @@ namespace Iwxxm.Net.Export.GeoPackage.Tests
         }
 
         // The number is read from its text with double.Parse, the parser the JSON writer uses to check that its text round-trips,
-        // and not with JsonElement.GetDouble: on 32-bit .NET Framework the parser of System.Text.Json can differ by one unit in the
-        // last place for the same text (seen in CI on the 14 MB SIGWX sample, e.g. "-26.709206"). The message carries the text, both
+        // and not with JsonElement.GetDouble: on 32-bit .NET Framework, for the same text, GetDouble returned a value one unit in the
+        // last place above the one double.Parse gives (seen in CI on the 14 MB SIGWX sample, e.g. "-26.709206"). The message carries the text, both
         // values and their bits, so that a difference seen on one platform can be analysed from the log alone.
         private static void AssertSameBits(JsonElement number, double fromModel, string where)
         {

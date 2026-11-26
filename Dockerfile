@@ -185,7 +185,7 @@ WORKDIR /workspace/tests/Iwxxm.Net.Tests/bin/Release/net48
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Tests.dll -nologo -parallel none
 WORKDIR /workspace/tests/Iwxxm.Net.Export.GeoPackage.Tests/bin/Release/net48
 # No -noshadow here on purpose: the test project's xunit.runner.json (shadowCopy=false) must be enough (the Visual Studio
-# adapter on Windows reads it too: confirmed on windows-latest in CI run 45901356325). With shadow copy the runner copies the test assemblies to a temporary directory without
+# adapter on Windows reads it too: confirmed on a hosted windows-latest runner). With shadow copy the runner copies the test assemblies to a temporary directory without
 # the runtimes/<rid>/native folder the bundled SQLite is loaded from, and 417 of the 787 tests fail ("Library e_sqlite3 not found").
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Export.GeoPackage.Tests.dll -nologo -parallel none
 
