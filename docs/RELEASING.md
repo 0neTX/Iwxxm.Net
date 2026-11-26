@@ -74,7 +74,7 @@ Before the first release of this package:
 - **Files.** The exporter opens its SQLite connections with `Pooling=False`, so the `.gpkg` file can be deleted or moved right after the export on Windows.
 - **Versions.** `Microsoft.Data.Sqlite` stays on the 10.0.x line while `netstandard2.0` is a target (11.0.0 targets `net10.0` only). Updating it changes the SQLite version that writes the files, and the golden dumps compare content, not bytes, for that reason.
 - **Validation tools.** Run `tools/validate-geopackage-file.sh` and `tools/validate-geopackage-geometry.sh` (podman, a pinned GDAL image) on the commit to be tagged; they are not part of the container build or of the workflow. The file check also covers the `gpkg_schema` extension (alias, comment and JSON type through GDAL, and the `*.plain.gpkg` files written with `GeoPackageContent.None`); `GeoPackageContent` is a public flags enumeration, so a new flag must be a new power of two, with the values already shipped never changed, and an overload of `GeoPackageExportOptions` rather than an optional parameter.
-- **Package validation baseline.** `PackageValidationBaselineVersion` is a single property in `Directory.Build.props` and is not set (see "API compatibility baseline"). When it is set after `1.0.0` is published, it applies to every packable project, and this package has no published `1.0.0`; a baseline is a published version of the same package id. How Package Validation behaves for a package that has no published baseline has not been checked here, so decide that for this package (for example a baseline set per project, after its first release) before setting the property.
+- **Package validation, no baseline.** `EnablePackageValidation` is on for every project (see "Package validation" below), so `dotnet pack` checks each package for consistency across its target frameworks. No `PackageValidationBaselineVersion` is set anywhere, by decision, so nothing compares the API with an earlier release: a breaking change against a published version is not detected by the build, and the release notes must say it.
 
 ## Publication checklist for v1.0.0
 
@@ -92,26 +92,15 @@ Tag and publish (see "Procedure"), approve the `nuget-release` deployment if it 
 7. Install both packages from the feed in a clean project and run a smoke test (parse an official example). Use nuget.org for the check: `dotnet add package Iwxxm.Net --version 1.0.0` (no `--prerelease` for a stable version). The GitHub Packages feed needs a token with the `read:packages` scope to be read (to be confirmed by the maintainer against the GitHub documentation).
 8. Verify that the SourceLink and symbol links resolve now that the repository is public: download the `.snupkg`, or restore the package in a clean project and step into the library source from a debugger.
 9. Create the GitHub Release for the tag (`v1.0.0`) with notes taken from the `## [1.0.0]` section of `CHANGELOG.md`. It is a stable release, so do not mark it as a prerelease; a release candidate tag would be marked as one.
-10. Apply the steps of "After v1.0.0 is published" below.
+10. Apply the steps of "After v1.0.0 is published" below (they no longer include a package validation baseline).
 
 ## After v1.0.0 is published
 
-### API compatibility baseline
+### Package validation
 
-`Directory.Build.props` enables NuGet Package Validation (`EnablePackageValidation`) for the packable projects, so `dotnet pack` checks that each package is consistent across its target frameworks (for example `netstandard2.0` against `netstandard2.1`). No baseline version is set while only release candidates exist and the API still changes.
+`Directory.Build.props` sets `EnablePackageValidation` to `true` for all projects (the validation runs only as part of `dotnet pack`, so the test projects, the benchmarks and the demo are not affected). `dotnet pack` therefore checks that each package is consistent across its target frameworks, for example `netstandard2.0` against `netstandard2.1` for `Iwxxm.Net`; the container pack stage runs it for the three packages. The property was previously conditioned on `IsPackable`, which the projects set after `Directory.Build.props` is evaluated, so the condition was always false and the validation did not run before this was fixed (including for 1.0.0).
 
-Once `1.0.0` is on the feed, set the baseline in `Directory.Build.props`. The property is currently inside an XML comment, together with the explanation above it (the comment starts at `<!-- NuGet Package Validation` and ends after the commented `<PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->`). Edit it as follows:
-
-1. Move the line out of the comment, so that it is an active property next to `EnablePackageValidation`:
-
-   ```xml
-   <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
-   ```
-
-2. Close the comment before that line (remove the trailing `-->` from the old line) and rewrite its text so that it no longer says that no baseline exists yet.
-3. Run `dotnet pack` for the projects that have a published baseline (or the container pack stage): the packages are compared with `1.0.0`, which is restored from the feed, so the version must already be published.
-
-From then on `dotnet pack` fails on a breaking API change against 1.0.0, which keeps minor and patch releases compatible; a deliberate breaking change needs a new major version. A justified exception is recorded in a `CompatibilitySuppressions.xml` next to the project (generate it with `dotnet pack -p:GenerateCompatibilitySuppressionFile=true`), reviewed like any other change. Move the baseline forward after each stable release.
+**No baseline is used, by decision.** `PackageValidationBaselineVersion` is not set in `Directory.Build.props` or in any project, so nothing compares the API of a package with an earlier release: API breaking changes against published versions are not checked by the build. Keep compatibility by review (the public API surface tests pin the shape of the GeoPackage package) and describe every breaking change under `BREAKING CHANGES` in `CHANGELOG.md`. If a baseline is wanted later, set `PackageValidationBaselineVersion` to a published version of the same package id (it applies to every packable project, so it needs a published version of each); a justified exception is recorded in a `CompatibilitySuppressions.xml` next to the project.
 
 ### Other follow-ups
 

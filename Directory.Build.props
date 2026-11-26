@@ -33,11 +33,12 @@
     <PackageProjectUrl>https://github.com/0neTX/Iwxxm.Net</PackageProjectUrl>
     <PackageReleaseNotes>See CHANGELOG.md at $(PackageProjectUrl)/blob/main/CHANGELOG.md for the release notes of this version.</PackageReleaseNotes>
 
-    <!-- NuGet Package Validation (packable projects only): `dotnet pack` checks that the package is consistent across its
-         target frameworks (for example netstandard2.0 vs netstandard2.1 API differences). No baseline yet: only release
-         candidates exist. After v1.0.0 is published, enable the baseline (see docs/RELEASING.md, "API compatibility baseline"):
-    <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->
-    <EnablePackageValidation Condition="'$(IsPackable)' == 'true'">true</EnablePackageValidation>
+    <!-- NuGet Package Validation: `dotnet pack` checks that each package is consistent across its target frameworks (for
+         example netstandard2.0 vs netstandard2.1 API differences). It is set unconditionally: the validation only runs as
+         part of pack, which the non-packable projects never run, and a condition on IsPackable would always be false here
+         because the projects set IsPackable after this file is evaluated. No baseline is used, by decision
+         (PackageValidationBaselineVersion is not set anywhere): breaking API changes against earlier releases are NOT checked. -->
+    <EnablePackageValidation>true</EnablePackageValidation>
 
     <!-- Symbol Package (.snupkg) & SourceLink Best Practices -->
     <IncludeSymbols>true</IncludeSymbols>
