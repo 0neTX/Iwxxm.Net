@@ -619,7 +619,7 @@ The failure message of `GEOPACKAGE-EXPORT-ERROR` can contain host paths, library
 
 ### Compatibility checks
 
-Files written by the package were opened with GDAL (`ogrinfo -al`) and checked with GDAL's GeoPackage validator (`validate_gpkg.py --extra --warning-as-error`), with `PRAGMA integrity_check` and `foreign_key_check`; for the files with the schema extension also that GDAL reports the JSON subtype of `properties` and an alias and a comment on every field, and a file written with `GeoPackageContent.None` is checked without them. The repository keeps those checks as `tools/validate-geopackage-file.sh` (every sample, through a pinned GDAL container image) and `tools/validate-geopackage-geometry.sh` (the geometry blobs against GDAL's reading of them); they are not part of the unit tests and need podman.
+Files written by the package were opened with GDAL (`ogrinfo -al`) and checked with GDAL's GeoPackage validator (`validate_gpkg.py --extra --warning-as-error`), with `PRAGMA integrity_check` and `foreign_key_check`; for the files with the schema extension also that GDAL reports the JSON subtype of `properties` and a non-empty alias and comment on every GDAL field (the exact alias is compared only for the three time columns; `fid` and the geometry column are not GDAL fields and are checked only through their `gpkg_data_columns` rows), and three files written with `GeoPackageContent.None` must be part of the run and are checked without those field checks. The repository keeps those checks as `tools/validate-geopackage-file.sh` (every sample, through a pinned GDAL container image) and `tools/validate-geopackage-geometry.sh` (the geometry blobs against GDAL's reading of them); they are not part of the unit tests and need podman.
 
 ---
 

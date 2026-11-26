@@ -13,11 +13,15 @@ and expected.tsv (file, table, row count, extent), written by the GeoPackageFile
    layer extent (exactly the plain min/max of the written coordinates), the geometry type of each layer, a geometry on every
    feature of a geometry layer, a JSON object in the `properties` field, a date-time type for `issue_time_utc`, `valid_from_utc` and `valid_until_utc`, and
    a validity column that is set exactly when the `properties` JSON of the row has the matching key; for a file with the
-   gpkg_schema extension also the JSON subtype of the `properties` field, and an alias (name) and a comment (description) on
-   every field, the fixed ones exactly (a *.plain.gpkg file has the String field and no alias, which is not checked further);
+   gpkg_schema extension also the JSON subtype of the `properties` field and, on every GDAL field, a non-empty alias (name) and
+   a non-empty comment (description); the exact alias is compared only for the three time columns (issue_time_utc,
+   valid_from_utc, valid_until_utc). `fid` and the geometry column are not GDAL fields: their rows in gpkg_data_columns are
+   checked only through the SQLite checks above. A *.plain.gpkg file is not given these field checks;
 4. GDAL's own conformance validator, validate_gpkg.py, with --extra --warning-as-error.
 
-Exit status 0 only when every check of every file passes and there is at least one file. Nothing here is part of the unit
+Exit status 0 only when every check of every file passes, there is at least one file with the schema extension, and the three
+files that the export test writes without it (REQUIRED_PLAIN_FILES: the *.plain.gpkg files) are listed in expected.tsv and
+present: a run that lost them would otherwise check the extension on every file and never the file without it. Nothing here is part of the unit
 tests or a dependency of the projects.
 """
 import collections
@@ -47,6 +51,8 @@ TIME_COLUMNS = ["issue_time_utc", "valid_from_utc", "valid_until_utc"]
 VALIDITY_KEYS = {"valid_from_utc": "validFromUtc", "valid_until_utc": "validUntilUtc"}
 # The aliases GDAL must report (gpkg_data_columns.name) for the time columns of every table that has them.
 EXPECTED_ALIASES = {"issue_time_utc": "Issue time", "valid_from_utc": "Valid from", "valid_until_utc": "Valid until"}
+# The files the export test writes with GeoPackageContent.None (GeoPackageFilesExport); a run without them fails.
+REQUIRED_PLAIN_FILES = ("metar-NIL-collect.plain.gpkg", "sigmet-A6-2-TC.plain.gpkg", "sigwx-swh-2025-2.plain.gpkg")
 SCHEMA_TABLES = {"gpkg_extensions", "gpkg_data_columns", "gpkg_data_column_constraints"}
 GEOMETRY_TYPES = {
     "iwxxm_points": ogr.wkbPoint,
@@ -255,6 +261,13 @@ def main(directory):
     version = subprocess.run(["gdalinfo", "--version"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
     failures = 0
     features = 0
+    for missing in [name for name in REQUIRED_PLAIN_FILES if name not in files]:
+        print("FAIL %s" % missing)
+        print("       not in expected.tsv: the files written without the schema extension must be part of every run")
+        failures += 1
+    if not any(not is_plain(name) for name in files):
+        print("FAIL no file with the schema extension in expected.tsv")
+        failures += 1
     for name, tables in files.items():
         path = os.path.join(directory, name)
         if not os.path.isfile(path):
