@@ -23,6 +23,8 @@
         "reportId": "uuid.8debfaca-7116-4b32-9378-b472ca64e823",
         "reportType": "Sigmet",
         "issueTimeUtc": "2012-08-10T12:00:00.0000000+00:00",
+        "validFromUtc": "2012-08-10T12:00:00.0000000+00:00",
+        "validUntilUtc": "2012-08-10T16:00:00.0000000+00:00",
         "firDesignator": "YUDD",
         "sequenceNumber": "2",
         "phenomenonUri": "http://codes.wmo.int/49-2/SigWxPhenomena/OBSC_TS",

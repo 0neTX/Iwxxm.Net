@@ -12,6 +12,8 @@ A guided tour of the library, from "what is this XML?" to reading jet streams an
 6. [Options and security limits](#6-options-and-security-limits)
 7. [Error-code cheat sheet](#7-error-code-cheat-sheet)
 8. [GeoJSON export](#8-geojson-export)
+   - [8A. CSV export](#8a-csv-export)
+   - [8B. GeoPackage export](#8b-geopackage-export)
 9. [Value-object cookbook](#9-value-object-cookbook)
 10. [Worked example: jet streams (SIGWX)](#10-worked-example-jet-streams-sigwx)
 11. [Worked example: clouds (SIGWX)](#11-worked-example-clouds-sigwx)
@@ -655,6 +657,252 @@ feature: TROPICAL_CYCLONE_CENTRE (Point)
 
 `System.Text.Json` is in the box on modern .NET; Iwxxm.Net itself has no JSON dependency and returns the GeoJSON as a plain `string` inside a `Result<string>`. If you already hold a parsed document, call `IwxxmGeoJsonExporter.ToGeoJson(document, options)`: it returns a `Result<string>` too (an exporter failure is a `GEOJSON-EXPORT-ERROR` value; only a `null` document throws). `GeoJsonExportOptions.Pretty` indents the output; `Default` is compact.
 
+**Reading the numbers on 32-bit .NET Framework.** The GeoJSON text is the same on every runtime, but a 32-bit .NET Framework 4.8 program that reads it with `System.Text.Json` may see a difference of one unit in the last place (about 4e-15 degrees at the values seen) in a few coordinates: for 2 of several hundred thousand coordinates of the 14 MB SIGWX sample (for example the texts `-26.709206` and `15.381189`) `JsonElement.GetDouble` returned a value one ulp above the one `double.Parse` gives for the same text, and `double.Parse` gave the value of the model. It was seen once, in one test process on a hosted Windows runner; which of the two parsers rounds correctly, and why they differ, was not determined. The tests of this repository read the numbers with `double.Parse`, the parser the writer uses to check that its text round-trips.
+
+## 8A. CSV export
+
+`Iwxxm.Net` also writes any document as RFC 4180 CSV: one flat table with the same 26 columns for every report type, for spreadsheets and for tools that read delimited text. Like the GeoJSON export it returns a `Result<string>`; the entry points are `IwxxmParser.ParseFileToCsv` (and the `ParseToCsv` and `ProcessToCsv` family) for XML input and `IwxxmCsvExporter.ToCsv(document, options)` for a document you already hold. An exporter failure is a `CSV-EXPORT-ERROR` value; only a `null` document throws.
+
+```csharp
+using System;
+using Iwxxm.Net;
+
+Result<string> csv = IwxxmParser.ParseFileToCsv("samples/metar-A3-1.xml");
+if (csv.IsFailure)
+{
+    Console.WriteLine(csv.Errors[0]);
+    return;
+}
+
+string[] records = csv.Value.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+Console.WriteLine($"{records.Length - 1} data row(s)");
+Console.WriteLine(records[0]);
+Console.WriteLine(records[1]);
+
+Result<string> custom = IwxxmParser.ParseFileToCsv(
+    "samples/sigmet-A6-2-TC.xml",
+    new CsvExportOptions(delimiter: ";", includeGeometryWkt: false));
+Console.WriteLine(custom.Value.Split(new[] { "\r\n" }, StringSplitOptions.None)[2]);
+```
+```output
+1 data row(s)
+BulletinId,ReportId,ReportType,FeatureType,FeatureId,ReportStatus,PermissibleUsage,PermissibleUsageReason,IssueTimeUtc,ValidFromUtc,ValidUntilUtc,StationOrCentre,Lat,Lon,GeometryWkt,LowerLimit,UpperLimit,WindDirectionDeg,WindSpeed,WindSpeedUnit,AirTemperatureC,QnhHpa,VisibilityM,Phenomenon,Intensity,Details
+,uuid.510df5de-fefb-4406-bafd-faab35333ec0,Metar,METAR_OBSERVATION,uuid.510df5de-fefb-4406-bafd-faab35333ec0,Normal,Operational,,2012-08-22T16:30:00.0000000+00:00,2012-08-22T16:30:00.0000000+00:00,2012-08-22T16:30:00.0000000+00:00,YUDO,12.34,-12.34,POINT (-12.34 12.34),,,240,4,m/s,17,1018,600,DZ FG,,
+;uuid.f12194be-0d82-49ad-ad97-41e46f724dec;TropicalCycloneSigmet;TROPICAL_CYCLONE_CENTRE;uuid.c0a23437-9eb7-4e6b-82f2-6fbd5757440c#tc;Normal;Operational;;2012-08-25T16:00:00.0000000+00:00;2012-08-25T16:00:00.0000000+00:00;2012-08-25T22:00:00.0000000+00:00;YUCC;27.100000000000001;-73.099999999999994;;;;;;;;;;TC;;
+```
+
+What to know:
+
+- **The columns are fixed and shared by every product**: identifiers (`BulletinId`, `ReportId`, `ReportType`, `FeatureType`, `FeatureId`), metadata (`ReportStatus`, `PermissibleUsage`, `PermissibleUsageReason`, `IssueTimeUtc`, `ValidFromUtc`, `ValidUntilUtc`), the place (`StationOrCentre`, `Lat`, `Lon`, `GeometryWkt`), vertical limits (`LowerLimit`, `UpperLimit`) and a few common measures (`WindDirectionDeg`, `WindSpeed`, `WindSpeedUnit`, `AirTemperatureC`, `QnhHpa`, `VisibilityM`), plus `Phenomenon`, `Intensity` and `Details`. A column that does not apply to a row is empty. The example METAR is one row; the tropical cyclone SIGMET gives three (the evolving volume and two cyclone positions). The columns are not a full dump of the domain model: use the typed objects, or GeoJSON, when you need every property.
+- **Measures keep the reported unit**: the METAR wind is `4` with `WindSpeedUnit` `m/s`, not converted to knots. Numbers are written with the invariant culture and enough digits to read back the same double, which is why the cyclone position shows `27.100000000000001`.
+- **Geometry** is OGC WKT in `GeometryWkt` (`POINT (lon lat)`, longitude first), with `Lat` and `Lon` for rows that have one position. It is the geometry of the GeoJSON export, so circles are densified polygons. `includeGeometryWkt: false` leaves the column empty but keeps the header, so the layout never changes.
+- **Options**: `CsvExportOptions` has the delimiter (default `,`), the header row (default on), the WKT column (default on), formula protection and the line terminator (default CRLF, per RFC 4180).
+- **Formula protection is on by default.** A text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return is prefixed with a single quote so that a spreadsheet does not run it as a formula. Numeric cells, such as a negative longitude, are never changed. Turn it off with `sanitizeFormulas: false` only if the consumer is not a spreadsheet.
+- **In a bulletin** every row carries the `BulletinId` of the envelope; for a standalone report the column is empty.
+
+## 8B. GeoPackage export
+
+A [GeoPackage](https://www.geopackage.org/) (`.gpkg`) is an OGC standard SQLite file that desktop GIS, GDAL and most spatial databases open directly. `Iwxxm.Net.Export.GeoPackage` is an **optional package** that writes any parsed document to one: the same features as the GeoJSON export, in tables, plus the reports and the document metadata. The core package stays dependency-free; this one depends on `Iwxxm.Net` and `Microsoft.Data.Sqlite`, and it is the only package of the family that brings native binaries (see [.NET Framework](#net-framework-and-native-sqlite) and the size note in the [README](../README.md#installation)).
+
+```bash
+dotnet add package Iwxxm.Net.Export.GeoPackage
+```
+
+The package is not part of a release yet, so it is not on NuGet.org: until a release includes it, build it from source (`dotnet pack src/Iwxxm.Net.Export.GeoPackage`). It reads internals of `Iwxxm.Net` that only the version it was built against makes visible, so it requires `Iwxxm.Net` of the version it ships with and never works with `Iwxxm.Net` 1.0.0; the two packages are released together with the same new version. With another core version an export fails with `GEOPACKAGE-EXPORT-ERROR` and a message that says the versions do not match.
+
+SQLite writes to a file, so the main operation takes a path. The `Result<string>` carries the full path of the file written.
+
+```csharp
+using System;
+using System.IO;
+using Iwxxm.Net;
+using Iwxxm.Net.Export.GeoPackage;
+using Microsoft.Data.Sqlite;
+
+string path = Path.Combine(Path.GetTempPath(), "sigmet-A6-2-TC.gpkg");
+
+Result<string> written = IwxxmParser.Default.ProcessFileToGeoPackage("samples/sigmet-A6-2-TC.xml", path);
+if (written.IsFailure)
+{
+    Console.WriteLine(written.Errors[0]);
+    return;
+}
+
+Console.WriteLine($"written: {Path.GetFileName(written.Value)}");
+
+using var connection = new SqliteConnection($"Data Source={path};Mode=ReadOnly;Pooling=False");
+connection.Open();
+using SqliteCommand command = connection.CreateCommand();
+
+command.CommandText = "SELECT table_name, data_type FROM gpkg_contents ORDER BY table_name";
+using (SqliteDataReader reader = command.ExecuteReader())
+{
+    while (reader.Read())
+        Console.WriteLine($"{reader.GetString(0)} ({reader.GetString(1)})");
+}
+
+command.CommandText = "SELECT feature_type, report_type, json_extract(properties, '$.phenomenonUri') FROM iwxxm_points";
+using (SqliteDataReader reader = command.ExecuteReader())
+{
+    while (reader.Read())
+        Console.WriteLine($"{reader.GetString(0)} | {reader.GetString(1)} | {reader.GetString(2)}");
+}
+```
+```output
+written: sigmet-A6-2-TC.gpkg
+iwxxm_attributes (attributes)
+iwxxm_metadata (attributes)
+iwxxm_points (features)
+iwxxm_polygons (features)
+iwxxm_reports (attributes)
+TROPICAL_CYCLONE_CENTRE | TropicalCycloneSigmet | http://codes.wmo.int/49-2/SigWxPhenomena/TC
+TROPICAL_CYCLONE_CENTRE | TropicalCycloneSigmet | http://codes.wmo.int/49-2/SigWxPhenomena/TC
+```
+
+Reading the file back is not part of the package (the snippet uses `Microsoft.Data.Sqlite`, which your project gets through the package reference); GDAL, QGIS or any SQLite client do the same job.
+
+### The API
+
+| Member | Use |
+| :--- | :--- |
+| `IwxxmGeoPackageExporter.Default.Export(document, path, options)` | Write a document you already parsed. Returns the full path, or a failure. |
+| `IwxxmGeoPackageExporter.ToGeoPackage(document, path, options)` | Static shortcut for the same call. |
+| `IwxxmGeoPackageExporter.Default.ExportToBytes(document, options)` and `ToGeoPackageBytes` | The bytes of the file, as a `Result<byte[]>`. SQLite only writes to a file, so this goes through a temporary file that is always deleted. |
+| `parser.ProcessFileToGeoPackage(filePath, path, options)`, `ProcessToGeoPackage(stream or xml text, path, options)` | Extension methods of `IwxxmParser` (namespace `Iwxxm.Net`): validate, parse and export in one step with the parser you built. |
+| `IwxxmParserGeoPackageExtensions.ParseFileToGeoPackage(...)`, `ParseToGeoPackage(...)` | The same with `IwxxmParser.Default`. They are static members of the extensions class, because an extension method cannot add static members to `IwxxmParser`. |
+
+The parse-and-export members return the parse failure unchanged when the document is bad (nothing is written) and keep the parse warnings on success.
+
+### Options
+
+`GeoPackageExportOptions` has three settings. `GeoPackageExportOptions.Default` is GeoPackage 1.4 with the last-change time taken from the document and the schema extension (see [below](#the-schema-extension-aliases-comments-and-the-json-type)).
+
+| Setting | Values | Notes |
+| :--- | :--- | :--- |
+| `Version` | `GeoPackageVersion.Version14` (default), `Version13` | Written as `PRAGMA user_version` (10400 or 10300) and as `geopackage_version` in `iwxxm_metadata`. The tables are the same in both. `default(GeoPackageVersion)` is rejected with an `ArgumentOutOfRangeException`. |
+| `LastChangeUtc` | a `DateTimeOffset`, or `null` (default) | The `last_change` of every table in `gpkg_contents`. `null` means the issue time of the document; if the document has none, the Unix epoch (`GeoPackageExportOptions.FallbackLastChangeUtc`). |
+| `Content` | `GeoPackageContent.SchemaExtension` (default), `GeoPackageContent.None` | The optional parts written next to the data tables, a flags enumeration (more flags may be added later). `SchemaExtension` writes the `gpkg_schema` extension; `None` writes only the data tables and the tables every GeoPackage has. A value with a bit that is not a defined flag is rejected with an `ArgumentOutOfRangeException`. |
+
+```csharp
+var options = new GeoPackageExportOptions(GeoPackageVersion.Version13, new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+
+// Only the data tables, for a reader that does not support the gpkg_schema extension:
+var withoutSchema = new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.None);
+```
+
+The constructors have no optional parameters: the existing ones keep their meaning (and the schema extension on), and `GeoPackageExportOptions(version, lastChangeUtc, content)` is the one that selects the content.
+
+### Determinism
+
+No value comes from the clock. `last_change` is the option above, rows are written in the order of the GeoJSON features, and the file is built in one transaction. Exporting the same document with the same options twice gives files with the same content (on the same runtime: see the note on negative zero below). The SQLite file header records the version of the SQLite library that wrote the file, so compare the content (schema and rows), not the bytes, across SQLite versions; this is also why the repository's golden tests compare a text dump and not a binary file.
+
+### Errors
+
+An export problem is a value, as for GeoJSON and CSV: a failed `Result<string>` with the code `GEOPACKAGE-EXPORT-ERROR` (`ErrorCategory.DomainMapping`, located at the document id). It covers an empty or invalid path, a directory that does not exist (it is not created), a path that is a directory or cannot be written, and any failure while writing. Only a `null` document (or a `null` parser or stream) throws. The members that read a file (`ProcessFileToGeoPackage`, `ParseFileToGeoPackage`) also throw `ArgumentException` for a `null`, empty or whitespace input file path, as the parser does; the output path is not argument-validated and a bad one is reported as a failed `Result`.
+
+```csharp
+using System;
+using System.IO;
+using Iwxxm.Net;
+
+string missing = Path.Combine(Path.GetTempPath(), "no-such-folder", "out.gpkg");
+Result<string> failed = IwxxmParser.Default.ProcessFileToGeoPackage("samples/sigmet-A6-2-TC.xml", missing);
+
+Console.WriteLine(failed.Errors[0].Code);
+Console.WriteLine(failed.Errors[0].Category);
+```
+```output
+GEOPACKAGE-EXPORT-ERROR
+DomainMapping
+```
+
+**The target is never half written.** The database is built under a temporary name in the directory of the target and moved onto it only when it is complete and closed. If the export fails, a file that was already at the path is untouched and no temporary file is left behind, with the one exception in [Limits and things to know](#limits-and-things-to-know) (a swap that fails after the target was moved aside, on Windows). The connections are not pooled, so the file can be deleted or moved as soon as the call returns.
+
+### Limits and things to know
+
+- **Messages can hold host paths.** The message of a `GEOPACKAGE-EXPORT-ERROR` can contain a file path of the machine and the text of an internal exception. When the innermost exception is a different one from the one thrown, the message ends with its type and message in brackets, so that a failure to load the native SQLite can be diagnosed; that bracketed text can name host paths and library locations. Log the message; do not return it to end users.
+- **`ExportToBytes` uses the shared temporary directory** for a moment. On a multi-user host another user may be able to read that file, so a service should call `Export` with a path in a private directory instead.
+- **`OutOfMemoryException` is not converted** to a result, like everywhere in the library.
+- **Two exports to the same path are not supported**, at the same time or while another process has the file open. A target, existing or not, that has a `-wal` or `-journal` file next to it is in use or needs recovery: nothing is published (SQLite would apply a stale sidecar to the new database) and the export fails and says so. The swap is retried twice with a short pause when the system refuses it for a reason that can pass; there is no copy fallback, and a permanent failure (for example a target that is a directory) is not retried.
+- **Leftovers of a failed swap (Windows).** The old file is first moved to `.<name>.<guid>.bak` next to the target. If the swap then fails, the target is **absent**, the new file stays as the hidden `.iwxxm-<hex>.tmp` file, the old one stays as the `.bak` file, and the error message names the kept paths: restore by renaming one of them. If the swap succeeded but the `.bak` file cannot be deleted because the old file was still held open, the export still succeeds and the `.bak` file is left next to the target; delete it by hand. On Linux and macOS the swap is a single rename and neither case occurs.
+- **The path is used as given.** It is not confined to a directory, so never pass untrusted text as the path. A symbolic link at the path is replaced, not written through. On Unix the new file keeps its own mode and owner, not those of the file it replaces.
+- **Durability.** The file is complete before it is moved onto the target, but the directory is not flushed to disk: a power failure right after the call can lose the swap.
+- **A killed process can leave a hidden `.iwxxm-*.tmp` file** (and a `-journal` next to it) in the directory of the target; nothing sweeps them.
+- **Network shares.** The database is built next to the target, so a share without reliable file locking is not supported (a SQLite restriction).
+- **Negative zero.** A negative zero in a property is written `-0` on .NET and `0` on .NET Framework and Mono, so the `properties` text of such a value differs between those runtimes (the value objects normalize negative zero, so it is rare in practice); the coordinates in the geometry blobs keep the exact value.
+
+### What is in the file
+
+Every table is in WGS 84 (EPSG:4326, longitude then latitude), the same coordinates as the GeoJSON export, including the antimeridian splitting and polar caps (a `LineString` or `Polygon` is stored as a `MultiLineString` or `MultiPolygon` of one member). Geometries are 2D.
+
+| Table | Kind | Content |
+| :--- | :--- | :--- |
+| `iwxxm_points` | features (`POINT`) | Features whose geometry is a point. |
+| `iwxxm_lines` | features (`MULTILINESTRING`) | Features whose geometry is a line. |
+| `iwxxm_polygons` | features (`MULTIPOLYGON`) | Features whose geometry is a polygon (areas, circles as densified polygons, volumes). |
+| `iwxxm_attributes` | attributes | Features that have no geometry (for example a nil space weather analysis). Always created, even when empty. |
+| `iwxxm_reports` | attributes | One row per report of the document (a bulletin has one per report): its status, its permissible usage with the reason (`TEST`, `EXERCISE`) and the supplementary text when it has them, and its issue time and, for SIGWX, SIGMET, AIRMET and TAF, its validity period. |
+| `iwxxm_metadata` | attributes | Key/value rows: library version, GeoPackage version, source document id and type, report count and, for a bulletin that has a non-blank identifier, that identifier. |
+
+A geometry table with no rows is not created (the file above has points and polygons but no `iwxxm_lines`), so read `gpkg_contents` for the tables a file really has. Every row of the four feature tables has the same fixed columns: `feature_id`, `feature_type`, `report_id`, `report_type`, `bulletin_identifier`, `issue_time_utc`, `valid_from_utc`, `valid_until_utc` and `properties`.
+
+**`properties` is the GeoJSON `properties` object, as JSON text.** It is the same text, with the same keys in the same order, as the `properties` member of the feature in the [GeoJSON export](#8-geojson-export) (one difference between runtimes: a negative zero is written `-0` on .NET and `0` on .NET Framework and Mono): measures with their `...Uom` companions, vertical limits, codes and so on. The fixed columns repeat a few of those values so that you can filter without parsing JSON; everything else is in `properties` and is read with the JSON functions of your SQL engine (`json_extract` in SQLite and in GDAL's SQLite dialect). The full column list is in the [reference](REFERENCE.md#geopackage-tables-and-columns).
+
+**Validity period.** `valid_from_utc` and `valid_until_utc` hold the validity period of the report a feature belongs to, as `DATETIME` text in UTC like `issue_time_utc`, for SIGWX, SIGMET, AIRMET and TAF (the same values as the `validFromUtc` and `validUntilUtc` properties of the [GeoJSON export](#8-geojson-export)). They are `NULL` where the report has no validity period (METAR, SPECI, VAA, TCA, VONA, QVACI and space weather advisories do not: their other times are phenomenon or next advisory times, and none is turned into a period) and where a SIGMET, AIRMET or TAF does not state a bound. `iwxxm_reports` has the same two columns, filled from the typed report: in a bulletin each row is the period of its own report, not of the bulletin. A bulletin of several charts, such as the 15 SIGWX charts (T+06 to T+48) of the Met Office, can therefore be filtered by hour without reading the JSON, for example `WHERE valid_from_utc = '2099-01-01T12:00:00.000Z'`. `last_change` is not affected: it is still the issue time of the document unless you set it.
+
+The package does not create one table per feature type with a column for each property: that would need a fixed catalogue of properties across all products, and the JSON column keeps every property without one.
+
+### The schema extension: aliases, comments and the JSON type
+
+By default the file also has the `gpkg_schema` extension of the GeoPackage standard (Annex F): the tables `gpkg_data_columns` and `gpkg_data_column_constraints`, both registered in `gpkg_extensions`. `gpkg_data_columns` has one row for every column of every data table the file has (`fid`, the geometry, the fixed columns, and the columns of `iwxxm_reports` and `iwxxm_metadata`), with three texts:
+
+| Column | Content | What GDAL and QGIS do with it |
+| :--- | :--- | :--- |
+| `name` | A short alias, unique within the table (`Valid from`, `Report ID`) | GDAL reports it as the alternative name of the field and QGIS as its alias, which replaces the column name in the attribute table and the form. |
+| `title` | A longer label (`Validity start (UTC)`) | Neither of them reads it; other readers may. |
+| `description` | A precise text in English (`Report validity start (UTC); NULL when ...`) | GDAL reports it as the comment of the field and QGIS as the tooltip. |
+
+The `properties` column of the four feature tables also has the `mime_type` `application/json`, so GDAL reports it as a text field with the JSON subtype and QGIS as a JSON field (a text field without it). **That `mime_type` is a convention of GDAL and QGIS, not a part of the GeoPackage standard**, which does not define the meaning of the value; a reader that does not know the convention shows plain text. The constraints table is created empty: no column has an enumerated or ranged constraint. The same file read as plain SQLite is unchanged: the base tables and their rows are the same with and without the extension.
+
+**Turn it off for a strict reader.** The standard gives the extension the scope `read-write`: software that does not implement it should neither read nor write what it covers (here the two `gpkg_data_*` tables). A strict reader or validator that follows that rule to the letter may therefore refuse a file that has it, even though the data tables themselves are plain. For such a reader write the file with `GeoPackageContent.None` (see the options above): the three tables are then not created at all. GDAL, QGIS and plain SQLite clients do not refuse the file, and the base tables and their rows are unchanged; GDAL and QGIS do show the aliases, the comments and the JSON type of `properties` when the extension is present.
+
+### Open it in QGIS or GDAL
+
+QGIS reads GeoPackages through GDAL: **Layer, Add Layer, Add Vector Layer**, choose the `.gpkg`, and add the geometry tables as layers. The attribute tables open as tables without a map. With the default options GDAL reads `properties` as a JSON field and gives every field an alias and a comment (see the schema extension above); without the extension (`GeoPackageContent.None`) it is a plain text field. The files were checked with GDAL (`ogrinfo`, the Python bindings and GDAL's GeoPackage validator), and the aliases, comments and the JSON type were also read with QGIS 4.5 through its Python API (not through the QGIS desktop application).
+
+```bash
+ogrinfo -al -so sigmet-A6-2-TC.gpkg                              # layers, feature counts, extents
+ogrinfo -dialect SQLite -sql "SELECT feature_type, json_extract(properties, '$.firDesignator') AS fir FROM iwxxm_points" sigmet-A6-2-TC.gpkg
+ogr2ogr -f GeoJSON polygons.geojson sigmet-A6-2-TC.gpkg iwxxm_polygons
+```
+
+### .NET Framework and native SQLite
+
+The package targets `netstandard2.0`, so it is meant to run from .NET Framework 4.6.1 to .NET 10. SQLite itself is native code, which `Microsoft.Data.Sqlite` brings as `e_sqlite3` binaries under `runtimes/<rid>/native/`. On .NET 10 nothing needs to be done: the library finds the file for the current platform and no initialization call is needed (run on Linux with glibc and with musl, and on Windows x64 in CI; the macOS binaries come from the same package and are expected to load the same way, which has not been run). On .NET Framework the loader needs a little more care.
+
+**Status.** Run on a real .NET Framework 4.8 in CI (hosted `windows-latest` runner): the package's 787 tests passed as a 64-bit process and as a 32-bit process (the step that prints the native load showed SQLite 3.53.3 in a 64-bit and in a 32-bit process, on .NET Framework 4.8.9363.0), loading `runtimes\win-x64\native\e_sqlite3.dll` and `runtimes\win-x86\native\e_sqlite3.dll` from the output folder, with shadow copy turned off for the test runner (see the list below). Also run under Mono on Linux (the `net48-test` container stage, which needed a `dllmap` for `libdl` on a current distribution). **Not verified:** .NET Framework on Windows ARM64, the macOS native binaries, `packages.config` projects, and hosts other than the xUnit runners (ASP.NET and other hosts that shadow-copy).
+
+- **Use a project that restores with `PackageReference`.** The build targets of the SQLitePCLRaw native package copy `e_sqlite3.dll` for `win-x86` and `win-x64` to `runtimes\win-x86\native\` and `runtimes\win-x64\native\` under your output folder, and the SQLite loader looks there (and next to the executable). Keep those folders when you deploy.
+- **A `packages.config` project gets no native file.** The targets are not applied, so copy `e_sqlite3.dll` (from the NuGet cache `runtimes\win-x86\native` or `win-x64\native`, matching your process) next to the executable by hand, or migrate the project to `PackageReference`.
+- **Match the process architecture.** The loader picks `win-x86` or `win-x64` from the running process (seen in CI for a 64-bit and a 32-bit test process). Set the platform target to `x86` or `x64`, or leave `AnyCPU` and know which one will run: an `AnyCPU` application with **Prefer 32-bit** runs as x86 even on a 64-bit Windows, and the same application without it runs as x64. Both native files are copied, so either works as long as the process and the file agree; do not copy only one of them by hand and then change the platform target.
+- **Do not run it from a shadow-copied directory.** A host that copies the assemblies to a temporary directory before loading them (shadow copying) does not copy `runtimes\<rid>\native\`, and the SQLite loader looks only in `runtimes\<rid>\native\` and in the assembly folder of the copy, and for `e_sqlite3.dll` in the application base directory root. Then every export fails with `Library e_sqlite3 not found` (`The specified module could not be found`) although the file is in your output folder. **Seen:** with the xUnit runners of this package's own tests, the Visual Studio adapter on a Windows runner and the console runner under Mono both failed 417 of 787 tests the same way. A `xunit.runner.json` with `"shadowCopy": false` in the test project fixed both: the Windows runner then passed 787 of 787 as a 64-bit and as a 32-bit process, so the adapter does read that file. **Inferred, not tried:** other hosts that shadow copy, such as ASP.NET on .NET Framework, which loads from a shadow-copied directory by default, and some plugin hosts, should fail the same way. Turn shadow copying off for the host (the remedy confirmed for the xUnit runner), or copy `e_sqlite3.dll` (the one for the process bitness, from `runtimes\win-x64\native` or `win-x86\native`) into the application base directory root, which is the last place the loader looks; the second option has not been tried.
+- **Windows on ARM64 with .NET Framework is not supported**: the native package has no copy rule for `win-arm64`.
+- **Mono on Linux**: the same loader looks in `runtimes/<rid>/native/`; on a current distribution Mono also needs the name `libdl` to resolve (a symlink to `libdl.so.2`, or a `dllmap`), otherwise the load fails with `Library e_sqlite3 not found`.
+
+The package is about 19 MB on restore (95% of it the native SQLite for every platform). A framework-dependent .NET publish copies all of the `runtimes/` folders into the output (34 MB for a small console application in a measurement made for this package); a publish for one runtime identifier is expected to keep only that platform, which has not been tested here.
+
+### The dependency version limit
+
+The package pins `Microsoft.Data.Sqlite` to **10.0.15**. Every 10.0.x release ships a `netstandard2.0` asset; 11.0 targets `net10.0` only and moves to SQLitePCLRaw 3. While the package targets `netstandard2.0` (which is what keeps .NET Framework usable) it stays on the 10.0.x line, and servicing updates of that line change the SQLite version that writes the files. Moving to 11.x means dropping `netstandard2.0` for this package.
+
+### What is not included
+
+- **No spatial index (R-tree).** Without one, a client that filters a large table by extent reads every row. GeoPackage makes the index optional; a reader can build its own, and `ogr2ogr` creates one by default when it copies a layer.
+- **No typed per-feature tables.** One table per geometry kind with the properties in a JSON column, not one table per feature type with a column per property.
+- **No ring-validity check.** The coordinates and rings are those of the GeoJSON export, copied as they are. The package rejects a geometry it cannot encode (a position that is not finite, a ring that is not closed), but it does not test polygon validity in the sense of GEOS (self-intersections, holes outside the shell) on what it writes.
+- **No extension other than `gpkg_schema`** (and none at all with `GeoPackageContent.None`), no triggers and no `gpkg_ogr_contents`: none is required for plain feature and attribute tables.
+- **Tiles, rasters and the `gpkg_metadata` tables** are not written.
+
 ## 9. Value-object cookbook
 
 The domain is made of small immutable values. They share three habits: they keep **what was reported** (value, unit, reference), they have **exact structural equality**, and they never convert behind your back. This section is a short tour with quick recipes.
@@ -995,6 +1243,7 @@ How to read the table:
 - `51.5 m/s` is the wind **as the centre reported it**. The `kt` column converts it with `ToKnots()` (1 kt = 1852/3600 m/s): 51.5 m/s is about 100 kt, 61.8 m/s about 120 kt.
 - `15240 M MSL` is a height above mean sea level. Divided by 0.3048 it is 50 000 ft, which the `FL500~` prefix shows. The `~` is a reminder that this is an approximation for display; the exact reported value stays in parentheses.
 - The two core points with an isotach layer say the strong wind is not a thin line: around the core at 36.9 N the 120 kt air spans roughly FL450 to FL500.
+- In the [GeoJSON export](#8-geojson-export) (and so in the GeoPackage `properties` column) a core point with an isotach layer has `lowerIsotachLevel` and `upperIsotachLevel` after `windSpeedUom`, each with `...Uom` and `...Reference` like `level`; a point without one has no such key. The CSV export does not include them.
 
 ### Filtering and finding things
 
@@ -1485,6 +1734,9 @@ Input from a network is *expected* to be bad sometimes. A malformed message is n
 **Why is Schematron in a separate package?**
 The official rules need an XSLT 2.0+ processor. The core library is dependency-free and targets `netstandard2.0`, so it can run on .NET Framework; it can only ship an XSLT 1.0 subset. Full coverage uses SaxonCS-HE (MPL-2.0), which brings its own dependencies and needs .NET 10, so it is opt-in through `Iwxxm.Net.Validation.Saxon`.
 
+**Why is the GeoPackage export a separate package?**
+It needs SQLite, which is native code with its own packages and licences (about 19 MB on restore). Keeping it in `Iwxxm.Net.Export.GeoPackage` leaves the core with no dependencies, and an application that only parses or writes GeoJSON never downloads SQLite. CSV and GeoJSON need nothing outside the core and stay in it.
+
 **Why `null` instead of sensible defaults?**
 In aeronautical meteorology, a default is a lie that looks like data. A report without a status must not become `NORMAL`; a SIGMET without a lower limit must not become `FL000`; a missing wind unit must not become knots. `null` (and nullable reference types) make the compiler remind you that the information may be absent.
 
@@ -1502,7 +1754,7 @@ Never. Schemas, code lists and rules are embedded resources, and every external 
 
 ## 16. Where to go next
 
-- [REFERENCE.md](REFERENCE.md): one example per product family (VAA, TCA, SpaceWx, QVACI, AIRMET...), the full error-code table, value-object and namespace reference.
+- [REFERENCE.md](REFERENCE.md): one example per product family (VAA, TCA, SpaceWx, QVACI, AIRMET...), the full error-code table, the GeoPackage table layout, value-object and namespace reference.
 - [README.md](../README.md): installation, status and packaging.
 - [CONTRIBUTING.md](../CONTRIBUTING.md): build, tests, golden masters and the architecture rules.
 - [CHANGELOG.md](../CHANGELOG.md): what changed between versions.

@@ -1,9 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Iwxxm.Net;
+using Iwxxm.Net.Export.GeoPackage;
 using Iwxxm.Net.Reports;
 using Iwxxm.Net.Validation.Saxon;
 using Microsoft.VisualBasic.FileIO;
@@ -34,6 +36,12 @@ Options:
   --csv [path|-]       Also export RFC 4180 CSV (with OGC WKT geometries). Default
                        target: the input path with a .csv extension; '-' writes
                        the CSV to stdout (the report then goes to stderr).
+  --geopackage [path]  Also export an OGC GeoPackage (.gpkg, a SQLite file). Default
+                       target: the input path with a .gpkg extension. '-' (stdout) is
+                       not supported: the file is binary and SQLite needs a path.
+  --geopackage-no-schema
+                       With --geopackage: leave out the gpkg_schema extension (aliases,
+                       comments, JSON type), for a reader that does not support it.
   -o, --output <path>  Same as --geojson <path> (use '-' for stdout).
   --pretty             Indent the GeoJSON.
   --no-schematron      Skip the built-in business rules (XSD validation only).
@@ -47,10 +55,11 @@ Options:
 
 Exit codes:
   0  parsed (warnings may be present) and, if requested, exported
-  1  parse or validation errors, or the GeoJSON export failed, or the official
+  1  parse or validation errors, or an export failed (the GeoPackage export reports
+     an unwritable target this way, as GEOPACKAGE-EXPORT-ERROR), or the official
      Schematron engine could not be initialised (SCHEMATRON-UNAVAILABLE)
   2  usage error
-  3  I/O error (input not found or unreadable, output not writable)
+  3  I/O error (input not found or unreadable, GeoJSON or CSV output not writable)
 ";
 
         private static int Main(string[] args)
@@ -156,6 +165,13 @@ Exit codes:
                     return csvExit;
             }
 
+            if (options.ExportGeoPackage)
+            {
+                int gpkgExit = ExportGeoPackage(document, options, report);
+                if (gpkgExit != ExitCode.Ok)
+                    return gpkgExit;
+            }
+
             return ExitCode.Ok;
         }
 
@@ -249,6 +265,47 @@ Exit codes:
                 report);
         }
 
+        /// <summary>
+        /// True when both paths name the same file. File systems of Windows and macOS are case-insensitive by default, so
+        /// the comparison ignores case everywhere but on Linux (a case-insensitive volume on Linux is not detected).
+        /// </summary>
+        private static bool IsSameFile(string first, string second)
+        {
+            StringComparison comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? StringComparison.Ordinal
+                : StringComparison.OrdinalIgnoreCase;
+            return string.Equals(Path.GetFullPath(first), Path.GetFullPath(second), comparison);
+        }
+
+        private static GeoPackageExportOptions ExportOptions(CliOptions options) =>
+            options.GeoPackageWithoutSchema
+                ? new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.None)
+                : GeoPackageExportOptions.Default;
+
+        private static int ExportGeoPackage(IwxxmDocument document, CliOptions options, ConsoleReport report)
+        {
+            string target = options.ResolveGeoPackagePath();
+
+            // The exporter replaces a file that is already at the target: never let that be the input.
+            if (IsSameFile(target, options.InputPath!))
+            {
+                Console.Error.WriteLine("Error: the GeoPackage target is the input file; choose another path.");
+                return ExitCode.UsageError;
+            }
+
+            // The exporter reports every failure (including an unwritable path) as a GEOPACKAGE-EXPORT-ERROR value.
+            Result<string> exported = IwxxmGeoPackageExporter.Default.Export(document, target, ExportOptions(options));
+            if (exported.IsFailure)
+            {
+                report.Diagnostics("GeoPackage export", exported.Errors, exported.Warnings);
+                report.Verdict(false, "FAILED: GeoPackage export.");
+                return ExitCode.ParseOrValidationErrors;
+            }
+
+            report.Info("GeoPackage", $"written to {exported.Value} ({new FileInfo(exported.Value).Length} bytes)");
+            return ExitCode.Ok;
+        }
+
         private static int WriteExport(
             string label,
             string target,
@@ -258,7 +315,7 @@ Exit codes:
             ConsoleReport report)
         {
             bool toStdout = target == CliOptions.StdoutMarker;
-            if (!toStdout && Path.GetFullPath(target) == Path.GetFullPath(inputPath))
+            if (!toStdout && IsSameFile(target, inputPath))
             {
                 Console.Error.WriteLine($"Error: the {label} target is the input file; choose another path.");
                 return ExitCode.UsageError;

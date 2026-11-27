@@ -1,0 +1,69 @@
+using System;
+using Iwxxm.Net.Reports;
+
+namespace Iwxxm.Net.Export.GeoPackage.Model
+{
+    /// <summary>
+    /// One row of the <c>iwxxm_reports</c> table: the report-level metadata of one report of the exported document.
+    /// </summary>
+    internal sealed class GeoPackageReportRecord
+    {
+        public GeoPackageReportRecord(
+            string reportId,
+            IwxxmReportType reportType,
+            string reportStatus,
+            string permissibleUsage,
+            string? permissibleUsageReason,
+            string? permissibleUsageSupplementary,
+            DateTimeOffset issueTime,
+            DateTimeOffset? validFrom,
+            DateTimeOffset? validUntil,
+            string? bulletinIdentifier)
+        {
+            ReportId = reportId;
+            ReportType = reportType;
+            ReportStatus = reportStatus;
+            PermissibleUsage = permissibleUsage;
+            PermissibleUsageReason = permissibleUsageReason;
+            PermissibleUsageSupplementary = permissibleUsageSupplementary;
+            IssueTime = issueTime;
+            ValidFrom = validFrom;
+            ValidUntil = validUntil;
+            BulletinIdentifier = bulletinIdentifier;
+        }
+
+        /// <summary>The <c>gml:id</c> of the report (the value of the <c>reportId</c> feature property).</summary>
+        public string ReportId { get; }
+
+        /// <summary>The IWXXM classification of the report.</summary>
+        public IwxxmReportType ReportType { get; }
+
+        /// <summary>The <c>reportStatus</c> code as the GeoJSON exporter writes it (<c>NORMAL</c>, <c>AMENDMENT</c>, <c>CORRECTION</c>).</summary>
+        public string ReportStatus { get; }
+
+        /// <summary>The <c>permissibleUsage</c> code as the GeoJSON exporter writes it (<c>OPERATIONAL</c>, <c>NON-OPERATIONAL</c>).</summary>
+        public string PermissibleUsage { get; }
+
+        /// <summary>The <c>permissibleUsageReason</c> code as the GeoJSON metadata writes it (<c>TEST</c>, <c>EXERCISE</c>), or <c>null</c> when the report has none.</summary>
+        public string? PermissibleUsageReason { get; }
+
+        /// <summary>The free <c>permissibleUsageSupplementary</c> text of the report, or <c>null</c> when it has none.</summary>
+        public string? PermissibleUsageSupplementary { get; }
+
+        /// <summary>The issue time of the report; its offset is whatever the mapper produced (UTC for every mapped report).</summary>
+        public DateTimeOffset IssueTime { get; }
+
+        /// <summary>
+        /// The start of the validity period of this report, or <c>null</c> when the report type has no validity period (VAA, TCA,
+        /// VONA, QVACI, space weather, METAR, SPECI) or the report does not state it. It is the period of the report itself, never
+        /// that of the bulletin that contains it and never the period of a cancelled report.
+        /// </summary>
+        public DateTimeOffset? ValidFrom { get; }
+
+        /// <summary>The end of the validity period of this report, with the same rules as <see cref="ValidFrom"/>.</summary>
+        public DateTimeOffset? ValidUntil { get; }
+
+        /// <summary>The identifier of the bulletin that contains the report, or <c>null</c> for a standalone report.</summary>
+        public string? BulletinIdentifier { get; }
+    }
+}

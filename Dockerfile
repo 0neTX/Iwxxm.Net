@@ -107,6 +107,16 @@ RUN perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
          print "Iwxxm.Net.Export.GeoPackage nuspec: depends on Iwxxm.Net and Microsoft.Data.Sqlite; netstandard2.0 assembly present\n";' \
         /workspace/artifacts/Iwxxm.Net.Export.GeoPackage.${PACKAGE_VERSION}.nupkg
 
+# Guard: the GeoPackage package reads internals of the core (InternalsVisibleTo), which only the version it was built
+# against grants, so its dependency on Iwxxm.Net must be exactly the version of the core package packed with it
+RUN perl -MIO::Uncompress::Unzip=unzip,\$UnzipError -e \
+        'unzip $ARGV[0] => \my $nuspec, Name => "Iwxxm.Net.Export.GeoPackage.nuspec" or die "nuspec not found: $UnzipError\n"; \
+         $nuspec =~ /<dependency\s+id="Iwxxm\.Net"\s+version="([^"]*)"/ or die "ERROR: no version on the Iwxxm.Net dependency\n"; \
+         my $raw = $1; (my $declared = $raw) =~ s/^[\[(]|[\])]$//g; \
+         $declared eq $ARGV[1] or die "ERROR: Iwxxm.Net.Export.GeoPackage depends on Iwxxm.Net $raw, not on the packed version $ARGV[1]\n"; \
+         print "Iwxxm.Net.Export.GeoPackage depends on Iwxxm.Net $declared, the version packed with it\n";' \
+        /workspace/artifacts/Iwxxm.Net.Export.GeoPackage.${PACKAGE_VERSION}.nupkg ${PACKAGE_VERSION}
+
 # Guard: all three packages ship the third-party notices and the licence at the package root (the Saxon package also the
 # SchXslt licence)
 RUN for pkg in Iwxxm.Net Iwxxm.Net.Validation.Saxon Iwxxm.Net.Export.GeoPackage; do \
@@ -136,9 +146,9 @@ COPY --from=pack /workspace/artifacts/ /
 #   5a `net48-compile` compiles the net48 target of the core and of the GeoPackage test projects against the reference
 #      assemblies (Microsoft.NETFramework.ReferenceAssemblies).
 #   5b `net48-test` also runs both under Mono with the xunit console runner (a Mono approximation of .NET Framework;
-#      the Windows CI job is the real .NET Framework run). The GeoPackage run checks that the netstandard2.0 package
-#      loads its bundled native SQLite (runtimes/<rid>/native) from a net48 application; the native binary Mono loads is
-#      the Linux one, so the Windows DLL lookup is only verified by the Windows CI job.
+#      the Windows CI job is the real .NET Framework run, x64 and x86). The GeoPackage run checks that the netstandard2.0
+#      package loads its bundled native SQLite (runtimes/<rid>/native) from a net48 application; the native binary Mono
+#      loads is the Linux one, so the Windows DLL lookup is only verified by the Windows CI job.
 # Usage: podman build --target net48-compile .   |   podman build --target net48-test .   (docker build works the same)
 # These stages sit before `ci` so that the default (last) stage is unchanged.
 #
@@ -174,9 +184,10 @@ RUN perl -0pi -e 's{</configuration>}{  <dllmap dll="dl" target="libdl.so.2" os=
 WORKDIR /workspace/tests/Iwxxm.Net.Tests/bin/Release/net48
 RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Tests.dll -nologo -parallel none
 WORKDIR /workspace/tests/Iwxxm.Net.Export.GeoPackage.Tests/bin/Release/net48
-# -noshadow: the console runner otherwise copies the test assemblies to a temporary directory, without the
-# runtimes/<rid>/native folder the bundled SQLite is loaded from.
-RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Export.GeoPackage.Tests.dll -nologo -parallel none -noshadow
+# No -noshadow here on purpose: the test project's xunit.runner.json (shadowCopy=false) must be enough (the Visual Studio
+# adapter on Windows reads it too: confirmed on a hosted windows-latest runner). With shadow copy the runner copies the test assemblies to a temporary directory without
+# the runtimes/<rid>/native folder the bundled SQLite is loaded from, and 417 of the 787 tests fail ("Library e_sqlite3 not found").
+RUN mono /opt/xunit-runner/tools/net472/xunit.console.exe Iwxxm.Net.Export.GeoPackage.Tests.dll -nologo -parallel none
 
 # ==============================================================================
 # Stage 6: ci — Default runtime stage (exports artifacts only; never publishes)

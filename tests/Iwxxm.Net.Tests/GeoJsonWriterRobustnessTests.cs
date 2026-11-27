@@ -17,6 +17,9 @@ namespace Iwxxm.Net.Tests
         [InlineData(123.45678901234567)]
         [InlineData(-179.99999999999997)]
         [InlineData(1e-300)]
+        [InlineData(double.MaxValue)]
+        [InlineData(double.MinValue)]
+        [InlineData(double.Epsilon)]
         public void Numbers_RoundTripExactly(double value)
         {
             string json = Write(w => w.WriteProperty("v", value));

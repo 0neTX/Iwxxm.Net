@@ -1,4 +1,5 @@
 using System;
+using Iwxxm.Net.Reports;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,15 +13,16 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
     /// encloses a pole) is written as the region between the ring and the pole on the side of its mean latitude: the
     /// ring is repeated every 360 degrees, clipped to the [-180, 180] strip and closed along the antimeridian and the
     /// pole, so a ring that leaves the strip and comes back (a lobe across the antimeridian) loses no vertex and may give
-    /// several polygons. A ring that crosses a strip border more than twice is clipped the same way, so its pieces are
+    /// several polygons (the one exception is a lobe with no area at all, such as a ring that runs along a pole out across the
+    /// antimeridian and back: the pole is a single point, so no polygon can hold the spur, which is replaced by the cut, or stays a
+    /// spike of a larger ring when the pieces are joined). A piece that has no area on the grid the coordinates are written on (see
+    /// <see cref="HasNoArea"/>) is never written next to a piece that has one. A ring that crosses a strip border more than twice is clipped the same way, so its pieces are
     /// never joined by a zero-width bridge. Interior rings that lie entirely inside a cap are kept as its holes; an
     /// interior ring that cannot be represented that way (it crosses the antimeridian, or is not inside the cap) is
     /// dropped and counted, so the caller can report it explicitly.
     /// </summary>
     internal static class AntimeridianSplitter
     {
-        private const double Epsilon = 1e-9;
-
         /// <summary>Gets a value indicating whether a sequence crosses the antimeridian (an edge spans more than 180 degrees).</summary>
         public static bool Crosses(IReadOnlyList<GeoJsonPosition> positions)
         {
@@ -138,7 +140,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                         droppedInteriorRings++;
                 }
 
-                return polygons;
+                return WithoutPiecesOfNoArea(polygons);
             }
 
             double min = unwrapped.Min();
@@ -255,7 +257,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
                 pieces.Add(rings);
             }
 
-            return pieces;
+            return WithoutPiecesOfNoArea(pieces);
         }
 
         /// <summary>
@@ -765,12 +767,12 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
             points = ClipHalfPlane(points, west, keepGreater: true);
             points = ClipHalfPlane(points, east, keepGreater: false);
-            if (points.Count < 3 || Math.Abs(Area(points)) < Epsilon)
+            if (points.Count < 3)
                 return null;
 
             var result = points.Select(p => GeoJsonPosition.Computed(p.Lon + shift, p.Lat)).ToList();
             result.Add(result[0]);
-            return result;
+            return HasNoArea(result) ? null : result;
         }
 
         private static List<(double Lon, double Lat)> ClipHalfPlane(List<(double Lon, double Lat)> input, double x, bool keepGreater)
@@ -795,12 +797,56 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
             return output;
         }
 
-        private static double Area(List<(double Lon, double Lat)> points)
+        /// <summary>
+        /// Gets a value indicating whether a closed ring has no area at the precision it is written at: on the grid of
+        /// <see cref="GeoCoordinate.Precision"/> degrees all its positions lie on one line (a spur along a pole, a ring along a strip
+        /// border, a lobe cut down to a line). The test is made on the grid positions themselves, in exact arithmetic, so it has no
+        /// tolerance to choose and no rounding error to be mistaken for an area: a ring that has any area on the grid, however small,
+        /// is a polygon; a ring that has none is not (a polygon of zero area is not valid, RFC 7946 section 3.1.6). The test looks at the
+        /// rounded positions, not at the real geometry: a spur of zero width whose clip or cut points round to different grid cells
+        /// keeps an area of at least half a cell and is written as a (valid, tiny) polygon.
+        /// </summary>
+        internal static bool HasNoArea(IReadOnlyList<GeoJsonPosition> ring)
         {
-            double area = 0.0;
-            for (int i = 0, j = points.Count - 1; i < points.Count; j = i++)
-                area += (points[j].Lon * points[i].Lat) - (points[i].Lon * points[j].Lat);
-            return area / 2.0;
+            decimal twiceArea = 0m;
+            long x0 = Cell(ring[0].Lon);
+            long y0 = Cell(ring[0].Lat);
+            for (int i = 1; i < ring.Count - 1; i++)
+            {
+                decimal ax = Cell(ring[i].Lon) - x0;
+                decimal ay = Cell(ring[i].Lat) - y0;
+                decimal bx = Cell(ring[i + 1].Lon) - x0;
+                decimal by = Cell(ring[i + 1].Lat) - y0;
+                twiceArea += (ax * by) - (bx * ay);
+            }
+
+            return twiceArea == 0m;
+        }
+
+        private static long Cell(double degrees) => (long)Math.Round(degrees / GeoCoordinate.Precision);
+
+        /// <summary>
+        /// Leaves out the pieces that have no area on the output grid (and the interior rings that have none), which every way of
+        /// assembling pieces can produce from a spur of zero width. When no piece has an area the source ring itself has none: it is
+        /// returned as it is.
+        /// </summary>
+        private static List<List<List<GeoJsonPosition>>> WithoutPiecesOfNoArea(List<List<List<GeoJsonPosition>>> pieces)
+        {
+            if (pieces.All(p => HasNoArea(p[0])))
+                return pieces;
+
+            var kept = new List<List<List<GeoJsonPosition>>>(pieces.Count);
+            foreach (List<List<GeoJsonPosition>> piece in pieces)
+            {
+                if (HasNoArea(piece[0]))
+                    continue;
+
+                List<GeoJsonPosition> exterior = piece[0];
+                piece.RemoveAll(ring => !ReferenceEquals(ring, exterior) && HasNoArea(ring));
+                kept.Add(piece);
+            }
+
+            return kept;
         }
 
         private static double Interpolate(double lonA, double latA, double lonB, double latB, double lon) =>

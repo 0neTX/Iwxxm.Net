@@ -23,6 +23,8 @@
         "reportId": "uuid.69a2497b-193c-47bf-a6bd-1cc71acbc8e5",
         "reportType": "Airmet",
         "issueTimeUtc": "2014-05-15T15:20:00.0000000+00:00",
+        "validFromUtc": "2014-05-15T15:20:00.0000000+00:00",
+        "validUntilUtc": "2014-05-15T18:00:00.0000000+00:00",
         "firDesignator": "YUDD",
         "sequenceNumber": "1",
         "phenomenonUri": "http://codes.wmo.int/49-2/AirWxPhenomena/ISOL_TS",

@@ -14,6 +14,18 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
+  <!--
+    No shadow copy. On .NET Framework the xUnit runners copy the test assemblies to a temporary (shadow) directory, and that
+    copy does not include runtimes\<rid>\native, where the bundled SQLite (e_sqlite3) is. SQLitePCLRaw then looks only in
+    the shadow directory and in the application base directory, finds nothing and every test that opens a database fails with
+    "Library e_sqlite3 not found". shadowCopy=false in xunit.runner.json (read by the console runner and by the Visual Studio
+    adapter) runs the assemblies in place. It has no effect on net10.0, which has no shadow copy. The core test project has no
+    native library and does not need it.
+  -->
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- Package versions are managed centrally in Directory.Packages.props -->
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -26,6 +38,30 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <!-- .NET Framework has no System.Text.Json; the tests use it to parse the GeoJSON output (test-only, never shipped) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <!-- The official WMO examples live in the core test project; they are linked, never copied into this one. -->
+  <ItemGroup>
+    <None Include="..\Iwxxm.Net.Tests\Samples\wmo-examples\*.xml" Link="Samples\wmo-examples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    More real documents with geometry from the same project, linked under Samples/extra: the SIGWX examples (the small one and
+    the 14 MB synthetic WAFS bulletin with 4252 features).
+  -->
+  <ItemGroup>
+    <None Include="..\Iwxxm.Net.Tests\Samples\sigwx-swh-2025-2.xml" Link="Samples\extra\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Iwxxm.Net.Tests\Samples\external\metoffice\example-iwxxm-2025-2-sigwx-non-operational.xml" Link="Samples\extra\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Golden canonical dumps; regenerate with IWXXM_GPKG_UPDATE_GOLDEN=1, see GeoPackageGoldenTests; that run fails on purpose. -->
+  <ItemGroup>
+    <None Update="Golden\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

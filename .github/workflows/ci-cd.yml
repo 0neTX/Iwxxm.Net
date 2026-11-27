@@ -87,11 +87,86 @@ jobs:
           --verbosity normal
           --collect:"XPlat Code Coverage"
 
+      # GeoPackage exporter (Iwxxm.Net.Export.GeoPackage): netstandard2.0, with the native SQLite bundled through
+      # Microsoft.Data.Sqlite / SQLitePCLRaw. On Windows its test project also builds a net48 target, so a plain
+      # `dotnet test` would run both; the runs are split instead (net10.0 here, on both runners; .NET Framework below, on
+      # Windows only) so that each is reported, and fails, under its own name.
+      - name: Run GeoPackage exporter tests, net10.0 (Iwxxm.Net.Export.GeoPackage)
+        run: >
+          dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj
+          --configuration Release
+          --no-build
+          -f net10.0
+          --verbosity normal
+          --collect:"XPlat Code Coverage"
+
+      # The native SQLite that net48 loads: SQLitePCLRaw copies it next to the test assembly, runtimes\win-x86\native and
+      # runtimes\win-x64\native (the package's targets do this when the build runs on Windows with no RuntimeIdentifier;
+      # win-arm64 is not copied). A missing file here is a build problem, not a loading problem, and is reported as such.
+      - name: Check the native SQLite is copied for net48 (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $out = 'tests/Iwxxm.Net.Export.GeoPackage.Tests/bin/Release/net48'
+          foreach ($rid in 'win-x86', 'win-x64') {
+            $dll = Join-Path $out "runtimes/$rid/native/e_sqlite3.dll"
+            if (-not (Test-Path $dll)) { throw "Missing $dll" }
+            Write-Host "Found $dll"
+          }
+
+      # net48 as a 64-bit process: loads runtimes\win-x64\native\e_sqlite3.dll. The hosted runner is x64, so this is the
+      # one bitness that is certain to run here.
+      - name: Run GeoPackage exporter tests on .NET Framework 4.8, x64 (Windows)
+        if: matrix.os == 'windows-latest'
+        run: >
+          dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj
+          --configuration Release
+          --no-build
+          -f net48
+          --verbosity normal
+
+      # Prints what the NativeLoad test sees (the SQLite version, the bitness of the process, the runtime) and fails if
+      # the process is not 64-bit.
+      - name: Show the native load on .NET Framework 4.8, x64 (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $log = dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj --configuration Release --no-build -f net48 --filter "FullyQualifiedName~NativeLoad" --logger "console;verbosity=detailed" | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "The NativeLoad test failed" }
+          if ($log -notmatch '64-bit process') { throw "The NativeLoad test did not run as a 64-bit process" }
+
+      # net48 as a 32-bit process: the test assembly is AnyCPU, so selecting the x86 test host makes it a 32-bit process
+      # that must load runtimes\win-x86\native\e_sqlite3.dll (32-bit .NET Framework runs on the x64 runner through WoW64).
+      # NOT RUN YET. If `dotnet test` does not honour the setting, the NativeLoad step below fails (it sees a 64-bit
+      # process) and this step is not testing x86: then replace both steps by `vstest.console.exe <test dll> /Platform:x86` (it is
+      # part of the Visual Studio installation of the runner) or verify x86 by hand. Windows ARM64 cannot be tested on a
+      # hosted runner and is not covered.
+      - name: Run GeoPackage exporter tests on .NET Framework 4.8, x86 (Windows)
+        if: matrix.os == 'windows-latest'
+        run: >
+          dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj
+          --configuration Release
+          --no-build
+          -f net48
+          --verbosity normal
+          -- RunConfiguration.TargetPlatform=x86
+
+      # Fails if the NativeLoad test does not report a 32-bit process, i.e. if the x86 selection above was ignored.
+      - name: Show the native load on .NET Framework 4.8, x86 (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $log = dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests/Iwxxm.Net.Export.GeoPackage.Tests.csproj --configuration Release --no-build -f net48 --filter "FullyQualifiedName~NativeLoad" --logger "console;verbosity=detailed" -- RunConfiguration.TargetPlatform=x86 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "The NativeLoad test failed" }
+          if ($log -notmatch '32-bit process') { throw "The NativeLoad test did not run as a 32-bit process" }
+
       - name: Pack NuGet packages (.nupkg & .snupkg)
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          for project in src/Iwxxm.Net/Iwxxm.Net.csproj src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj; do
+          for project in src/Iwxxm.Net/Iwxxm.Net.csproj src/Iwxxm.Net.Validation.Saxon/Iwxxm.Net.Validation.Saxon.csproj src/Iwxxm.Net.Export.GeoPackage/Iwxxm.Net.Export.GeoPackage.csproj; do
             dotnet pack "$project" \
               --configuration Release \
               --no-build \
@@ -110,6 +185,20 @@ jobs:
             echo "::error::Iwxxm.Net must not declare runtime dependencies"
             exit 1
           fi
+
+      # The core guard above is unchanged. The GeoPackage package must depend on the core and on Microsoft.Data.Sqlite
+      # (which brings the native SQLite binaries).
+      - name: Verify the GeoPackage package dependencies
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          nuspec=$(unzip -p "./artifacts/Iwxxm.Net.Export.GeoPackage.${{ env.PACKAGE_VERSION }}.nupkg" Iwxxm.Net.Export.GeoPackage.nuspec)
+          for id in Iwxxm.Net Microsoft.Data.Sqlite; do
+            if ! grep -q "<dependency id=\"${id}\"" <<< "$nuspec"; then
+              echo "::error::Iwxxm.Net.Export.GeoPackage must depend on ${id}"
+              exit 1
+            fi
+          done
 
       - name: Upload NuGet package artifacts
         if: matrix.os == 'ubuntu-latest'

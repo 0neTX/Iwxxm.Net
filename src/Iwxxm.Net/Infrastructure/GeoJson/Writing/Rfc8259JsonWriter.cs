@@ -284,15 +284,16 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
         /// <summary>
         /// Appends the shortest of <c>G15</c>, <c>G16</c> and <c>G17</c> that parses back to exactly <paramref name="value"/>
         /// (AUD-L9; <c>G17</c> always round-trips). Unlike <c>"R"</c>, whose output differs between .NET Framework and .NET,
-        /// the result is the same on every target framework; <c>G15</c> alone lost up to two digits.
+        /// the digits are the same on every target framework (<c>G15</c> alone lost up to two digits). The one known difference
+        /// is negative zero, which <c>ToString</c> writes as <c>-0</c> on .NET and as <c>0</c> on .NET Framework and Mono.
         /// </summary>
         private void AppendRoundTrip(double value)
         {
             string text = value.ToString("G15", CultureInfo.InvariantCulture);
-            if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+            if (!ParsesBackTo(text, value))
             {
                 text = value.ToString("G16", CultureInfo.InvariantCulture);
-                if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+                if (!ParsesBackTo(text, value))
                 {
                     text = value.ToString("G17", CultureInfo.InvariantCulture);
                 }
@@ -300,6 +301,14 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Writing
 
             _sb.Append(text);
         }
+
+        /// <summary>
+        /// Whether <paramref name="text"/> parses back to exactly <paramref name="value"/>. <c>TryParse</c> and not <c>Parse</c>: near
+        /// <c>double.MaxValue</c> the <c>G15</c> text rounds above the maximum, which .NET Framework rejects with an
+        /// <see cref="OverflowException"/> (newer runtimes return infinity); either way the text does not round-trip.
+        /// </summary>
+        private static bool ParsesBackTo(string text, double value) =>
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) && parsed == value;
 
         private void WriteIndent()
         {

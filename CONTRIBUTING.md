@@ -182,3 +182,13 @@ podman build --target build -t iwxxm-net-build .
 podman run --rm -v "$PWD/tests/Iwxxm.Net.Tests/Golden:/golden:Z" -e IWXXM_UPDATE_GOLDEN=/golden iwxxm-net-build \
   dotnet test tests/Iwxxm.Net.Tests/Iwxxm.Net.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~GoldenMaster"
 ```
+
+The GeoPackage package has the same kind of golden files, in `tests/Iwxxm.Net.Export.GeoPackage.Tests/Golden/`: `GeoPackageGoldenTests` writes a few samples through the public API with a fixed `LastChangeUtc` and compares a canonical text dump of the file (pragmas, schema, rows in rowid order, geometries as WKT with 17 significant digits; never the file bytes, whose header carries the SQLite version) with `<sample>.dump.txt`. The comparison runs on .NET only, like the core goldens. This package has its own variable, `IWXXM_GPKG_UPDATE_GOLDEN=1` (or `true`; any other value, such as a path, is rejected, and `IWXXM_UPDATE_GOLDEN` is not read). The files are written to the source `Golden/` directory and the run then fails on purpose, so it cannot be mistaken for a passing run: regenerate, rerun without the variable, and review the diff:
+
+```bash
+IWXXM_GPKG_UPDATE_GOLDEN=1 dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests -c Release -f net10.0 --filter "FullyQualifiedName~GeoPackageGoldenTests"   # fails by design
+dotnet test tests/Iwxxm.Net.Export.GeoPackage.Tests -c Release -f net10.0 --filter "FullyQualifiedName~GeoPackageGoldenTests"
+git diff --stat tests/Iwxxm.Net.Export.GeoPackage.Tests/Golden
+```
+
+Two scripts check the `.gpkg` files against GDAL, an independent reader. They are not part of the unit tests or of the workflow, need podman and a built test image (`podman build --target test -t iwxxm-net-test .`) and pull a pinned GDAL image the first time: `tools/validate-geopackage-file.sh` writes a file for every sample and checks it with `ogrinfo`, SQLite's integrity checks and GDAL's own GeoPackage validator, and `tools/validate-geopackage-geometry.sh` compares the geometry blobs with what GDAL reads. The demo application can also write a file (`--geopackage`); see its [README](samples/Iwxxm.Net.Demo/README.md).

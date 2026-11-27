@@ -1,6 +1,6 @@
 # Iwxxm.Net reference
 
-The companion to the [guide](GUIDE.md): the guide teaches, this page looks things up. It holds one example per product family, the composition root and its ports, the full error-code table, the value-object catalogue and the namespace map.
+The companion to the [guide](GUIDE.md): the guide teaches, this page looks things up. It holds one example per product family, the GeoPackage table layout, the composition root and its ports, the full error-code table, the value-object catalogue and the namespace map.
 
 Every C# snippet is compiled against the packaged library. As in the guide, paths such as `samples/metar-A3-1.xml` refer to the official example messages copied next to your project (see [Before you start](GUIDE.md#1-before-you-start)).
 
@@ -8,11 +8,12 @@ Every C# snippet is compiled against the packaged library. As in the guide, path
 
 1. [One example per product family](#one-example-per-product-family)
 2. [GeoJSON export in detail](#geojson-export-in-detail)
-3. [Composition root and dependency injection](#composition-root-and-dependency-injection)
-4. [Official WMO Schematron](#official-wmo-schematron)
-5. [Error codes](#error-codes)
-6. [Domain value objects and spatial primitives](#domain-value-objects-and-spatial-primitives)
-7. [Namespaces and layers](#namespaces-and-layers)
+3. [GeoPackage tables and columns](#geopackage-tables-and-columns)
+4. [Composition root and dependency injection](#composition-root-and-dependency-injection)
+5. [Official WMO Schematron](#official-wmo-schematron)
+6. [Error codes](#error-codes)
+7. [Domain value objects and spatial primitives](#domain-value-objects-and-spatial-primitives)
+8. [Namespaces and layers](#namespaces-and-layers)
 
 ---
 
@@ -375,7 +376,7 @@ What the file shows (official XSD, built-in Schematron subset, `Iwxxm.Net.Valida
 - **The XSD and the official Schematron (165 rules) both pass** and the bulletin maps all 15 reports with no item errors: 574 jet streams (1850 core points), 733 clouds, 585 turbulence areas, 1903 airframe icing areas, 301 tropopause contours, 135 volcanoes and 21 tropical cyclones. `RADIATION` is listed in `phenomenaList` but the bulletin contains no radiation feature.
 - **Each chart is an instant** (`gml:TimePeriod` with `beginPosition == endPosition`, equal to `phenomenonTime`). The schema allows it and so does the SIGWX domain (`ValidFromUtc == ValidUntilUtc`); only an end before the start is `DOMAIN-SIGWX-VALID-PERIOD`. Forecast groups of aerodrome reports accept an instant too; the validity period of a SIGMET, AIRMET or TAF must still end after it starts.
 - **The wind speed unit is `kn_i`, not the UCUM `[kn_i]`.** Neither the XSD nor the official Schematron checks it. The unit readers accept `kn_i` as a recognised legacy alias of `[kn_i]` (knots) and always report it: the whole bulletin gets one `ACL-MEASURE-UOM-NON-UCUM-ALIAS` warning in `Result.Warnings` that names the field (`windSpeed`), the alias, the UCUM code and the count (1850). All 574 jet streams map.
-- **GeoJSON**: 6,102 features (4252 phenomena and 1850 jet stream core points), valid JSON; positions are `[longitude, latitude]`, rings are closed and counter-clockwise, and the antimeridian crossings of the source are split at 180 without losing a vertex (the three south polar tropopause contours whose ring has a lobe across 180 keep all their vertices). Each tropopause contour is one polygon that carries its level; the `bbox` of this global collection is `[-180, south, 180, north]`.
+- **GeoJSON**: 6,102 features (4252 phenomena and 1850 jet stream core points, 231 of which carry isotach levels), valid JSON; positions are `[longitude, latitude]`, rings are closed and counter-clockwise, and the antimeridian crossings of the source are split at 180 without losing a vertex (the three south polar tropopause contours whose ring has a lobe across 180 keep all their vertices). Each tropopause contour is one polygon that carries its level; the `bbox` of this global collection is `[-180, south, 180, north]`.
 - **Cost** (container with 2 cores, one process, indicative; not a benchmark): parsing and mapping about 0.5 s, the XSD about 0.4 s and the built-in Schematron about 0.3 s on top, the GeoJSON export about 0.3 s; about 1.5 s for the first complete run and 0.7 to 1.0 s once warm, about 155 MiB above the process baseline at peak. The official Schematron through `Iwxxm.Net.Validation.Saxon` needs about 4.5 s for the first run and 1.7 s warm (about 1.7 GB allocated). The deepest element nesting is 16 levels, far below the default `MaxElementDepth` of 128 (AUD-N1). A synthetic 49.7 MiB bulletin built from the same content (the largest document the default accepts) takes about 3.8 s and peaks at about 545 MiB of working set; see [SECURITY.md](../SECURITY.md#memory-cost-of-the-default-size-limit).
 
 ---
@@ -389,9 +390,11 @@ What the file shows (official XSD, built-in Schematron subset, `Iwxxm.Net.Valida
 - The global `bbox` is `[west, south, east, north]`. When a geometry crosses the antimeridian the longitude extent is the smallest arc that contains every position, so `west` is greater than `east` (section 5.2), but only when that arc is at most 180 degrees wide. Features spread over the whole longitude range (a global chart, a polar cap, features on both sides of the antimeridian with no narrower wrapping arc) have no meaningful smaller box and a wrapping box that spans almost 360 degrees looks empty to a client that expects `west <= east`, so the plain extent is written (`-180` and `180` when the content reaches both sides). The latitudes are always the plain minimum and maximum of the positions: a pole (`-90` or `90`) appears only when a position reaches it.
 - Exterior rings are counter-clockwise and holes clockwise (right-hand rule); geometries that cross +-180 degrees are split into `MultiLineString` or `MultiPolygon` (section 3.1.9); rings around a pole become polar caps (the ring is repeated every 360 degrees, clipped to [-180, 180] and closed along the antimeridian and the pole, so a ring with a lobe that leaves the strip and returns keeps every vertex and may give several polygons; a ring that crosses the antimeridian more than twice is clipped the same way, giving separate pieces instead of pieces joined by a zero-width bridge): interior rings entirely inside a cap are kept as its holes, and an interior ring that cannot be represented (it crosses the antimeridian or is not inside the cap) is left out and counted in the feature property `droppedInteriorRings` (omitted when 0), never dropped silently. For a polygon that does not enclose a pole and crosses the antimeridian, an interior ring that reaches +-180 (it crosses it, or has an edge on it) is cut out of the pieces of the exterior: each piece gets a notch instead of a hole that shares an edge with its shell, so the area is the exterior minus the interior ring and every ring stays valid for GEOS and PostGIS; an interior ring entirely inside one piece stays a hole of that piece (the piece is chosen from several of its vertices that are not on +-180, not from its first vertex); one that fits no piece, or that is not inside the exterior (entirely outside it, with a vertex outside it, or crossing its edge) is left out and counted once in `droppedInteriorRings`, even if it crosses several strips. The containment test looks at the vertices of the interior ring, not at its edges: a ring whose vertices are all inside a concave exterior but whose edges leave it is accepted and can still produce a world-sized ring, and the cost of the test is per interior ring (bounded by 4,000,000 edge tests each), not per document, so an untrusted document with a very large number of interior rings crossing a strip border can be slow (both need invalid or hostile GML). A line vertex exactly on +-180 is the cut position itself: it is not repeated, and a line that only starts or ends on the antimeridian stays a single `LineString` (on the side it lies on), never a `MultiLineString` with a one-position part. A surface with several `gml:PolygonPatch` is a `MultiPolygon` with the property `patchCount` (space weather regions); the other report types hold one surface and report `ACL-GML-MULTI-PATCH-UNSUPPORTED` for several patches. The domain model keeps the source order.
 - Circles (`GeoCircle`) are written as a 64-segment polygon (geodesic points on the IUGG mean sphere) plus the properties `center` (`[lon, lat]`), `radius`, `radiusUom` and `circleSegments`, from which a consumer can rebuild the exact circle.
+- **Validity period**: every feature of a SIGWX, SIGMET, AIRMET or TAF report carries `validFromUtc` and `validUntilUtc`, the validity period of its report, in the same ISO 8601 round-trip text as `issueTimeUtc`. For SIGWX, SIGMET and AIRMET the two keys come right after the base properties (`featureType`, `reportId`, `reportType`, `issueTimeUtc` and, in a bulletin, `bulletinIdentifier`); the TAF keeps them after `aerodromeName`. A key is written only when the report states that bound: a SIGWX chart always has both (an instant has the same value twice, as in the Met Office product, whose 15 charts T+06 to T+48 are told apart by it), a SIGMET, AIRMET or TAF may have none, one or both. This is the period of the report itself: the period of a cancelled report (`CancelledReportValidFromUtc`) is not written. VAA, TCA, VONA, QVACI and space weather advisories have no validity period in the model (they carry phenomenon, next advisory or model initialisation times, which are not validity periods), so their features have neither key. The [CSV export](GUIDE.md#8a-csv-export) already has the `ValidFromUtc` and `ValidUntilUtc` columns for the same reports.
 - The IAVCEI volcano number (`Volcano.IavceiNumber`) is written as the property `iavceiNumber` on volcano features (VONA, QVACI, WAFS and compact SIGWX) when the source gives a number; the property is omitted when the value is null: always for SIGMET volcanoes (their `metce:Volcano` never carries it) and for any other volcano whose number is absent or nil. Earlier previews wrote it as `wmoNumber`.
 - VONA and QVACI `VOLCANO` features also carry the volcano `activityStatus` (the enum name, e.g. `DecreasedActivity`) and `sourceElevation` with its `sourceElevationUom` / `sourceElevationReference` companions, when the source reports them; `Volcano.ActivityStatus` and `Volcano.SourceElevation` are filled for WAFS SIGWX, VONA and QVACI volcanoes (never for SIGMET and VAA, whose `metce:Volcano` has only a name and a position).
 - QVACI features: the `ASH_CONCENTRATION_CLOUD` feature carries `ashDensityEqualsOrExceedsMgPerM3` (the official `ashDensityEqualsOrExceeds`, a lower bound: the density within the cloud equals or exceeds it, higher values are possible) and the `VOLCANO` feature carries `originatingCentreName` (`aixm:name` of the originating centre, or its designator when it has no name). These were `ashDensityMgPerM3` and `originatingCentre` in earlier previews.
+- **Jet stream core points** (`JETSTREAM_CORE_POINT` features, one per wind symbol) carry `parentJetStreamId`, the level of the maximum wind (`level`, `levelUom`, `levelReference`), the wind (`windSpeed`, `windSpeedUom`) and, right after `windSpeedUom`, the levels of the 80 kt isotach below and above it: `lowerIsotachLevel` and `upperIsotachLevel`, each with the companions of every vertical limit (`...Uom`, `...Reference`; `...SpecialValue`, `...NilReason` and `...FlightLevel` when they apply), written as reported with no unit conversion. A key is written only when the symbol reports that limit (`JetStreamCorePoint.LowerIsotachLimit` and `UpperIsotachLimit`), so a symbol without isotach levels has none of the keys. In the official WAFS example 2 of the 5 symbols have them; in the large-scale sample above 231 of the 1850. The GeoPackage `properties` column is the same JSON text, so it carries the same keys with no change to the table layout. The CSV export does not include the isotach levels: its `LowerLimit` and `UpperLimit` columns of a core point row both hold the level of the symbol, and the isotach levels would need new columns.
 - `NaN` and `Infinity` are never written; a non-finite property is written as `null`.
 - A `Tca` gets a synthesized `TC_TRACK` `LineString` joining the observed and forecast cyclone positions.
 - Measures are emitted **as reported**: a value plus a sibling `...Uom` property with the UCUM unit (`"windSpeed": 25, "windSpeedUom": "[kn_i]"`, `"maxWindSpeed"` / `"maxWindSpeedUom"`, `"speedOfMotion"` / `"speedOfMotionUom"`, `"sourceElevation"` / `"sourceElevationUom"`). WMO BUFR codes are written both as the enum name and as the official number (`distributionCode` and `distributionNumericCode`, `typeCode` and `typeNumericCode`, `degree` and `degreeNumericCode`).
@@ -449,14 +452,174 @@ qvaci: 7080 characters
         "reportId": "uuid.ce3b61b9-d360-4da1-83b9-67e668406869",
         "reportType": "SignificantWeather",
         "issueTimeUtc": "2001-01-30T21:00:00.0000000+00:00",
+        "validFromUtc": "2001-01-31T00:00:00.0000000+00:00",
+        "validUntilUtc": "2001-02-01T18:00:00.0000000+00:00",
         "coreLevel": 15240,
         "coreLevelUom": "M",
         "coreLevelReference": "MSL",
         "maxWindSpeed": 61.8,
         "maxWindSpeedUom": "m/s"
       }
-    },
 ```
+
+---
+
+## GeoPackage tables and columns
+
+The optional package `Iwxxm.Net.Export.GeoPackage` writes an OGC GeoPackage (see [section 8B of the guide](GUIDE.md#8b-geopackage-export) for the API, the options and the notes for .NET Framework). This section is the layout of the file. Every table is in WGS 84 (EPSG:4326, x = longitude, y = latitude), and rows are written in the order of the features of the GeoJSON export, so `fid` follows that order (1, 2, 3, ...) within a table.
+
+### File header and mandatory tables
+
+| Item | Value |
+| :--- | :--- |
+| `application_id` | `0x47504B47` (`GPKG`) |
+| `user_version` | `10400` for `GeoPackageVersion.Version14` (default), `10300` for `Version13` |
+| `gpkg_spatial_ref_sys` | Three rows: `-1` (undefined Cartesian), `0` (undefined geographic) and `4326` (WGS 84, `EPSG`, the WKT 1 definition) |
+| `gpkg_contents` | One row per data table. `identifier` is the table name. Features tables: `data_type` `features`, `srs_id` 4326, `min_x`, `min_y`, `max_x`, `max_y` the plain minimum and maximum of the stored coordinates. Attributes tables: `data_type` `attributes`, `srs_id` 0, extent `NULL`. `last_change` is `yyyy-MM-ddTHH:mm:ss.fffZ` in UTC: the `LastChangeUtc` option, else the issue time of the document, else `1970-01-01T00:00:00.000Z`. |
+| `gpkg_geometry_columns` | One row per features table: column `geom`, the geometry type name of the table, `srs_id` 4326, `z` 0, `m` 0 |
+
+Written only with the default `GeoPackageContent.SchemaExtension`: `gpkg_extensions`, `gpkg_data_columns` and `gpkg_data_column_constraints` (see [The schema extension](#the-schema-extension-gpkg_schema)). Never written: `gpkg_metadata` and its reference table, `gpkg_ogr_contents`, triggers, R-tree index tables, tile and raster tables.
+
+### Data tables
+
+| Table | `gpkg_contents.data_type` | Geometry column | Rows |
+| :--- | :--- | :--- | :--- |
+| `iwxxm_points` | `features` | `geom POINT NOT NULL` | Features with a point geometry. Created only when it has rows. |
+| `iwxxm_lines` | `features` | `geom MULTILINESTRING NOT NULL` | Features with a line geometry (a `LineString` is stored as a `MultiLineString` of one member). Created only when it has rows. |
+| `iwxxm_polygons` | `features` | `geom MULTIPOLYGON NOT NULL` | Features with a polygon geometry (a `Polygon` is stored as a `MultiPolygon` of one member; circles are the densified polygons of the GeoJSON export). Created only when it has rows. |
+| `iwxxm_attributes` | `attributes` | none | Features that have no geometry. Always created, possibly empty. |
+| `iwxxm_reports` | `attributes` | none | One row per report: a standalone report gives one row, a bulletin one per contained report. |
+| `iwxxm_metadata` | `attributes` | none | Key/value rows of the file. |
+
+### Columns of the feature and attribute tables
+
+`iwxxm_points`, `iwxxm_lines`, `iwxxm_polygons` and `iwxxm_attributes` share these columns (`iwxxm_attributes` has no `geom`):
+
+| Column | Type | Content |
+| :--- | :--- | :--- |
+| `fid` | `INTEGER PRIMARY KEY NOT NULL` | Row id, in feature order. |
+| `geom` | `POINT`, `MULTILINESTRING` or `MULTIPOLYGON`, `NOT NULL` | `StandardGeoPackageBinary`: header `GP`, version 0, flags `0x01` for a point (little-endian, no envelope) or `0x03` for lines and polygons (little-endian, envelope `[minx, maxx, miny, maxy]`), SRS id 4326, then little-endian WKB. 2D only. |
+| `feature_id` | `TEXT` | The GeoJSON feature `id`; `NULL` when the feature has none. |
+| `feature_type` | `TEXT` | The `featureType` property (for example `METAR_OBSERVATION`, `SIGMET_EVOLVING_VOLUME`, `JETSTREAM`). |
+| `report_id` | `TEXT` | The `reportId` property: the id of the report the feature belongs to. |
+| `report_type` | `TEXT` | The `reportType` property: the name of `IwxxmReportType` (for example `Metar`, `TropicalCycloneSigmet`). |
+| `bulletin_identifier` | `TEXT` | The bulletin identifier for a feature of a report inside a bulletin; `NULL` otherwise. |
+| `issue_time_utc` | `DATETIME` | The `issueTimeUtc` property as `yyyy-MM-ddTHH:mm:ss.fffZ`; `NULL` when absent. |
+| `valid_from_utc` | `DATETIME` | The `validFromUtc` property in the same format; `NULL` when the property is absent: the feature belongs to a report that has no validity period (VAA, TCA, VONA, QVACI, space weather, METAR, SPECI) or does not state this bound. |
+| `valid_until_utc` | `DATETIME` | The `validUntilUtc` property, with the same rules. |
+| `properties` | `TEXT NOT NULL` | The GeoJSON `properties` object as compact JSON, the same text and key order as the GeoJSON export (a negative zero is `-0` on .NET and `0` on .NET Framework and Mono, as in the GeoJSON export). Properties whose value is null are omitted, and a non-finite number is written as `null`, as there. |
+
+The columns `feature_type`, `report_id`, `report_type`, `bulletin_identifier`, `issue_time_utc`, `valid_from_utc` and `valid_until_utc` are read from the same properties object that is written to `properties`, so the column and the JSON cannot disagree. A feature that lacks one of those properties leaves its column `NULL`.
+
+### `iwxxm_reports`
+
+| Column | Type | Content |
+| :--- | :--- | :--- |
+| `fid` | `INTEGER PRIMARY KEY NOT NULL` | Row id, in report order. |
+| `report_id` | `TEXT NOT NULL` | The report id. |
+| `report_type` | `TEXT NOT NULL` | The `IwxxmReportType` name. |
+| `report_status` | `TEXT NOT NULL` | The report status code (for example `NORMAL`). |
+| `permissible_usage` | `TEXT NOT NULL` | The permissible usage code (for example `OPERATIONAL`). |
+| `permissible_usage_reason` | `TEXT` | The permissible usage reason code (`TEST` or `EXERCISE`) when the report has one; `NULL` otherwise. The same value as `permissibleUsageReason` in the GeoJSON metadata of that report. |
+| `permissible_usage_supplementary` | `TEXT` | The free supplementary text of the permissible usage when the report has one; `NULL` otherwise (`permissibleUsageSupplementary` in the GeoJSON metadata). |
+| `issue_time_utc` | `DATETIME NOT NULL` | The issue time, `yyyy-MM-ddTHH:mm:ss.fffZ`. |
+| `valid_from_utc` | `DATETIME` | The start of the validity period of this report (`Sigwx`, `Sigmet`, `Airmet` and `Taf`: `ValidFromUtc`), in the same format; `NULL` when the report has no validity period in the model or does not state the start. In a bulletin it is the period of that report, never of the bulletin. The period of a cancelled report is not used. |
+| `valid_until_utc` | `DATETIME` | The end of the validity period of this report (`ValidUntilUtc`), with the same rules. |
+| `bulletin_identifier` | `TEXT` | The bulletin identifier, for a report inside a bulletin; `NULL` otherwise. |
+
+### `iwxxm_metadata`
+
+| Column | Type | Content |
+| :--- | :--- | :--- |
+| `fid` | `INTEGER PRIMARY KEY NOT NULL` | Row id. |
+| `key` | `TEXT NOT NULL UNIQUE` | One of the keys below. |
+| `value` | `TEXT NOT NULL` | The value. |
+
+| Key | Value |
+| :--- | :--- |
+| `geopackage_version` | `1.3` or `1.4` |
+| `library_version` | The version of `Iwxxm.Net.Export.GeoPackage` that wrote the file |
+| `source_document_id` | The id of the exported document |
+| `source_document_type` | The `IwxxmReportType` name of the document (`MeteorologicalBulletin` for a bulletin) |
+| `bulletin_identifier` | Only for a bulletin that has a non-blank identifier |
+| `report_count` | The number of rows of `iwxxm_reports` |
+
+The rows are written in the order of the table above: five rows, or six for a bulletin that has a non-blank identifier (a bulletin with a blank identifier gets the five rows).
+
+### The schema extension (`gpkg_schema`)
+
+With the default options (`GeoPackageContent.SchemaExtension`) the file has the `gpkg_schema` extension of the GeoPackage standard (1.4, Annex F). With `GeoPackageContent.None` none of the three tables below exists and nothing else changes: the tables above are the same, row for row, with and without it.
+
+| Table | Content |
+| :--- | :--- |
+| `gpkg_extensions` | Created with the standard definition. Two rows, in this order: `gpkg_data_columns` and `gpkg_data_column_constraints`, both with `column_name` `NULL`, `extension_name` `gpkg_schema`, `definition` `http://www.geopackage.org/spec121/#extension_schema` and `scope` `read-write`. |
+| `gpkg_data_columns` | One row for every column of every data table the file has (`fid` and `geom` included), table by table in the order `iwxxm_points`, `iwxxm_lines`, `iwxxm_polygons`, `iwxxm_attributes`, `iwxxm_reports`, `iwxxm_metadata`, and column by column in table order. `constraint_name` is `NULL` everywhere and `mime_type` is `NULL` except for `properties`, which has `application/json`. |
+| `gpkg_data_column_constraints` | Created empty (Requirement 141 asks for both tables); no column has an enumerated or ranged constraint. |
+
+How the readers use the columns of `gpkg_data_columns`, as observed with GDAL 3.13 and QGIS 4.5:
+
+| Column | GDAL | QGIS |
+| :--- | :--- | :--- |
+| `name` | The alternative name of the field | The alias of the field, shown instead of the column name (unique within a table: the standard makes `(table_name, name)` unique; GDAL drops an alias that only repeats the column name, so none does) |
+| `description` | The comment of the field | The comment of the field (the tooltip) |
+| `title` | Not read | Not read |
+| `mime_type` `application/json` | The field is a string with the JSON subtype | The field is a JSON field |
+
+**The JSON type is a convention of GDAL and QGIS, not of the GeoPackage standard.** The standard lists `mime_type` as a free MIME type of the column and does not say what a reader does with `application/json`; a reader that does not know the convention shows `properties` as text. The SQL type of `properties` stays `TEXT` on purpose: declaring a column `JSON` is not recognised by GDAL, which then ignores the column. **`gpkg_schema` has the scope `read-write` in the standard**, which means that software that does not implement it should neither read nor write what it covers (the two `gpkg_data_*` tables). A strict reader or validator may therefore refuse the file: write it with `GeoPackageContent.None` for such a reader (`new GeoPackageExportOptions(GeoPackageVersion.Version14, null, GeoPackageContent.None)`).
+
+The text of every row is kept in one place in the code and a test checks that every column of every data table has exactly one row and that no row describes a column that does not exist. These are the rows (`title` is the label, `description` the comment):
+
+**`iwxxm_points`, `iwxxm_lines`, `iwxxm_polygons` and `iwxxm_attributes`** (`iwxxm_attributes` has no `geom`):
+
+| Column | `name` (alias) | `title` | `description` |
+| :--- | :--- | :--- | :--- |
+| `fid` | Row ID | Row identifier | Row identifier, numbered in the order of the features of the document |
+| `geom` | Geometry | Geometry | (see below) |
+| `feature_id` | Feature ID | Feature identifier | Identifier of the feature (the id of the GeoJSON feature); NULL when the feature has none |
+| `feature_type` | Feature type | Feature type | Kind of feature, for example METAR_OBSERVATION, SIGMET_EVOLVING_VOLUME or JETSTREAM |
+| `report_id` | Report ID | Report identifier | Identifier of the report the feature belongs to |
+| `report_type` | Report type | Report type | Type of the report the feature belongs to, for example Metar or TropicalCycloneSigmet |
+| `bulletin_identifier` | Bulletin ID | Bulletin identifier | Identifier of the bulletin that contains the report; NULL when the report is not in a bulletin |
+| `issue_time_utc` | Issue time | Issue time (UTC) | Issue time of the report (UTC) |
+| `valid_from_utc` | Valid from | Validity start (UTC) | Start of the validity period of the report (UTC); NULL when the report has none or does not state it |
+| `valid_until_utc` | Valid until | Validity end (UTC) | End of the validity period of the report (UTC); NULL when the report has none or does not state it |
+| `properties` | Properties (JSON) | Feature properties | All properties of the feature as a JSON object, the same text as the properties member of the GeoJSON export |
+
+`geom` has the `description` "Point geometry, longitude and latitude in decimal degrees (WGS 84, EPSG:4326)" in `iwxxm_points`, "Line geometry (MultiLineString), longitude and latitude in decimal degrees (WGS 84, EPSG:4326)" in `iwxxm_lines` and "Polygon geometry (MultiPolygon), longitude and latitude in decimal degrees (WGS 84, EPSG:4326)" in `iwxxm_polygons`.
+
+**`iwxxm_reports`:**
+
+| Column | `name` (alias) | `title` | `description` |
+| :--- | :--- | :--- | :--- |
+| `fid` | Row ID | Row identifier | Row identifier, numbered in the order of the reports of the document |
+| `report_id` | Report ID | Report identifier | Identifier of the report |
+| `report_type` | Report type | Report type | Type of the report, for example Metar or TropicalCycloneSigmet |
+| `report_status` | Status | Report status | Status code of the report, for example NORMAL |
+| `permissible_usage` | Usage | Permissible usage | Permissible usage code of the report, for example OPERATIONAL |
+| `permissible_usage_reason` | Usage reason | Permissible usage reason | Reason code (TEST or EXERCISE) of a non-operational report; NULL when the report has none |
+| `permissible_usage_supplementary` | Usage note | Permissible usage supplementary text | Free text that supplements the permissible usage; NULL when the report has none |
+| `issue_time_utc` | Issue time | Issue time (UTC) | Issue time of the report (UTC) |
+| `valid_from_utc` | Valid from | Validity start (UTC) | Report validity start (UTC); NULL when the report has no validity period or does not state it |
+| `valid_until_utc` | Valid until | Validity end (UTC) | Report validity end (UTC); NULL when the report has no validity period or does not state it |
+| `bulletin_identifier` | Bulletin ID | Bulletin identifier | Identifier of the bulletin that contains the report; NULL when the report is not in a bulletin |
+
+**`iwxxm_metadata`:**
+
+| Column | `name` (alias) | `title` | `description` |
+| :--- | :--- | :--- | :--- |
+| `fid` | Row ID | Row identifier | Row identifier, numbered in the order the keys are written |
+| `key` | Entry key | Key | Name of the entry: geopackage_version, library_version, source_document_id, source_document_type, bulletin_identifier or report_count |
+| `value` | Entry value | Value | Value of the entry |
+
+### Limits of the export
+
+The failure message of `GEOPACKAGE-EXPORT-ERROR` can contain host paths, library locations and the text of an internal exception; when the innermost exception differs from the one thrown, the message ends with its type and message in brackets, which can name the same. Log the message; do not return it to end users. `ExportToBytes` uses the shared temporary directory (use `Export` with a private directory on a multi-user host). `OutOfMemoryException` is not converted to a result. Two exports to the same path are not supported, and a target, existing or not, with a `-wal` or `-journal` file next to it is not published to. The path is not confined and a symbolic link at the path is replaced; on Unix the new file keeps its own mode and owner. The directory is not flushed to disk. A killed process can leave a hidden `.iwxxm-*.tmp` file. A network share without reliable locking is not supported.
+
+**Windows leftovers.** The old file is first moved to `.<name>.<guid>.bak` next to the target. If the swap fails after that, the target is absent, the new file is kept as `.iwxxm-<hex>.tmp`, the old one as the `.bak` file, and the error message names the kept paths (so "the target is left as it was" and "no temporary file is left behind" do not hold in this case). If the swap succeeded but the `.bak` file cannot be deleted because the old file was still held open, the export succeeds and the `.bak` file is left next to the target. On Linux and macOS the swap is a single rename and neither happens. The [guide](GUIDE.md#limits-and-things-to-know) has the details.
+
+### Compatibility checks
+
+Files written by the package were opened with GDAL (`ogrinfo -al`) and checked with GDAL's GeoPackage validator (`validate_gpkg.py --extra --warning-as-error`), with `PRAGMA integrity_check` and `foreign_key_check`; for the files with the schema extension also that GDAL reports the JSON subtype of `properties` and a non-empty alias and comment on every GDAL field (the exact alias is compared only for the three time columns; `fid` and the geometry column are not GDAL fields and are checked only through their `gpkg_data_columns` rows), and three files written with `GeoPackageContent.None` must be part of the run and are checked without those field checks. The repository keeps those checks as `tools/validate-geopackage-file.sh` (every sample, through a pinned GDAL container image) and `tools/validate-geopackage-geometry.sh` (the geometry blobs against GDAL's reading of them); they are not part of the unit tests and need podman.
 
 ---
 
@@ -716,6 +879,7 @@ The library emits exactly these strings and refers to them through the constants
 | `MAPPER-ERROR` | A document mapper threw or returned nothing. For a bulletin, the code is reported as the item error of that one entry and the other entries are kept. | Bug in a custom `ISigwxDocumentMapper` or report mapper. |
 | `GEOJSON-EXPORT-ERROR` | The GeoJSON exporter threw or returned nothing (`*ToGeoJson` members of the parser, `IwxxmGeoJsonExporter.Export` and `ToGeoJson`). The error is located at the document id. | Bug in a custom exporter. |
 | `CSV-EXPORT-ERROR` | The CSV exporter threw or returned nothing (`*ToCsv` members of the parser, `IwxxmCsvExporter.Export` and `ToCsv`). The error is located at the document id. | Bug in a custom exporter. |
+| `GEOPACKAGE-EXPORT-ERROR` | The GeoPackage file could not be written (`Iwxxm.Net.Export.GeoPackage` package: `IwxxmGeoPackageExporter.Export`, `ExportToBytes`, `ToGeoPackage`, `ToGeoPackageBytes`, and the `ProcessToGeoPackage`, `ProcessFileToGeoPackage`, `ParseToGeoPackage` and `ParseFileToGeoPackage` members for the parser). The path is empty or invalid, its directory does not exist, it is a directory or is not writable, the target, existing or not, has a `-wal` or `-journal` file next to it, the installed `Iwxxm.Net` is not the version the add-on was built against, or the exporter failed. The error is located at the document id, and the target is left as it was before the call (one exception on Windows, see [Limits of the export](#limits-of-the-export)); the message can contain host paths and ends with the innermost exception type and message when that is a different exception from the one thrown. The value is the constant `GeoPackageErrorCodes.ExportError` of that package. | Fix the path or its permissions; the message names the cause. |
 | `ACL-EMPTY-ENVELOPE` | The deserialized SIGWX envelope holds no report instance. | Empty `iwxxm:report` wrapper. |
 
 ### Metadata, time and measures (`DomainMapping`)
@@ -882,10 +1046,11 @@ Consumers never need a layer name in a `using` directive:
 
 | Namespace | Contents |
 | :--- | :--- |
-| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes`, `ValidationSeverity`, and the `UseOfficialSchematron()` extension of the optional Saxon package |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmSigwxParser`, `IwxxmGeoJsonExporter`, `IwxxmCsvExporter`), composition root (`IwxxmParserBuilder`), options (`IwxxmParserOptions`, `GeoJsonExportOptions`, `CsvExportOptions`), `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes`, `ValidationSeverity`, and the `UseOfficialSchematron()` extension of the optional Saxon package |
 | `Iwxxm.Net.Reports` | Domain model: the closed hierarchy (`IwxxmDocument`, `IwxxmReport`, `MeteorologicalBulletin`, `IIwxxmDocumentVisitor<TResult>`, `AerodromeObservation`, `Metar`, `Speci`, `Taf`, `Sigmet`, `Airmet`, `Vona`, `Qvaci`, `Vaa`, `Tca`, `SpaceWx`, `Sigwx`) and the value objects |
 | `Iwxxm.Net.Extensibility` | The `ISchematronValidator` port for custom business-rule engines and `IwxxmDocumentContext` |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
+| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion`, `GeoPackageContent`, `GeoPackageErrorCodes` (optional package). Its parser members (`ProcessToGeoPackage`, `ProcessFileToGeoPackage`, `ParseToGeoPackage`, `ParseFileToGeoPackage`) are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`. |
 
 Everything else (`Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*`, `Iwxxm20252.Generated`) is `internal`.
 
@@ -920,6 +1085,7 @@ src/Iwxxm.Net/
 └── Presentation/               # Facades running the pipeline over outbound ports                   (ns Iwxxm.Net)
 
 src/Iwxxm.Net.Validation.Saxon/ # Optional driven adapter package (net10.0): ISchematronValidator over SaxonCS-HE
+src/Iwxxm.Net.Export.GeoPackage/ # Optional export package (netstandard2.0): GeoPackage writer over Microsoft.Data.Sqlite, reads the features of the core GeoJSON collector
 ```
 
 The rules checked by `HexagonalArchitectureTests`: Domain depends on nothing outside the Domain; Application depends only on Domain; Presentation never depends on Infrastructure or `System.Xml`; Infrastructure is reached only through the composition root and never calls facades; `Iwxxm20252.Generated` and Infrastructure types are not public; public types live only in the documented namespaces; every root-namespace type is assigned to a layer; and `Iwxxm.Net` has zero third-party runtime dependencies. See [CONTRIBUTING.md](../CONTRIBUTING.md#hexagonal-architecture-rules) for the contributor view.

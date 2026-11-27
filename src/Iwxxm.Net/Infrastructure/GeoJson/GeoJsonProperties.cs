@@ -33,6 +33,23 @@ namespace Iwxxm.Net.Infrastructure.GeoJson
             return list;
         }
 
+        /// <summary>
+        /// Builds the base properties followed by the validity period of the report (<c>validFromUtc</c>, <c>validUntilUtc</c>,
+        /// the same keys and format as the TAF); an absent bound is left out of the output.
+        /// </summary>
+        public static List<(string Key, object? Value)> CreateBase(
+            IwxxmReport report,
+            string featureType,
+            string? bulletinId,
+            DateTimeOffset? validFromUtc,
+            DateTimeOffset? validUntilUtc)
+        {
+            var list = CreateBase(report, featureType, bulletinId);
+            list.Add(("validFromUtc", FormatInstant(validFromUtc)));
+            list.Add(("validUntilUtc", FormatInstant(validUntilUtc)));
+            return list;
+        }
+
         /// <summary>Formats an instant as ISO 8601 round-trip text (<c>O</c>, invariant culture).</summary>
         public static string FormatInstant(DateTimeOffset instant) => instant.ToString("O", CultureInfo.InvariantCulture);
 

@@ -6,7 +6,7 @@
 [![Target frameworks](https://img.shields.io/badge/targets-netstandard2.0%20%7C%20netstandard2.1-purple)](https://learn.microsoft.com/en-us/dotnet/standard/net-standard)
 [![.NET SDK](https://img.shields.io/badge/build%20SDK-.NET%2010-512bd4)](global.json)
 
-`Iwxxm.Net` reads the XML, checks it against the official WMO schemas and rules, and hands you a small, immutable, strongly typed domain model, or an RFC 7946 GeoJSON document. It has **no third-party runtime dependencies** and runs from .NET Framework 4.6.1 to .NET 10 (`netstandard2.0` and `netstandard2.1`).
+`Iwxxm.Net` reads the XML, checks it against the official WMO schemas and rules, and hands you a small, immutable, strongly typed domain model, or an RFC 7946 GeoJSON document, RFC 4180 CSV, or (with an optional package) an OGC GeoPackage file. It has **no third-party runtime dependencies** and runs from .NET Framework 4.6.1 to .NET 10 (`netstandard2.0` and `netstandard2.1`).
 
 New here? Start with the **[Getting started guide](docs/GUIDE.md)**: a progressive tour with runnable examples, diagrams, and worked examples that read jet streams and cumulonimbus clouds from an official WAFS chart.
 
@@ -16,7 +16,8 @@ New here? Start with the **[Getting started guide](docs/GUIDE.md)**: a progressi
 - **Honest data**: nothing is invented. A missing value is `null`; speeds and lengths keep their reported unit (`Speed`, `Length`); vertical limits keep unit and reference (`VerticalLimit`: FL, MSL, SFC); WMO code lists become typed `CodeListValue<T>` that never drop an unknown code.
 - **Failures are values**: every operation returns a `Result<T>` with structured, stable error codes (`IwxxmErrorCodes` for the ones you branch on) and warnings; only argument mistakes throw.
 - **Safe by default**: no DTDs, no external resolution, size and character limits, no network or file-system access at runtime. All schemas, rules and code lists are embedded.
-- **Native RFC 7946 GeoJSON export**, with circles, polygon holes, antimeridian handling and measures written as reported.
+- **Native RFC 7946 GeoJSON export**, with circles, polygon holes, antimeridian handling and measures written as reported, and an RFC 4180 CSV export with OGC WKT geometries.
+- **Optional OGC GeoPackage export** (`Iwxxm.Net.Export.GeoPackage`): the features of the GeoJSON export in a `.gpkg` file that QGIS and GDAL open, one table per geometry kind plus the reports and the document metadata. It brings SQLite as a dependency; the core stays dependency-free.
 - **Hexagonal architecture** with a public Schematron port (`Iwxxm.Net.Extensibility`) to replace the business-rule engine (the other adapters are internal); the layer rules are enforced by tests.
 
 ### Validation scope
@@ -60,6 +61,7 @@ Install directly from NuGet.org:
 ```bash
 dotnet add package Iwxxm.Net
 dotnet add package Iwxxm.Net.Validation.Saxon   # optional: the complete official Schematron
+dotnet add package Iwxxm.Net.Export.GeoPackage  # optional: export to OGC GeoPackage (.gpkg); brings SQLite
 ```
 
 If your environment does not have `nuget.org` configured as a source, add it once:
@@ -72,6 +74,13 @@ dotnet nuget add source "https://api.nuget.org/v3/index.json" --name "nuget.org"
 | :--- | :--- | :--- |
 | `Iwxxm.Net` | `netstandard2.0`, `netstandard2.1` | none |
 | `Iwxxm.Net.Validation.Saxon` | `net10.0` | `Iwxxm.Net`, `SaxonCS-HE` 13.1.0 (MPL-2.0, with its own transitive dependencies) |
+| `Iwxxm.Net.Export.GeoPackage` | `netstandard2.0` | `Iwxxm.Net`, `Microsoft.Data.Sqlite` 10.0.15 (MIT), which brings SQLitePCLRaw 2.1.13 (Apache-2.0) and the native SQLite binaries |
+
+**`Iwxxm.Net.Export.GeoPackage` is not part of a release yet** (it is listed under `Unreleased` in the [changelog](CHANGELOG.md)), so it is not on NuGet.org until the next tag that includes it; until then, build it from source (`dotnet pack src/Iwxxm.Net.Export.GeoPackage`).
+
+**Version coupling.** The add-on reads internals of `Iwxxm.Net` that only the version it was built against makes visible to it. It requires `Iwxxm.Net` of the version it ships with and never works with `Iwxxm.Net` 1.0.0, which does not grant that access (an export then fails with `GEOPACKAGE-EXPORT-ERROR` and a message that says so). The two packages are released together with the same new version.
+
+**Size of the GeoPackage package.** The package itself is small, but restoring it downloads about 19 MB, 95% of it the native SQLite libraries for every supported platform (`SQLitePCLRaw.lib.e_sqlite3`). They end up in the application's `runtimes/` folder. Applications that do not export GeoPackages should not reference it. On .NET Framework there are extra steps; read [the notes in the guide](docs/GUIDE.md#net-framework-and-native-sqlite) before relying on it there.
 
 Building from source needs the **.NET 10 SDK** (see [`global.json`](global.json)).
 
@@ -129,14 +138,32 @@ The wind arrived in metres per second and stays that way until *you* ask for kno
 
 The facade constructors are `internal`; `ISchematronValidator` and `IwxxmDocumentContext` are the only public extension points. Details in the [guide](docs/GUIDE.md#which-entry-point-do-i-use).
 
-To export GeoJSON, validate with the full official rule set, or tighten the security limits, see the guide's sections on [GeoJSON](docs/GUIDE.md#8-geojson-export), [validation levels](docs/GUIDE.md#5-validation-levels) and [options](docs/GUIDE.md#6-options-and-security-limits).
+To export GeoJSON, CSV or GeoPackage, validate with the full official rule set, or tighten the security limits, see the guide's sections on [GeoJSON](docs/GUIDE.md#8-geojson-export), [CSV](docs/GUIDE.md#8a-csv-export), [GeoPackage](docs/GUIDE.md#8b-geopackage-export), [validation levels](docs/GUIDE.md#5-validation-levels) and [options](docs/GUIDE.md#6-options-and-security-limits).
+
+### Export to GeoPackage
+
+With `Iwxxm.Net.Export.GeoPackage` installed, parse and write a `.gpkg` file in one call. The result holds the full path of the file, or the usual failure values (`GEOPACKAGE-EXPORT-ERROR` when the file cannot be written):
+
+```csharp
+using System;
+using System.IO;
+using Iwxxm.Net;
+
+Result<string> result = IwxxmParserGeoPackageExtensions.ParseFileToGeoPackage("samples/sigmet-A6-2-TC.xml", "sigmet.gpkg");
+Console.WriteLine(result.IsSuccess ? $"written: {Path.GetFileName(result.Value)}" : result.Errors[0].ToString());
+```
+```output
+written: sigmet.gpkg
+```
+
+The file has `iwxxm_points`, `iwxxm_lines` and `iwxxm_polygons` tables (only those that have rows), an `iwxxm_attributes` table for features without geometry, and `iwxxm_reports` and `iwxxm_metadata`. Each feature row keeps the GeoJSON properties as JSON text, with the issue time and, for SIGWX, SIGMET, AIRMET and TAF, the validity period in `DATETIME` columns. By default the file also has the `gpkg_schema` extension (an alias, a title and a description for every column, and the JSON type of `properties`, which GDAL and QGIS read as field aliases, comments and a JSON field); pass `GeoPackageContent.None` in the options to leave it out for a strict reader. The output is deterministic: no timestamp comes from the clock. Table layout, options, the .NET Framework requirements and what is not included are in the [guide](docs/GUIDE.md#8b-geopackage-export) and the [reference](docs/REFERENCE.md#geopackage-tables-and-columns).
 
 ## Documentation
 
 | Document | What is in it |
 | :--- | :--- |
-| [Getting started guide](docs/GUIDE.md) | A didactic tour: pipeline, `Result<T>`, document types, validation, value objects, and worked SIGWX (jet streams, clouds), METAR/TAF and SIGMET examples. |
-| [Reference](docs/REFERENCE.md) | One example per product family, the composition root and ports, the complete error-code table (every stable code, checked against the source by a test), value-object catalogue and namespace map. |
+| [Getting started guide](docs/GUIDE.md) | A didactic tour: pipeline, `Result<T>`, document types, validation, GeoJSON, CSV and GeoPackage export, value objects, and worked SIGWX (jet streams, clouds), METAR/TAF and SIGMET examples. |
+| [Reference](docs/REFERENCE.md) | One example per product family, the composition root and ports, the GeoPackage table layout, the complete error-code table (every stable code, checked against the source by a test), value-object catalogue and namespace map. |
 | [Documentation index](docs/README.md) | The map of everything under `docs/`. |
 | [Contributing](CONTRIBUTING.md) | Pull request workflow, local setup, architecture rules, how to add a report family, golden-master tests. |
 | [Code of conduct](CODE_OF_CONDUCT.md) | Contributor Covenant v2.1 community standards and reporting guidelines. |
@@ -144,16 +171,17 @@ To export GeoJSON, validate with the full official rule set, or tighten the secu
 | [Third-party notices](THIRD-PARTY-NOTICES.md) | Licences and notices of the schemas, code lists, rules and packages that are redistributed or depended on. |
 | [Security policy](SECURITY.md) | Supported versions, how to report a vulnerability privately, scope and secure-usage guidance. |
 | [Changelog](CHANGELOG.md) | Release notes. |
-| [Demo console app](samples/Iwxxm.Net.Demo/README.md) | A small `net10.0` consumer (not part of the solution, CI or packages): parses any IWXXM file, prints its data, can export GeoJSON and can run the complete official Schematron (`--official-schematron`). |
+| [Demo console app](samples/Iwxxm.Net.Demo/README.md) | A small `net10.0` consumer (not part of the solution, CI or packages): parses any IWXXM file, prints its data, can export GeoJSON, CSV and GeoPackage (`--geopackage`) and can run the complete official Schematron (`--official-schematron`). |
 
 ## Public namespaces
 
 | Namespace | Contents |
 | :--- | :--- |
-| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmGeoJsonExporter`, and the optional SIGWX-only `IwxxmSigwxParser`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes` |
+| `Iwxxm.Net` | Facades (`IwxxmParser`, `IwxxmGeoJsonExporter`, `IwxxmCsvExporter`, and the optional SIGWX-only `IwxxmSigwxParser`), the composition root `IwxxmParserBuilder`, options, `Result<T>`, `ValidationError`, `ErrorCategory`, `IwxxmErrorCodes` |
 | `Iwxxm.Net.Reports` | The domain model: the closed document hierarchy and every value object |
 | `Iwxxm.Net.Extensibility` | `ISchematronValidator` and `IwxxmDocumentContext`, the extension point for custom business-rule engines |
 | `Iwxxm.Net.Validation.Saxon` | `OfficialSchematronValidator` (optional package) |
+| `Iwxxm.Net.Export.GeoPackage` | `IwxxmGeoPackageExporter`, `GeoPackageExportOptions`, `GeoPackageVersion`, `GeoPackageContent`, `GeoPackageErrorCodes` (optional package; its parser members are in `IwxxmParserGeoPackageExtensions`, namespace `Iwxxm.Net`) |
 
 Consumers never need a layer name in a `using` directive; `Iwxxm.Net.Application.*`, `Iwxxm.Net.Infrastructure.*` and `Iwxxm20252.Generated` are `internal`. The layer map is in the [reference](docs/REFERENCE.md#namespaces-and-layers).
 
@@ -193,4 +221,5 @@ Licensed under the [MIT License](LICENSE). The complete list of third-party mate
 
 - The embedded official WMO IWXXM schemas, Schematron rules and code lists, and the imported OGC, ISO, EUROCONTROL and W3C schemas, are redistributed unmodified; their upstream ReadMe and release notes ship under `schema-notices/` in the `Iwxxm.Net` package. Some of those upstream sources state no licence; the open points are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md#12-open-points-for-the-maintainer).
 - `Iwxxm.Net.Validation.Saxon` vendors **SchXslt 1.10.1** (Copyright (c) 2018-2021 David Maus, MIT License), shipped under `licenses/SchXslt/` in the package.
+- `Iwxxm.Net.Export.GeoPackage` depends on **Microsoft.Data.Sqlite 10.0.15** (MIT), which brings **SQLitePCLRaw 2.1.13** (Apache-2.0) and the native **SQLite** binaries; nothing of it is copied into this repository's packages, the consumer's restore downloads it. See section 7A of [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 - `Iwxxm.Net.Validation.Saxon` depends on **SaxonCS-HE 13.1.0** (Saxonica Ltd.). Its bundled `LICENSE.txt` states that SaxonCS-HE is distributed as an "executable form" of the open-source SaxonJ-HE product under the **Mozilla Public License 2.0** (file-level copyleft that applies to Saxon's own files, not to code that merely uses it). No Saxonica licence key is required for the Home Edition features used here.

@@ -17,7 +17,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
         {
             if (sigmet.EruptingVolcano != null)
             {
-                var vProps = CreateBase(sigmet, "ERUPTING_VOLCANO", bulletinId);
+                var vProps = CreateBase(sigmet, "ERUPTING_VOLCANO", bulletinId, sigmet.ValidFromUtc, sigmet.ValidUntilUtc);
                 vProps.Add(("name", sigmet.EruptingVolcano.Name));
                 vProps.Add(("iavceiNumber", sigmet.EruptingVolcano.IavceiNumber));
                 vProps.Add(("firDesignator", sigmet.FirDesignator));
@@ -28,12 +28,12 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
             string? phenomenonUri = CodeListTables.SigmetPhenomena.ToReference(sigmet.Phenomenon);
             foreach (var vol in sigmet.EvolvingConditions)
             {
-                AddVolumeFeatures(sigmet, "SIGMET_EVOLVING_VOLUME", sigmet.FirDesignator, sigmet.SequenceNumber, phenomenonUri, vol, bulletinId, features);
+                AddVolumeFeatures(sigmet, "SIGMET_EVOLVING_VOLUME", sigmet.ValidFromUtc, sigmet.ValidUntilUtc, sigmet.FirDesignator, sigmet.SequenceNumber, phenomenonUri, vol, bulletinId, features);
             }
 
             foreach (var vol in sigmet.ForecastPositions)
             {
-                AddVolumeFeatures(sigmet, "SIGMET_FORECAST_VOLUME", sigmet.FirDesignator, sigmet.SequenceNumber, phenomenonUri, vol, bulletinId, features);
+                AddVolumeFeatures(sigmet, "SIGMET_FORECAST_VOLUME", sigmet.ValidFromUtc, sigmet.ValidUntilUtc, sigmet.FirDesignator, sigmet.SequenceNumber, phenomenonUri, vol, bulletinId, features);
             }
         }
 
@@ -52,6 +52,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
                 AddVolumeFeatures(
                     airmet,
                     "AIRMET_EVOLVING_VOLUME",
+                    airmet.ValidFromUtc,
+                    airmet.ValidUntilUtc,
                     airmet.FirDesignator,
                     airmet.SequenceNumber,
                     phenomenonUri,
@@ -88,6 +90,8 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
         private static void AddVolumeFeatures(
             IwxxmReport report,
             string featureType,
+            DateTimeOffset? validFromUtc,
+            DateTimeOffset? validUntilUtc,
             string? firDesignator,
             string? sequenceNumber,
             string? phenomenonUri,
@@ -98,7 +102,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
         {
             if (vol.Area != null)
             {
-                var props = CreateBase(report, featureType, bulletinId);
+                var props = CreateBase(report, featureType, bulletinId, validFromUtc, validUntilUtc);
                 props.Add(("firDesignator", firDesignator));
                 props.Add(("sequenceNumber", sequenceNumber));
                 props.Add(("phenomenonUri", phenomenonUri));
@@ -115,7 +119,7 @@ namespace Iwxxm.Net.Infrastructure.GeoJson.Features
 
             if (vol.TropicalCycloneCentre.HasValue)
             {
-                var tcProps = CreateBase(report, "TROPICAL_CYCLONE_CENTRE", bulletinId);
+                var tcProps = CreateBase(report, "TROPICAL_CYCLONE_CENTRE", bulletinId, validFromUtc, validUntilUtc);
                 tcProps.Add(("firDesignator", firDesignator));
                 tcProps.Add(("sequenceNumber", sequenceNumber));
                 tcProps.Add(("phenomenonUri", phenomenonUri));

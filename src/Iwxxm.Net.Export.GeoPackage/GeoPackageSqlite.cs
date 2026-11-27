@@ -15,7 +15,8 @@ namespace Iwxxm.Net.Export.GeoPackage
         /// <remarks>
         /// Connection pooling is off: a pooled connection keeps the file open after <see cref="IDisposable.Dispose"/>, which
         /// on Windows prevents the caller from deleting or moving the file right after the export. No native library
-        /// initialization is needed: <c>Microsoft.Data.Sqlite</c> initializes its bundled SQLite on first use.
+        /// initialization is needed: <c>Microsoft.Data.Sqlite</c> initializes its bundled SQLite on first use. Foreign keys
+        /// are enforced, so rows must be inserted in the order the GeoPackage tables reference each other.
         /// </remarks>
         internal static SqliteConnection Open(string path)
         {
@@ -27,6 +28,7 @@ namespace Iwxxm.Net.Export.GeoPackage
                 DataSource = path,
                 Mode = SqliteOpenMode.ReadWriteCreate,
                 Pooling = false,
+                ForeignKeys = true,
             }.ToString();
 
             var connection = new SqliteConnection(connectionString);
@@ -40,6 +42,25 @@ namespace Iwxxm.Net.Export.GeoPackage
                 connection.Dispose();
                 throw;
             }
+        }
+
+        /// <summary>Creates a command that runs inside <paramref name="transaction"/>.</summary>
+        internal static SqliteCommand CreateCommand(SqliteTransaction transaction, string sql)
+        {
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            SqliteCommand command = transaction.Connection!.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = sql;
+            return command;
+        }
+
+        /// <summary>Runs a statement with no parameters (DDL, or a pragma with fixed text) inside <paramref name="transaction"/>.</summary>
+        internal static void Execute(SqliteTransaction transaction, string sql)
+        {
+            using (SqliteCommand command = CreateCommand(transaction, sql))
+                command.ExecuteNonQuery();
         }
     }
 }

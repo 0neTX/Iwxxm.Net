@@ -454,6 +454,9 @@ listed for completeness. Licence data comes from the nuspec files in the build c
 - The .NET SDK container image (`mcr.microsoft.com/dotnet/sdk`) used by the `Dockerfile`; Mono and the xunit console
   runner (`xunit.runner.console` 2.9.3, pinned by SHA-256) in the optional `net48-test` stage; GitHub Actions in
   `.github/workflows/`. None is part of the packages or the source tree.
+- The GDAL container image (`ghcr.io/osgeo/gdal`, pinned by tag and digest in `tools/validate-geopackage-file.sh` and
+  `tools/validate-geopackage-geometry.sh`) is pulled only when a maintainer runs those scripts to check the GeoPackage
+  files written by the tests. It is not part of the packages or the source tree; its licence was not read for this file.
 - `xscgen` (design-time helper, `.config/dotnet-tools.json`) is not restored by the build and writes only an optional
   reference scaffold.
 - Mermaid diagrams in the Markdown files are rendered by GitHub; no Mermaid code is stored.
