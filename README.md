@@ -61,7 +61,7 @@ Install directly from NuGet.org:
 ```bash
 dotnet add package Iwxxm.Net
 dotnet add package Iwxxm.Net.Validation.Saxon   # optional: the complete official Schematron
-dotnet add package Iwxxm.Net.Export.GeoPackage  # optional: export to OGC GeoPackage (.gpkg); brings SQLite
+dotnet add package Iwxxm.Net.Export.GeoPackage --version 1.1.0-rc.1  # optional, prerelease: export to OGC GeoPackage (.gpkg); brings SQLite
 ```
 
 If your environment does not have `nuget.org` configured as a source, add it once:
@@ -76,9 +76,9 @@ dotnet nuget add source "https://api.nuget.org/v3/index.json" --name "nuget.org"
 | `Iwxxm.Net.Validation.Saxon` | `net10.0` | `Iwxxm.Net`, `SaxonCS-HE` 13.1.0 (MPL-2.0, with its own transitive dependencies) |
 | `Iwxxm.Net.Export.GeoPackage` | `netstandard2.0` | `Iwxxm.Net`, `Microsoft.Data.Sqlite` 10.0.15 (MIT), which brings SQLitePCLRaw 2.1.13 (Apache-2.0) and the native SQLite binaries |
 
-**`Iwxxm.Net.Export.GeoPackage` is not part of a release yet** (it is listed under `Unreleased` in the [changelog](CHANGELOG.md)), so it is not on NuGet.org until the next tag that includes it; until then, build it from source (`dotnet pack src/Iwxxm.Net.Export.GeoPackage`).
+**`Iwxxm.Net.Export.GeoPackage` is published as a prerelease, `1.1.0-rc.1`**, together with `Iwxxm.Net` and `Iwxxm.Net.Validation.Saxon` `1.1.0-rc.1` (NuGet.org and GitHub Packages). Install it with `--version 1.1.0-rc.1` or `--prerelease`; the latest stable version of the other two packages is still `1.0.0`, which the add-on does not work with (see below), so when you also reference them, use the same prerelease version (`dotnet add package Iwxxm.Net --version 1.1.0-rc.1`).
 
-**Version coupling.** The add-on reads internals of `Iwxxm.Net` that only the version it was built against makes visible to it. It requires `Iwxxm.Net` of the version it ships with and never works with `Iwxxm.Net` 1.0.0, which does not grant that access (an export then fails with `GEOPACKAGE-EXPORT-ERROR` and a message that says so). The two packages are released together with the same new version.
+**Version coupling.** The add-on reads internals of `Iwxxm.Net` that only the version it was built against makes visible to it. Its dependency on `Iwxxm.Net` is a lower bound (`>= 1.1.0-rc.1`, the version it ships with), and it never works with `Iwxxm.Net` 1.0.0, which does not grant that access: NuGet restore refuses the combination (`NU1605`), and if that is silenced an export fails with `GEOPACKAGE-EXPORT-ERROR` and a message that says so (both checked with the published `1.1.0-rc.1`). The packages are released together with the same version.
 
 **Size of the GeoPackage package.** The package itself is small, but restoring it downloads about 19 MB, 95% of it the native SQLite libraries for every supported platform (`SQLitePCLRaw.lib.e_sqlite3`). They end up in the application's `runtimes/` folder. Applications that do not export GeoPackages should not reference it. On .NET Framework there are extra steps; read [the notes in the guide](docs/GUIDE.md#net-framework-and-native-sqlite) before relying on it there.
 
