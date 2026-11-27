@@ -705,10 +705,10 @@ What to know:
 A [GeoPackage](https://www.geopackage.org/) (`.gpkg`) is an OGC standard SQLite file that desktop GIS, GDAL and most spatial databases open directly. `Iwxxm.Net.Export.GeoPackage` is an **optional package** that writes any parsed document to one: the same features as the GeoJSON export, in tables, plus the reports and the document metadata. The core package stays dependency-free; this one depends on `Iwxxm.Net` and `Microsoft.Data.Sqlite`, and it is the only package of the family that brings native binaries (see [.NET Framework](#net-framework-and-native-sqlite) and the size note in the [README](../README.md#installation)).
 
 ```bash
-dotnet add package Iwxxm.Net.Export.GeoPackage
+dotnet add package Iwxxm.Net.Export.GeoPackage --version 1.1.0-rc.1
 ```
 
-The package is not part of a release yet, so it is not on NuGet.org: until a release includes it, build it from source (`dotnet pack src/Iwxxm.Net.Export.GeoPackage`). It reads internals of `Iwxxm.Net` that only the version it was built against makes visible, so it requires `Iwxxm.Net` of the version it ships with and never works with `Iwxxm.Net` 1.0.0; the two packages are released together with the same new version. With another core version an export fails with `GEOPACKAGE-EXPORT-ERROR` and a message that says the versions do not match.
+The package is published as a prerelease, `1.1.0-rc.1`, on NuGet.org and GitHub Packages, together with `Iwxxm.Net` and `Iwxxm.Net.Validation.Saxon` `1.1.0-rc.1` (`--prerelease` also finds it). Restoring it brings `Iwxxm.Net` `1.1.0-rc.1`; the latest stable `Iwxxm.Net` is `1.0.0`, so if you reference the core yourself use the same prerelease version. The add-on reads internals of `Iwxxm.Net` that only the version it was built against makes visible, and it never works with `Iwxxm.Net` 1.0.0; the two packages are released together with the same version, and the dependency in the package is a lower bound (`>= 1.1.0-rc.1`). With `Iwxxm.Net` 1.0.0 NuGet restore refuses the combination (`NU1605`), and if that is silenced an export fails with `GEOPACKAGE-EXPORT-ERROR` and a message that says the versions do not match.
 
 SQLite writes to a file, so the main operation takes a path. The `Result<string>` carries the full path of the file written.
 
